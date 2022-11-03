@@ -32,3 +32,4 @@ workflows:
   test:
     jobs:
       - test
+
