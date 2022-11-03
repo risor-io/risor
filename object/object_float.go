@@ -1,10 +1,9 @@
 package object
 
 import (
+	"fmt"
 	"hash/fnv"
-	"sort"
 	"strconv"
-	"strings"
 )
 
 // Float wraps float64 and implements Object and Hashable interfaces.
@@ -32,25 +31,7 @@ func (f *Float) HashKey() HashKey {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (f *Float) InvokeMethod(method string, env Environment, args ...Object) Object {
-	if method == "methods" {
-		static := []string{"methods"}
-		dynamic := env.Names("float.")
-
-		var names []string
-		names = append(names, static...)
-		for _, e := range dynamic {
-			bits := strings.Split(e, ".")
-			names = append(names, bits[1])
-		}
-		sort.Strings(names)
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
-	}
+func (f *Float) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 
@@ -60,4 +41,8 @@ func (f *Float) InvokeMethod(method string, env Environment, args ...Object) Obj
 // It might also be helpful for embedded users.
 func (f *Float) ToInterface() interface{} {
 	return f.Value
+}
+
+func (f *Float) String() string {
+	return fmt.Sprintf("Float(%v)", f.Value)
 }

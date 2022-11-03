@@ -2,11 +2,13 @@ package parser
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/skx/monkey/ast"
-	"github.com/skx/monkey/lexer"
+	"github.com/myzie/tamarin/ast"
+	"github.com/myzie/tamarin/lexer"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLetStatements(t *testing.T) {
@@ -60,7 +62,7 @@ func TestBadLetConstStatement(t *testing.T) {
 	}
 }
 
-//TestConstStatements tests the "const" token.
+// TestConstStatements tests the "const" token.
 func TestConstStatements(t *testing.T) {
 	tests := []struct {
 		input              string
@@ -145,7 +147,8 @@ return 993322;
 	program := p.ParseProgram()
 	checkParserErrors(t, p)
 	if len(program.Statements) != 3 {
-		t.Errorf("program does not contain 3 statements, got=%d", len(program.Statements))
+		fmt.Println(reflect.TypeOf(program.Statements[0]), program.Statements[0].TokenLiteral())
+		t.Fatalf("program does not contain 3 statements, got=%d", len(program.Statements))
 	}
 	for _, stmt := range program.Statements {
 		returnStatement, ok := stmt.(*ast.ReturnStatement)
@@ -552,7 +555,7 @@ func TestForLoopExpression(t *testing.T) {
 }
 
 func TestFunctionLiteralParsing(t *testing.T) {
-	input := `fn(x,y=3){x+y;}`
+	input := `func(x,y=3){x+y}`
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
@@ -590,7 +593,7 @@ func TestFunctionLiteralParsing(t *testing.T) {
 }
 
 func TestFunctionParsing(t *testing.T) {
-	input := `function f(x,y){x+y;}`
+	input := `func f(x,y){x+y;}`
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
@@ -632,9 +635,9 @@ func TestFunctionParameterParsing(t *testing.T) {
 		input            string
 		expectedParameer []string
 	}{
-		{"fn(){}", []string{}},
-		{"fn(x){}", []string{"x"}},
-		{"fn(x,y){}", []string{"x", "y"}},
+		{"func(){}", []string{}},
+		{"func(x){}", []string{"x"}},
+		{"func(x,y){}", []string{"x", "y"}},
 	}
 	for _, tt := range tests {
 		l := lexer.New(tt.input)
@@ -685,6 +688,7 @@ func TestCallExpressionParsing(t *testing.T) {
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
+	t.Helper()
 	errors := p.errors
 	if len(errors) == 0 {
 		return
@@ -860,8 +864,7 @@ func TestMutators(t *testing.T) {
 // Test method-call operation.
 func TestObjectMethodCall(t *testing.T) {
 	input := []string{"\"steve\".len()",
-		"let x = 15; x.string();",
-		"`ls`"}
+		"let x = 15; x.string();"}
 
 	for _, txt := range input {
 		l := lexer.New(txt)
@@ -876,12 +879,12 @@ func TestIncompleThings(t *testing.T) {
 	input := []string{
 		`if ( true ) { `,
 		`if ( true ) { puts( "OK" ) ; } else { `,
-		`return 3`,
 		`let x = `,
 		`const x =`,
-		`function foo( a, b ="steve", `,
-		`function foo() {`,
+		`func foo( a, b ="steve", `,
+		`func foo() {`,
 		`switch (foo) { `,
+		`foo | bar`,
 	}
 
 	for _, str := range input {
@@ -899,32 +902,232 @@ func TestIncompleThings(t *testing.T) {
 	}
 }
 
+func TestSwitch(t *testing.T) {
+	input := `switch val {
+   case 1:
+      x
+   default:
+      y
+	  x = x + 1
+}`
+	parser := New(lexer.New(input))
+	p := parser.ParseProgram()
+	require.Len(t, parser.errors, 0)
+	require.Len(t, p.Statements, 1)
+	expr, ok := p.Statements[0].(*ast.ExpressionStatement)
+	require.True(t, ok)
+	switchExpr, ok := expr.Expression.(*ast.SwitchExpression)
+	require.True(t, ok)
+	require.Equal(t, "val", switchExpr.Value.String())
+	require.Len(t, switchExpr.Choices, 2)
+	choice1 := switchExpr.Choices[0]
+	require.Len(t, choice1.Expr, 1)
+	require.Equal(t, "1", choice1.Expr[0].String())
+	choice2 := switchExpr.Choices[1]
+	require.Len(t, choice2.Expr, 0)
+}
+
 func TestMultiDefault(t *testing.T) {
 	input := `
-switch( val ) {
-   case 1 {
-      printf("yksi");
-   }
-   case 2 {
-      printf("kaksi");
-   }
-   case default {
-      printf("OK\n");
-   }
-   default {
-      printf("Two default blocks?  Oh noes\n" );
-   }
+switch val {
+case 1:
+    print("1")
+case 2:
+    print("2")
+default:
+    print("default")
+default:
+    print("oh no!")
 }`
-
 	l := lexer.New(input)
 	p := New(l)
 	_ = p.ParseProgram()
-
 	if len(p.errors) < 1 {
 		t.Errorf("unexpected error-count, got %d expected %d", len(p.errors), 1)
 	}
-
 	if !strings.Contains(p.errors[0], "only have one default block") {
 		t.Errorf("Unexpected error-message %s\n", p.errors[0])
 	}
+}
+
+func TestForLoop(t *testing.T) {
+	fmt.Println("FOR")
+	tests := []struct {
+		input   string
+		initStr string
+		condStr string
+		postStr string
+	}{
+		{
+			"for (let i = 0; i < 5; i++) { }",
+			"let i = 0;",
+			"(i < 5)",
+			"(i++)",
+		},
+		{
+			"for (i < 5) { }",
+			"",
+			"(i < 5)",
+			"",
+		},
+	}
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+				len(program.Statements))
+		}
+		s := program.Statements[0]
+		exprStatement := s.(*ast.ExpressionStatement)
+		expr, ok := exprStatement.Expression.(*ast.ForLoopExpression)
+		if !ok {
+			t.Fatalf("Expected a for loop expression; got=%v", s)
+		}
+		fmt.Println(expr)
+		if expr.Condition.String() != tt.condStr {
+			t.Fatalf("incorrect condition. got='%v' want='%v'", expr.Condition.String(), tt.condStr)
+		}
+		if tt.initStr != "" {
+			if expr.InitStatement.String() != tt.initStr {
+				t.Fatalf("incorrect condition. got='%v' want='%v'", expr.InitStatement.String(), tt.initStr)
+			}
+		} else {
+			if expr.InitStatement != nil {
+				t.Fatalf("expected no init statement. got='%v'", expr.InitStatement.String())
+			}
+		}
+		if tt.postStr != "" {
+			if expr.PostStatement.String() != tt.postStr {
+				t.Fatalf("incorrect condition. got='%v' want='%v'", expr.PostStatement.String(), tt.postStr)
+			}
+		} else {
+			if expr.PostStatement != nil {
+				t.Fatalf("expected no post statement. got='%v'", expr.PostStatement.String())
+			}
+		}
+	}
+}
+
+func TestPipeExpression(t *testing.T) {
+	tests := []struct {
+		input          string
+		exprType       string
+		expectedIdents []string
+	}{
+		{"let x = foo | bar;", "ident", []string{"foo", "bar"}},
+		{`let x = foo() | bar(name="foo") | baz(y=4);`, "call", []string{"foo", "bar", "baz"}},
+		{`let x = a() | b();`, "call", []string{"a", "b"}},
+	}
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+		stmt := program.Statements[0].(*ast.LetStatement)
+		expr, ok := stmt.Value.(*ast.PipeExpression)
+		require.True(t, ok)
+		require.Len(t, expr.Arguments, len(tt.expectedIdents))
+		if tt.exprType == "ident" {
+			for i, ident := range tt.expectedIdents {
+				identExpr, ok := expr.Arguments[i].(*ast.Identifier)
+				require.True(t, ok)
+				require.Equal(t, ident, identExpr.Value)
+			}
+		} else if tt.exprType == "call" {
+			for i, ident := range tt.expectedIdents {
+				callExpr, ok := expr.Arguments[i].(*ast.CallExpression)
+				require.True(t, ok)
+				require.Equal(t, ident, callExpr.Function.String())
+			}
+		}
+	}
+}
+
+func TestHashExpression(t *testing.T) {
+	test := `{
+		"a": "b",
+
+		"c": "d",
+
+	}
+	`
+	l := lexer.New(test)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	fmt.Println(program)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.True(t, ok)
+	hash, ok := expr.Expression.(*ast.HashLiteral)
+	require.True(t, ok)
+	require.Len(t, hash.Pairs, 2)
+}
+
+func TestSetExpression(t *testing.T) {
+	test := `{
+		"a",
+		1, 2,
+		"c",
+	}
+	`
+	l := lexer.New(test)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	fmt.Println(program)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.True(t, ok)
+	set, ok := expr.Expression.(*ast.SetLiteral)
+	require.True(t, ok)
+	require.Len(t, set.Items, 4)
+	require.Equal(t, `{a, 1, 2, c}`, set.String())
+}
+
+func TestCallExpression(t *testing.T) {
+	test := `foo(
+		a=1,
+		b=2,
+	)
+	`
+	l := lexer.New(test)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	fmt.Println(program)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.True(t, ok)
+	call, ok := expr.Expression.(*ast.CallExpression)
+	require.True(t, ok)
+	require.Equal(t, "foo", call.Function.String())
+	require.Len(t, call.Arguments, 2)
+	arg0 := call.Arguments[0].(*ast.AssignStatement)
+	require.Equal(t, "a=1", arg0.String())
+	arg1 := call.Arguments[1].(*ast.AssignStatement)
+	require.Equal(t, "b=2", arg1.String())
+}
+
+func TestGetAttribute(t *testing.T) {
+	test := "foo.bar"
+	l := lexer.New(test)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0]
+	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.True(t, ok)
+	getAttr, ok := expr.Expression.(*ast.GetAttributeExpression)
+	require.True(t, ok)
+	require.Equal(t, "bar", getAttr.Attribute.String())
+	getAttrStr := getAttr.String()
+	require.Equal(t, "foo.bar", getAttrStr)
 }

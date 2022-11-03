@@ -1,9 +1,11 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/skx/monkey/token"
+	"github.com/myzie/tamarin/token"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNull(t *testing.T) {
@@ -54,7 +56,8 @@ func TestNextToken1(t *testing.T) {
 		{token.MINUS_MINUS, "--"},
 		{token.POW, "**"},
 		{token.ASTERISK_EQUALS, "*="},
-		{token.DOTDOT, ".."},
+		{token.PERIOD, "."},
+		{token.PERIOD, "."},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -72,8 +75,8 @@ func TestNextToken1(t *testing.T) {
 func TestNextToken2(t *testing.T) {
 	input := `let five=5;
 let ten =10;
-let add = fn(x, y){
-  x+y;
+let add = func(x, y){
+  x+y
 };
 let result = add(five, ten);
 !- *5;
@@ -107,27 +110,31 @@ for
 		{token.ASSIGN, "="},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.LET, "let"},
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.LET, "let"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
-		{token.FUNCTION, "fn"},
+		{token.FUNC, "func"},
 		{token.LPAREN, "("},
 		{token.IDENT, "x"},
 		{token.COMMA, ","},
 		{token.IDENT, "y"},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
+		{token.NEWLINE, "\n"},
 		{token.IDENT, "x"},
 		{token.PLUS, "+"},
 		{token.IDENT, "y"},
-		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.RBRACE, "}"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.LET, "let"},
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},
@@ -138,17 +145,21 @@ for
 		{token.IDENT, "ten"},
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.BANG, "!"},
 		{token.MINUS, "-"},
 		{token.ASTERISK, "*"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.INT, "5"},
 		{token.LT, "<"},
 		{token.INT, "10"},
 		{token.GT, ">"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.INT, "5"},
@@ -156,54 +167,73 @@ for
 		{token.INT, "10"},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
+		{token.NEWLINE, "\n"},
 		{token.RETURN, "return"},
 		{token.TRUE, "true"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.RBRACE, "}"},
 		{token.ELSE, "else"},
 		{token.LBRACE, "{"},
+		{token.NEWLINE, "\n"},
 		{token.RETURN, "return"},
 		{token.FALSE, "false"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.RBRACE, "}"},
+		{token.NEWLINE, "\n"},
 		{token.INT, "10"},
 		{token.EQ, "=="},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.INT, "10"},
 		{token.NOT_EQ, "!="},
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.STRING, "foobar"},
+		{token.NEWLINE, "\n"},
 		{token.STRING, "foo bar"},
+		{token.NEWLINE, "\n"},
 		{token.LBRACKET, "["},
 		{token.INT, "1"},
 		{token.COMMA, ","},
 		{token.INT, "2"},
 		{token.RBRACKET, "]"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.LBRACE, "{"},
 		{token.STRING, "foo"},
 		{token.COLON, ":"},
 		{token.STRING, "bar"},
 		{token.RBRACE, "}"},
+		{token.NEWLINE, "\n"},
 		{token.FLOAT, "1.2"},
+		{token.NEWLINE, "\n"},
 		{token.FLOAT, "0.5"},
+		{token.NEWLINE, "\n"},
 		{token.FLOAT, "0.3"},
+		{token.NEWLINE, "\n"},
 		{token.IDENT, "世界"},
+		{token.NEWLINE, "\n"},
 		{token.FOR, "for"},
+		{token.NEWLINE, "\n"},
 		{token.INT, "2"},
 		{token.GT_EQUALS, ">="},
 		{token.INT, "1"},
+		{token.NEWLINE, "\n"},
 		{token.INT, "1"},
 		{token.LT_EQUALS, "<="},
 		{token.INT, "3"},
+		{token.NEWLINE, "\n"},
 		{token.EOF, ""},
 	}
 	l := New(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		if tok.Type != tt.expectedType {
+			fmt.Println(tok.Literal)
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
 		}
 		if tok.Literal != tt.expectedLiteral {
@@ -260,11 +290,16 @@ let a = 1; # This is a comment too.
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
 		{token.LET, "let"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "1"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -297,11 +332,15 @@ let a = 1;
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.NEWLINE, "\n"},
 		{token.LET, "let"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "1"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
+		{token.NEWLINE, "\n"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -355,6 +394,7 @@ func TestShebang(t *testing.T) {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.NEWLINE, "\n"},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
@@ -418,129 +458,33 @@ let c = 3.113;
 	}
 }
 
-// TestStdLib ensures that identifiers are parsed correctly for the
-// case where we need to support the legacy-names.
-func TestStdLib(t *testing.T) {
-	input := `
-os.getenv
-os.setenv
-os.environment
-directory.glob
-math.abs
-math.random
-math.sqrt
-string.interpolate
-string.toupper
-string.tolower
-string.trim
-string.reverse
-string.split
-moi.kissa
-`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.IDENT, "os.getenv"},
-		{token.IDENT, "os.setenv"},
-		{token.IDENT, "os.environment"},
-		{token.IDENT, "directory.glob"},
-		{token.IDENT, "math.abs"},
-		{token.IDENT, "math.random"},
-		{token.IDENT, "math.sqrt"},
-		{token.IDENT, "string.interpolate"},
-		{token.IDENT, "string.toupper"},
-		{token.IDENT, "string.tolower"},
-		{token.IDENT, "string.trim"},
-		{token.IDENT, "string.reverse"},
-		{token.IDENT, "string.split"},
-		{token.IDENT, "moi"},
-		{token.PERIOD, "."},
-		{token.IDENT, "kissa"},
-		{token.EOF, ""},
-	}
-	l := New(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt, tok)
-		}
-	}
-}
-
 // TestDotMethod ensures that identifiers are parsed correctly for the
 // case where we need to split at periods.
 func TestDotMethod(t *testing.T) {
 	input := `
 foo.bar();
-moi.kissa();
-a?.b?();
+baz.qux();
 `
 
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.NEWLINE, "\n"},
 		{token.IDENT, "foo"},
 		{token.PERIOD, "."},
 		{token.IDENT, "bar"},
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
-		{token.IDENT, "moi"},
+		{token.NEWLINE, "\n"},
+		{token.IDENT, "baz"},
 		{token.PERIOD, "."},
-		{token.IDENT, "kissa"},
+		{token.IDENT, "qux"},
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
-		{token.IDENT, "a?"},
-		{token.PERIOD, "."},
-		{token.IDENT, "b?"},
-		{token.LPAREN, "("},
-		{token.RPAREN, ")"},
-		{token.SEMICOLON, ";"},
-		{token.EOF, ""},
-	}
-	l := New(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt, tok)
-		}
-	}
-}
-
-// TestIntDotMethod ensures that identifiers are parsed correctly for the
-// case where they immediately follow int/float valies.
-func TestIntDotMethod(t *testing.T) {
-	input := `
-3.foo();
-3.14.bar();
-`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.INT, "3"},
-		{token.PERIOD, "."},
-		{token.IDENT, "foo"},
-		{token.LPAREN, "("},
-		{token.RPAREN, ")"},
-		{token.SEMICOLON, ";"},
-		{token.FLOAT, "3.14"},
-		{token.PERIOD, "."},
-		{token.IDENT, "bar"},
-		{token.LPAREN, "("},
-		{token.RPAREN, ")"},
-		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -573,24 +517,28 @@ if ( f ~= /steve/miiiiiiiiiiiiiiiiimmmmmmmmmmmmmiiiii )`
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?i)steve"},
 		{token.RPAREN, ")"},
+		{token.NEWLINE, "\n"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?m)steve"},
 		{token.RPAREN, ")"},
+		{token.NEWLINE, "\n"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?mi)steve"},
 		{token.RPAREN, ")"},
+		{token.NEWLINE, "\n"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.NOT_CONTAINS, "!~"},
 		{token.REGEXP, "(?mi)steve"},
 		{token.RPAREN, ")"},
+		{token.NEWLINE, "\n"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
@@ -642,8 +590,7 @@ func TestIllegalRegexp(t *testing.T) {
 // not confused with a regular-expression.
 func TestDiv(t *testing.T) {
 	input := `a = b / c;
-a = 3/4;
-`
+a = 3/4;`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -655,6 +602,7 @@ a = 3/4;
 		{token.SLASH, "/"},
 		{token.IDENT, "c"},
 		{token.SEMICOLON, ";"},
+		{token.NEWLINE, "\n"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "3"},
@@ -675,30 +623,67 @@ a = 3/4;
 	}
 }
 
-// TestDotDot is designed to ensure we get a ".." not an integer value.
-func TestDotDot(t *testing.T) {
-	input := `a = 1..10;`
-
+func TestLineNumbers(t *testing.T) {
+	l := New("ab + cd\n foo+=111")
 	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
+		expectedType     token.Type
+		expectedLiteral  string
+		expectedLine     int
+		expectedStartPos int
+		expectedEndPos   int
 	}{
-		{token.IDENT, "a"},
-		{token.ASSIGN, "="},
-		{token.INT, "1"},
-		{token.DOTDOT, ".."},
-		{token.INT, "10"},
-		{token.SEMICOLON, ";"},
-		{token.EOF, ""},
+		{token.IDENT, "ab", 0, 0, 1},
+		{token.PLUS, "+", 0, 3, 3},
+		{token.IDENT, "cd", 0, 5, 6},
+		{token.NEWLINE, "\n", 0, 7, 7},
+		{token.IDENT, "foo", 1, 1, 3},
+		{token.PLUS_EQUALS, "+=", 1, 4, 5},
+		{token.INT, "111", 1, 6, 8},
+		{token.EOF, "", 1, 9, 9},
 	}
-	l := New(input)
 	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			tok := l.NextToken()
+			require.Equal(t, tt.expectedType, tok.Type)
+			require.Equal(t, tt.expectedLiteral, tok.Literal)
+			require.Equal(t, tt.expectedLine, tok.Line)
+			require.Equal(t, tt.expectedStartPos, tok.StartPosition)
+			require.Equal(t, tt.expectedEndPos, tok.EndPosition)
+		})
+	}
+}
+
+func TestTokenLengths(t *testing.T) {
+	tests := []struct {
+		input            string
+		expectedType     token.Type
+		expectedLiteral  string
+		expectedLine     int
+		expectedStartPos int
+		expectedEndPos   int
+	}{
+		{"abc", token.IDENT, "abc", 0, 0, 2},
+		{"111", token.INT, "111", 0, 0, 2},
+		{"1.1", token.FLOAT, "1.1", 0, 0, 2},
+		{`"b"`, token.STRING, "b", 0, 0, 2},
+		{"for", token.FOR, "for", 0, 0, 2},
+		{"let", token.LET, "let", 0, 0, 2},
+		{"false", token.FALSE, "false", 0, 0, 4},
+		{"import", token.IMPORT, "import", 0, 0, 5},
+		{">=", token.GT_EQUALS, ">=", 0, 0, 1},
+		{" \n", token.NEWLINE, "\n", 0, 1, 1},
+		{" {", token.LBRACE, "{", 0, 1, 1},
+		{" ++", token.PLUS_PLUS, "++", 0, 1, 2},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			tok := l.NextToken()
+			require.Equal(t, tt.expectedType, tok.Type)
+			require.Equal(t, tt.expectedLiteral, tok.Literal)
+			require.Equal(t, tt.expectedLine, tok.Line)
+			require.Equal(t, tt.expectedStartPos, tok.StartPosition)
+			require.Equal(t, tt.expectedEndPos, tok.EndPosition)
+		})
 	}
 }

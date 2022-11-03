@@ -23,7 +23,7 @@ func (r *Regexp) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (r *Regexp) InvokeMethod(method string, env Environment, args ...Object) Object {
+func (r *Regexp) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 

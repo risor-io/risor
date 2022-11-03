@@ -1,7 +1,9 @@
 package object
 
+import "context"
+
 // BuiltinFunction holds the type of a built-in function.
-type BuiltinFunction func(env *Environment, args ...Object) Object
+type BuiltinFunction func(ctx context.Context, args ...Object) Object
 
 // Builtin wraps func and implements Object interface.
 type Builtin struct {
@@ -21,16 +23,7 @@ func (b *Builtin) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (b *Builtin) InvokeMethod(method string, env Environment, args ...Object) Object {
-	if method == "methods" {
-		names := []string{"methods"}
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
-	}
+func (b *Builtin) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 

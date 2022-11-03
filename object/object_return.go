@@ -18,13 +18,7 @@ func (rv *ReturnValue) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (rv *ReturnValue) InvokeMethod(method string, env Environment, args ...Object) Object {
-
-	//
-	// There are no methods available upon a return-object.
-	//
-	// (The return-object is an implementation-detail.)
-	//
+func (rv *ReturnValue) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 

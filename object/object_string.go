@@ -3,10 +3,9 @@
 package object
 
 import (
+	"fmt"
 	"hash/fnv"
-	"sort"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -29,6 +28,10 @@ func (s *String) Inspect() string {
 	return s.Value
 }
 
+func (s *String) String() string {
+	return fmt.Sprintf("String(%s)", s.Value)
+}
+
 // HashKey returns a hash key for the given object.
 func (s *String) HashKey() HashKey {
 	h := fnv.New64a()
@@ -38,28 +41,9 @@ func (s *String) HashKey() HashKey {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (s *String) InvokeMethod(method string, env Environment, args ...Object) Object {
+func (s *String) InvokeMethod(method string, args ...Object) Object {
 	if method == "len" {
 		return &Integer{Value: int64(utf8.RuneCountInString(s.Value))}
-	}
-	if method == "methods" {
-		static := []string{"len", "methods", "ord", "to_i", "to_f"}
-		dynamic := env.Names("string.")
-
-		var names []string
-		names = append(names, static...)
-
-		for _, e := range dynamic {
-			bits := strings.Split(e, ".")
-			names = append(names, bits[1])
-		}
-		sort.Strings(names)
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
 	}
 	if method == "ord" {
 		return &Integer{Value: int64(s.Value[0])}

@@ -2,18 +2,17 @@ package object
 
 import (
 	"bytes"
-	"sort"
 	"strings"
 
-	"github.com/skx/monkey/ast"
+	"github.com/myzie/tamarin/ast"
 )
 
-// Function wraps ast.Identifier array, ast.BlockStatement and Environment and implements Object interface.
+// Function wraps ast.Identifier array and ast.BlockStatement and implements Object interface.
 type Function struct {
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
 	Defaults   map[string]ast.Expression
-	Env        *Environment
+	Scope      interface{} // avoids circular package dependency; is a scope.Scope
 }
 
 // Type returns the type of this object.
@@ -28,7 +27,7 @@ func (f *Function) Inspect() string {
 	for _, p := range f.Parameters {
 		parameters = append(parameters, p.String())
 	}
-	out.WriteString("fn")
+	out.WriteString("func")
 	out.WriteString("(")
 	out.WriteString(strings.Join(parameters, ", "))
 	out.WriteString(") {\n")
@@ -39,25 +38,7 @@ func (f *Function) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (f *Function) InvokeMethod(method string, env Environment, args ...Object) Object {
-	if method == "methods" {
-		static := []string{"methods"}
-		dynamic := env.Names("function.")
-
-		var names []string
-		names = append(names, static...)
-		for _, e := range dynamic {
-			bits := strings.Split(e, ".")
-			names = append(names, bits[1])
-		}
-		sort.Strings(names)
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
-	}
+func (f *Function) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 

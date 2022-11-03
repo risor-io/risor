@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/skx/monkey/token"
+	"github.com/myzie/tamarin/token"
 )
 
 // Node reresents a node.
@@ -349,7 +349,10 @@ func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 // String returns this object as a string.
 func (bs *BlockStatement) String() string {
 	var out bytes.Buffer
-	for _, s := range bs.Statements {
+	for i, s := range bs.Statements {
+		if i > 0 {
+			out.WriteString("\n")
+		}
 		out.WriteString(s.String())
 	}
 	return out.String()
@@ -381,12 +384,12 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 // String returns this object as a string.
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("if")
+	out.WriteString("if ")
 	out.WriteString(ie.Condition.String())
 	out.WriteString(" ")
 	out.WriteString(ie.Consequence.String())
 	if ie.Alternative != nil {
-		out.WriteString("else")
+		out.WriteString(" else ")
 		out.WriteString(ie.Alternative.String())
 	}
 	return out.String()
@@ -476,6 +479,14 @@ type ForLoopExpression struct {
 	// Consequence is the set of statements to be executed for the
 	// loop body.
 	Consequence *BlockStatement
+
+	// Optional initialization statement which is executed once before evaluating the
+	// condition for the first iteration
+	InitStatement *LetStatement
+
+	// Optional statement which is executed after each execution of the block
+	// (and only if the block was executed)
+	PostStatement Expression
 }
 
 func (fle *ForLoopExpression) expressionNode() {}
@@ -487,8 +498,16 @@ func (fle *ForLoopExpression) TokenLiteral() string { return fle.Token.Literal }
 func (fle *ForLoopExpression) String() string {
 	var out bytes.Buffer
 	out.WriteString("for (")
-	out.WriteString(fle.Condition.String())
-	out.WriteString(" ) {")
+	if fle.InitStatement != nil {
+		out.WriteString(fle.InitStatement.String() + " ")
+		out.WriteString(fle.Condition.String() + "; ")
+		if fle.PostStatement != nil {
+			out.WriteString(fle.PostStatement.String())
+		}
+	} else {
+		out.WriteString(fle.Condition.String())
+	}
+	out.WriteString(") {")
 	out.WriteString(fle.Consequence.String())
 	out.WriteString("}")
 	return out.String()
@@ -604,6 +623,53 @@ func (ce *CallExpression) String() string {
 	return out.String()
 }
 
+// GetAttributeExpression
+type GetAttributeExpression struct {
+	// Token stores the literal token
+	Token token.Token
+	// Object whose attribute is being accessed
+	Object Expression
+	// The attribute itself
+	Attribute *Identifier
+}
+
+func (e *GetAttributeExpression) expressionNode() {}
+
+func (e *GetAttributeExpression) TokenLiteral() string { return e.Token.Literal }
+
+func (e *GetAttributeExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString(e.Object.String())
+	out.WriteString(".")
+	out.WriteString(e.Attribute.String())
+	return out.String()
+}
+
+// PipeExpression holds a series of calls
+type PipeExpression struct {
+	// Token stores the literal token
+	Token token.Token
+
+	// Arguments are the arguments to be applied
+	Arguments []Expression
+}
+
+func (pe *PipeExpression) expressionNode() {}
+
+func (pe *PipeExpression) TokenLiteral() string { return pe.Token.Literal }
+
+func (pe *PipeExpression) String() string {
+	var out bytes.Buffer
+	args := make([]string, 0)
+	for _, a := range pe.Arguments {
+		args = append(args, a.String())
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, " | "))
+	out.WriteString(")")
+	return out.String()
+}
+
 // ObjectCallExpression is used when calling a method on an object.
 type ObjectCallExpression struct {
 	// Token is the literal token
@@ -673,23 +739,6 @@ func (rl *RegexpLiteral) String() string {
 	return (fmt.Sprintf("/%s/%s", rl.Value, rl.Flags))
 }
 
-// BacktickLiteral holds details of a command to be executed
-type BacktickLiteral struct {
-	// Token is the actual token
-	Token token.Token
-
-	// Value is the name of the command to execute.
-	Value string
-}
-
-func (bl *BacktickLiteral) expressionNode() {}
-
-// TokenLiteral returns the literal token.
-func (bl *BacktickLiteral) TokenLiteral() string { return bl.Token.Literal }
-
-// String returns this object as a string.
-func (bl *BacktickLiteral) String() string { return bl.Token.Literal }
-
 // ArrayLiteral holds an inline array
 type ArrayLiteral struct {
 	// Token is the token
@@ -742,33 +791,6 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(ie.Index.String())
 	out.WriteString("])")
-	return out.String()
-}
-
-// HashLiteral holds a hash definition
-type HashLiteral struct {
-	// Token holds the token
-	Token token.Token // the '{' token
-
-	// Pairs stores the name/value sets of the hash-content
-	Pairs map[Expression]Expression
-}
-
-func (hl *HashLiteral) expressionNode() {}
-
-// TokenLiteral returns the literal token.
-func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
-
-// String returns this object as a string.
-func (hl *HashLiteral) String() string {
-	var out bytes.Buffer
-	pairs := make([]string, 0)
-	for key, value := range hl.Pairs {
-		pairs = append(pairs, key.String()+":"+value.String())
-	}
-	out.WriteString("{")
-	out.WriteString(strings.Join(pairs, ", "))
-	out.WriteString("}")
 	return out.String()
 }
 
@@ -825,7 +847,7 @@ func (ce *CaseExpression) String() string {
 	var out bytes.Buffer
 
 	if ce.Default {
-		out.WriteString("default ")
+		out.WriteString("default")
 	} else {
 		out.WriteString("case ")
 
@@ -835,7 +857,14 @@ func (ce *CaseExpression) String() string {
 		}
 		out.WriteString(strings.Join(tmp, ","))
 	}
-	out.WriteString(ce.Block.String())
+	out.WriteString(":\n")
+	for i, exp := range ce.Block.Statements {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		out.WriteString("\t" + exp.String())
+	}
+	out.WriteString("\n")
 	return out.String()
 }
 
@@ -860,9 +889,9 @@ func (se *SwitchExpression) TokenLiteral() string { return se.Token.Literal }
 // String returns this object as a string.
 func (se *SwitchExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("\nswitch (")
+	out.WriteString("\nswitch ")
 	out.WriteString(se.Value.String())
-	out.WriteString(")\n{\n")
+	out.WriteString(" {\n")
 
 	for _, tmp := range se.Choices {
 		if tmp != nil {
@@ -871,5 +900,28 @@ func (se *SwitchExpression) String() string {
 	}
 	out.WriteString("}\n")
 
+	return out.String()
+}
+
+// ImportStatement holds an import statement
+type ImportStatement struct {
+	// Token holds the token
+	Token token.Token
+
+	// Name of the module to import
+	Name *Identifier
+}
+
+func (i *ImportStatement) expressionNode() {}
+
+// TokenLiteral returns the literal token
+func (i *ImportStatement) TokenLiteral() string { return i.Token.Literal }
+
+// String returns this object as a string
+func (i *ImportStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(i.TokenLiteral() + " ")
+	out.WriteString(i.Name.TokenLiteral())
+	out.WriteString(";")
 	return out.String()
 }

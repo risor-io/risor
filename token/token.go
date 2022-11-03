@@ -7,8 +7,11 @@ type Type string
 
 // Token struct represent the lexer token
 type Token struct {
-	Type    Type
-	Literal string
+	Type          Type
+	Literal       string
+	Line          int
+	StartPosition int
+	EndPosition   int
 }
 
 // pre-defined Type
@@ -24,8 +27,9 @@ const (
 	COMMA           = ","
 	CONST           = "CONST"
 	CONTAINS        = "~="
+	DECLARE         = ":="
 	DEFAULT         = "DEFAULT"
-	DEFINE_FUNCTION = "DEFINE_FUNCTION"
+	FUNC            = "FUNC"
 	DOTDOT          = ".."
 	ELSE            = "ELSE"
 	EOF             = "EOF"
@@ -33,14 +37,11 @@ const (
 	FALSE           = "FALSE"
 	FLOAT           = "FLOAT"
 	FOR             = "FOR"
-	FOREACH         = "FOREACH"
-	FUNCTION        = "FUNCTION"
 	GT              = ">"
 	GT_EQUALS       = ">="
 	IDENT           = "IDENT"
 	IF              = "IF"
 	ILLEGAL         = "ILLEGAL"
-	IN              = "IN"
 	INT             = "INT"
 	LBRACE          = "{"
 	LBRACKET        = "["
@@ -55,6 +56,7 @@ const (
 	NOT_CONTAINS    = "!~"
 	NOT_EQ          = "!="
 	NULL            = "null"
+	PIPE            = "|"
 	OR              = "||"
 	PERIOD          = "."
 	PLUS            = "+"
@@ -73,26 +75,26 @@ const (
 	STRING          = "STRING"
 	SWITCH          = "switch"
 	TRUE            = "TRUE"
+	NEWLINE         = "EOL"
+	IMPORT          = "IMPORT"
 )
 
 // reserved keywords
 var keywords = map[string]Type{
-	"case":     CASE,
-	"const":    CONST,
-	"default":  DEFAULT,
-	"else":     ELSE,
-	"false":    FALSE,
-	"fn":       FUNCTION,
-	"for":      FOR,
-	"foreach":  FOREACH,
-	"function": DEFINE_FUNCTION,
-	"if":       IF,
-	"in":       IN,
-	"let":      LET,
-	"null":     NULL,
-	"return":   RETURN,
-	"switch":   SWITCH,
-	"true":     TRUE,
+	"case":    CASE,
+	"const":   CONST,
+	"default": DEFAULT,
+	"else":    ELSE,
+	"false":   FALSE,
+	"for":     FOR,
+	"func":    FUNC,
+	"if":      IF,
+	"let":     LET,
+	"null":    NULL,
+	"return":  RETURN,
+	"switch":  SWITCH,
+	"true":    TRUE,
+	"import":  IMPORT,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

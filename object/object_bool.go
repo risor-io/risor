@@ -2,8 +2,6 @@ package object
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 )
 
 // Boolean wraps bool and implements Object and Hashable interface.
@@ -35,25 +33,7 @@ func (b *Boolean) HashKey() HashKey {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (b *Boolean) InvokeMethod(method string, env Environment, args ...Object) Object {
-	if method == "methods" {
-		static := []string{"methods"}
-		dynamic := env.Names("bool.")
-
-		var names []string
-		names = append(names, static...)
-		for _, e := range dynamic {
-			bits := strings.Split(e, ".")
-			names = append(names, bits[1])
-		}
-		sort.Strings(names)
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
-	}
+func (b *Boolean) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 
@@ -63,4 +43,8 @@ func (b *Boolean) InvokeMethod(method string, env Environment, args ...Object) O
 // It might also be helpful for embedded users.
 func (b *Boolean) ToInterface() interface{} {
 	return b.Value
+}
+
+func (b *Boolean) String() string {
+	return fmt.Sprintf("Boolean(%v)", b.Value)
 }

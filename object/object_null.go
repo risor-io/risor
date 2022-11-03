@@ -15,7 +15,7 @@ func (n *Null) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (n *Null) InvokeMethod(method string, env Environment, args ...Object) Object {
+func (n *Null) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }
 

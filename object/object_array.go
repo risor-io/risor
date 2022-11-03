@@ -2,7 +2,7 @@ package object
 
 import (
 	"bytes"
-	"sort"
+	"fmt"
 	"strings"
 )
 
@@ -35,27 +35,9 @@ func (ao *Array) Inspect() string {
 
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
-func (ao *Array) InvokeMethod(method string, env Environment, args ...Object) Object {
+func (ao *Array) InvokeMethod(method string, args ...Object) Object {
 	if method == "len" {
 		return &Integer{Value: int64(len(ao.Elements))}
-	}
-	if method == "methods" {
-		static := []string{"len", "methods"}
-		dynamic := env.Names("array.")
-
-		var names []string
-		names = append(names, static...)
-		for _, e := range dynamic {
-			bits := strings.Split(e, ".")
-			names = append(names, bits[1])
-		}
-		sort.Strings(names)
-
-		result := make([]Object, len(names))
-		for i, txt := range names {
-			result[i] = &String{Value: txt}
-		}
-		return &Array{Elements: result}
 	}
 	return nil
 }
@@ -85,4 +67,12 @@ func (ao *Array) Next() (Object, Object, bool) {
 // It might also be helpful for embedded users.
 func (ao *Array) ToInterface() interface{} {
 	return "<ARRAY>"
+}
+
+func (ao *Array) String() string {
+	items := make([]string, 0, len(ao.Elements))
+	for _, item := range ao.Elements {
+		items = append(items, fmt.Sprintf("%s", item))
+	}
+	return fmt.Sprintf("Array([%s])", strings.Join(items, ", "))
 }

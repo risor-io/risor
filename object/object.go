@@ -6,19 +6,24 @@ type Type string
 
 // pre-defined constant Type
 const (
-	INTEGER_OBJ      = "INTEGER"
-	FLOAT_OBJ        = "FLOAT"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_OBJ     = "FUNCTION"
-	STRING_OBJ       = "STRING"
-	BUILTIN_OBJ      = "BUILTIN"
-	ARRAY_OBJ        = "ARRAY"
-	HASH_OBJ         = "HASH"
-	FILE_OBJ         = "FILE"
-	REGEXP_OBJ       = "REGEXP"
+	INTEGER_OBJ       = "INTEGER"
+	FLOAT_OBJ         = "FLOAT"
+	BOOLEAN_OBJ       = "BOOLEAN"
+	NULL_OBJ          = "NULL"
+	RETURN_VALUE_OBJ  = "RETURN_VALUE"
+	ERROR_OBJ         = "ERROR"
+	FUNCTION_OBJ      = "FUNCTION"
+	STRING_OBJ        = "STRING"
+	BUILTIN_OBJ       = "BUILTIN"
+	ARRAY_OBJ         = "ARRAY"
+	HASH_OBJ          = "HASH"
+	FILE_OBJ          = "FILE"
+	REGEXP_OBJ        = "REGEXP"
+	SET_OBJ           = "SET"
+	MODULE_OBJ        = "MODULE"
+	RESULT_OBJ        = "RESULT"
+	HTTP_RESPONSE_OBJ = "HTTP_RESPONSE"
+	DB_CONNECTION     = "DB_CONNECTION"
 )
 
 // Object is the interface that all of our various object-types must implmenet.
@@ -32,7 +37,7 @@ type Object interface {
 
 	// InvokeMethod invokes a method against the object.
 	// (Built-in methods only.)
-	InvokeMethod(method string, env Environment, args ...Object) Object
+	InvokeMethod(method string, args ...Object) Object
 
 	// ToInterface converts the given object to a "native" golang value,
 	// which is required to ensure that we can use the object in our
