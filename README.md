@@ -26,7 +26,7 @@ Work in progress. See [example.mon](./example.mon).
 
 ## Credits
 
-- [Thorsten Ball](https://github.com/mrnugget) and his book [Writing an Interpreter in Go](interpreterbook.com).
+- [Thorsten Ball](https://github.com/mrnugget) and his book [Writing an Interpreter in Go](https://interpreterbook.com/).
 - [Steve Kemp](https://github.com/skx) and the work in [github.com/skx/monkey](https://github.com/skx/monkey).
 
 See more information in [CREDITS](./CREDITS).
