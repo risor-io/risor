@@ -12,6 +12,9 @@ jobs:
           keys:
             - go-mod-v4-{{ checksum "go.sum" }}
       - run:
+          name: Show Go Environment
+          command: go env
+      - run:
           name: Install Dependencies
           command: go mod download
       - save_cache:
