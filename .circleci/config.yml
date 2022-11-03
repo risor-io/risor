@@ -8,9 +8,12 @@ jobs:
       - image: cimg/go:1.19.3
     steps:
       - checkout
+      - run:
+          name: Create Go Module Cache Directory
+          command: mkdir -p /go/pkg/mod/cache
       - restore_cache:
           keys:
-            - go-mod-v4-{{ checksum "go.sum" }}
+            - go-mod-v5-{{ checksum "go.sum" }}
       - run:
           name: Show Go Environment
           command: go env
@@ -18,9 +21,9 @@ jobs:
           name: Install Dependencies
           command: go mod download
       - save_cache:
-          key: go-mod-v4-{{ checksum "go.sum" }}
+          key: go-mod-v5-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - /go/pkg/mod/cache
       - run:
           name: Run tests
           command: |
