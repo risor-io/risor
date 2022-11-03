@@ -23,3 +23,10 @@ Execution then works as you would expect:
 ## Further Documentation
 
 Work in progress. See [example.mon](./example.mon).
+
+## Credits
+
+- [Thorsten Ball](https://github.com/mrnugget) and his book [Writing an Interpreter in Go](interpreterbook.com).
+- [Steve Kemp](https://github.com/skx) and the work in [github.com/skx/monkey](https://github.com/skx/monkey).
+
+See more information in [CREDITS](./CREDITS).
