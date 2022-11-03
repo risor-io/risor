@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	_ "embed"
 	"errors"
 	"strings"
 
