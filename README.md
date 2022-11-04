@@ -1,6 +1,6 @@
 # Tamarin
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/myzie/tamarin/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/myzie/tamarin/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/cloudcmds/tamarin/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/cloudcmds/tamarin/tree/main)
 
 Cloud scripting language.
 
