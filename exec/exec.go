@@ -11,7 +11,7 @@ import (
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
 	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
 	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
-	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
 )

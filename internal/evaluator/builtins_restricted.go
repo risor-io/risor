@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 // output a string to stdout

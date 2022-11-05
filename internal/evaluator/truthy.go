@@ -1,6 +1,6 @@
 package evaluator
 
-import "github.com/cloudcmds/tamarin/internal/object"
+import "github.com/cloudcmds/tamarin/object"
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
