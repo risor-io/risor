@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/token"
+	"github.com/cloudcmds/tamarin/internal/token"
 )
 
 // SetLiteral holds a set definition

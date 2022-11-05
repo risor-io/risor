@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/myzie/tamarin/internal/lexer"
-	"github.com/myzie/tamarin/internal/object"
-	"github.com/myzie/tamarin/internal/parser"
-	"github.com/myzie/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/internal/lexer"
+	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/parser"
+	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/stretchr/testify/require"
 )
 

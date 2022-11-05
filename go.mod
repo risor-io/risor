@@ -1,4 +1,4 @@
-module github.com/myzie/tamarin
+module github.com/cloudcmds/tamarin
 
 go 1.16
 

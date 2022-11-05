@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/ast"
-	"github.com/myzie/tamarin/internal/lexer"
-	"github.com/myzie/tamarin/internal/token"
+	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/internal/lexer"
+	"github.com/cloudcmds/tamarin/internal/token"
 )
 
 // prefix Parse function

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
-	"github.com/myzie/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/rs/zerolog/log"
 )
 

@@ -3,7 +3,7 @@ package evaluator
 import (
 	"fmt"
 
-	"github.com/myzie/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/object"
 )
 
 func newError(format string, a ...interface{}) *object.Error {

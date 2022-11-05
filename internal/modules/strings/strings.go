@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/object"
-	"github.com/myzie/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/scope"
 )
 
 // Name of this module

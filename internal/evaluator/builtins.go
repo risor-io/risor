@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gofrs/uuid"
-	"github.com/myzie/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/object"
 )
 
 // The built-in functions / standard-library methods are stored here.

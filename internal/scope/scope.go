@@ -3,7 +3,7 @@ package scope
 import (
 	"fmt"
 
-	"github.com/myzie/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/object"
 )
 
 // Scope stores our functions, variables, constants, etc.

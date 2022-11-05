@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/myzie/tamarin/internal/ast"
-	"github.com/myzie/tamarin/internal/lexer"
+	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/internal/lexer"
 	"github.com/stretchr/testify/require"
 )
 

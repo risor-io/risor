@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/ast"
-	"github.com/myzie/tamarin/internal/lexer"
+	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/internal/lexer"
 )
 
 // ParseProgram is a shortcut for getting the AST corresponding for some source

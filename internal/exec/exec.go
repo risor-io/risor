@@ -5,15 +5,15 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/evaluator"
-	"github.com/myzie/tamarin/internal/lexer"
-	modJson "github.com/myzie/tamarin/internal/modules/json"
-	modMath "github.com/myzie/tamarin/internal/modules/math"
-	modSql "github.com/myzie/tamarin/internal/modules/sql"
-	modStrings "github.com/myzie/tamarin/internal/modules/strings"
-	"github.com/myzie/tamarin/internal/object"
-	"github.com/myzie/tamarin/internal/parser"
-	"github.com/myzie/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/internal/evaluator"
+	"github.com/cloudcmds/tamarin/internal/lexer"
+	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
+	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
+	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
+	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
+	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/parser"
+	"github.com/cloudcmds/tamarin/internal/scope"
 )
 
 func Execute(ctx context.Context, input string, importer evaluator.Importer) (object.Object, error) {

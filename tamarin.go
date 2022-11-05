@@ -9,9 +9,9 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/myzie/tamarin/internal/evaluator"
-	"github.com/myzie/tamarin/internal/exec"
-	"github.com/myzie/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/evaluator"
+	"github.com/cloudcmds/tamarin/internal/exec"
+	"github.com/cloudcmds/tamarin/internal/object"
 )
 
 func main() {

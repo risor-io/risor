@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/myzie/tamarin/internal/token"
+	"github.com/cloudcmds/tamarin/internal/token"
 )
 
 // Lexer holds our object-state.

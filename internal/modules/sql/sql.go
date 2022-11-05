@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/myzie/tamarin/internal/object"
-	"github.com/myzie/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/internal/object"
+	"github.com/cloudcmds/tamarin/internal/scope"
 )
 
 // Name of this module

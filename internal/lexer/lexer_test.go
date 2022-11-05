@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/myzie/tamarin/internal/token"
+	"github.com/cloudcmds/tamarin/internal/token"
 	"github.com/stretchr/testify/require"
 )
 

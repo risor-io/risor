@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/myzie/tamarin/internal/token"
+	"github.com/cloudcmds/tamarin/internal/token"
 )
 
 // Node reresents a node.
