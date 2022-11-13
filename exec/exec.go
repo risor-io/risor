@@ -9,13 +9,29 @@ import (
 	"github.com/cloudcmds/tamarin/internal/lexer"
 	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
+	modRand "github.com/cloudcmds/tamarin/internal/modules/rand"
 	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
 	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
 	modTime "github.com/cloudcmds/tamarin/internal/modules/time"
+	modUuid "github.com/cloudcmds/tamarin/internal/modules/uuid"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 )
+
+type ModuleFunc func(*scope.Scope) (*object.Module, error)
+
+var moduleFuncs = map[string]ModuleFunc{}
+
+func init() {
+	moduleFuncs["math"] = modMath.Module
+	moduleFuncs["json"] = modJson.Module
+	moduleFuncs["strings"] = modStrings.Module
+	moduleFuncs["sql"] = modSql.Module
+	moduleFuncs["time"] = modTime.Module
+	moduleFuncs["uuid"] = modUuid.Module
+	moduleFuncs["rand"] = modRand.Module
+}
 
 func Execute(ctx context.Context, input string, importer evaluator.Importer) (object.Object, error) {
 
@@ -23,35 +39,15 @@ func Execute(ctx context.Context, input string, importer evaluator.Importer) (ob
 	s := scope.New(scope.Opts{Name: "global"})
 
 	// Automatically "import" standard modules
-	mathModule, err := modMath.Module(s)
-	if err != nil {
-		return nil, err
+	for name, fn := range moduleFuncs {
+		mod, err := fn(s)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.Declare(name, mod, false); err != nil {
+			return nil, err
+		}
 	}
-	s.Declare("math", mathModule, false)
-
-	jsonModule, err := modJson.Module(s)
-	if err != nil {
-		return nil, err
-	}
-	s.Declare("json", jsonModule, false)
-
-	stringsModule, err := modStrings.Module(s)
-	if err != nil {
-		return nil, err
-	}
-	s.Declare("strings", stringsModule, false)
-
-	sqlModule, err := modSql.Module(s)
-	if err != nil {
-		return nil, err
-	}
-	s.Declare("sql", sqlModule, false)
-
-	timeModule, err := modTime.Module(s)
-	if err != nil {
-		return nil, err
-	}
-	s.Declare("time", timeModule, false)
 
 	// Parse the user supplied program
 	p := parser.New(lexer.New(input))

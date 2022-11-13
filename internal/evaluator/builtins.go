@@ -12,7 +12,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gofrs/uuid"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -338,14 +337,6 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 	return &object.Result{Ok: &object.HttpResponse{Response: resp}}
 }
 
-func uuidFun(ctx context.Context, args ...object.Object) object.Object {
-	value, err := uuid.NewV4()
-	if err != nil {
-		return newError("failed to generate uuid: %v", err)
-	}
-	return &object.String{Value: value.String()}
-}
-
 func init() {
 	RegisterBuiltin("delete", hashDelete)
 	RegisterBuiltin("int", intFun)
@@ -359,10 +350,9 @@ func init() {
 	RegisterBuiltin("random", randomFun)
 	RegisterBuiltin("ok", okFun)
 	RegisterBuiltin("err", errFun)
-	// RegisterBuiltin("json_unmarshal", object.JsonUnmarshal)
 	RegisterBuiltin("assert", assertFun)
 	RegisterBuiltin("fetch", fetchFun)
-	RegisterBuiltin("uuid", uuidFun)
+	// RegisterBuiltin("uuid", uuidFun)
 
 	// TODO:
 	// any

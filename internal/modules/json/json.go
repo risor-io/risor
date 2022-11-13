@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/wI2L/jsondiff"
 )
 
 // Name of this module
@@ -28,7 +29,7 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 	if scriptObj == nil {
 		return object.NewErrorResult("type error: json.unmarshal failed")
 	}
-	return &object.Result{Ok: scriptObj}
+	return object.NewOkResult(scriptObj)
 }
 
 func Marshal(ctx context.Context, args ...object.Object) object.Object {
@@ -43,33 +44,50 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return object.NewErrorResult(err.Error())
 	}
-	return &object.Result{Ok: &object.String{Value: string(b)}}
+	return object.NewOkResult(object.NewString(string(b)))
 }
 
 func Valid(ctx context.Context, args ...object.Object) object.Object {
 	if err := RequireArgs("json.valid", 1, args); err != nil {
 		return err
 	}
-	s, err := AsString(args[0])
+	s, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	return ToBoolean(json.Valid([]byte(s)))
+	return object.NewBoolean(json.Valid([]byte(s)))
 }
 
-func AsString(obj object.Object) (result string, err *object.Error) {
-	s, ok := obj.(*object.String)
-	if !ok {
-		return "", object.NewError("type error: expected a string (got %v)", obj.Type())
+func Diff(ctx context.Context, args ...object.Object) object.Object {
+	if err := RequireArgs("json.diff", 2, args); err != nil {
+		return err
 	}
-	return s.Value, nil
-}
-
-func ToBoolean(b bool) *object.Boolean {
-	if b {
-		return object.TRUE
+	a := object.ToGoType(args[0])
+	if err, ok := a.(error); ok {
+		return object.NewErrorResult(err.Error())
 	}
-	return object.FALSE
+	b := object.ToGoType(args[1])
+	if err, ok := b.(error); ok {
+		return object.NewErrorResult(err.Error())
+	}
+	aBytes, err := json.Marshal(a)
+	if err != nil {
+		return object.NewErrorResult(err.Error())
+	}
+	bBytes, err := json.Marshal(b)
+	if err != nil {
+		return object.NewErrorResult(err.Error())
+	}
+	patch, err := jsondiff.CompareJSON(aBytes, bBytes)
+	if err != nil {
+		return object.NewErrorResult(err.Error())
+	}
+	patchJSON, err := json.Marshal(patch)
+	if err != nil {
+		return object.NewErrorResult(err.Error())
+	}
+	unmarshalArgs := []object.Object{object.NewString(string(patchJSON))}
+	return Unmarshal(ctx, unmarshalArgs...)
 }
 
 func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
@@ -90,6 +108,7 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		{Name: "unmarshal", Func: Unmarshal},
 		{Name: "marshal", Func: Marshal},
 		{Name: "valid", Func: Valid},
+		{Name: "diff", Func: Diff},
 	}); err != nil {
 		return nil, err
 	}

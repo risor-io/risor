@@ -45,3 +45,7 @@ func (i *Integer) ToInterface() interface{} {
 func (i *Integer) String() string {
 	return fmt.Sprintf("Integer(%v)", i.Value)
 }
+
+func NewInteger(value int64) *Integer {
+	return &Integer{Value: value}
+}

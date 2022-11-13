@@ -46,3 +46,7 @@ func (f *Float) ToInterface() interface{} {
 func (f *Float) String() string {
 	return fmt.Sprintf("Float(%v)", f.Value)
 }
+
+func NewFloat(value float64) *Float {
+	return &Float{Value: value}
+}

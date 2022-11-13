@@ -82,13 +82,15 @@ resp := fetch("https://httpbin.org/post", {
 
 print(resp, type(resp))
 
-print("uuid:", uuid())
+print("uuid:", uuid.v4())
 
 [1, 1, 2, 3, 4, 4] | set | str
 
 print(strings.join(["hey", "ya"], "_"))
 
 print("the time is:", time.now())
+
+print("json diff:", json.diff(["a"],["b"]))
 
 print("pipe expr:",
     ["foo", "bar"] | strings.join("-"),

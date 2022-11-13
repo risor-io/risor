@@ -16,3 +16,7 @@ func IsError(obj Object) bool {
 func NewErrorResult(format string, a ...interface{}) *Result {
 	return &Result{Err: NewError(format, a...)}
 }
+
+func NewOkResult(value Object) *Result {
+	return &Result{Ok: value}
+}

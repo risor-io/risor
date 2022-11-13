@@ -48,3 +48,10 @@ func (b *Boolean) ToInterface() interface{} {
 func (b *Boolean) String() string {
 	return fmt.Sprintf("Boolean(%v)", b.Value)
 }
+
+func NewBoolean(value bool) *Boolean {
+	if value {
+		return TRUE
+	}
+	return FALSE
+}
