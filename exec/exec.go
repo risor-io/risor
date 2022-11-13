@@ -11,9 +11,10 @@ import (
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
 	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
 	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
-	"github.com/cloudcmds/tamarin/object"
+	modTime "github.com/cloudcmds/tamarin/internal/modules/time"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func Execute(ctx context.Context, input string, importer evaluator.Importer) (object.Object, error) {
@@ -45,6 +46,12 @@ func Execute(ctx context.Context, input string, importer evaluator.Importer) (ob
 		return nil, err
 	}
 	s.Declare("sql", sqlModule, false)
+
+	timeModule, err := modTime.Module(s)
+	if err != nil {
+		return nil, err
+	}
+	s.Declare("time", timeModule, false)
 
 	// Parse the user supplied program
 	p := parser.New(lexer.New(input))

@@ -88,6 +88,8 @@ print("uuid:", uuid())
 
 print(strings.join(["hey", "ya"], "_"))
 
+print("the time is:", time.now())
+
 print("pipe expr:",
     ["foo", "bar"] | strings.join("-"),
     ["a", "c"] | strings.join("b") | strings.contains("c"),

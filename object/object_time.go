@@ -1,7 +1,6 @@
 package object
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -14,7 +13,7 @@ func (t *Time) Type() Type {
 }
 
 func (t *Time) Inspect() string {
-	return fmt.Sprintf("%v", t.Value)
+	return t.Value.Format(time.RFC3339)
 }
 
 func (t *Time) InvokeMethod(method string, args ...Object) Object {
@@ -25,6 +24,6 @@ func (t *Time) ToInterface() interface{} {
 	return t.Value
 }
 
-func (t *Time) String() interface{} {
-	return t.Value
+func (t *Time) String() string {
+	return t.Inspect()
 }
