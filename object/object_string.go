@@ -97,3 +97,7 @@ func (s *String) Next() (Object, Object, bool) {
 func (s *String) ToInterface() interface{} {
 	return s.Value
 }
+
+func NewString(s string) *String {
+	return &String{Value: s}
+}
