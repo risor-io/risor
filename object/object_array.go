@@ -76,3 +76,11 @@ func (ao *Array) String() string {
 	}
 	return fmt.Sprintf("Array([%s])", strings.Join(items, ", "))
 }
+
+func NewStringArray(s []string) *Array {
+	array := &Array{Elements: make([]Object, 0, len(s))}
+	for _, item := range s {
+		array.Elements = append(array.Elements, &String{Value: item})
+	}
+	return array
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 )
@@ -13,21 +14,21 @@ import (
 const Name = "time"
 
 func Now(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.now", 0, args); err != nil {
+	if err := arg.Require("time.now", 0, args); err != nil {
 		return err
 	}
 	return &object.Time{Value: time.Now()}
 }
 
 func Parse(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.parse", 1, args); err != nil {
+	if err := arg.Require("time.parse", 1, args); err != nil {
 		return err
 	}
-	layout, err := AsString(args[0])
+	layout, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	value, err := AsString(args[1])
+	value, err := object.AsString(args[1])
 	if err != nil {
 		return err
 	}
@@ -39,44 +40,44 @@ func Parse(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func After(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.after", 2, args); err != nil {
+	if err := arg.Require("time.after", 2, args); err != nil {
 		return err
 	}
-	x, err := AsTime(args[0])
+	x, err := object.AsTime(args[0])
 	if err != nil {
 		return err
 	}
-	y, err := AsTime(args[1])
+	y, err := object.AsTime(args[1])
 	if err != nil {
 		return err
 	}
-	return ToBoolean(x.After(y))
+	return object.NewBoolean(x.After(y))
 }
 
 func Before(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.before", 2, args); err != nil {
+	if err := arg.Require("time.before", 2, args); err != nil {
 		return err
 	}
-	x, err := AsTime(args[0])
+	x, err := object.AsTime(args[0])
 	if err != nil {
 		return err
 	}
-	y, err := AsTime(args[1])
+	y, err := object.AsTime(args[1])
 	if err != nil {
 		return err
 	}
-	return ToBoolean(x.Before(y))
+	return object.NewBoolean(x.Before(y))
 }
 
 func Format(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.format", 2, args); err != nil {
+	if err := arg.Require("time.format", 2, args); err != nil {
 		return err
 	}
-	t, err := AsTime(args[0])
+	t, err := object.AsTime(args[0])
 	if err != nil {
 		return err
 	}
-	layout, err := AsString(args[1])
+	layout, err := object.AsString(args[1])
 	if err != nil {
 		return err
 	}
@@ -84,10 +85,10 @@ func Format(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func UTC(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.utc", 1, args); err != nil {
+	if err := arg.Require("time.utc", 1, args); err != nil {
 		return err
 	}
-	t, err := AsTime(args[0])
+	t, err := object.AsTime(args[0])
 	if err != nil {
 		return err
 	}
@@ -95,46 +96,14 @@ func UTC(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Unix(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("time.unix", 1, args); err != nil {
+	if err := arg.Require("time.unix", 1, args); err != nil {
 		return err
 	}
-	t, err := AsTime(args[0])
+	t, err := object.AsTime(args[0])
 	if err != nil {
 		return err
 	}
 	return &object.Integer{Value: t.Unix()}
-}
-
-func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		return object.NewError(
-			fmt.Sprintf("type error: %s() takes exactly %d argument (%d given)", funcName, count, nArgs))
-	}
-	return nil
-}
-
-func AsString(obj object.Object) (result string, err *object.Error) {
-	s, ok := obj.(*object.String)
-	if !ok {
-		return "", object.NewError("type error: expected a string (got %v)", obj.Type())
-	}
-	return s.Value, nil
-}
-
-func AsTime(obj object.Object) (result time.Time, err *object.Error) {
-	s, ok := obj.(*object.Time)
-	if !ok {
-		return time.Time{}, object.NewError("type error: expected a time (got %v)", obj.Type())
-	}
-	return s.Value, nil
-}
-
-func ToBoolean(value bool) *object.Boolean {
-	if value {
-		return object.TRUE
-	}
-	return object.FALSE
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {

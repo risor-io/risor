@@ -1,5 +1,7 @@
 package object
 
+import "time"
+
 func AsString(obj Object) (result string, err *Error) {
 	s, ok := obj.(*String)
 	if !ok {
@@ -33,4 +35,12 @@ func AsArray(obj Object) (*Array, *Error) {
 		return nil, NewError("type error: expected an array (got %v)", obj.Type())
 	}
 	return arr, nil
+}
+
+func AsTime(obj Object) (result time.Time, err *Error) {
+	s, ok := obj.(*Time)
+	if !ok {
+		return time.Time{}, NewError("type error: expected a time (got %v)", obj.Type())
+	}
+	return s.Value, nil
 }

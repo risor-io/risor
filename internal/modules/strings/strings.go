@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 )
@@ -13,7 +14,7 @@ import (
 const Name = "strings"
 
 func Contains(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.contains", 2, args); err != nil {
+	if err := arg.Require("strings.contains", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -28,7 +29,7 @@ func Contains(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.has_prefix", 2, args); err != nil {
+	if err := arg.Require("strings.has_prefix", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -43,7 +44,7 @@ func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.has_suffix", 2, args); err != nil {
+	if err := arg.Require("strings.has_suffix", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -58,7 +59,7 @@ func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Count(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.count", 2, args); err != nil {
+	if err := arg.Require("strings.count", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -73,7 +74,7 @@ func Count(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Compare(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.compare", 2, args); err != nil {
+	if err := arg.Require("strings.compare", 2, args); err != nil {
 		return err
 	}
 	s1, err := object.AsString(args[0])
@@ -88,7 +89,7 @@ func Compare(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.join", 2, args); err != nil {
+	if err := arg.Require("strings.join", 2, args); err != nil {
 		return err
 	}
 	array, err := object.AsArray(args[0])
@@ -111,7 +112,7 @@ func Join(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Split(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.split", 2, args); err != nil {
+	if err := arg.Require("strings.split", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -122,22 +123,22 @@ func Split(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return NewStringArray(strings.Split(s, sep))
+	return object.NewStringArray(strings.Split(s, sep))
 }
 
 func Fields(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.fields", 1, args); err != nil {
+	if err := arg.Require("strings.fields", 1, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	return NewStringArray(strings.Fields(s))
+	return object.NewStringArray(strings.Fields(s))
 }
 
 func Index(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.index", 2, args); err != nil {
+	if err := arg.Require("strings.index", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -152,7 +153,7 @@ func Index(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func LastIndex(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.last_index", 2, args); err != nil {
+	if err := arg.Require("strings.last_index", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -167,7 +168,7 @@ func LastIndex(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Replace(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.replace", 3, args); err != nil {
+	if err := arg.Require("strings.replace", 3, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -186,7 +187,7 @@ func Replace(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func ToLower(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.to_lower", 1, args); err != nil {
+	if err := arg.Require("strings.to_lower", 1, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -197,7 +198,7 @@ func ToLower(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func ToUpper(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.to_upper", 1, args); err != nil {
+	if err := arg.Require("strings.to_upper", 1, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -208,7 +209,7 @@ func ToUpper(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Trim(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.trim", 2, args); err != nil {
+	if err := arg.Require("strings.trim", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -223,7 +224,7 @@ func Trim(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.trim_prefix", 2, args); err != nil {
+	if err := arg.Require("strings.trim_prefix", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -238,7 +239,7 @@ func TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.trim_suffix", 2, args); err != nil {
+	if err := arg.Require("strings.trim_suffix", 2, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -253,7 +254,7 @@ func TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("strings.trim_space", 1, args); err != nil {
+	if err := arg.Require("strings.trim_space", 1, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -261,23 +262,6 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	return object.NewString(strings.TrimSpace(s))
-}
-
-func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		return object.NewError(
-			fmt.Sprintf("type error: %s() takes exactly one argument (%d given)", funcName, nArgs))
-	}
-	return nil
-}
-
-func NewStringArray(s []string) *object.Array {
-	array := &object.Array{}
-	for _, item := range s {
-		array.Elements = append(array.Elements, &object.String{Value: item})
-	}
-	return array
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {

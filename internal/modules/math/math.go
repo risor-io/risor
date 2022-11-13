@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 )
@@ -13,7 +14,7 @@ import (
 const Name = "math"
 
 func Abs(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.abs", 1, args); err != nil {
+	if err := arg.Require("math.abs", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
@@ -28,14 +29,14 @@ func Abs(ctx context.Context, args ...object.Object) object.Object {
 		if v < 0 {
 			v = v * -1
 		}
-		return ToFloat(v)
+		return object.NewFloat(v)
 	default:
 		return object.NewError("type error: argument to math.abs not supported, got=%s", args[0].Type())
 	}
 }
 
 func Sqrt(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.sqrt", 1, args); err != nil {
+	if err := arg.Require("math.sqrt", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
@@ -51,7 +52,7 @@ func Sqrt(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Max(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.max", 1, args); err != nil {
+	if err := arg.Require("math.max", 1, args); err != nil {
 		return err
 	}
 	arg := args[0]
@@ -88,15 +89,15 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 	}
 	if hasFlt {
 		if hasInt && float64(maxInt) > maxFlt {
-			return ToFloat(float64(maxInt))
+			return object.NewFloat(float64(maxInt))
 		}
-		return ToFloat(maxFlt)
+		return object.NewFloat(maxFlt)
 	}
-	return ToFloat(float64(maxInt))
+	return object.NewFloat(float64(maxInt))
 }
 
 func Min(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.min", 1, args); err != nil {
+	if err := arg.Require("math.min", 1, args); err != nil {
 		return err
 	}
 	arg := args[0]
@@ -133,205 +134,174 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	}
 	if hasFlt {
 		if hasInt && float64(minInt) < minFlt {
-			return ToFloat(float64(minInt))
+			return object.NewFloat(float64(minInt))
 		}
-		return ToFloat(minFlt)
+		return object.NewFloat(minFlt)
 	}
-	return ToFloat(float64(minInt))
+	return object.NewFloat(float64(minInt))
 }
 
 func Ceil(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.ceil", 1, args); err != nil {
+	if err := arg.Require("math.ceil", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
 	case *object.Integer:
 		return arg
 	case *object.Float:
-		return ToFloat(math.Ceil(arg.Value))
+		return object.NewFloat(math.Ceil(arg.Value))
 	default:
 		return object.NewError("type error: argument to math.ceil not supported, got=%s", args[0].Type())
 	}
 }
 
 func Floor(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.floor", 1, args); err != nil {
+	if err := arg.Require("math.floor", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
 	case *object.Integer:
 		return arg
 	case *object.Float:
-		return ToFloat(math.Floor(arg.Value))
+		return object.NewFloat(math.Floor(arg.Value))
 	default:
 		return object.NewError("type error: argument to math.floor not supported, got=%s", args[0].Type())
 	}
 }
 
 func Sin(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.sin", 1, args); err != nil {
+	if err := arg.Require("math.sin", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
 	case *object.Integer:
-		return ToFloat(math.Sin(float64(arg.Value)))
+		return object.NewFloat(math.Sin(float64(arg.Value)))
 	case *object.Float:
-		return ToFloat(math.Sin(arg.Value))
+		return object.NewFloat(math.Sin(arg.Value))
 	default:
 		return object.NewError("type error: argument to math.sin not supported, got=%s", args[0].Type())
 	}
 }
 
 func Cos(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.cos", 1, args); err != nil {
+	if err := arg.Require("math.cos", 1, args); err != nil {
 		return err
 	}
 	switch arg := args[0].(type) {
 	case *object.Integer:
-		return ToFloat(math.Cos(float64(arg.Value)))
+		return object.NewFloat(math.Cos(float64(arg.Value)))
 	case *object.Float:
-		return ToFloat(math.Cos(arg.Value))
+		return object.NewFloat(math.Cos(arg.Value))
 	default:
 		return object.NewError("type error: argument to math.cos not supported, got=%s", args[0].Type())
 	}
 }
 
 func Tan(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.tan", 1, args); err != nil {
+	if err := arg.Require("math.tan", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Tan(x))
+	return object.NewFloat(math.Tan(x))
 }
 
 func Mod(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.mod", 2, args); err != nil {
+	if err := arg.Require("math.mod", 2, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	y, err := AsFloat(args[1])
+	y, err := object.AsFloat(args[1])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Mod(x, y))
+	return object.NewFloat(math.Mod(x, y))
 }
 
 func Log(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.log", 1, args); err != nil {
+	if err := arg.Require("math.log", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Log(x))
+	return object.NewFloat(math.Log(x))
 }
 
 func Log10(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.log10", 1, args); err != nil {
+	if err := arg.Require("math.log10", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Log10(x))
+	return object.NewFloat(math.Log10(x))
 }
 
 func Log2(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.log2", 1, args); err != nil {
+	if err := arg.Require("math.log2", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Log2(x))
+	return object.NewFloat(math.Log2(x))
 }
 
 func Pow(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.pow", 2, args); err != nil {
+	if err := arg.Require("math.pow", 2, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	y, err := AsFloat(args[1])
+	y, err := object.AsFloat(args[1])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Pow(x, y))
+	return object.NewFloat(math.Pow(x, y))
 }
 
 func Pow10(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.pow10", 1, args); err != nil {
+	if err := arg.Require("math.pow10", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Pow10(int(x)))
+	return object.NewFloat(math.Pow10(int(x)))
 }
 
 func IsInf(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.is_inf", 1, args); err != nil {
+	if err := arg.Require("math.is_inf", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToBoolean(math.IsInf(x, 0))
+	return object.NewBoolean(math.IsInf(x, 0))
 }
 
 func Round(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("math.round", 1, args); err != nil {
+	if err := arg.Require("math.round", 1, args); err != nil {
 		return err
 	}
-	x, err := AsFloat(args[0])
+	x, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	return ToFloat(math.Round(x))
-}
-
-func ToFloat(value float64) *object.Float {
-	return &object.Float{Value: float64(value)}
-}
-
-func ToBoolean(value bool) *object.Boolean {
-	if value {
-		return object.TRUE
-	}
-	return object.FALSE
-}
-
-func AsFloat(obj object.Object) (float64, object.Object) {
-	switch obj := obj.(type) {
-	case *object.Integer:
-		return float64(obj.Value), nil
-	case *object.Float:
-		return obj.Value, nil
-	default:
-		return 0.0, object.NewError("type error: expected a number (got %v)", obj.Type())
-	}
-}
-
-func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		return object.NewError(
-			fmt.Sprintf("type error: %s() takes exactly one argument (%d given)", funcName, nArgs))
-	}
-	return nil
+	return object.NewFloat(math.Round(x))
 }
 
 // Module returns the `math` module object

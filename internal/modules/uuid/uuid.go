@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/gofrs/uuid"
@@ -12,7 +13,7 @@ import (
 const Name = "uuid"
 
 func V4(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("uuid.v4", 0, args); err != nil {
+	if err := arg.Require("uuid.v4", 0, args); err != nil {
 		return err
 	}
 	value, err := uuid.NewV4()
@@ -23,7 +24,7 @@ func V4(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func V5(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("uuid.v5", 2, args); err != nil {
+	if err := arg.Require("uuid.v5", 2, args); err != nil {
 		return err
 	}
 	namespace, err := object.AsString(args[0])
@@ -39,16 +40,6 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(nsErr.Error())
 	}
 	return object.NewString(uuid.NewV5(nsID, name).String())
-}
-
-func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		return object.NewError(
-			fmt.Sprintf("type error: %s() takes exactly %d argument (%d given)",
-				funcName, count, nArgs))
-	}
-	return nil
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {

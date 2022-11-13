@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/wI2L/jsondiff"
@@ -14,7 +15,7 @@ import (
 const Name = "json"
 
 func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("json.unmarshal", 1, args); err != nil {
+	if err := arg.Require("json.unmarshal", 1, args); err != nil {
 		return err
 	}
 	s, ok := args[0].(*object.String)
@@ -33,7 +34,7 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Marshal(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("json.marshal", 1, args); err != nil {
+	if err := arg.Require("json.marshal", 1, args); err != nil {
 		return err
 	}
 	obj := object.ToGoType(args[0])
@@ -48,7 +49,7 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Valid(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("json.valid", 1, args); err != nil {
+	if err := arg.Require("json.valid", 1, args); err != nil {
 		return err
 	}
 	s, err := object.AsString(args[0])
@@ -59,7 +60,7 @@ func Valid(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Diff(ctx context.Context, args ...object.Object) object.Object {
-	if err := RequireArgs("json.diff", 2, args); err != nil {
+	if err := arg.Require("json.diff", 2, args); err != nil {
 		return err
 	}
 	a := object.ToGoType(args[0])
@@ -88,15 +89,6 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 	}
 	unmarshalArgs := []object.Object{object.NewString(string(patchJSON))}
 	return Unmarshal(ctx, unmarshalArgs...)
-}
-
-func RequireArgs(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		return object.NewError(
-			fmt.Sprintf("type error: %s() takes exactly one argument (%d given)", funcName, nArgs))
-	}
-	return nil
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {
