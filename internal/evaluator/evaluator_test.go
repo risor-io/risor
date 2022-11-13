@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/cloudcmds/tamarin/internal/lexer"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 	"github.com/stretchr/testify/require"
 )
 
@@ -363,8 +363,8 @@ func TestBuiltinFunction(t *testing.T) {
 		{`len("four")`, 4},
 		{`len("狐犬")`, 2},
 		{`len("hello world")`, 11},
-		{`len(1)`, "argument to `len` not supported, got=INTEGER"},
-		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+		{`len(1)`, "type error: len() argument is unsupported (INTEGER given)"},
+		{`len("one", "two")`, "type error: len() takes exactly 1 argument (2 given)"},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)

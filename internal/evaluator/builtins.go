@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 	"unicode/utf8"
 
+	"github.com/cloudcmds/tamarin/internal/arg"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -20,65 +20,64 @@ var builtins = map[string]*object.Builtin{}
 
 // convert a string, boolean, or float to an int
 func intFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
-	}
-	switch args[0].(type) {
-	case *object.String:
-		input := args[0].(*object.String).Value
-		i, err := strconv.Atoi(input)
-		if err == nil {
-			return &object.Integer{Value: int64(i)}
-		}
-		return newError("Converting string '%s' to int failed %s", input, err.Error())
-	case *object.Boolean:
-		input := args[0].(*object.Boolean).Value
-		if input {
-			return &object.Integer{Value: 1}
-		}
-		return &object.Integer{Value: 0}
-	case *object.Integer:
-		return args[0]
-	case *object.Float:
-		input := args[0].(*object.Float).Value
-		return &object.Integer{Value: int64(input)}
-	default:
-		return newError("argument to `int` not supported, got=%s", args[0].Type())
-	}
-}
-
-// length of item
-func lenFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("int", 1, args); err != nil {
+		return err
 	}
 	switch arg := args[0].(type) {
 	case *object.String:
-		return &object.Integer{Value: int64(utf8.RuneCountInString(arg.Value))}
-	case *object.Null:
-		return &object.Integer{Value: 0}
-	case *object.Array:
-		return &object.Integer{Value: int64(len(arg.Elements))}
-	case *object.Set:
-		return &object.Integer{Value: int64(len(arg.Items))}
+		i, err := strconv.Atoi(arg.Value)
+		if err == nil {
+			return object.NewInteger(int64(i))
+		}
+		return newError("value error: int() could not convert string (%s given)", arg.Value)
+	case *object.Boolean:
+		if arg.Value {
+			return object.NewInteger(1)
+		}
+		return object.NewInteger(0)
+	case *object.Integer:
+		return arg
+	case *object.Float:
+		return object.NewInteger(int64(arg.Value))
 	default:
-		return newError("argument to `len` not supported, got=%s", args[0].Type())
+		return newError("type error: int() argument is unsupported (%s given)", arg.Type())
+	}
+}
+
+// length of a string, array, set, or hash
+func lenFun(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("len", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.String:
+		return object.NewInteger(int64(utf8.RuneCountInString(arg.Value)))
+	case *object.Array:
+		return object.NewInteger(int64(len(arg.Elements)))
+	case *object.Set:
+		return object.NewInteger(int64(len(arg.Items)))
+	case *object.Hash:
+		return object.NewInteger(int64(len(arg.Pairs)))
+	default:
+		return newError("type error: len() argument is unsupported (%s given)", args[0].Type())
 	}
 }
 
 // regular expression match
 func matchFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 2 {
-		return newError("wrong number of arguments. got=%d, want=2", len(args))
+	if err := arg.Require("match", 2, args); err != nil {
+		return err
 	}
-	if args[0].Type() != object.STRING_OBJ {
-		return newError("argument to `match` must be STRING, got %s", args[0].Type())
+	arg0, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
 	}
-	if args[1].Type() != object.STRING_OBJ {
-		return newError("argument to `match` must be STRING, got %s", args[1].Type())
+	arg1, argErr := object.AsString(args[1])
+	if argErr != nil {
+		return argErr
 	}
-	reg := regexp.MustCompile(args[0].(*object.String).Value)
-	res := reg.FindStringSubmatch(args[1].(*object.String).Value)
+	reg := regexp.MustCompile(arg0)
+	res := reg.FindStringSubmatch(arg1)
 	if len(res) > 0 {
 		newHash := make(map[object.HashKey]object.HashPair)
 		//
@@ -89,8 +88,8 @@ func matchFun(ctx context.Context, args ...object.Object) object.Object {
 		if len(res) > 1 {
 			for i := 1; i < len(res); i++ {
 				// Capture groups start at index 0.
-				k := &object.Integer{Value: int64(i - 1)}
-				v := &object.String{Value: res[i]}
+				k := object.NewInteger(int64(i - 1))
+				v := object.NewString(res[i])
 				newHashPair := object.HashPair{Key: k, Value: v}
 				newHash[k.HashKey()] = newHashPair
 			}
@@ -103,28 +102,26 @@ func matchFun(ctx context.Context, args ...object.Object) object.Object {
 // sprintfFun is the implementation of our `sprintf` function
 func sprintfFun(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return &object.Null{}
+		return newError("type error: sprintf() takes 1 or more arguments (%d given)", len(args))
 	}
-	if args[0].Type() != object.STRING_OBJ {
-		return &object.Null{}
+	fs, err := object.AsString(args[0])
+	if err != nil {
+		return err
 	}
-	fs := args[0].(*object.String).Value
-	// Convert the arguments to something go's sprintf code will understand
-	argLen := len(args)
-	fmtArgs := make([]interface{}, argLen-1)
+	fmtArgs := make([]interface{}, len(args)-1)
 	for i, v := range args[1:] {
 		fmtArgs[i] = v.ToInterface()
 	}
-	return &object.String{Value: fmt.Sprintf(fs, fmtArgs...)}
+	return object.NewString(fmt.Sprintf(fs, fmtArgs...))
 }
 
 // Get hash keys
 func hashKeys(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("keys", 1, args); err != nil {
+		return err
 	}
 	if args[0].Type() != object.HASH_OBJ {
-		return newError("argument to `keys` must be HASH, got=%s", args[0].Type())
+		return newError("type error: keys() argument must be a hash (%s given)", args[0].Type())
 	}
 	// The object we're working with
 	hash := args[0].(*object.Hash)
@@ -142,22 +139,18 @@ func hashKeys(ctx context.Context, args ...object.Object) object.Object {
 
 // Delete a given hash key
 func hashDelete(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 2 {
-		return newError("wrong number of arguments. got=%d, want=2", len(args))
+	if err := arg.Require("delete", 2, args); err != nil {
+		return err
 	}
 	if args[0].Type() != object.HASH_OBJ {
-		return newError("argument to `delete` must be HASH, got=%s", args[0].Type())
+		return newError("type error: delete() argument must be a hash (%s given)", args[0].Type())
 	}
-	// The object we're working with
 	hash := args[0].(*object.Hash)
-	// The key we're going to delete
 	key, ok := args[1].(object.Hashable)
 	if !ok {
-		return newError("key `delete` into HASH must be Hashable, got=%s", args[1].Type())
+		return newError("type error: delete() key argument must be hashable (%s given)", args[1].Type())
 	}
-	// Make a new hash
-	newHash := make(map[object.HashKey]object.HashPair)
-	// Copy the values EXCEPT the one we have.
+	newHash := make(map[object.HashKey]object.HashPair, len(hash.Pairs))
 	for k, v := range hash.Pairs {
 		if k != key.HashKey() {
 			newHash[k] = v
@@ -167,22 +160,22 @@ func hashDelete(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func setFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("set", 1, args); err != nil {
+		return err
 	}
 	set := &object.Set{Items: map[object.HashKey]object.Object{}}
 	arg := args[0]
 	switch arg := arg.(type) {
 	case *object.String:
 		for _, v := range arg.Value {
-			vStr := &object.String{Value: string(v)}
+			vStr := object.NewString(string(v))
 			set.Items[vStr.HashKey()] = vStr
 		}
 	case *object.Array:
 		for _, obj := range arg.Elements {
 			hashable, ok := obj.(object.Hashable)
 			if !ok {
-				return newError("type error: object is not hashable: %v", obj.Type())
+				return newError("type error: set() argument contains an object that is not hashable (of type %s)", obj.Type())
 			}
 			set.Items[hashable.HashKey()] = obj
 		}
@@ -191,49 +184,48 @@ func setFun(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func strFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("str", 1, args); err != nil {
+		return err
 	}
-	out := args[0].Inspect()
-	return &object.String{Value: out}
+	return object.NewString(args[0].Inspect())
 }
 
 func typeFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("type", 1, args); err != nil {
+		return err
 	}
 	switch args[0].(type) {
 	case *object.String:
-		return &object.String{Value: "string"}
+		return object.NewString("string")
 	case *object.Regexp:
-		return &object.String{Value: "regexp"}
+		return object.NewString("regexp")
 	case *object.Boolean:
-		return &object.String{Value: "bool"}
+		return object.NewString("bool")
 	case *object.Builtin:
-		return &object.String{Value: "builtin"}
+		return object.NewString("builtin")
 	case *object.Array:
-		return &object.String{Value: "array"}
+		return object.NewString("array")
 	case *object.Function:
-		return &object.String{Value: "function"}
+		return object.NewString("function")
 	case *object.Integer:
-		return &object.String{Value: "integer"}
+		return object.NewString("integer")
 	case *object.Float:
-		return &object.String{Value: "float"}
+		return object.NewString("float")
 	case *object.Hash:
-		return &object.String{Value: "hash"}
+		return object.NewString("hash")
 	case *object.Set:
-		return &object.String{Value: "set"}
+		return object.NewString("set")
 	case *object.Result:
-		return &object.String{Value: "result"}
+		return object.NewString("result")
 	case *object.HttpResponse:
-		return &object.String{Value: "http_response"}
+		return object.NewString("http_response")
+	case *object.Time:
+		return object.NewString("time")
+	case *object.Null:
+		return object.NewString("null")
 	default:
-		return newError("argument to `type` not supported, got=%s", args[0].Type())
+		return newError("type error: type() argument not supported (%s given)", args[0].Type())
 	}
-}
-
-func randomFun(ctx context.Context, args ...object.Object) object.Object {
-	return &object.Float{Value: rand.Float64()}
 }
 
 func okFun(ctx context.Context, args ...object.Object) object.Object {
@@ -243,13 +235,13 @@ func okFun(ctx context.Context, args ...object.Object) object.Object {
 	case 1:
 		return &object.Result{Ok: args[0]}
 	default:
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+		return newError("type error: ok() takes 0 or 1 arguments (%d given)", len(args))
 	}
 }
 
 func errFun(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 1 {
-		return newError("wrong number of arguments. got=%d, want=1", len(args))
+	if err := arg.Require("err", 1, args); err != nil {
+		return err
 	}
 	return &object.Result{Err: args[0]}
 }
@@ -257,7 +249,7 @@ func errFun(ctx context.Context, args ...object.Object) object.Object {
 func assertFun(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
-		return newError("wrong number of arguments. got=%d, want=1 or 2", len(args))
+		return newError("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
 	}
 	if !isTruthy(args[0]) {
 		if numArgs == 2 {
@@ -271,11 +263,11 @@ func assertFun(ctx context.Context, args ...object.Object) object.Object {
 func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
-		return newError("wrong number of arguments. got=%d, want=1 or 2", len(args))
+		return newError("type error: fetch() takes 1 or 2 arguments (%d given)", len(args))
 	}
-	urlArg, ok := args[0].(*object.String)
-	if !ok {
-		return newError("type error: expected a string argument; got %v", args[0].Type())
+	urlArg, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
 	}
 	var params *object.Hash
 	if numArgs == 2 {
@@ -320,7 +312,7 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, method, urlArg.Value, body)
+	req, err := http.NewRequestWithContext(ctx, method, urlArg, body)
 	if err != nil {
 		return &object.Result{Err: &object.Error{Message: err.Error()}}
 	}
@@ -347,12 +339,10 @@ func init() {
 	RegisterBuiltin("sprintf", sprintfFun)
 	RegisterBuiltin("str", strFun)
 	RegisterBuiltin("type", typeFun)
-	RegisterBuiltin("random", randomFun)
 	RegisterBuiltin("ok", okFun)
 	RegisterBuiltin("err", errFun)
 	RegisterBuiltin("assert", assertFun)
 	RegisterBuiltin("fetch", fetchFun)
-	// RegisterBuiltin("uuid", uuidFun)
 
 	// TODO:
 	// any
