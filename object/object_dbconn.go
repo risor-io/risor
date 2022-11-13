@@ -5,7 +5,7 @@ type DatabaseConnection struct {
 }
 
 func (c *DatabaseConnection) Type() Type {
-	return DB_CONNECTION
+	return DB_CONNECTION_OBJ
 }
 
 func (c *DatabaseConnection) Inspect() string {

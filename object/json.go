@@ -31,7 +31,7 @@ func FromGoType(obj interface{}) Object {
 	case [16]uint8:
 		return &String{Value: uuid.UUID(obj).String()}
 	case time.Time:
-		return &Float{Value: float64(obj.Unix())} // TODO: improve
+		return &Time{Value: obj}
 	case []interface{}:
 		array := &Array{Elements: make([]Object, 0, len(obj))}
 		for _, item := range obj {
@@ -82,6 +82,8 @@ func ToGoType(obj Object) interface{} {
 	case *String:
 		return obj.Value
 	case *Boolean:
+		return obj.Value
+	case *Time:
 		return obj.Value
 	case *Array:
 		array := make([]interface{}, 0, len(obj.Elements))

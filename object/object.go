@@ -23,7 +23,8 @@ const (
 	MODULE_OBJ        = "MODULE"
 	RESULT_OBJ        = "RESULT"
 	HTTP_RESPONSE_OBJ = "HTTP_RESPONSE"
-	DB_CONNECTION     = "DB_CONNECTION"
+	DB_CONNECTION_OBJ = "DB_CONNECTION"
+	TIME_OBJ          = "TIME"
 )
 
 // Object is the interface that all of our various object-types must implmenet.
