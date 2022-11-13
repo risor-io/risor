@@ -44,6 +44,32 @@ func intFun(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+// convert a string, boolean, or int to a float
+func Float(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("float", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.String:
+		f, err := strconv.ParseFloat(arg.Value, 64)
+		if err == nil {
+			return object.NewFloat(f)
+		}
+		return newError("value error: float() could not convert string (%s given)", arg.Value)
+	case *object.Boolean:
+		if arg.Value {
+			return object.NewFloat(1)
+		}
+		return object.NewFloat(0)
+	case *object.Integer:
+		return object.NewFloat(float64(arg.Value))
+	case *object.Float:
+		return arg
+	default:
+		return newError("type error: float() argument is unsupported (%s given)", arg.Type())
+	}
+}
+
 // length of a string, array, set, or hash
 func lenFun(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
@@ -223,6 +249,8 @@ func typeFun(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("time")
 	case *object.Null:
 		return object.NewString("null")
+	case *object.DatabaseConnection:
+		return object.NewString("db_connection")
 	default:
 		return newError("type error: type() argument not supported (%s given)", args[0].Type())
 	}
@@ -258,6 +286,74 @@ func assertFun(ctx context.Context, args ...object.Object) object.Object {
 		return newError("assertion failed")
 	}
 	return object.NULL
+}
+
+func Any(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("any", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Array:
+		for _, obj := range arg.Elements {
+			if isTruthy(obj) {
+				return object.TRUE
+			}
+		}
+	case *object.Hash:
+		for _, ent := range arg.Pairs {
+			if isTruthy(ent.Value) {
+				return object.TRUE
+			}
+		}
+	case *object.Set:
+		for _, obj := range arg.Items {
+			if isTruthy(obj) {
+				return object.TRUE
+			}
+		}
+	default:
+		return newError("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
+	}
+	return object.FALSE
+}
+
+func All(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("all", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Array:
+		for _, obj := range arg.Elements {
+			if !isTruthy(obj) {
+				return object.FALSE
+			}
+		}
+	case *object.Hash:
+		for _, ent := range arg.Pairs {
+			if !isTruthy(ent.Value) {
+				return object.FALSE
+			}
+		}
+	case *object.Set:
+		for _, obj := range arg.Items {
+			if !isTruthy(obj) {
+				return object.FALSE
+			}
+		}
+	default:
+		return newError("type error: all() argument must be an array, hash, or set (%s given)", args[0].Type())
+	}
+	return object.TRUE
+}
+
+func Bool(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("bool", 1, args); err != nil {
+		return err
+	}
+	if isTruthy(args[0]) {
+		return object.TRUE
+	}
+	return object.FALSE
 }
 
 func fetchFun(ctx context.Context, args ...object.Object) object.Object {
@@ -332,6 +428,7 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 func init() {
 	RegisterBuiltin("delete", hashDelete)
 	RegisterBuiltin("int", intFun)
+	RegisterBuiltin("float", Float)
 	RegisterBuiltin("keys", hashKeys)
 	RegisterBuiltin("len", lenFun)
 	RegisterBuiltin("match", matchFun)
@@ -343,14 +440,13 @@ func init() {
 	RegisterBuiltin("err", errFun)
 	RegisterBuiltin("assert", assertFun)
 	RegisterBuiltin("fetch", fetchFun)
+	RegisterBuiltin("any", Any)
+	RegisterBuiltin("all", All)
+	RegisterBuiltin("bool", Bool)
 
 	// TODO:
-	// any
-	// all
-	// bool
 	// chr
 	// ord
-	// filter
 	// float
 	// hex
 	// map

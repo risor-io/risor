@@ -20,8 +20,12 @@ func isTruthy(obj object.Object) bool {
 			return obj.Value != ""
 		case *object.Array:
 			return len(obj.Elements) > 0
-			// case *object.Boolean:
-			// 	return obj.Value // TODO: eliminate need for this
+		case *object.Hash:
+			return len(obj.Pairs) > 0
+		case *object.Set:
+			return len(obj.Items) > 0
+		case *object.Boolean:
+			return obj.Value
 		}
 		return true
 	}

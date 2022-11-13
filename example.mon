@@ -97,4 +97,6 @@ print("pipe expr:",
     ["a", "c"] | strings.join("b") | strings.contains("c"),
     [99, 98, 97] | math.max)
 
+print("any?", any([0, false, []]))
+
 { "results": "\"nice!\"" | json.unmarshal, "pi": math.PI }
