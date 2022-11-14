@@ -195,4 +195,4 @@ There are also `HttpResponse` and `DatabaseConnection` types in progress.
 
 ## Standard Library
 
-Documentation for this is a work in progress. For now, browse the modules [here](./internal/modules).
+Documentation for this is a work in progress. For now, browse the modules [here](../internal/modules).
