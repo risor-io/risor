@@ -2,7 +2,11 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/cloudcmds/tamarin/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/cloudcmds/tamarin/tree/main)
 
-Cloud scripting language.
+Embedded scripting language written in Go. May be used as a CLI or imported as a library.
+
+This project is very early and should be considered "alpha" software. Please visit the
+[Github discussions](https://github.com/cloudcmds/tamarin/discussions) page for Tamarin
+to share thoughts and questions!
 
 ## Usage
 
@@ -24,7 +28,7 @@ Execution then works as you would expect:
 
 ## Further Documentation
 
-Work in progress. See [example.tm](./example.tm).
+Work in progress. See [assorted.tm](./examples/assorted.tm).
 
 ## Credits
 
