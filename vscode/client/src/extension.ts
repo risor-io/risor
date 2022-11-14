@@ -1,8 +1,3 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
 
@@ -16,10 +11,10 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-	// The server is implemented in node
-	// const serverModule = context.asAbsolutePath('/Users/curtis/git/tamarin/cmd/lsp');
-	// path.join('server', 'out', 'server.js')
-	// );
+
+	// Skip the language server for now
+	return;
+
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
@@ -28,12 +23,12 @@ export function activate(context: ExtensionContext) {
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: {
-			command: '/Users/curtis/git/tamarin/cmd/tamarin-lsp/tamarin-lsp',
+			command: 'tamarin-lsp', // FIXME: Need to install this binary automatically
 			args: [],
 			options: {},
 		},
 		debug: {
-			command: '/Users/curtis/git/tamarin/cmd/tamarin-lsp/tamarin-lsp',
+			command: 'tamarin-lsp',
 			args: [],
 			options: {},
 		}
