@@ -13,8 +13,8 @@ to share thoughts and questions!
 ## Goals
 
 Tamarin is meant to be useful for web, cloud, and general backend scripting.
-The syntax is meant to be familiar to Go, Typescript, and Python developers.
-The language is meant to be "batteries included" with a large and handy
+The syntax should be familiar to Go, Typescript, and Python developers.
+The language should be "batteries included" with a large and handy
 standard library (this is a work in progress).
 
 Miscellaneous popular Go open source libraries may be integrated into the
