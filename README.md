@@ -95,7 +95,7 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 🎉 This project is just getting started. Tamarin is intended to be a community project and you can lend a hand in many different ways.
 
 - Please ask questions and share ideas in [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
-- Share Tamarin on social any social channels that may appreciate it
+- Share Tamarin on any social channels that may appreciate it
 - Let us know about any usage of Tamarin that we can celebrate
 - Leave us a star us on Github
 
