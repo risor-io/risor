@@ -26,6 +26,10 @@ there are many other situations where Tamarin may be useful. Because of this
 initial use case, we chose to not support file I/O operations at this point,
 however those will be added as an opt-in feature.
 
+It is **not** currently considered important to be performance competitive
+with widely used scripting languages. If you are looking for top performance
+you should probably be using sandboxed V8/Javascript or Lua.
+
 ## Overview
 
 - Familiar syntax inspired by Go, Typescript, and Python
