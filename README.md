@@ -79,7 +79,7 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 
 ## Contributing
 
-🎉 This project is just getting started. Tamarin is intended to be a community project and lending a hand is possible in many different ways.
+🎉 This project is just getting started. Tamarin is intended to be a community project and you can lend a hand in many different ways.
 
 - Please ask questions and share ideas in [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
 - Share Tamarin on social any social channels that may appreciate it
@@ -89,6 +89,7 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 
 - File I/O was intentionally omitted for now
 - No concurrency support yet
+- No user-defined types yet
 - Hash key collisions are unlikely but possible and not yet handled (a straight-forward fix)
 - I'm sure edge cases exist that have poor error messages
 
@@ -98,10 +99,9 @@ There are two categories of errors in Tamarin. Severe errors which indicate a pr
 create `*object.Error` errors that abort evaluation immediately. These are similar to Go panics.
 Operations that may fail return an `*object.Result` object that contains either an `Ok` value or
 an `Err` value. This is inspired by [Rust's Result type](https://doc.rust-lang.org/std/result/).
-Tamarin's `Result` objects proxy to the `Ok` value in certain situations, to keep adhoc scripting
-concise.
+`Result` objects proxy to the `Ok` value in certain situations, to keep adhoc scripting concise.
 
-The `Result` object offers the following methods:
+### Result Methods
 
 - `is_err`: returns `true` if the Result contains an error
 - `is_ok`: returns `true` if the Result contains the successful operation value
@@ -113,8 +113,8 @@ Other method calls on the `Result` object proxy to calls on the ok value (or
 raise an error).
 
 Altogether this means programmers have reliable tools for handling errors as
-values without requiring try: catch style exceptions. In quick scripts, you
-can rely on `Result` object proxying if you want, while in situations requiring
+values without requiring `try: catch` style exceptions. In quick scripts, you
+can rely on `Result` method proxying if you want, while in situations requiring
 robustness you can use the `Result` methods to check for and unwrap errors.
 
 ## Credits
