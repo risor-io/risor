@@ -73,6 +73,14 @@ Execution then works as you would expect:
      $ ./hello.tm
      Hello world!
 
+## Syntax Highlighting
+
+A VSCode extension is already available which currently only offers syntax highlighting.
+
+You can also make use of the [Tamarin TextMate grammar](./vscode/syntaxes/tamarin.grammar.json).
+
+![](docs/assets/syntax-highlighting.png?raw=true)
+
 ## Further Documentation
 
 Work in progress. See [assorted.tm](./examples/assorted.tm).
@@ -84,6 +92,7 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 - Please ask questions and share ideas in [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
 - Share Tamarin on social any social channels that may appreciate it
 - Let us know about any usage of Tamarin that we can celebrate
+- Leave us a star us on Github
 
 ## Known Issues & Limitations
 
@@ -92,6 +101,28 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 - No user-defined types yet
 - Hash key collisions are unlikely but possible and not yet handled (a straight-forward fix)
 - I'm sure edge cases exist that have poor error messages
+
+## Pipe Expressions
+
+A single value may be passed between successive calls using pipe expressions.
+
+```
+let array = ["gophers", "are", "burrowing", "rodents"]
+
+let sentence = array | strings.join(" ") | strings.to_upper
+
+print(sentence)
+```
+
+Output:
+
+```
+GOPHERS ARE BURROWING RODENTS
+```
+
+The intent is that if any call in the pipeline returns a `Result` object, that
+object is unwrapped before providing it to the next call (or the pipeline aborts
+if the Result is an error). This is not yet implemented.
 
 ## Error Handling in Tamarin
 
@@ -123,3 +154,7 @@ robustness you can use the `Result` methods to check for and unwrap errors.
 - [Steve Kemp](https://github.com/skx) and the work in [github.com/skx/monkey](https://github.com/skx/monkey).
 
 See more information in [CREDITS](./CREDITS).
+
+## License
+
+Released under the MIT License. Copyright Curtis Myzie / [github.com/myzie](https://github.com/myzie).
