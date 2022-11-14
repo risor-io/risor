@@ -4,7 +4,8 @@
   "description": "Tamarin Language Support",
   "author": "Curtis Myzie",
   "license": "MIT",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "icon": "images/logo-256.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/cloudcmds/tamarin"
