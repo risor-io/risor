@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Add print statement support
-	evaluator.RegisterRestrictedBuiltins()
+	evaluator.RegisterPrintBuiltins()
 
 	// Read input script from a file or from stdin
 	var err error
@@ -45,7 +45,10 @@ func main() {
 	}
 
 	ctx := context.Background()
-	result, err := exec.Execute(ctx, string(input), &evaluator.SimpleImporter{})
+	result, err := exec.Execute(ctx, exec.Opts{
+		Input:    string(input),
+		Importer: &evaluator.SimpleImporter{},
+	})
 	if err != nil {
 		fmt.Println("Execution error:", err)
 		os.Exit(1)

@@ -39,8 +39,8 @@ s := { 1, 3.3,
   -1, -99, 42, 101.3, 3.3, 99 }
 print("S:", s)
 
-import lib
-print("lib.x:", lib.x, lib.add(11))
+import example_lib
+print("example_lib.x:", example_lib.x, example_lib.add(11))
 
 print(
     "type:", type(s),

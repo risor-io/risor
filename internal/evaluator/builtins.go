@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 	"unicode/utf8"
 
@@ -17,58 +16,6 @@ import (
 
 // The built-in functions / standard-library methods are stored here.
 var builtins = map[string]*object.Builtin{}
-
-// convert a string, boolean, or float to an int
-func intFun(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("int", 1, args); err != nil {
-		return err
-	}
-	switch arg := args[0].(type) {
-	case *object.String:
-		i, err := strconv.Atoi(arg.Value)
-		if err == nil {
-			return object.NewInteger(int64(i))
-		}
-		return newError("value error: int() could not convert string (%s given)", arg.Value)
-	case *object.Boolean:
-		if arg.Value {
-			return object.NewInteger(1)
-		}
-		return object.NewInteger(0)
-	case *object.Integer:
-		return arg
-	case *object.Float:
-		return object.NewInteger(int64(arg.Value))
-	default:
-		return newError("type error: int() argument is unsupported (%s given)", arg.Type())
-	}
-}
-
-// convert a string, boolean, or int to a float
-func Float(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("float", 1, args); err != nil {
-		return err
-	}
-	switch arg := args[0].(type) {
-	case *object.String:
-		f, err := strconv.ParseFloat(arg.Value, 64)
-		if err == nil {
-			return object.NewFloat(f)
-		}
-		return newError("value error: float() could not convert string (%s given)", arg.Value)
-	case *object.Boolean:
-		if arg.Value {
-			return object.NewFloat(1)
-		}
-		return object.NewFloat(0)
-	case *object.Integer:
-		return object.NewFloat(float64(arg.Value))
-	case *object.Float:
-		return arg
-	default:
-		return newError("type error: float() argument is unsupported (%s given)", arg.Type())
-	}
-}
 
 // length of a string, array, set, or hash
 func lenFun(ctx context.Context, args ...object.Object) object.Object {
@@ -427,8 +374,6 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 
 func init() {
 	RegisterBuiltin("delete", hashDelete)
-	RegisterBuiltin("int", intFun)
-	RegisterBuiltin("float", Float)
 	RegisterBuiltin("keys", hashKeys)
 	RegisterBuiltin("len", lenFun)
 	RegisterBuiltin("match", matchFun)
@@ -443,19 +388,6 @@ func init() {
 	RegisterBuiltin("any", Any)
 	RegisterBuiltin("all", All)
 	RegisterBuiltin("bool", Bool)
-
-	// TODO:
-	// chr
-	// ord
-	// float
-	// hex
-	// map
-	// oct
-	// pow
-	// round
-	// sorted
-	// sum
-	// isinstance
 }
 
 // RegisterBuiltin registers a built-in function.  This is used to register

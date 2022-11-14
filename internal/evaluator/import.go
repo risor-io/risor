@@ -9,9 +9,9 @@ import (
 
 	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/cloudcmds/tamarin/internal/lexer"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 type Importer interface {
@@ -56,7 +56,7 @@ func (e *Evaluator) evalImportStatement(
 		return newError("import error: importing is disabled")
 	}
 	moduleName := node.Name.String()
-	name := fmt.Sprintf("%s.mon", moduleName)
+	name := fmt.Sprintf("%s.tm", moduleName)
 	module, err := e.importer.Import(ctx, e, name)
 	if err != nil {
 		return newError(err.Error())

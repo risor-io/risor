@@ -12,7 +12,7 @@ install-tools:
 
 .PHONY: extension-login
 extension-login:
-	vsce login $(VSCE_ID)
+	cd vscode && vsce login CurtisMyzie
 
 .PHONY: extension
 extension:

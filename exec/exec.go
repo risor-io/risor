@@ -1,8 +1,10 @@
+// Package exec provides an Execute function that is used to
+// run arbitrary Tamarin source code and return the result.
 package exec
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/evaluator"
@@ -10,7 +12,7 @@ import (
 	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
 	modRand "github.com/cloudcmds/tamarin/internal/modules/rand"
-	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
+	modStrconv "github.com/cloudcmds/tamarin/internal/modules/strconv"
 	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
 	modTime "github.com/cloudcmds/tamarin/internal/modules/time"
 	modUuid "github.com/cloudcmds/tamarin/internal/modules/uuid"
@@ -19,50 +21,116 @@ import (
 	"github.com/cloudcmds/tamarin/object"
 )
 
+// ModuleFunc is the signature of a function that returns a module
 type ModuleFunc func(*scope.Scope) (*object.Module, error)
 
+// Will contain module functions for default modules
 var moduleFuncs = map[string]ModuleFunc{}
 
+// Modules included here must not include any I/O operations or
+// other operations that may be questionable in a secure environment.
+// This is because these modules are imported automatically and
+// some callers may want to have a limited core set of modules.
 func init() {
 	moduleFuncs["math"] = modMath.Module
 	moduleFuncs["json"] = modJson.Module
 	moduleFuncs["strings"] = modStrings.Module
-	moduleFuncs["sql"] = modSql.Module
 	moduleFuncs["time"] = modTime.Module
 	moduleFuncs["uuid"] = modUuid.Module
 	moduleFuncs["rand"] = modRand.Module
+	moduleFuncs["strconv"] = modStrconv.Module
 }
 
-func Execute(ctx context.Context, input string, importer evaluator.Importer) (object.Object, error) {
+// Opts is used configure the execution of a Tamarin program.
+type Opts struct {
+	// Input is the main source code to execute.
+	Input string
 
-	e := evaluator.New(evaluator.Opts{Importer: importer})
-	s := scope.New(scope.Opts{Name: "global"})
+	// Importer may optionally be supplied as an interface
+	// used to import modules. If not provided, any attempt
+	// to import will fail, halting execution with an error.
+	Importer evaluator.Importer
 
-	// Automatically "import" standard modules
-	for name, fn := range moduleFuncs {
-		mod, err := fn(s)
-		if err != nil {
-			return nil, err
+	// Scope may optionally be supplied as the top-level scope
+	// used during execution. If not provided, an empty scope
+	// will be created automatically.
+	Scope *scope.Scope
+
+	// If set to true, the default modules will not be imported
+	// automatically.
+	DisableAutoImport bool
+}
+
+// Execute the given source code as input and return the result.
+// If the execution is successful, a Tamarin object is returned
+// as the final result. The context may be used to cancel the
+// evaluation based on a timeout or otherwise.
+//
+// The opts should contain the required input as well as other
+// optional parameters.
+//
+// Any panic is handled internally and propagated as an error.
+//
+// The result value is the final of the final statement or
+// expression in the main source code, which may be object.NULL
+// if the expression doesn't evaluate to a value.
+func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
+
+	// Translate any panic into an error so the caller has a good guarantee
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
 		}
-		if err := s.Declare(name, mod, false); err != nil {
-			return nil, err
+	}()
+
+	// Create the top-level scope if one was not provided
+	s := opts.Scope
+	if s == nil {
+		s = scope.New(scope.Opts{Name: "global"})
+	}
+
+	if !opts.DisableAutoImport {
+		// Automatically import standard modules
+		for name, fn := range moduleFuncs {
+			mod, err := fn(s)
+			if err != nil {
+				return nil, fmt.Errorf("init error: failed to create module %s: %w", name, err)
+			}
+			if err := s.Declare(name, mod, false); err != nil {
+				return nil, fmt.Errorf("init error: failed to attach module %s: %w", name, err)
+			}
 		}
 	}
 
-	// Parse the user supplied program
-	p := parser.New(lexer.New(input))
+	// Parse the program
+	p := parser.New(lexer.New(opts.Input))
 	program := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
-		return nil, errors.New(strings.Join(errs, "; "))
+		errStr := strings.Join(errs, "; ")
+		if len(errs) == 1 {
+			return nil, fmt.Errorf("parse error: %s", errStr)
+		}
+		return nil, fmt.Errorf("parse errors: %s", errStr)
 	}
 
 	// Evaluate the program
-	result := e.Evaluate(ctx, program, s)
+	result = evaluator.New(evaluator.Opts{
+		Importer: opts.Importer,
+	}).Evaluate(ctx, program, s)
+
+	// Let's guarantee that if there's no error we return a
+	// Tamarin object, so defaulting to object.NULL may make sense
 	if result == nil {
-		return nil, nil
+		return object.NULL, nil
 	}
-	if result.Type() == "ERROR" {
-		return nil, errors.New(result.Inspect())
+
+	// If evaluation failed, we will have a Tamarin error object
+	// and we should transform that into a Go error
+	if errObj, ok := result.(*object.Error); ok {
+		return nil, fmt.Errorf("eval error: %s", errObj.Message)
 	}
+
+	// At this point we know evaluation succeeded and we can
+	// just return the final Tamarin object as-is
 	return result, nil
 }

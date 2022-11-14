@@ -141,6 +141,37 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(float64(minInt))
 }
 
+func Sum(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("math.sum", 1, args); err != nil {
+		return err
+	}
+	arg := args[0]
+	var array []object.Object
+	switch arg := arg.(type) {
+	case *object.Array:
+		array = arg.Elements
+	case *object.Set:
+		array = arg.Array()
+	default:
+		return object.NewError("type error: %s object is not iterable", arg.Type())
+	}
+	if len(array) == 0 {
+		return object.NewFloat(0)
+	}
+	var sum float64
+	for _, value := range array {
+		switch val := value.(type) {
+		case *object.Integer:
+			sum += float64(val.Value)
+		case *object.Float:
+			sum += val.Value
+		default:
+			return object.NewError("value error: invalid input for math.sum: %s", val.Type())
+		}
+	}
+	return object.NewFloat(sum)
+}
+
 func Ceil(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("math.ceil", 1, args); err != nil {
 		return err
@@ -328,6 +359,7 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		{Name: "pow10", Func: Pow10},
 		{Name: "is_inf", Func: IsInf},
 		{Name: "round", Func: Round},
+		{Name: "sum", Func: Sum},
 	}); err != nil {
 		return nil, err
 	}

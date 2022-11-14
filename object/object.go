@@ -1,10 +1,25 @@
-// Package object contains our core-definitions for objects.
+// Package object defines all available object types in Tamarin.
+//
+// For external users of Tamarin, most often an object.Object interface
+// will be type asserted to a specific object type, such as *object.Float.
+//
+// For example:
+//
+//	switch obj := obj.(type) {
+//	case *object.String:
+//		// do something with obj.Value
+//	case *object.Float:
+//		// do something with obj.Value
+//	}
+//
+// The Type() method of each object may also be used to get a string
+// name of the object type, such as "STRING" or "FLOAT".
 package object
 
-// Type describes the type of an object.
+// Type defines the type of an object.
 type Type string
 
-// pre-defined constant Type
+// Type constants
 const (
 	INTEGER_OBJ       = "INTEGER"
 	FLOAT_OBJ         = "FLOAT"
@@ -27,10 +42,10 @@ const (
 	TIME_OBJ          = "TIME"
 )
 
-// Object is the interface that all of our various object-types must implmenet.
+// Object is the interface that all object types in Tamarin must implement.
 type Object interface {
 
-	// Type returns the type of this object.
+	// Type of this object.
 	Type() Type
 
 	// Inspect returns a string-representation of the given object.
@@ -46,33 +61,9 @@ type Object interface {
 	ToInterface() interface{}
 }
 
-// Hashable type can be hashed
+// Hashable type can be hashed.
 type Hashable interface {
 
 	// HashKey returns a hash key for the given object.
 	HashKey() HashKey
-}
-
-// Iterable is an interface that some objects might support.
-//
-// If this interface is implemented then it will be possible to
-// use the `foreach` function to iterate over the object.  If
-// the interface is not implemented then a run-time error will
-// be generated instead.
-type Iterable interface {
-
-	// Reset the state of any previous iteration.
-	Reset()
-
-	// Get the next "thing" from the object being iterated
-	// over.
-	//
-	// The return values are the item which is to be returned
-	// next, the index of that object, and finally a boolean
-	// to say whether the function succeeded.
-	//
-	// If the boolean value returned is false then that
-	// means the iteration has completed and no further
-	// items are available.
-	Next() (Object, Object, bool)
 }

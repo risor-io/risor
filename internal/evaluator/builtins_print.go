@@ -28,9 +28,19 @@ func printfFun(ctx context.Context, args ...object.Object) object.Object {
 	return object.NULL
 }
 
-// RegisterRestrictedBuiltins adds builtins that should not be present when
-// running server side
-func RegisterRestrictedBuiltins() {
+// RegisterPrintBuiltins adds the actual print and printf builtins that
+// write to stdout.
+func RegisterPrintBuiltins() {
 	RegisterBuiltin("print", printFun)
 	RegisterBuiltin("printf", printfFun)
+}
+
+// RegisterPrintStubs adds stub implementations for print and printf which
+// may make sense in some situations, e.g. server-side.
+func RegisterPrintStubs() {
+	noop := func(ctx context.Context, args ...object.Object) object.Object {
+		return object.NULL
+	}
+	RegisterBuiltin("print", noop)
+	RegisterBuiltin("printf", noop)
 }
