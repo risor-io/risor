@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/internal/evaluator"
+	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/lexer"
 	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"

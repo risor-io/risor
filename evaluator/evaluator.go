@@ -1,5 +1,5 @@
 // Package evaluator contains the core of our interpreter, which walks
-// the AST produced by the parser and evaluates the user-submitted program.
+// the AST produced by the parser and evaluates user code.
 package evaluator
 
 import (
@@ -8,14 +8,19 @@ import (
 	"reflect"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
+// Opts configures Tamarin code evaluation.
 type Opts struct {
+	// Importer is used to import Tamarin code modules. If nil, module imports
+	// are not supported and an import will result in an error that stops code
+	// execution.
 	Importer Importer
 }
 
+// Evaluator is used to execute Tamarin AST nodes.
 type Evaluator struct {
 	importer Importer
 }
@@ -26,6 +31,7 @@ func New(opts Opts) *Evaluator {
 }
 
 // Evaluate an AST node. The context can be used to cancel a running evaluation.
+// If evaluation encounters an error, a Tamarin error object is returned.
 func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope) object.Object {
 
 	// Check for context timeout

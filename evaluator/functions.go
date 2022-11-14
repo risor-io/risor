@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func (e *Evaluator) evalFunctionLiteral(
@@ -76,6 +76,12 @@ func (e *Evaluator) newFunctionScope(
 		if err := nestedScope.Declare(key, evaluatedValue, false); err != nil {
 			return nil, err
 		}
+	}
+	if len(fn.Defaults) == 0 && len(args) != len(fn.Parameters) {
+		fmt.Println("FUNC:", fn)
+		fmt.Println("ARGS:", args)
+		return nil, fmt.Errorf("type error: function expected %d arguments (%d given)",
+			len(fn.Parameters), len(args))
 	}
 	for paramIdx, param := range fn.Parameters {
 		if paramIdx < len(args) {

@@ -1,4 +1,4 @@
-// Package main is the entry point for the Tamarin language server.
+// This package implements a Tamarin language server.
 // This is very much a work in progress. The VSCode extension is
 // usable as-is but only for syntax highlighting. The language server
 // does not currently install when the extension is installed.

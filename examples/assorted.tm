@@ -15,7 +15,10 @@ func inc(x) {
     x + 1
 }
 
-let x = getint()() | inc
+print(getint()() )
+
+// let x = getint()() | inc
+let x = 4
 
 print(x)
 
@@ -41,8 +44,8 @@ s := { 1, 3.3,
   -1, -99, 42, 101.3, 3.3, 99 }
 print("S:", s)
 
-import example_lib
-print("example_lib.x:", example_lib.x, example_lib.add(11))
+import library
+print("library call:", library.add(11))
 
 print(
     "type:", type(s),

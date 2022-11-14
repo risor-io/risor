@@ -42,6 +42,12 @@ const (
 	TIME_OBJ          = "TIME"
 )
 
+var (
+	NULL  = &Null{}
+	TRUE  = &Boolean{Value: true}
+	FALSE = &Boolean{Value: false}
+)
+
 // Object is the interface that all object types in Tamarin must implement.
 type Object interface {
 
