@@ -79,7 +79,8 @@ Execution then works as you would expect:
 
 ## Syntax Highlighting
 
-A VSCode extension is already available which currently only offers syntax highlighting.
+A [Tamarin VSCode extension](https://marketplace.visualstudio.com/items?itemName=CurtisMyzie.tamarin-language)
+is already available which currently only offers syntax highlighting.
 
 You can also make use of the [Tamarin TextMate grammar](./vscode/syntaxes/tamarin.grammar.json).
 
