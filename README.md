@@ -77,6 +77,10 @@ Execution then works as you would expect:
      $ ./hello.tm
      Hello world!
 
+## Language Features and Syntax
+
+See [docs/Features.md](./docs/Features.md).
+
 ## Syntax Highlighting
 
 A [Tamarin VSCode extension](https://marketplace.visualstudio.com/items?itemName=CurtisMyzie.tamarin-language)
