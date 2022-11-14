@@ -1,8 +1,0 @@
-//
-// The monkey.go intepreter registers a new
-// custom function called `version()`.
-//
-// Here we test that function.
-//
-
-puts("This is monkey version " + version() + "\n")

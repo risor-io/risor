@@ -1,5 +1,5 @@
 
-function maxArray(array) {
+func maxArray(array) {
     if (len(array) == 0) {
         return 0;
     }
@@ -13,4 +13,6 @@ function maxArray(array) {
     return max;
 }
 
-print("MAX", max(1..99999));
+// print("MAX", max(k));
+
+assert(false, "this needs to be fixed")

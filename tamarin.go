@@ -1,3 +1,16 @@
+// Package main is the entry point for the Tamarin CLI.
+// A path to a Tamarin script should be provided as an
+// argument to the program.
+//
+// Example:
+//
+//	$ cd path/to/tamarin
+//	$ go build
+//	$ ./tamarin path/to/my/script.tm
+//
+// Tamarin may also be imported into another Go program
+// to be used as a library. View the `exec` package for
+// documentation on using Tamarin as a library.
 package main
 
 import (

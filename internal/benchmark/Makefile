@@ -1,5 +1,4 @@
 
 .PHONY: tamarin
 tamarin:
-	../tamarin ./main.mon
-
+	../../tamarin ./main.tm

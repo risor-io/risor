@@ -8,23 +8,23 @@ Cloud scripting language.
 
 To execute a Tamarin script, pass the path of a script to the tamarin binary:
 
-     $ tamarin ./example/hello.mon
+     $ tamarin ./example/hello.tm
 
 Scripts can be made executable by adding a suitable shebang line:
 
-     $ cat hello.mon
+     $ cat hello.tm
      #!/usr/bin/env tamarin
      print("Hello world!")
 
 Execution then works as you would expect:
 
-     $ chmod 755 hello.mon
-     $ ./hello.mon
-     Hello, world!
+     $ chmod 755 hello.tm
+     $ ./hello.tm
+     Hello world!
 
 ## Further Documentation
 
-Work in progress. See [example.mon](./example.mon).
+Work in progress. See [example.tm](./example.tm).
 
 ## Credits
 

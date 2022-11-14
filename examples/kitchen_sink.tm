@@ -1,3 +1,5 @@
+#!/usr/bin/env tamarin
+
 let testValue = 100
 
 // comment
