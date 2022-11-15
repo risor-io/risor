@@ -21,7 +21,7 @@ func Now(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Parse(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("time.parse", 1, args); err != nil {
+	if err := arg.Require("time.parse", 2, args); err != nil {
 		return err
 	}
 	layout, err := object.AsString(args[0])

@@ -1,8 +1,12 @@
-// Package parser is used to parse input-programs written in monkey
-// and convert them to an abstract-syntax tree.
+// Package parser is used to parse an input program from its tokens and produce
+// an abstract syntax tree (AST) as output.
+//
+// A parser is created by calling New() with a lexer as input. The parser should
+// then be used only once, by calling parser.Parse() to produce the AST.
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,71 +14,19 @@ import (
 	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/cloudcmds/tamarin/internal/lexer"
 	"github.com/cloudcmds/tamarin/internal/token"
+	"github.com/hashicorp/go-multierror"
 )
 
-// prefix Parse function
-// infix parse function
-// postfix parse function
 type (
 	prefixParseFn  func() ast.Expression
 	infixParseFn   func(ast.Expression) ast.Expression
 	postfixParseFn func() ast.Expression
 )
 
-// precedence order
-const (
-	_ int = iota
-	LOWEST
-	PIPE         // |
-	COND         // OR or AND
-	ASSIGN       // =
-	DECLARE      // :=
-	TERNARY      // ? :
-	EQUALS       // == or !=
-	REGEXP_MATCH // !~ ~=
-	LESSGREATER  // > or <
-	SUM          // + or -
-	PRODUCT      // * or /
-	POWER        // **
-	MOD          // %
-	PREFIX       // -X or !X
-	CALL         // myFunction(X)
-	DOTDOT       // ..
-	INDEX        // array[index], map[key]
-	HIGHEST
-)
-
-// each token precedence
-var precedences = map[token.Type]int{
-	token.QUESTION:     TERNARY,
-	token.ASSIGN:       ASSIGN,
-	token.DECLARE:      DECLARE,
-	token.DOTDOT:       DOTDOT,
-	token.EQ:           EQUALS,
-	token.NOT_EQ:       EQUALS,
-	token.LT:           LESSGREATER,
-	token.LT_EQUALS:    LESSGREATER,
-	token.GT:           LESSGREATER,
-	token.GT_EQUALS:    LESSGREATER,
-	token.CONTAINS:     REGEXP_MATCH,
-	token.NOT_CONTAINS: REGEXP_MATCH,
-
-	token.PLUS:            SUM,
-	token.PLUS_EQUALS:     SUM,
-	token.MINUS:           SUM,
-	token.MINUS_EQUALS:    SUM,
-	token.SLASH:           PRODUCT,
-	token.SLASH_EQUALS:    PRODUCT,
-	token.ASTERISK:        PRODUCT,
-	token.ASTERISK_EQUALS: PRODUCT,
-	token.POW:             POWER,
-	token.MOD:             MOD,
-	token.AND:             COND,
-	token.OR:              COND,
-	token.PIPE:            PIPE,
-	token.LPAREN:          CALL,
-	token.PERIOD:          CALL,
-	token.LBRACKET:        INDEX,
+// Parse is a shortcut that can be used to parse the given Tamarin source code.
+// The lexer and parser are created internally and not exposed.
+func Parse(input string) (*ast.Program, error) {
+	return New(lexer.New(input)).Parse()
 }
 
 // Parser object
@@ -113,16 +65,21 @@ type Parser struct {
 	tern bool
 }
 
-// New returns our new parser-object.
+// New returns a Parser for the program provided by the lexer.
 func New(l *lexer.Lexer) *Parser {
 
-	// Create the parser, and prime the pump
-	p := &Parser{l: l, errors: []string{}}
-	p.nextToken()
-	p.nextToken()
+	// Create the parser and prime the token pump
+	p := &Parser{
+		l:               l,
+		errors:          []string{},
+		prefixParseFns:  map[token.Type]prefixParseFn{},
+		infixParseFns:   map[token.Type]infixParseFn{},
+		postfixParseFns: map[token.Type]postfixParseFn{},
+	}
+	p.nextToken() // loads peekToken with token0
+	p.nextToken() // loads curToken with token0 and peekToken with token1
 
 	// Register prefix-functions
-	p.prefixParseFns = make(map[token.Type]prefixParseFn)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.FUNC, p.parseFunctionDefinition)
 	p.registerPrefix(token.EOF, p.parsingBroken)
@@ -148,7 +105,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IMPORT, p.parseImportStatement)
 
 	// Register infix functions
-	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.AND, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 	p.registerInfix(token.DECLARE, p.parseAssignExpression)
@@ -179,30 +135,58 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.PIPE, p.parsePipeExpression)
 
 	// Register postfix functions
-	p.postfixParseFns = make(map[token.Type]postfixParseFn)
 	p.registerPostfix(token.MINUS_MINUS, p.parsePostfixExpression)
 	p.registerPostfix(token.PLUS_PLUS, p.parsePostfixExpression)
-
-	// All done
 	return p
 }
 
-// registerPrefix registers a function for handling a prefix-based statement
+// nextToken moves to the next token from the lexer, updating all of
+// prevToken, curToken, and peekToken.
+func (p *Parser) nextToken() {
+	p.prevToken = p.curToken
+	p.curToken = p.peekToken
+	p.peekToken = p.l.NextToken()
+}
+
+// Parse the program that is provided via the lexer.
+func (p *Parser) Parse() (*ast.Program, error) {
+	program := &ast.Program{Statements: []ast.Statement{}}
+	for p.curToken.Type != token.EOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			program.Statements = append(program.Statements, stmt)
+		}
+		p.nextToken()
+	}
+	var combinedErrors error
+	for _, err := range p.Errors() {
+		combinedErrors = multierror.Append(combinedErrors, errors.New(err))
+	}
+	return program, combinedErrors
+}
+
+// registerPrefix registers a function for handling a prefix-based statement.
 func (p *Parser) registerPrefix(tokenType token.Type, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
 
-// registerInfix registers a function for handling a infix-based statement
+// registerInfix registers a function for handling an infix-based statement.
 func (p *Parser) registerInfix(tokenType token.Type, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
 }
 
-// registerPostfix registers a function for handling a postfix-based statement
+// registerPostfix registers a function for handling a postfix-based statement.
 func (p *Parser) registerPostfix(tokenType token.Type, fn postfixParseFn) {
 	p.postfixParseFns[tokenType] = fn
 }
 
-// Errors return stored errors
+func (p *Parser) noPrefixParseFnError(t token.Type) {
+	msg := fmt.Sprintf("no prefix parse function for %s found around line %d",
+		t, p.curToken.Line+1)
+	p.errors = append(p.errors, msg)
+}
+
+// Errors returns all error messages accumulated during program parsing.
 func (p *Parser) Errors() []string {
 	return p.errors
 }
@@ -212,27 +196,6 @@ func (p *Parser) peekError(t token.Type) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s instead around line %d:%d",
 		t, p.peekToken.Type, p.curToken.Line+1, p.curToken.EndPosition+2)
 	p.errors = append(p.errors, msg)
-}
-
-// nextToken moves to our next token from the lexer
-func (p *Parser) nextToken() {
-	p.prevToken = p.curToken
-	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
-}
-
-// ParseProgram used to parse the whole program
-func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{}
-	program.Statements = []ast.Statement{}
-	for p.curToken.Type != token.EOF {
-		stmt := p.parseStatement()
-		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
-		}
-		p.nextToken()
-	}
-	return program
 }
 
 // parseStatement parses a single statement.
@@ -251,7 +214,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-// parseLetStatement parses a let-statement.
+// parseLetStatement parses a let statement.
 func (p *Parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken}
 	if !p.expectPeek(token.IDENT) {
@@ -295,7 +258,7 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 	return stmt
 }
 
-// parseReturnStatement parses a return-statement.
+// parseReturnStatement parses a function return statement.
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{Token: p.curToken}
 	p.nextToken()
@@ -310,13 +273,6 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 			return nil
 		}
 	}
-}
-
-// no prefix parse function error
-func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found around line %d",
-		t, p.curToken.Line+1)
-	p.errors = append(p.errors, msg)
 }
 
 // parse Expression Statement
@@ -730,48 +686,35 @@ func (p *Parser) parseFunctionDefinition() ast.Expression {
 
 // parseFunctionParameters parses the parameters used for a function.
 func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Identifier) {
-
-	// Any default parameters.
+	// Any default parameters
 	m := make(map[string]ast.Expression)
-
-	// The argument-definitions.
+	// The argument-definitions
 	identifiers := make([]*ast.Identifier, 0)
-
 	// Is the next parameter ")" ?  If so we're done. No args.
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
 		return m, identifiers
 	}
 	p.nextToken()
-
 	// Keep going until we find a ")"
 	for !p.curTokenIs(token.RPAREN) {
-
 		if p.curTokenIs(token.EOF) {
 			p.errors = append(p.errors, "unterminated function parameters")
 			return nil, nil
 		}
-
-		// Get the identifier.
 		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 		identifiers = append(identifiers, ident)
 		p.nextToken()
-
-		// If there is "=xx" after the name then that's
-		// the default parameter.
+		// If there is "=x" after the name then that is a default parameter value
 		if p.curTokenIs(token.ASSIGN) {
 			p.nextToken()
-			// Save the default value.
 			m[ident.Value] = p.parseExpressionStatement().Expression
 			p.nextToken()
 		}
-
-		// Skip any comma.
 		if p.curTokenIs(token.COMMA) {
 			p.nextToken()
 		}
 	}
-
 	return m, identifiers
 }
 
@@ -782,24 +725,18 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 
 // parseRegexpLiteral parses a regular-expression.
 func (p *Parser) parseRegexpLiteral() ast.Expression {
-
 	flags := ""
-
 	val := p.curToken.Literal
 	if strings.HasPrefix(val, "(?") {
 		val = strings.TrimPrefix(val, "(?")
-
 		i := 0
 		for i < len(val) {
-
 			if val[i] == ')' {
-
 				val = val[i+1:]
 				break
 			} else {
 				flags += string(val[i])
 			}
-
 			i++
 		}
 	}
@@ -868,17 +805,6 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	}
 	oper := p.curToken
 	p.nextToken()
-	//
-	// An assignment is generally:
-	//
-	//    variable = value
-	//
-	// But we cheat and reuse the implementation for:
-	//
-	//    i += 4
-	//
-	// In this case we record the "operator" as "+="
-	//
 	switch oper.Type {
 	case token.PLUS_EQUALS:
 		stmt.Operator = "+="

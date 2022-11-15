@@ -5,10 +5,8 @@ package exec
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/internal/lexer"
 	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
 	modRand "github.com/cloudcmds/tamarin/internal/modules/rand"
@@ -111,14 +109,9 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	}
 
 	// Parse the program
-	p := parser.New(lexer.New(opts.Input))
-	program := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
-		errStr := strings.Join(errs, "; ")
-		if len(errs) == 1 {
-			return nil, fmt.Errorf("parse error: %s", errStr)
-		}
-		return nil, fmt.Errorf("parse errors: %s", errStr)
+	program, err := parser.Parse(opts.Input)
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
 	}
 
 	// Evaluate the program
