@@ -5,7 +5,6 @@ package evaluator
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/cloudcmds/tamarin/internal/scope"
@@ -146,5 +145,5 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalSetLiteral(ctx, node, s)
 	}
 
-	panic(fmt.Sprintf("unknown ast node type: %s", reflect.TypeOf(node)))
+	panic(fmt.Sprintf("unknown ast node type: %T", node))
 }

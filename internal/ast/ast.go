@@ -78,13 +78,18 @@ func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
 // String returns this object as a string.
 func (ls *LetStatement) String() string {
 	var out bytes.Buffer
+	if ls.Token.Literal == token.DECLARE {
+		out.WriteString(ls.Name.TokenLiteral() + " ")
+		out.WriteString(ls.TokenLiteral() + " ")
+		out.WriteString(ls.Value.String())
+		return out.String()
+	}
 	out.WriteString(ls.TokenLiteral() + " ")
 	out.WriteString(ls.Name.TokenLiteral())
 	out.WriteString(" = ")
 	if ls.Value != nil {
 		out.WriteString(ls.Value.String())
 	}
-	out.WriteString(";")
 	return out.String()
 }
 
@@ -101,21 +106,20 @@ type ConstStatement struct {
 	Value Expression
 }
 
-func (ls *ConstStatement) statementNode() {}
+func (cs *ConstStatement) statementNode() {}
 
 // TokenLiteral returns the literal token.
-func (ls *ConstStatement) TokenLiteral() string { return ls.Token.Literal }
+func (cs *ConstStatement) TokenLiteral() string { return cs.Token.Literal }
 
 // String returns this object as a string.
-func (ls *ConstStatement) String() string {
+func (cs *ConstStatement) String() string {
 	var out bytes.Buffer
-	out.WriteString(ls.TokenLiteral() + " ")
-	out.WriteString(ls.Name.TokenLiteral())
+	out.WriteString(cs.TokenLiteral() + " ")
+	out.WriteString(cs.Name.TokenLiteral())
 	out.WriteString(" = ")
-	if ls.Value != nil {
-		out.WriteString(ls.Value.String())
+	if cs.Value != nil {
+		out.WriteString(cs.Value.String())
 	}
-	out.WriteString(";")
 	return out.String()
 }
 
@@ -480,11 +484,11 @@ type ForLoopExpression struct {
 	// loop body.
 	Consequence *BlockStatement
 
-	// Optional initialization statement which is executed once before evaluating the
+	// Initialization statement which is executed once before evaluating the
 	// condition for the first iteration
 	InitStatement *LetStatement
 
-	// Optional statement which is executed after each execution of the block
+	// Statement which is executed after each execution of the block
 	// (and only if the block was executed)
 	PostStatement Expression
 }
@@ -497,19 +501,13 @@ func (fle *ForLoopExpression) TokenLiteral() string { return fle.Token.Literal }
 // String returns this object as a string.
 func (fle *ForLoopExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("for (")
-	if fle.InitStatement != nil {
-		out.WriteString(fle.InitStatement.String() + " ")
-		out.WriteString(fle.Condition.String() + "; ")
-		if fle.PostStatement != nil {
-			out.WriteString(fle.PostStatement.String())
-		}
-	} else {
-		out.WriteString(fle.Condition.String())
-	}
-	out.WriteString(") {")
+	out.WriteString("for ")
+	out.WriteString(fle.InitStatement.String() + "; ")
+	out.WriteString(fle.Condition.String() + "; ")
+	out.WriteString(fle.PostStatement.String())
+	out.WriteString(" { ")
 	out.WriteString(fle.Consequence.String())
-	out.WriteString("}")
+	out.WriteString(" }")
 	return out.String()
 }
 
@@ -817,7 +815,7 @@ func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AssignStatement) String() string {
 	var out bytes.Buffer
 	out.WriteString(as.Name.String())
-	out.WriteString(as.Operator)
+	out.WriteString(" " + as.Operator + " ")
 	out.WriteString(as.Value.String())
 	return out.String()
 }

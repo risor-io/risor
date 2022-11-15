@@ -5,7 +5,18 @@ import (
 	"testing"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/hashicorp/go-multierror"
 )
+
+func printMultiError(err error) {
+	if err, ok := err.(*multierror.Error); ok {
+		for _, e := range err.Errors {
+			fmt.Println(e)
+		}
+	} else {
+		fmt.Println(err)
+	}
+}
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {

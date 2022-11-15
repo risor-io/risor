@@ -45,7 +45,7 @@ s := { 1, 3.3,
 print("S:", s)
 
 import library
-print("library call:", library.add(11))
+print("library call:", library.add(1, 2))
 
 print(
     "type:", type(s),

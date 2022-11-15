@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/cloudcmds/tamarin/internal/parser"
+	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,7 +30,7 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 		linesChangedSinceAST: map[int]bool{},
 	}
 	if params.TextDocument.Text != "" {
-		doc.ast, doc.err = parser.ParseProgram(params.TextDocument.Text)
+		doc.ast, doc.err = parser.Parse(params.TextDocument.Text)
 		if doc.err != nil {
 			log.Error().Err(doc.err).Msg("parse program failed")
 		} else {

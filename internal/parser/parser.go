@@ -107,7 +107,6 @@ func New(l *lexer.Lexer) *Parser {
 	// Register infix functions
 	p.registerInfix(token.AND, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
-	p.registerInfix(token.DECLARE, p.parseAssignExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK_EQUALS, p.parseAssignExpression)
 	p.registerInfix(token.CONTAINS, p.parseInfixExpression)
@@ -210,6 +209,9 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.NEWLINE:
 		return nil
 	default:
+		if p.peekTokenIs(token.DECLARE) {
+			return p.parseDeclarationStatement()
+		}
 		return p.parseExpressionStatement()
 	}
 }
@@ -224,6 +226,25 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
+		if p.curTokenIs(token.EOF) {
+			p.errors = append(p.errors, "unterminated let statement")
+			return nil
+		}
+		p.nextToken()
+	}
+	return stmt
+}
+
+// parseDeclarationStatement parses a "i := value" statement as a "let" statement.
+func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
+	name := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	if !p.expectPeek(token.DECLARE) {
+		return nil
+	}
+	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
 	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
@@ -588,47 +609,51 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	return expression
 }
 
-// parseForLoopExpression parses a for-loop.
+// parseForLoopExpression parses a for loop.
 func (p *Parser) parseForLoopExpression() ast.Expression {
 	expression := &ast.ForLoopExpression{Token: p.curToken}
-	if !p.expectPeek(token.LPAREN) {
+
+	var initExpression *ast.LetStatement
+	if p.peekTokenIs(token.LET) {
+		p.nextToken()
+		initExpression = p.parseLetStatement()
+	} else if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		initExpression = p.parseDeclarationStatement()
+	} else {
+		p.errors = append(p.errors, fmt.Sprintf("unexpected token in for loop: %s", p.peekToken.Literal))
+		p.nextToken()
+		return nil
+	}
+	expression.InitStatement = initExpression
+
+	if !p.curTokenIs(token.SEMICOLON) {
+		p.errors = append(p.errors, "expected a semicolon")
 		return nil
 	}
 	p.nextToken()
 
-	if p.curToken.Type == token.LET {
-		expression.InitStatement = p.parseLetStatement()
-		if !p.curTokenIs(token.SEMICOLON) {
-			p.errors = append(p.errors, "expected a semicolon")
-			return nil
-		}
-		p.nextToken()
-	}
-
 	expression.Condition = p.parseExpression(LOWEST)
 
-	if p.peekTokenIs(token.SEMICOLON) {
-		p.nextToken()
-		p.nextToken()
-		if !p.curTokenIs(token.IDENT) {
-			p.errors = append(p.errors, "expected an identifier")
-			return nil
-		}
-		expr := p.parseIdentifier()
-		p.nextToken()
-		if fn, ok := p.postfixParseFns[p.curToken.Type]; ok {
-			expr = fn()
-		}
-		expression.PostStatement = expr
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
 	}
-
-	if !p.expectPeek(token.RPAREN) {
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	if p.peekTokenIs(token.PLUS_PLUS) || p.peekTokenIs(token.MINUS_MINUS) {
+		p.nextToken()
+		expression.PostStatement = p.parsePostfixExpression()
+	} else {
+		expression.PostStatement = p.parseExpression(LOWEST)
+	}
+	if expression.PostStatement == nil {
+		p.errors = append(p.errors, "unable to parse for loop post statement")
 		return nil
 	}
 	if !p.expectPeek(token.LBRACE) {
 		return nil
 	}
-
 	expression.Consequence = p.parseBlockStatement()
 	return expression
 }
@@ -781,7 +806,7 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	return list
 }
 
-// parseInfixExpression parsea an array index expression.
+// parseIndexExpression parses an array index expression.
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
 	p.nextToken()

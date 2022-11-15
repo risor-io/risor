@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 // evalIfExpression handles an `if` expression, running the block
@@ -34,13 +34,13 @@ func (e *Evaluator) evalForLoopExpression(
 	fle *ast.ForLoopExpression,
 	s *scope.Scope,
 ) object.Object {
-	rt := &object.Boolean{Value: true}
 	nestedScope := s.NewChild(scope.Opts{Name: "for"})
 	if fle.InitStatement != nil {
 		if res := e.Evaluate(ctx, fle.InitStatement, nestedScope); isError(res) {
 			return res
 		}
 	}
+	var latestValue object.Object = object.NULL
 	for {
 		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
 		if isError(condition) {
@@ -48,10 +48,10 @@ func (e *Evaluator) evalForLoopExpression(
 		}
 		if isTruthy(condition) {
 			rt := e.Evaluate(ctx, fle.Consequence, nestedScope)
-			if !isError(rt) && (rt.Type() == object.RETURN_VALUE_OBJ ||
-				rt.Type() == object.ERROR_OBJ) {
+			if rt.Type() == object.RETURN_VALUE_OBJ || rt.Type() == object.ERROR_OBJ {
 				return rt
 			}
+			latestValue = rt
 		} else {
 			break
 		}
@@ -61,7 +61,7 @@ func (e *Evaluator) evalForLoopExpression(
 			}
 		}
 	}
-	return rt
+	return latestValue
 }
 
 func (e *Evaluator) evalSwitchStatement(

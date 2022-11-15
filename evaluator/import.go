@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/internal/lexer"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
@@ -29,13 +27,10 @@ func (si *SimpleImporter) Import(
 	if err != nil {
 		return nil, err
 	}
-
-	p := parser.New(lexer.New(string(contents)))
-	program := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
-		return nil, errors.New(strings.Join(errs, "; "))
+	program, err := parser.Parse(string(contents))
+	if err != nil {
+		return nil, err
 	}
-
 	// Module scope
 	s := scope.New(scope.Opts{Name: fmt.Sprintf("module:%s", name)})
 
@@ -43,7 +38,6 @@ func (si *SimpleImporter) Import(
 	if result != nil && result.Type() == "ERROR" {
 		return nil, errors.New(result.Inspect())
 	}
-
 	return &object.Module{Name: name, Scope: s}, nil
 }
 

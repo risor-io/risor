@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudcmds/tamarin/internal/lexer"
 	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
@@ -53,9 +52,7 @@ func TestEvalArithmeticExpression(t *testing.T) {
 }
 
 func testEval(input string) object.Object {
-	l := lexer.New(input)
-	p := parser.New(l)
-	program := p.ParseProgram()
+	program, _ := parser.Parse(input)
 	e := New(Opts{})
 	return e.Evaluate(context.Background(), program, scope.New(scope.Opts{}))
 }
@@ -583,14 +580,32 @@ func TestHashIndexExpression(t *testing.T) {
 	}
 }
 
-func TestForLoopExpression(t *testing.T) {
+func TestForLoopSimple(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"for x := 0; x < 0; x++ { x }", nil},
+		{"for x := 0; x < 1; x++ { x }", int64(0)},
+		{"for x := 0; x < 2; x++ { x }", int64(1)},
+		{"for x:=0;x<2;x++{x}", int64(1)},
+		{"for x := 0; x < 10; x ++ { x }", int64(9)},
+		{"for x := 0; x < 10; x += 2 { x }", int64(8)},
+		{"for x := 0; x < 10; x += 2 { 999 }", int64(999)},
+	}
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		value := object.ToGoType(evaluated)
+		require.Equal(t, tt.expected, value)
+	}
+}
+
+func TestForLoopAdditional(t *testing.T) {
 	input := `
-let x = 1;
 let sum = 0;
 let up = 100;
-for (x < up) {
+for x := 1; x < up; x += 1 {
 	sum = sum + x;
-	x++;
 }
 sum
 `
@@ -636,18 +651,14 @@ func TestTypeBuiltin(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
-	input := `
-let i = 1;
-for ( true ) {
-  i++;
-}
-`
-	ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 
-	l := lexer.New(input)
-	p := parser.New(l)
-	program := p.ParseProgram()
+	input := "for i := 0; i < 999999999999; i++ { i }"
+	program, err := parser.Parse(input)
+	require.Nil(t, err)
+
 	s := scope.New(scope.Opts{})
 	e := &Evaluator{}
 	evaluated := e.Evaluate(ctx, program, s)
@@ -666,9 +677,10 @@ func TestSet(t *testing.T) {
 	e := &Evaluator{}
 	input := `{1, 2, 3}`
 	ctx := context.Background()
-	l := lexer.New(input)
-	p := parser.New(l)
-	program := p.ParseProgram()
+
+	program, err := parser.Parse(input)
+	require.Nil(t, err)
+
 	s := scope.New(scope.Opts{})
 	evaluated := e.Evaluate(ctx, program, s)
 

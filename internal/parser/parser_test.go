@@ -32,6 +32,24 @@ func TestLetStatements(t *testing.T) {
 	}
 }
 
+func TestDeclareStatements(t *testing.T) {
+	input := `
+	let x = foo.bar()
+	y := foo.bar()
+	`
+	program, err := Parse(input)
+	printMultiError(err)
+	require.Nil(t, err)
+	require.Len(t, program.Statements, 2)
+	stmt1, ok := program.Statements[0].(*ast.LetStatement)
+	require.True(t, ok)
+	stmt2, ok := program.Statements[1].(*ast.LetStatement)
+	require.True(t, ok)
+	fmt.Println(stmt1)
+	fmt.Println(stmt2)
+	// require.Equal(t, let.TokenLiteral(), "x")
+}
+
 func TestBadLetConstStatement(t *testing.T) {
 	inputs := []string{
 		"let",
@@ -533,52 +551,6 @@ default:
 	}
 }
 
-func TestForLoop(t *testing.T) {
-	tests := []struct {
-		input   string
-		initStr string
-		condStr string
-		postStr string
-	}{
-		{
-			"for (let i = 0; i < 5; i++) { }",
-			"let i = 0;",
-			"(i < 5)",
-			"(i++)",
-		},
-		{
-			"for (i < 5) { }",
-			"",
-			"(i < 5)",
-			"",
-		},
-	}
-	for _, tt := range tests {
-		program, err := Parse(tt.input)
-		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		s := program.Statements[0]
-		exprStatement := s.(*ast.ExpressionStatement)
-		expr, ok := exprStatement.Expression.(*ast.ForLoopExpression)
-		require.True(t, ok)
-		require.Equal(t, tt.condStr, expr.Condition.String())
-		if tt.initStr != "" {
-			require.Equal(t, tt.initStr, expr.InitStatement.String())
-		} else {
-			if expr.InitStatement != nil {
-				t.Fatalf("expected no init statement. got='%v'", expr.InitStatement.String())
-			}
-		}
-		if tt.postStr != "" {
-			require.Equal(t, tt.postStr, expr.PostStatement.String())
-		} else {
-			if expr.PostStatement != nil {
-				t.Fatalf("expected no post statement. got='%v'", expr.PostStatement.String())
-			}
-		}
-	}
-}
-
 func TestPipeExpression(t *testing.T) {
 	tests := []struct {
 		input          string
@@ -668,9 +640,9 @@ func TestCallExpression(t *testing.T) {
 	require.Equal(t, "foo", call.Function.String())
 	require.Len(t, call.Arguments, 2)
 	arg0 := call.Arguments[0].(*ast.AssignStatement)
-	require.Equal(t, "a=1", arg0.String())
+	require.Equal(t, "a = 1", arg0.String())
 	arg1 := call.Arguments[1].(*ast.AssignStatement)
-	require.Equal(t, "b=2", arg1.String())
+	require.Equal(t, "b = 2", arg1.String())
 }
 
 func TestGetAttribute(t *testing.T) {
@@ -687,34 +659,49 @@ func TestGetAttribute(t *testing.T) {
 	require.Equal(t, "foo.bar", getAttrStr)
 }
 
-func TestForLoopExpression(t *testing.T) {
-	input := `for(x < y) { let x = x + 1; }`
-	program, err := Parse(input)
-	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
-	require.True(t, ok)
-	exp, ok := stmt.Expression.(*ast.ForLoopExpression)
-	require.True(t, ok)
-	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
-		return
+func TestForLoop(t *testing.T) {
+	tests := []struct {
+		input   string
+		initStr string
+		condStr string
+		postStr string
+	}{
+		{
+			"for let i = 0; i < 5; i++ { }",
+			"let i = 0",
+			"(i < 5)",
+			"(i++)",
+		},
+		{
+			"for i := 2+2; x < i; x-- { }",
+			"i := (2 + 2)",
+			"(x < i)",
+			"(x--)",
+		},
 	}
-	require.Len(t, exp.Consequence.Statements, 1)
-	consequence, ok := exp.Consequence.Statements[0].(*ast.LetStatement)
-	require.True(t, ok)
-	testLetStatement(t, consequence, "x")
-}
-
-func TestForLoop2(t *testing.T) {
-	program, err := Parse("foo.bar")
-	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	expr, ok := stmt.(*ast.ExpressionStatement)
-	require.True(t, ok)
-	getAttr, ok := expr.Expression.(*ast.GetAttributeExpression)
-	require.True(t, ok)
-	require.Equal(t, "bar", getAttr.Attribute.String())
-	getAttrStr := getAttr.String()
-	require.Equal(t, "foo.bar", getAttrStr)
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		printMultiError(err)
+		require.Nil(t, err)
+		require.Len(t, program.Statements, 1)
+		s := program.Statements[0]
+		exprStatement := s.(*ast.ExpressionStatement)
+		expr, ok := exprStatement.Expression.(*ast.ForLoopExpression)
+		require.True(t, ok)
+		require.Equal(t, tt.condStr, expr.Condition.String())
+		if tt.initStr != "" {
+			require.Equal(t, tt.initStr, expr.InitStatement.String())
+		} else {
+			if expr.InitStatement != nil {
+				t.Fatalf("expected no init statement. got='%v'", expr.InitStatement.String())
+			}
+		}
+		if tt.postStr != "" {
+			require.Equal(t, tt.postStr, expr.PostStatement.String())
+		} else {
+			if expr.PostStatement != nil {
+				t.Fatalf("expected no post statement. got='%v'", expr.PostStatement.String())
+			}
+		}
+	}
 }
