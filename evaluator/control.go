@@ -35,19 +35,47 @@ func (e *Evaluator) evalForLoopExpression(
 	s *scope.Scope,
 ) object.Object {
 	nestedScope := s.NewChild(scope.Opts{Name: "for"})
+
+	// Evaluate the initialization statement if there is one
 	if fle.InitStatement != nil {
 		if res := e.Evaluate(ctx, fle.InitStatement, nestedScope); isError(res) {
 			return res
 		}
 	}
+
+	// The for loop evaluates to this value. It is set to the last value
+	// evaluated in the for loop block.
 	var latestValue object.Object = object.NULL
+
+	// This is a simple for loop, like "for { ... }". It will run until
+	// an error occurs or a break or return statement is encountered.
+	if fle.IsSimpleLoop() {
+	simpleLoop:
+		for {
+			result := e.Evaluate(ctx, fle.Consequence, nestedScope)
+			switch result := result.(type) {
+			case *object.Error:
+				return result
+			case *object.ReturnValue:
+				return result
+			case *object.BreakValue:
+				break simpleLoop
+			}
+			latestValue = result
+		}
+		return latestValue
+	}
+
+	// This is a standard for loop that runs until a specified condition is met
 loop:
 	for {
+		// Evaluate the condition
 		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
 		if isError(condition) {
 			return condition
 		}
 		if isTruthy(condition) {
+			// Evaluate the block
 			rt := e.Evaluate(ctx, fle.Consequence, nestedScope)
 			switch rt := rt.(type) {
 			case *object.Error:
@@ -61,6 +89,7 @@ loop:
 		} else {
 			break
 		}
+		// Evaluate the post statement (usually used to increment a counter)
 		if fle.PostStatement != nil {
 			if res := e.Evaluate(ctx, fle.PostStatement, nestedScope); isError(res) {
 				return res

@@ -123,11 +123,18 @@ switch name {
 
 ## Loops
 
-Currently one form of for loops are accepted:
+Two forms of for loops are accepted. The `break` keyword may be used to
+stop looping in either form.
 
 ```
 for i := 0; i < 10; i++ {
     print(i)
+}
+
+for {
+    if condition {
+        break
+    }
 }
 ```
 

@@ -628,6 +628,21 @@ sum
 	testDecimalObject(t, evaluated, 1)
 }
 
+func TestSimpleLoop(t *testing.T) {
+	input := `
+x := 0
+for {
+	if x == 100 {
+		break
+	}
+	x += 1
+	x
+}
+`
+	evaluated := testEval(input)
+	testDecimalObject(t, evaluated, 100)
+}
+
 func TestTypeBuiltin(t *testing.T) {
 	tests := []struct {
 		input    string

@@ -623,15 +623,21 @@ func (p *Parser) parseIfExpression() ast.Expression {
 // parseForLoopExpression parses a for loop.
 func (p *Parser) parseForLoopExpression() ast.Expression {
 	expression := &ast.ForLoopExpression{Token: p.curToken}
+	peekToken := p.peekToken
 
 	var initExpression *ast.LetStatement
-	if p.peekTokenIs(token.LET) {
+	switch peekToken.Type {
+	case token.LET:
 		p.nextToken()
 		initExpression = p.parseLetStatement()
-	} else if p.peekTokenIs(token.IDENT) {
+	case token.IDENT:
 		p.nextToken()
 		initExpression = p.parseDeclarationStatement()
-	} else {
+	case token.LBRACE:
+		p.nextToken()
+		expression.Consequence = p.parseBlockStatement()
+		return expression
+	default:
 		p.errors = append(p.errors, fmt.Sprintf("unexpected token in for loop: %s", p.peekToken.Literal))
 		p.nextToken()
 		return nil

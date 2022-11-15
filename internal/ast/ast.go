@@ -513,9 +513,21 @@ func (fle *ForLoopExpression) expressionNode() {}
 // TokenLiteral returns the literal token.
 func (fle *ForLoopExpression) TokenLiteral() string { return fle.Token.Literal }
 
+func (fle *ForLoopExpression) IsSimpleLoop() bool {
+	return fle.Consequence != nil && fle.InitStatement == nil
+}
+
 // String returns this object as a string.
 func (fle *ForLoopExpression) String() string {
 	var out bytes.Buffer
+	// Simple for {} loop
+	if fle.IsSimpleLoop() {
+		out.WriteString("for { ")
+		out.WriteString(fle.Consequence.String())
+		out.WriteString(" }")
+		return out.String()
+	}
+	// Full style for loop
 	out.WriteString("for ")
 	out.WriteString(fle.InitStatement.String() + "; ")
 	out.WriteString(fle.Condition.String() + "; ")
