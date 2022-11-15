@@ -123,10 +123,10 @@ switch name {
 
 ## Loops
 
-Currently loops require parentheses but this will be updated to match Go's approach soon.
+Currently one form of for loops are accepted:
 
 ```
-for (let i = 5; i < 10; i++) {
+for i := 0; i < 10; i++ {
     print(i)
 }
 ```
