@@ -335,35 +335,37 @@ func Round(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(math.Round(x))
 }
 
-// Module returns the `math` module object
 func Module(parentScope *scope.Scope) (*object.Module, error) {
 	s := scope.New(scope.Opts{
 		Name:   fmt.Sprintf("module:%s", Name),
 		Parent: parentScope,
 	})
-	if err := s.AddBuiltins([]scope.Builtin{
-		{Name: "abs", Func: Abs},
-		{Name: "sqrt", Func: Sqrt},
-		{Name: "min", Func: Min},
-		{Name: "max", Func: Max},
-		{Name: "floor", Func: Floor},
-		{Name: "ceil", Func: Ceil},
-		{Name: "sin", Func: Sin},
-		{Name: "cos", Func: Cos},
-		{Name: "tan", Func: Tan},
-		{Name: "mod", Func: Mod},
-		{Name: "log", Func: Log},
-		{Name: "log10", Func: Log10},
-		{Name: "log2", Func: Log2},
-		{Name: "pow", Func: Pow},
-		{Name: "pow10", Func: Pow10},
-		{Name: "is_inf", Func: IsInf},
-		{Name: "round", Func: Round},
-		{Name: "sum", Func: Sum},
+
+	m := &object.Module{Name: Name, Scope: s}
+
+	if err := s.AddBuiltins([]*object.Builtin{
+		{Module: m, Name: "abs", Fn: Abs},
+		{Module: m, Name: "sqrt", Fn: Sqrt},
+		{Module: m, Name: "min", Fn: Min},
+		{Module: m, Name: "max", Fn: Max},
+		{Module: m, Name: "floor", Fn: Floor},
+		{Module: m, Name: "ceil", Fn: Ceil},
+		{Module: m, Name: "sin", Fn: Sin},
+		{Module: m, Name: "cos", Fn: Cos},
+		{Module: m, Name: "tan", Fn: Tan},
+		{Module: m, Name: "mod", Fn: Mod},
+		{Module: m, Name: "log", Fn: Log},
+		{Module: m, Name: "log10", Fn: Log10},
+		{Module: m, Name: "log2", Fn: Log2},
+		{Module: m, Name: "pow", Fn: Pow},
+		{Module: m, Name: "pow10", Fn: Pow10},
+		{Module: m, Name: "is_inf", Fn: IsInf},
+		{Module: m, Name: "round", Fn: Round},
+		{Module: m, Name: "sum", Fn: Sum},
 	}); err != nil {
 		return nil, err
 	}
 	s.Declare("PI", &object.Float{Value: math.Pi}, true)
 	s.Declare("E", &object.Float{Value: math.E}, true)
-	return &object.Module{Name: Name, Scope: s}, nil
+	return m, nil
 }

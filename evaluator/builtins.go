@@ -14,9 +14,6 @@ import (
 	"github.com/cloudcmds/tamarin/object"
 )
 
-// The built-in functions / standard-library methods are stored here.
-var builtins = map[string]*object.Builtin{}
-
 // length of a string, array, set, or hash
 func lenFun(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
@@ -372,26 +369,45 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 	return &object.Result{Ok: &object.HttpResponse{Response: resp}}
 }
 
-func init() {
-	RegisterBuiltin("delete", hashDelete)
-	RegisterBuiltin("keys", hashKeys)
-	RegisterBuiltin("len", lenFun)
-	RegisterBuiltin("match", matchFun)
-	RegisterBuiltin("set", setFun)
-	RegisterBuiltin("sprintf", sprintfFun)
-	RegisterBuiltin("str", strFun)
-	RegisterBuiltin("type", typeFun)
-	RegisterBuiltin("ok", okFun)
-	RegisterBuiltin("err", errFun)
-	RegisterBuiltin("assert", assertFun)
-	RegisterBuiltin("fetch", fetchFun)
-	RegisterBuiltin("any", Any)
-	RegisterBuiltin("all", All)
-	RegisterBuiltin("bool", Bool)
+// output a string to stdout
+func printFun(ctx context.Context, args ...object.Object) object.Object {
+	values := make([]interface{}, len(args))
+	for i, arg := range args {
+		values[i] = arg.Inspect()
+	}
+	fmt.Println(values...)
+	return object.NULL
 }
 
-// RegisterBuiltin registers a built-in function.  This is used to register
-// our "standard library" functions.
-func RegisterBuiltin(name string, fun object.BuiltinFunction) {
-	builtins[name] = &object.Builtin{Fn: fun}
+// printfFun is the implementation of our `printf` function.
+func printfFun(ctx context.Context, args ...object.Object) object.Object {
+	// Convert to the formatted version, via our `sprintf` function
+	out := sprintfFun(ctx, args...)
+	// If that returned a string then we can print it
+	if out.Type() == object.STRING_OBJ {
+		fmt.Print(out.(*object.String).Value)
+	}
+	return object.NULL
+}
+
+func GlobalBuiltins() []*object.Builtin {
+	return []*object.Builtin{
+		{Name: "delete", Fn: hashDelete},
+		{Name: "keys", Fn: hashKeys},
+		{Name: "len", Fn: lenFun},
+		{Name: "match", Fn: matchFun},
+		{Name: "set", Fn: setFun},
+		{Name: "sprintf", Fn: sprintfFun},
+		{Name: "str", Fn: strFun},
+		{Name: "type", Fn: typeFun},
+		{Name: "ok", Fn: okFun},
+		{Name: "err", Fn: errFun},
+		{Name: "assert", Fn: assertFun},
+		{Name: "fetch", Fn: fetchFun},
+		{Name: "any", Fn: Any},
+		{Name: "all", Fn: All},
+		{Name: "bool", Fn: Bool},
+		{Name: "print", Fn: printFun},
+		{Name: "printf", Fn: printfFun},
+	}
 }

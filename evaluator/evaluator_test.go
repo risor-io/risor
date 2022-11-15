@@ -56,7 +56,7 @@ func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	e := &Evaluator{}
+	e := New(Opts{})
 	return e.Evaluate(context.Background(), program, scope.New(scope.Opts{}))
 }
 

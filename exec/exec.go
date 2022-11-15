@@ -12,6 +12,7 @@ import (
 	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
 	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
 	modRand "github.com/cloudcmds/tamarin/internal/modules/rand"
+	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
 	modStrconv "github.com/cloudcmds/tamarin/internal/modules/strconv"
 	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
 	modTime "github.com/cloudcmds/tamarin/internal/modules/time"
@@ -39,6 +40,7 @@ func init() {
 	moduleFuncs["uuid"] = modUuid.Module
 	moduleFuncs["rand"] = modRand.Module
 	moduleFuncs["strconv"] = modStrconv.Module
+	moduleFuncs["sql"] = modSql.Module
 }
 
 // Opts is used configure the execution of a Tamarin program.
@@ -59,6 +61,12 @@ type Opts struct {
 	// If set to true, the default modules will not be imported
 	// automatically.
 	DisableAutoImport bool
+
+	// If set to true, the default builtins will not be registered.
+	DisableDefaultBuiltins bool
+
+	// Supplies extra and/or override builtins for evaluation.
+	Builtins []*object.Builtin
 }
 
 // Execute the given source code as input and return the result.
@@ -89,8 +97,8 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 		s = scope.New(scope.Opts{Name: "global"})
 	}
 
+	// Conditionally auto import standard modules
 	if !opts.DisableAutoImport {
-		// Automatically import standard modules
 		for name, fn := range moduleFuncs {
 			mod, err := fn(s)
 			if err != nil {
@@ -115,7 +123,9 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 
 	// Evaluate the program
 	result = evaluator.New(evaluator.Opts{
-		Importer: opts.Importer,
+		Importer:               opts.Importer,
+		DisableDefaultBuiltins: opts.DisableDefaultBuiltins,
+		Builtins:               opts.Builtins,
 	}).Evaluate(ctx, program, s)
 
 	// Let's guarantee that if there's no error we return a

@@ -101,23 +101,18 @@ func (s *Scope) Children() []*Scope {
 	return s.children
 }
 
-func (s *Scope) AddBuiltin(name string, fn object.BuiltinFunction) error {
-	if err := s.Declare(name, &object.Builtin{Fn: fn}, true); err != nil {
-		return fmt.Errorf("failed to define %s: %w", name, err)
+func (s *Scope) AddBuiltin(b *object.Builtin) error {
+	if err := s.Declare(b.Name, b, true); err != nil {
+		return fmt.Errorf("failed to define %s: %w", b.Key(), err)
 	}
 	return nil
 }
 
-func (s *Scope) AddBuiltins(funcs []Builtin) error {
+func (s *Scope) AddBuiltins(funcs []*object.Builtin) error {
 	for _, f := range funcs {
-		if err := s.AddBuiltin(f.Name, f.Func); err != nil {
+		if err := s.AddBuiltin(f); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-type Builtin struct {
-	Name string
-	Func object.BuiltinFunction
 }

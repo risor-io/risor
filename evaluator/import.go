@@ -61,6 +61,7 @@ func (e *Evaluator) evalImportStatement(
 	if err != nil {
 		return newError(err.Error())
 	}
+	// TODO: overrides
 	if err := s.Declare(moduleName, module, true); err != nil {
 		return newError(fmt.Sprintf("import error: %s", err.Error()))
 	}

@@ -269,26 +269,29 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Name:   fmt.Sprintf("module:%s", Name),
 		Parent: parentScope,
 	})
-	if err := s.AddBuiltins([]scope.Builtin{
-		{Name: "contains", Func: Contains},
-		{Name: "count", Func: Count},
-		{Name: "has_prefix", Func: HasPrefix},
-		{Name: "has_suffix", Func: HasSuffix},
-		{Name: "compare", Func: Compare},
-		{Name: "join", Func: Join},
-		{Name: "split", Func: Split},
-		{Name: "fields", Func: Fields},
-		{Name: "index", Func: Index},
-		{Name: "last_index", Func: LastIndex},
-		{Name: "replace", Func: Replace},
-		{Name: "to_lower", Func: ToLower},
-		{Name: "to_upper", Func: ToUpper},
-		{Name: "trim", Func: Trim},
-		{Name: "trim_prefix", Func: TrimPrefix},
-		{Name: "trim_suffix", Func: TrimSuffix},
-		{Name: "trim_space", Func: TrimSpace},
+
+	m := &object.Module{Name: Name, Scope: s}
+
+	if err := s.AddBuiltins([]*object.Builtin{
+		{Module: m, Name: "contains", Fn: Contains},
+		{Module: m, Name: "count", Fn: Count},
+		{Module: m, Name: "has_prefix", Fn: HasPrefix},
+		{Module: m, Name: "has_suffix", Fn: HasSuffix},
+		{Module: m, Name: "compare", Fn: Compare},
+		{Module: m, Name: "join", Fn: Join},
+		{Module: m, Name: "split", Fn: Split},
+		{Module: m, Name: "fields", Fn: Fields},
+		{Module: m, Name: "index", Fn: Index},
+		{Module: m, Name: "last_index", Fn: LastIndex},
+		{Module: m, Name: "replace", Fn: Replace},
+		{Module: m, Name: "to_lower", Fn: ToLower},
+		{Module: m, Name: "to_upper", Fn: ToUpper},
+		{Module: m, Name: "trim", Fn: Trim},
+		{Module: m, Name: "trim_prefix", Fn: TrimPrefix},
+		{Module: m, Name: "trim_suffix", Fn: TrimSuffix},
+		{Module: m, Name: "trim_space", Fn: TrimSpace},
 	}); err != nil {
 		return nil, err
 	}
-	return &object.Module{Name: Name, Scope: s}, nil
+	return m, nil
 }

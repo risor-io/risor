@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/internal/scope"
 )
 
 // Name of this module
@@ -96,11 +96,14 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Name:   fmt.Sprintf("module:%s", Name),
 		Parent: parentScope,
 	})
-	if err := s.AddBuiltins([]scope.Builtin{
-		{Name: "connect", Func: Connect},
-		{Name: "query", Func: Query},
+
+	m := &object.Module{Name: Name, Scope: s}
+
+	if err := s.AddBuiltins([]*object.Builtin{
+		{Module: m, Name: "connect", Fn: Connect},
+		{Module: m, Name: "query", Fn: Query},
 	}); err != nil {
 		return nil, err
 	}
-	return &object.Module{Name: Name, Scope: s}, nil
+	return m, nil
 }

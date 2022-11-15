@@ -18,16 +18,37 @@ type Opts struct {
 	// are not supported and an import will result in an error that stops code
 	// execution.
 	Importer Importer
+
+	// If set to true, the default builtins will not be registered.
+	DisableDefaultBuiltins bool
+
+	// Supplies extra and/or override builtins for evaluation.
+	Builtins []*object.Builtin
 }
 
 // Evaluator is used to execute Tamarin AST nodes.
 type Evaluator struct {
 	importer Importer
+	builtins map[string]*object.Builtin
 }
 
 // New returns a new Evaluator
 func New(opts Opts) *Evaluator {
-	return &Evaluator{importer: opts.Importer}
+	e := &Evaluator{
+		importer: opts.Importer,
+		builtins: map[string]*object.Builtin{},
+	}
+	// Conditionally register default global builtins
+	if !opts.DisableDefaultBuiltins {
+		for _, b := range GlobalBuiltins() {
+			e.builtins[b.Key()] = b
+		}
+	}
+	// Add override builtins
+	for _, b := range opts.Builtins {
+		e.builtins[b.Key()] = b
+	}
+	return e
 }
 
 // Evaluate an AST node. The context can be used to cancel a running evaluation.

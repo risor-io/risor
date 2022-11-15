@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func (e *Evaluator) evalCallExpression(
@@ -57,7 +57,6 @@ func (e *Evaluator) evalObjectCall(
 			return e.execArrayFilter(ctx, s, obj, args...)
 		case "each":
 			return e.execArrayEach(ctx, s, obj, args...)
-
 		}
 	case *object.Module:
 		moduleScope := obj.Scope.(*scope.Scope)

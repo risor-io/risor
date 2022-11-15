@@ -1,14 +1,27 @@
 package object
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // BuiltinFunction holds the type of a built-in function.
 type BuiltinFunction func(ctx context.Context, args ...Object) Object
 
 // Builtin wraps func and implements Object interface.
 type Builtin struct {
-	// Value holds the function we wrap.
+	// The function that this object wraps.
 	Fn BuiltinFunction
+
+	// The name of the function.
+	Name string
+
+	// The module the function originates from (optional)
+	Module *Module
+
+	// The name of the module this function origiantes from.
+	// This is only used for overriding builtins.
+	ModuleName string
 }
 
 // Type returns the type of this object.
@@ -18,7 +31,14 @@ func (b *Builtin) Type() Type {
 
 // Inspect returns a string-representation of the given object.
 func (b *Builtin) Inspect() string {
-	return "builtin function"
+	if b.Module == nil {
+		return fmt.Sprintf("Builtin(%s)", b.Name)
+	}
+	return fmt.Sprintf("Builtin(%s.%s)", b.Module.Name, b.Name)
+}
+
+func (b *Builtin) String() string {
+	return b.Inspect()
 }
 
 // InvokeMethod invokes a method against the object.
@@ -32,5 +52,30 @@ func (b *Builtin) InvokeMethod(method string, args ...Object) Object {
 //
 // It might also be helpful for embedded users.
 func (b *Builtin) ToInterface() interface{} {
-	return "<BUILTIN>"
+	return b.Fn
+}
+
+// Returns a string that uniquely identifies this builtin function.
+func (b *Builtin) Key() string {
+	if b.Module == nil && b.ModuleName == "" {
+		return b.Name
+	} else if b.ModuleName != "" {
+		return fmt.Sprintf("%s.%s", b.ModuleName, b.Name)
+	}
+	return fmt.Sprintf("%s.%s", b.Module.Name, b.Name)
+}
+
+// NewNoopBuiltin creates a builtin function that has no effect.
+func NewNoopBuiltin(Name string, Module *Module) *Builtin {
+	b := &Builtin{
+		Fn: func(ctx context.Context, args ...Object) Object {
+			return NULL
+		},
+		Name:   Name,
+		Module: Module,
+	}
+	if Module != nil {
+		b.ModuleName = Module.Name
+	}
+	return b
 }

@@ -41,9 +41,6 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	// Add print statement support
-	evaluator.RegisterPrintBuiltins()
-
 	// Determine if input is being provided via stdin
 	var isStdinInput bool
 	if fi, err := os.Stdin.Stat(); err == nil {

@@ -96,13 +96,16 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Name:   fmt.Sprintf("module:%s", Name),
 		Parent: parentScope,
 	})
-	if err := s.AddBuiltins([]scope.Builtin{
-		{Name: "unmarshal", Func: Unmarshal},
-		{Name: "marshal", Func: Marshal},
-		{Name: "valid", Func: Valid},
-		{Name: "diff", Func: Diff},
+
+	m := &object.Module{Name: Name, Scope: s}
+
+	if err := s.AddBuiltins([]*object.Builtin{
+		{Module: m, Name: "unmarshal", Fn: Unmarshal},
+		{Module: m, Name: "marshal", Fn: Marshal},
+		{Module: m, Name: "valid", Fn: Valid},
+		{Module: m, Name: "diff", Fn: Diff},
 	}); err != nil {
 		return nil, err
 	}
-	return &object.Module{Name: Name, Scope: s}, nil
+	return m, nil
 }

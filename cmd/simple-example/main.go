@@ -8,12 +8,11 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/exec"
 )
 
 func main() {
-	evaluator.RegisterPrintBuiltins()
+
 	ctx := context.Background()
 
 	input := `

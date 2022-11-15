@@ -55,6 +55,12 @@ func (e *Evaluator) applyFunction(
 		}
 		return e.upwrapReturnValue(e.Evaluate(ctx, fn.Body, nestedScope))
 	case *object.Builtin:
+		if priorityBuiltin, found := e.builtins[fn.Key()]; found {
+			// This is a priority builtin, possibly an override, so
+			// we should use this one
+			return priorityBuiltin.Fn(ctx, args...)
+		}
+		// This is a non-priority builtin
 		return fn.Fn(ctx, args...)
 	default:
 		return newError("type error: %s is not callable", fn.Type())
@@ -78,8 +84,6 @@ func (e *Evaluator) newFunctionScope(
 		}
 	}
 	if len(fn.Defaults) == 0 && len(args) != len(fn.Parameters) {
-		fmt.Println("FUNC:", fn)
-		fmt.Println("ARGS:", args)
 		return nil, fmt.Errorf("type error: function expected %d arguments (%d given)",
 			len(fn.Parameters), len(args))
 	}
