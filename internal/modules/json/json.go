@@ -24,7 +24,7 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var obj interface{}
 	if err := json.Unmarshal([]byte(s.Value), &obj); err != nil {
-		return object.NewErrorResult(err.Error())
+		return object.NewErrorResult("value error: json.unmarshal failed with: %s", err.Error())
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
@@ -43,7 +43,7 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	b, err := json.Marshal(obj)
 	if err != nil {
-		return object.NewErrorResult(err.Error())
+		return object.NewErrorResult("value error: json.marshal failed with: %s", err.Error())
 	}
 	return object.NewOkResult(object.NewString(string(b)))
 }

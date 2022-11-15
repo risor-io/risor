@@ -390,6 +390,30 @@ func printfFun(ctx context.Context, args ...object.Object) object.Object {
 	return object.NULL
 }
 
+func Unwrap(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("unwrap", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Result:
+		return arg.InvokeMethod("unwrap")
+	default:
+		return newError("type error: unwrap() argument must be a result (%s given)", arg.Type())
+	}
+}
+
+func UnwrapOr(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("unwrap_or", 2, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Result:
+		return arg.InvokeMethod("unwrap_or", args[1])
+	default:
+		return newError("type error: unwrap_or() argument must be a result (%s given)", arg.Type())
+	}
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	return []*object.Builtin{
 		{Name: "delete", Fn: hashDelete},
@@ -409,5 +433,7 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "bool", Fn: Bool},
 		{Name: "print", Fn: printFun},
 		{Name: "printf", Fn: printfFun},
+		{Name: "unwrap", Fn: Unwrap},
+		{Name: "unwrap_or", Fn: UnwrapOr},
 	}
 }

@@ -174,7 +174,9 @@ func (e *Evaluator) evalPipeExpression(
 				}
 			}
 			// Prepend any arguments present from the previous pipeline stage and then run the call
-			args = prependObject(args, nextArg)
+			if nextArg != nil {
+				args = prependObject(args, nextArg)
+			}
 			res := e.applyFunction(ctx, s, function, args)
 			if isError(res) {
 				return res
@@ -197,7 +199,9 @@ func (e *Evaluator) evalPipeExpression(
 				}
 			}
 			// Prepend any arguments present from the previous pipeline stage and then run the call
-			args = prependObject(args, nextArg)
+			if nextArg != nil {
+				args = prependObject(args, nextArg)
+			}
 			method, ok := callExpr.Function.(*ast.Identifier)
 			if !ok {
 				return newError("invalid function in pipe expression: %v", callExpr.Function)

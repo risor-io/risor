@@ -1,6 +1,8 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Result contains one of: an "ok" value and an "err" value
 type Result struct {
@@ -22,23 +24,32 @@ func (rv *Result) Inspect() string {
 func (rv *Result) InvokeMethod(method string, args ...Object) Object {
 	switch method {
 	case "is_err":
+		if len(args) != 0 {
+			return NewError(fmt.Sprintf("type error: is_err() takes exactly 0 arguments (%d given)", len(args)))
+		}
 		if rv.Err != nil {
 			return TRUE
 		}
 		return FALSE
 	case "is_ok":
+		if len(args) != 0 {
+			return NewError(fmt.Sprintf("type error: is_ok() takes exactly 0 arguments (%d given)", len(args)))
+		}
 		if rv.Ok != nil {
 			return TRUE
 		}
 		return FALSE
 	case "unwrap":
+		if len(args) != 0 {
+			return NewError(fmt.Sprintf("type error: unwrap() takes exactly 0 arguments (%d given)", len(args)))
+		}
 		if rv.Ok != nil {
 			return rv.Ok
 		}
-		return &Error{Message: fmt.Sprintf("result error: %v", rv.Err)}
+		return &Error{Message: fmt.Sprintf("result error: attempted to unwrap an error: %s", rv.Err)}
 	case "unwrap_or":
 		if len(args) != 1 {
-			return &Error{Message: fmt.Sprintf("wrong number of arguments. got=%d, want=1", len(args))}
+			return NewError(fmt.Sprintf("type error: unwrap_or() takes exactly 1 argument (%d given)", len(args)))
 		}
 		if rv.Ok != nil {
 			return rv.Ok
@@ -46,11 +57,11 @@ func (rv *Result) InvokeMethod(method string, args ...Object) Object {
 		return args[0]
 	case "expect":
 		if len(args) != 1 {
-			return &Error{Message: fmt.Sprintf("wrong number of arguments. got=%d, want=1", len(args))}
+			return NewError(fmt.Sprintf("type error: expect() takes exactly 1 argument (%d given)", len(args)))
 		}
 		arg := args[0]
 		if _, ok := arg.(*String); !ok {
-			return &Error{Message: fmt.Sprintf("expected a string; got %s", arg.Type())}
+			return NewError(fmt.Sprintf("type error: expect() argument should be a string (%s given)", arg.Type()))
 		}
 		if rv.Ok != nil {
 			return rv.Ok
@@ -60,7 +71,7 @@ func (rv *Result) InvokeMethod(method string, args ...Object) Object {
 		if rv.Ok != nil {
 			return rv.Ok.InvokeMethod(method, args...)
 		}
-		return &Error{Message: fmt.Sprintf("result error: %v", rv.Err)}
+		return NewError(fmt.Sprintf("result error: %v", rv.Err))
 	}
 }
 
@@ -82,4 +93,8 @@ func (rv *Result) String() string {
 
 func (rv *Result) IsOk() bool {
 	return rv.Ok != nil
+}
+
+func (rv *Result) IsErr() bool {
+	return rv.Err != nil
 }
