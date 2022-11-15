@@ -705,3 +705,13 @@ func TestForLoop(t *testing.T) {
 		}
 	}
 }
+
+func TestBreak(t *testing.T) {
+	input := "break"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0]
+	_, ok := stmt.(*ast.BreakStatement)
+	require.True(t, ok)
+}

@@ -100,6 +100,7 @@ if(5<10){
 for
 2 >= 1
 1 <= 3
+break
 `
 	tests := []struct {
 		expectedType    token.Type
@@ -226,6 +227,8 @@ for
 		{token.INT, "1"},
 		{token.LT_EQUALS, "<="},
 		{token.INT, "3"},
+		{token.NEWLINE, "\n"},
+		{token.BREAK, "break"},
 		{token.NEWLINE, "\n"},
 		{token.EOF, ""},
 	}

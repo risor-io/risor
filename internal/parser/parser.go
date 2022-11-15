@@ -206,6 +206,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseConstStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.BREAK:
+		return p.parseBreakStatement()
 	case token.NEWLINE:
 		return nil
 	default:
@@ -294,6 +296,15 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 			return nil
 		}
 	}
+}
+
+// parseBreakStatement parses a loop break statement.
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	stmt := &ast.BreakStatement{Token: p.curToken}
+	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	return stmt
 }
 
 // parse Expression Statement

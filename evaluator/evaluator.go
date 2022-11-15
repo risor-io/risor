@@ -125,6 +125,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalPipeExpression(ctx, node, s)
 	case *ast.ReturnStatement:
 		return e.evalReturnStatement(ctx, node, s)
+	case *ast.BreakStatement:
+		return &object.BreakValue{}
 
 	// Literals
 	case *ast.NullLiteral:

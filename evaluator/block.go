@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func (e *Evaluator) evalBlockStatement(
@@ -17,8 +17,12 @@ func (e *Evaluator) evalBlockStatement(
 	for _, statement := range block.Statements {
 		result = e.Evaluate(ctx, statement, s)
 		if result != nil {
-			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			switch result := result.(type) {
+			case *object.Error:
+				return result
+			case *object.ReturnValue:
+				return result
+			case *object.BreakValue:
 				return result
 			}
 		}

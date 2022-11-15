@@ -77,6 +77,7 @@ const (
 	TRUE            = "TRUE"
 	NEWLINE         = "EOL"
 	IMPORT          = "IMPORT"
+	BREAK           = "BREAK"
 )
 
 // reserved keywords
@@ -95,6 +96,7 @@ var keywords = map[string]Type{
 	"switch":  SWITCH,
 	"true":    TRUE,
 	"import":  IMPORT,
+	"break":   BREAK,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

@@ -613,6 +613,21 @@ sum
 	testDecimalObject(t, evaluated, 4950)
 }
 
+func TestForLoopBreak(t *testing.T) {
+	input := `
+let sum = 0;
+for x := 0; x < 100; x++ {
+	if x == 2 {
+		break
+	}
+	sum += x
+}
+sum
+`
+	evaluated := testEval(input)
+	testDecimalObject(t, evaluated, 1)
+}
+
 func TestTypeBuiltin(t *testing.T) {
 	tests := []struct {
 		input    string

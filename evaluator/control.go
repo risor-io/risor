@@ -41,6 +41,7 @@ func (e *Evaluator) evalForLoopExpression(
 		}
 	}
 	var latestValue object.Object = object.NULL
+loop:
 	for {
 		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
 		if isError(condition) {
@@ -48,8 +49,13 @@ func (e *Evaluator) evalForLoopExpression(
 		}
 		if isTruthy(condition) {
 			rt := e.Evaluate(ctx, fle.Consequence, nestedScope)
-			if rt.Type() == object.RETURN_VALUE_OBJ || rt.Type() == object.ERROR_OBJ {
+			switch rt := rt.(type) {
+			case *object.Error:
 				return rt
+			case *object.ReturnValue:
+				return rt
+			case *object.BreakValue:
+				break loop
 			}
 			latestValue = rt
 		} else {

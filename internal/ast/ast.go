@@ -167,6 +167,21 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
+// BreakStatement stores a break statement
+type BreakStatement struct {
+	Token token.Token
+}
+
+func (s *BreakStatement) statementNode() {}
+
+func (s *BreakStatement) TokenLiteral() string { return s.Token.Literal }
+
+func (s *BreakStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(s.TokenLiteral())
+	return out.String()
+}
+
 // ExpressionStatement is an expression
 type ExpressionStatement struct {
 	// Token is the literal token
