@@ -230,14 +230,19 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated let statement")
-			return nil
-		}
-		p.nextToken()
+	if stmt.Value == nil {
+		p.errors = append(p.errors, "let statement is missing a value")
+		return nil
 	}
-	return stmt
+	switch p.peekToken.Type {
+	case token.NEWLINE, token.SEMICOLON, token.EOF:
+		p.nextToken()
+		return stmt
+	default:
+		err := fmt.Sprintf("unexpected token after let statement: %s", p.peekToken.Literal)
+		p.errors = append(p.errors, err)
+		return nil
+	}
 }
 
 // parseDeclarationStatement parses a "i := value" statement as a "let" statement.
@@ -249,14 +254,19 @@ func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated let statement")
-			return nil
-		}
-		p.nextToken()
+	if stmt.Value == nil {
+		p.errors = append(p.errors, ":= statement is missing a value")
+		return nil
 	}
-	return stmt
+	switch p.peekToken.Type {
+	case token.NEWLINE, token.SEMICOLON, token.EOF:
+		p.nextToken()
+		return stmt
+	default:
+		err := fmt.Sprintf("unexpected token after := statement: %s", p.peekToken.Literal)
+		p.errors = append(p.errors, err)
+		return nil
+	}
 }
 
 // parseConstStatement parses a constant declaration.
@@ -271,14 +281,19 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 	}
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated const statement")
-			return nil
-		}
-		p.nextToken()
+	if stmt.Value == nil {
+		p.errors = append(p.errors, "const statement is missing a value")
+		return nil
 	}
-	return stmt
+	switch p.peekToken.Type {
+	case token.NEWLINE, token.SEMICOLON, token.EOF:
+		p.nextToken()
+		return stmt
+	default:
+		err := fmt.Sprintf("unexpected token after const statement: %s", p.peekToken.Literal)
+		p.errors = append(p.errors, err)
+		return nil
+	}
 }
 
 // parseReturnStatement parses a function return statement.

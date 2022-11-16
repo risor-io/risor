@@ -63,7 +63,7 @@ for an example of using Tamarin as a library.
 
 To execute a Tamarin script, pass the path of a script to the tamarin binary:
 
-     $ tamarin ./example/hello.tm
+     $ tamarin ./examples/hello.tm
 
 Scripts can be made executable by adding a suitable shebang line:
 
