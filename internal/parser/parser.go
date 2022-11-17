@@ -229,13 +229,9 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated let statement")
-			return nil
-		}
-		p.nextToken()
+	stmt.Value = p.parseAssignmentValue()
+	if stmt.Value == nil {
+		return nil
 	}
 	return stmt
 }
@@ -248,13 +244,9 @@ func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
 	}
 	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated let statement")
-			return nil
-		}
-		p.nextToken()
+	stmt.Value = p.parseAssignmentValue()
+	if stmt.Value == nil {
+		return nil
 	}
 	return stmt
 }
@@ -270,15 +262,32 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 		return nil
 	}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) && !p.curTokenIs(token.NEWLINE) {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated const statement")
-			return nil
-		}
-		p.nextToken()
+	stmt.Value = p.parseAssignmentValue()
+	if stmt.Value == nil {
+		return nil
 	}
 	return stmt
+}
+
+// This is used to parse the right hand side (RHS) of the three types of
+// assignment statements: let, const, and :=
+func (p *Parser) parseAssignmentValue() ast.Expression {
+	// Parse the value being assigned (the right hand side)
+	result := p.parseExpression(LOWEST)
+	if result == nil {
+		p.errors = append(p.errors, "assignment statement is missing a value")
+		return nil
+	}
+	switch p.peekToken.Type {
+	// Assignment statements can be followed by a newline, semicolon, or EOF.
+	case token.NEWLINE, token.SEMICOLON, token.EOF:
+		p.nextToken()
+		return result
+	default:
+		err := fmt.Sprintf("assignment statement is followed by an unexpected token: %s", p.peekToken.Literal)
+		p.errors = append(p.errors, err)
+		return nil
+	}
 }
 
 // parseReturnStatement parses a function return statement.
