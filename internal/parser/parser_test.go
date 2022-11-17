@@ -487,8 +487,8 @@ func TestIncompleThings(t *testing.T) {
 	}{
 		{`if ( true ) { `, "unterminated block statement"},
 		{`if ( true ) { puts( "OK" ) ; } else { `, "unterminated block statement"},
-		{`let x = `, "let statement is missing a value"},
-		{`const x =`, "const statement is missing a value"},
+		{`let x = `, "assignment statement is missing a value"},
+		{`const x =`, "assignment statement is missing a value"},
 		{`func foo( a, b ="steve", `, "unterminated function parameters"},
 		{`func foo() {`, "unterminated block statement"},
 		{`switch (foo) { `, "unterminated switch statement"},

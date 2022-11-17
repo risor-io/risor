@@ -229,20 +229,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
+	stmt.Value = p.parseAssignmentValue()
 	if stmt.Value == nil {
-		p.errors = append(p.errors, "let statement is missing a value")
 		return nil
 	}
-	switch p.peekToken.Type {
-	case token.NEWLINE, token.SEMICOLON, token.EOF:
-		p.nextToken()
-		return stmt
-	default:
-		err := fmt.Sprintf("unexpected token after let statement: %s", p.peekToken.Literal)
-		p.errors = append(p.errors, err)
-		return nil
-	}
+	return stmt
 }
 
 // parseDeclarationStatement parses a "i := value" statement as a "let" statement.
@@ -253,20 +244,11 @@ func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
 	}
 	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
+	stmt.Value = p.parseAssignmentValue()
 	if stmt.Value == nil {
-		p.errors = append(p.errors, ":= statement is missing a value")
 		return nil
 	}
-	switch p.peekToken.Type {
-	case token.NEWLINE, token.SEMICOLON, token.EOF:
-		p.nextToken()
-		return stmt
-	default:
-		err := fmt.Sprintf("unexpected token after := statement: %s", p.peekToken.Literal)
-		p.errors = append(p.errors, err)
-		return nil
-	}
+	return stmt
 }
 
 // parseConstStatement parses a constant declaration.
@@ -280,17 +262,29 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 		return nil
 	}
 	p.nextToken()
-	stmt.Value = p.parseExpression(LOWEST)
+	stmt.Value = p.parseAssignmentValue()
 	if stmt.Value == nil {
-		p.errors = append(p.errors, "const statement is missing a value")
+		return nil
+	}
+	return stmt
+}
+
+// This is used to parse the right hand side (RHS) of the three types of
+// assignment statements: let, const, and :=
+func (p *Parser) parseAssignmentValue() ast.Expression {
+	// Parse the value being assigned (the right hand side)
+	result := p.parseExpression(LOWEST)
+	if result == nil {
+		p.errors = append(p.errors, "assignment statement is missing a value")
 		return nil
 	}
 	switch p.peekToken.Type {
+	// Assignment statements can be followed by a newline, semicolon, or EOF.
 	case token.NEWLINE, token.SEMICOLON, token.EOF:
 		p.nextToken()
-		return stmt
+		return result
 	default:
-		err := fmt.Sprintf("unexpected token after const statement: %s", p.peekToken.Literal)
+		err := fmt.Sprintf("assignment statement is followed by an unexpected token: %s", p.peekToken.Literal)
 		p.errors = append(p.errors, err)
 		return nil
 	}
