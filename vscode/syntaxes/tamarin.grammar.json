@@ -16,6 +16,9 @@
         },
         {
             "include": "#variables"
+        },
+        {
+            "include": "#backtick_strings"
         }
     ],
     "repository": {
@@ -63,6 +66,17 @@
             "name": "string.quoted.double.tamarin",
             "begin": "\"",
             "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.tamarin",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "backtick_strings": {
+            "name": "string.quoted.other.tamarin",
+            "begin": "`",
+            "end": "`",
             "patterns": [
                 {
                     "name": "constant.character.escape.tamarin",

@@ -715,3 +715,15 @@ func TestBreak(t *testing.T) {
 	_, ok := stmt.(*ast.BreakStatement)
 	require.True(t, ok)
 }
+
+func TestBacktick(t *testing.T) {
+	input := "`" + `\\n\t foo bar /hey there/` + "`"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements, 1)
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.True(t, ok)
+	str, ok := stmt.Expression.(*ast.StringLiteral)
+	require.True(t, ok)
+	require.Equal(t, `\\n\t foo bar /hey there/`, str.Value)
+}
