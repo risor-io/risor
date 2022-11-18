@@ -1,6 +1,5 @@
-// UPDATE THIS FILE FOR YOUR TEST
-// github issue: xyz
-// expected value: 10
-// expected type: INTEGER
+// github issue: https://github.com/cloudcmds/tamarin/issues/6
+// expected value: a\ntest\t"string\\
+// expected type: STRING
 
-let a = 10
+raw := `a\ntest\t"string\\`

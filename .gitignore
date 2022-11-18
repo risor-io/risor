@@ -1,7 +1,6 @@
 monkey
 monkey-*
 tamarin
-.vscode
 cpu.out
 node_modules
 tamarin*.vsix
