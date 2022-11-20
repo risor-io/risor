@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -55,8 +56,8 @@ func TestBadLetConstStatement(t *testing.T) {
 		input string
 		err   string
 	}{
-		{"let", "parse error: unexpected EOF while parsing let statement (expected an identifier)"},
-		{"const", "parse error: unexpected EOF while parsing const statement (expected an identifier)"},
+		{"let", "parse error: unexpected end of file while parsing let statement (expected identifier)"},
+		{"const", "parse error: unexpected end of file while parsing const statement (expected identifier)"},
 		{"let x;", "parse error: unexpected ; while parsing let statement (expected =)"},
 		{"const x;", "parse error: unexpected ; while parsing const statement (expected =)"},
 	}
@@ -492,7 +493,6 @@ func TestIncompleThings(t *testing.T) {
 		{`func foo( a, b ="steve", `, "parse error: unterminated function parameters"},
 		{`func foo() {`, "parse error: unterminated block statement"},
 		{`switch (foo) { `, "parse error: unterminated switch statement"},
-		{`foo | bar`, "parse error: unterminated pipe expression"}, // TODO: fix this?
 	}
 	for _, tt := range tests {
 		_, err := Parse(tt.input)
@@ -756,7 +756,8 @@ func TestUnterminatedBacktickString(t *testing.T) {
 func TestUnterminatedString(t *testing.T) {
 	input := `42
 x := "a`
-	_, err := ParseWithOpts(Opts{Input: input, File: "main.tm"})
+	ctx := context.Background()
+	_, err := ParseWithOpts(ctx, Opts{Input: input, File: "main.tm"})
 	require.NotNil(t, err)
 	fmt.Printf("%+v\n", err.(*SyntaxError).StartPosition())
 	require.Equal(t, "syntax error: unterminated string literal", err.Error())

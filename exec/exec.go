@@ -112,10 +112,11 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	}
 
 	// Parse the program
-	program, err := parser.Parse(opts.Input)
+	program, err := parser.ParseWithOpts(ctx, parser.Opts{
+		Input: opts.Input,
+		File:  opts.File,
+	})
 	if err != nil {
-		pe := err.(parser.ParserError)
-		fmt.Printf("loc: %+v\n", pe.StartPosition())
 		return nil, err
 	}
 

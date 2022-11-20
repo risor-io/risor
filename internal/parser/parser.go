@@ -6,6 +6,7 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,19 +23,20 @@ type (
 )
 
 // Parse is a shortcut that can be used to parse the given Tamarin source code.
-// The lexer and parser are created internally and not exposed.
+// The lexer and parser are created internally and not exposed. ParseWithOpts
+// should be used in production in order to pass a context.
 func Parse(input string) (*ast.Program, error) {
-	return New(lexer.New(input)).Parse()
+	return New(lexer.New(input)).Parse(context.Background())
 }
 
 // ParseWithOpts is a shortcut that can be used to parse the given Tamarin source code.
 // The lexer and parser are created internally and not exposed.
-func ParseWithOpts(opts Opts) (*ast.Program, error) {
+func ParseWithOpts(ctx context.Context, opts Opts) (*ast.Program, error) {
 	lexerOpts := lexer.Opts{
 		Input: opts.Input,
 		File:  opts.File,
 	}
-	return New(lexer.NewWithOptions(lexerOpts)).Parse()
+	return New(lexer.NewWithOptions(lexerOpts)).Parse(ctx)
 }
 
 // Opts contains options for the parser.
@@ -188,7 +190,7 @@ func (p *Parser) nextTokenWithError() error {
 }
 
 // Parse the program that is provided via the lexer.
-func (p *Parser) Parse() (*ast.Program, error) {
+func (p *Parser) Parse(ctx context.Context) (*ast.Program, error) {
 	// It's possible for an error to already exist because we read tokens from
 	// the lexer in the constructor. Parsing is already broken if so.
 	if p.err != nil {
@@ -198,6 +200,12 @@ func (p *Parser) Parse() (*ast.Program, error) {
 	// Parsing stops on the first occurence of an error.
 	program := &ast.Program{Statements: []ast.Statement{}}
 	for p.curToken.Type != token.EOF {
+		// Check for context timeout
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
@@ -243,18 +251,12 @@ func (p *Parser) peekError(context string, expected token.Type, got token.Token)
 	if p.err != nil {
 		return
 	}
-	gotInfo := got.Literal
-	if gotInfo == "" {
-		gotInfo = string(got.Type)
-	}
-	expInfo := string(expected)
-	if expInfo == "IDENT" {
-		expInfo = "an identifier"
-	}
+	gotDesc := tokenDescription(got)
+	expDesc := tokenTypeDescription(expected)
 	p.err = NewParserError(ErrorOpts{
 		ErrType: "parse error",
 		Message: fmt.Sprintf("unexpected %s while parsing %s (expected %s)",
-			gotInfo, context, expInfo),
+			gotDesc, context, expDesc),
 		File:          p.l.File(),
 		StartPosition: got.StartPosition,
 		EndPosition:   got.EndPosition,
@@ -403,7 +405,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 func (p *Parser) parseBreakStatement() *ast.BreakStatement {
 	stmt := &ast.BreakStatement{Token: p.curToken}
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return stmt
 }
@@ -413,7 +417,9 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return stmt
 }
@@ -768,7 +774,8 @@ func (p *Parser) parseForLoopExpression() ast.Expression {
 		expression.Consequence = p.parseBlockStatement()
 		return expression
 	default:
-		p.setTokenError(p.peekToken, "unexpected token in for loop: %s", p.peekToken.Literal)
+		desc := tokenDescription(p.peekToken)
+		p.setTokenError(p.peekToken, "unexpected token in for loop: %s", desc)
 		p.nextToken()
 		return nil
 	}
@@ -818,7 +825,9 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		}
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return block
 }
@@ -875,7 +884,9 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 		}
 		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 		identifiers = append(identifiers, ident)
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil, nil
+		}
 		// If there is "=x" after the name then that is a default parameter value
 		if p.curTokenIs(token.ASSIGN) {
 			p.nextToken()
@@ -927,23 +938,31 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		return list
 	}
 	for p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	p.nextToken()
 	list = append(list, p.parseExpression(LOWEST))
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 		// advance across any extra newlines
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 		}
 		// check if the list has ended after the newlines
 		if p.peekTokenIs(end) {
 			break
 		}
 		// move to the next expression
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 		list = append(list, p.parseExpression(LOWEST))
 	}
 	if !p.expectPeek("an expression list", end) {
@@ -1002,12 +1021,10 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 	exp := &ast.PipeExpression{Token: p.curToken, Arguments: []ast.Expression{first}}
 	for {
-		if p.curTokenIs(token.EOF) {
-			p.setTokenError(exp.Token, "unterminated pipe expression")
+		// Move past the pipe operator itself
+		if err := p.nextTokenWithError(); err != nil {
 			return nil
 		}
-		// Move past the pipe operator itself
-		p.nextToken()
 		// Parse the next expression and add it to the ast.PipeExpression Arguments
 		expr := p.parseExpression(PIPE)
 		if expr == nil {
@@ -1019,9 +1036,6 @@ func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 		if p.peekTokenIs(token.PIPE) {
 			p.nextToken()
 			continue
-		} else if p.peekTokenIs(token.EOF) {
-			p.setTokenError(exp.Token, "unterminated pipe expression")
-			return nil
 		} else {
 			// Anything else indicates the end of the pipe expression
 			break
@@ -1033,7 +1047,9 @@ func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 // parseHashLiteral parses a hash literal
 func (p *Parser) parseHashLiteral() ast.Expression {
 	for p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	// Empty {} turns into an empty hash (not a set)
 	if p.peekTokenIs(token.RBRACE) {
@@ -1057,7 +1073,9 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 				return nil
 			}
 			for p.peekTokenIs(token.NEWLINE) {
-				p.nextToken()
+				if err := p.nextTokenWithError(); err != nil {
+					return nil
+				}
 			}
 			if p.peekTokenIs(token.RBRACE) {
 				break
@@ -1083,14 +1101,18 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 			return nil
 		}
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 		}
 		set := &ast.SetLiteral{
 			Token: p.curToken,
 			Items: []ast.Expression{firstKey},
 		}
 		for !p.peekTokenIs(token.RBRACE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 			key := p.parseExpression(LOWEST)
 			set.Items = append(set.Items, key)
 			if !p.peekTokenIs(token.COMMA) {
@@ -1098,7 +1120,9 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 			}
 			p.nextToken() // move to the comma
 			for p.peekTokenIs(token.NEWLINE) {
-				p.nextToken()
+				if err := p.nextTokenWithError(); err != nil {
+					return nil
+				}
 			}
 		}
 		if !p.expectPeek("set", token.RBRACE) {
@@ -1171,6 +1195,8 @@ func (p *Parser) curPrecedence() int {
 
 func (p *Parser) eatNewlines() {
 	for p.curTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return
+		}
 	}
 }

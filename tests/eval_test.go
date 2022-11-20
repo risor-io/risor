@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -104,7 +105,7 @@ func listTestFiles() []string {
 }
 
 func TestFiles(t *testing.T) {
-	only := "" // "11-19-22"
+	only := ""
 	for _, name := range listTestFiles() {
 		if !strings.HasSuffix(name, ".tm") {
 			continue
@@ -120,10 +121,18 @@ func TestFiles(t *testing.T) {
 			expectedType := object.Type(tc.ExpectedType)
 
 			if tc.ExpectedValue != "" {
-				require.Equal(t, tc.ExpectedValue, result.Inspect())
+				if result == nil {
+					t.Fatalf("expected value %q, got nil", tc.ExpectedValue)
+				} else {
+					require.Equal(t, tc.ExpectedValue, result.Inspect())
+				}
 			}
 			if tc.ExpectedType != "" {
-				require.Equal(t, expectedType, result.Type())
+				if result == nil {
+					t.Fatalf("expected type %q, got nil", tc.ExpectedType)
+				} else {
+					require.Equal(t, expectedType, result.Type())
+				}
 			}
 			if tc.ExpectedErr != "" {
 				require.NotNil(t, err)
@@ -133,13 +142,25 @@ func TestFiles(t *testing.T) {
 				require.NotNil(t, err)
 				parserErr, ok := err.(parser.ParserError)
 				require.True(t, ok)
-				require.Equal(t, tc.ExpectedErrColumn, parserErr.StartPosition().ColumnNumber())
+				fmt.Println("--- Friendly error output for", name)
+				fmt.Println(parserErr.FriendlyMessage())
+				fmt.Println("---")
+				require.Equal(t,
+					tc.ExpectedErrColumn,
+					parserErr.StartPosition().ColumnNumber(),
+					"The column number is incorrect")
 			}
 			if tc.ExpectedErrLine != 0 {
 				require.NotNil(t, err)
 				parserErr, ok := err.(parser.ParserError)
 				require.True(t, ok)
-				require.Equal(t, tc.ExpectedErrLine, parserErr.StartPosition().LineNumber())
+				fmt.Println("--- Friendly error output for", name)
+				fmt.Println(parserErr.FriendlyMessage())
+				fmt.Println("---")
+				require.Equal(t,
+					tc.ExpectedErrLine,
+					parserErr.StartPosition().LineNumber(),
+					"The line number is incorrect")
 			}
 		})
 	}

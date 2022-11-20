@@ -1,7 +1,9 @@
 package parser
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/token"
 )
@@ -43,6 +45,7 @@ type ParserError interface {
 	EndPosition() token.Position
 	SourceCode() string
 	Error() string
+	FriendlyMessage() string
 }
 
 // BaseParserError is the simplest implementation of ParserError.
@@ -74,6 +77,33 @@ func (e *BaseParserError) Error() string {
 		msg = fmt.Sprintf("%s: %s", e.errType, msg)
 	}
 	return msg
+}
+
+func (e *BaseParserError) FriendlyMessage() string {
+	var msg bytes.Buffer
+	header := e.Error()
+	msg.WriteString(header)
+	msg.WriteString("\n\n")
+
+	start := e.StartPosition()
+	end := e.EndPosition()
+
+	lineNum := start.LineNumber()
+	colStart := start.ColumnNumber()
+	colEnd := end.ColumnNumber()
+
+	friendlyLoc := fmt.Sprintf("line %d, column %d", lineNum, colStart)
+
+	if e.file != "" {
+		msg.WriteString(fmt.Sprintf("location: %s:%d:%d (%s)\n",
+			e.file, lineNum, colStart, friendlyLoc))
+	} else {
+		msg.WriteString(fmt.Sprintf("location: %s", friendlyLoc))
+	}
+	msg.WriteString("\n" + e.SourceCode() + "\n")
+	pad := strings.Repeat(" ", colStart-1)
+	msg.WriteString(pad + strings.Repeat("^", colEnd-colStart+1))
+	return msg.String()
 }
 
 func (e *BaseParserError) Cause() error {
@@ -120,4 +150,31 @@ func NewSyntaxError(opts ErrorOpts) *SyntaxError {
 
 type SyntaxError struct {
 	*BaseParserError
+}
+
+func tokenTypeDescription(t token.Type) string {
+	switch t {
+	case token.EOF:
+		return "end of file"
+	case token.IDENT:
+		return "identifier"
+	case token.NEWLINE:
+		return "newline"
+	default:
+		return string(t)
+	}
+}
+
+func tokenDescription(t token.Token) string {
+	switch t.Type {
+	case token.EOF:
+		return "end of file"
+	case token.NEWLINE:
+		return "newline"
+	default:
+		if t.Literal == "" {
+			return string(t.Type)
+		}
+		return t.Literal
+	}
 }
