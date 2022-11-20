@@ -432,6 +432,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+	if p.err != nil {
+		return nil
+	}
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
@@ -439,6 +442,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 		p.nextToken()
 		leftExp = infix(leftExp)
+		if p.err != nil {
+			break
+		}
 	}
 	p.eatNewlines()
 	return leftExp

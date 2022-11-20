@@ -104,7 +104,7 @@ func listTestFiles() []string {
 }
 
 func TestFiles(t *testing.T) {
-	only := "11-19"
+	only := "" // "11-19-22"
 	for _, name := range listTestFiles() {
 		if !strings.HasSuffix(name, ".tm") {
 			continue
