@@ -10,13 +10,19 @@ import (
 	"github.com/cloudcmds/tamarin/internal/token"
 )
 
+// Opts contains Lexer initialization options
+type Opts struct {
+	Input string
+	File  string
+}
+
 // Lexer holds our object-state.
 type Lexer struct {
-	// The current character position
+	// The index of the current character
 	position int
 
-	// The next character position
-	readPosition int
+	// The index of the next character
+	nextPosition int
 
 	// The current character
 	ch rune
@@ -27,65 +33,150 @@ type Lexer struct {
 	// Previous token
 	prevToken token.Token
 
-	// Line number of the current character
-	lineNumber int
+	// The index of the current line, for the current character
+	line int
 
-	// Line position of the current character
-	linePosition int
+	// The character index where the current line began
+	lineStart int
 
-	// Line position of the start of the current token
-	tokenStartPosition int
+	// The column, within the current line, of the current character
+	column int
+
+	// The position of the start of the current token
+	tokenStartPosition token.Position
+
+	// Name of the file be read
+	file string
 }
 
 // New returns a Lexer instance for a given string input.
 func New(input string) *Lexer {
 	l := &Lexer{
 		characters:   []rune(input),
-		linePosition: -1,
+		column:       -1, // -1 = before the first column
+		position:     -1, // -1 = before the first character
+		nextPosition: 0,  //  0 = read the first character next
 	}
 	l.readChar()
 	return l
 }
 
-// read one forward character
+// NewWithOptions returns a Lexer instance with the given options.
+func NewWithOptions(opts Opts) *Lexer {
+	l := New(opts.Input)
+	l.file = opts.File
+	return l
+}
+
+// The name of the file being read.
+func (l *Lexer) File() string {
+	return l.file
+}
+
+// Advance one charaacter in the input string. Calling this when
+// we are already at the end of the input has no effect.
 func (l *Lexer) readChar() {
-	// Track current line and position within the line
-	if l.ch == rune('\n') {
-		l.lineNumber++
-		l.linePosition = 0
-	} else {
-		l.linePosition++
+
+	// Return if we are already at the end of the input. Note that
+	// when position == len(l.characters) the current character is
+	// considered to be EOF, so that position is considered valid.
+	if l.position > len(l.characters) {
+		return
 	}
-	// Set the current character and overall read position
-	if l.readPosition >= len(l.characters) {
-		l.ch = rune(0)
+
+	// The rune we were at before we advanced. This is used to
+	// understand whether we advanced to a new line.
+	prevCh := l.ch
+
+	// Move forward. In the very first call, this moves us from
+	// position -1 to position 0.
+	l.position = l.nextPosition
+	l.nextPosition++
+
+	// Set the current character based on the current position
+	if l.position < len(l.characters) {
+		l.ch = l.characters[l.position]
 	} else {
-		l.ch = l.characters[l.readPosition]
+		l.ch = rune(0) // EOF
 	}
-	l.position = l.readPosition
-	l.readPosition++
-	// fmt.Println("readChar done; linePos:", l.linePosition,
-	// 	"lineNum:", l.lineNumber, "char:", string(l.ch))
+
+	// Track three values, all zero-indexed:
+	//  * line: the current line number
+	//  * column: the current column number, within the line
+	//  * lineStart: where the current line started in the input
+	if prevCh == rune('\n') {
+		l.column = 0
+		l.line++
+		l.lineStart = l.position
+	} else {
+		l.column++
+	}
+}
+
+// CurrentPosition returns a Position object for the current read position.
+func (l *Lexer) CurrentPosition() token.Position {
+	return token.Position{
+		Value:     l.ch,
+		Char:      l.position,
+		LineStart: l.lineStart,
+		Line:      l.line,
+		Column:    l.column,
+	}
+}
+
+func (l *Lexer) GetTokenLineText(t token.Token) string {
+
+	if len(l.characters) == 0 {
+		return ""
+	}
+
+	// This is the position where the token begins
+	tokenStart := t.StartPosition
+
+	// Guard against programming errors. Raise panics to catch mistakes early.
+	// Note that for the EOF token, the char offset will be equal to the number
+	// of chars in the input, hence the ">" and not ">=".
+	if tokenStart.Char < 0 || tokenStart.Char > len(l.characters) {
+		panic(fmt.Errorf("invalid token start position: %d (input length: %d)",
+			tokenStart.Char, len(l.characters)))
+	}
+	if tokenStart.Line < 0 {
+		panic(fmt.Errorf("invalid token start line: %d", tokenStart.Line))
+	}
+
+	// Find the start of the line containing the given token
+	start := tokenStart.Char
+	if t.Type == token.EOF {
+		start--
+	}
+	for start > 0 && l.characters[start-1] != rune('\n') {
+		start--
+	}
+	// Find the end of that line
+	end := tokenStart.Char
+	for end < len(l.characters) && l.characters[end] != rune('\n') {
+		end++
+	}
+	// Return the line, excluding the newline character
+	return string(l.characters[start:end])
 }
 
 func (l *Lexer) newToken(typ token.Type, literal string) token.Token {
 	t := token.Token{
 		Type:          typ,
 		Literal:       literal,
-		Line:          l.lineNumber,
 		StartPosition: l.tokenStartPosition,
-		EndPosition:   l.linePosition,
+		EndPosition:   l.CurrentPosition(),
 	}
-	// fmt.Printf("%+v\n", t)
 	return t
 }
 
 // NextToken to read next token, skipping the white space.
-func (l *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() (token.Token, error) {
 
 	var tok token.Token
 	l.skipWhitespace()
-	l.tokenStartPosition = l.linePosition
+	l.tokenStartPosition = l.CurrentPosition()
 
 	// skip single-line comments
 	if l.ch == rune('#') ||
@@ -184,8 +275,8 @@ func (l *Lexer) NextToken() token.Token {
 				tok = l.newToken(token.SLASH, string(l.ch))
 			} else {
 				str, err := l.readRegexp()
-				if err == nil {
-					tok = l.newToken(token.REGEXP, str)
+				if err != nil {
+					return l.newToken(token.REGEXP, str), err
 				} else {
 					tok = l.newToken(token.REGEXP, str)
 				}
@@ -239,10 +330,26 @@ func (l *Lexer) NextToken() token.Token {
 				tok = l.newToken(token.BANG, string(l.ch))
 			}
 		}
+	case rune('\''):
+		tok = l.newToken(token.ILLEGAL, string(l.ch))
 	case rune('"'):
-		tok = l.newToken(token.STRING, l.readString())
+		s, err := l.readString()
+		if err != nil {
+			tok = l.newToken(token.STRING, s)
+			l.readChar()
+			l.prevToken = tok
+			return tok, err
+		}
+		tok = l.newToken(token.STRING, s)
 	case rune('`'):
-		tok = l.newToken(token.BACKTICK, l.readBacktick())
+		s, err := l.readBacktick()
+		if err != nil {
+			tok = l.newToken(token.STRING, s)
+			l.readChar()
+			l.prevToken = tok
+			return tok, err
+		}
+		tok = l.newToken(token.STRING, s)
 	case rune('['):
 		tok = l.newToken(token.LBRACKET, string(l.ch))
 	case rune(']'):
@@ -271,17 +378,17 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.readDecimal()
 			l.readChar()
 			l.prevToken = tok
-			return tok
+			return tok, nil
 		}
 		ident := l.readIdentifier()
 		tok = l.newToken(token.LookupIdentifier(ident), ident)
 		l.readChar()
 		l.prevToken = tok
-		return tok
+		return tok, nil
 	}
 	l.readChar()
 	l.prevToken = tok
-	return tok
+	return tok, nil
 }
 
 // Read a single identifier
@@ -370,10 +477,15 @@ func (l *Lexer) readDecimal() token.Token {
 	return l.newToken(token.INT, integer)
 }
 
-// Read string
-func (l *Lexer) readString() string {
-	out := ""
+func (l *Lexer) readString() (string, error) {
+	var err error
+	var out []string
 	for {
+		peekChar := l.peekChar()
+		if peekChar == rune(0) || peekChar == rune('\n') {
+			err = fmt.Errorf("unterminated string literal")
+			break
+		}
 		l.readChar()
 		if l.ch == '"' {
 			break
@@ -397,49 +509,41 @@ func (l *Lexer) readString() string {
 				l.ch = '\\'
 			}
 		}
-		out = out + string(l.ch)
+		out = append(out, string(l.ch))
 	}
-	return out
+	return strings.Join(out, ""), err
 }
 
 // Read a regexp, including flags.
 func (l *Lexer) readRegexp() (string, error) {
+	var err error
 	out := ""
-
 	for {
 		l.readChar()
-
-		if l.ch == rune(0) {
-			return "unterminated regular expression", fmt.Errorf("unterminated regular expression")
+		if l.ch == rune(0) || l.ch == rune('\n') {
+			err = fmt.Errorf("unterminated regular expression")
+			break
 		}
 		if l.ch == '/' {
-
 			// consume the terminating "/".
 			l.readChar()
-
 			// prepare to look for flags
 			flags := ""
-
 			// two flags are supported:
 			//   i -> Ignore-case
 			//   m -> Multiline
 			//
 			for l.ch == rune('i') || l.ch == rune('m') {
-
 				// save the char - unless it is a repeat
 				if !strings.Contains(flags, string(l.ch)) {
-
 					// we're going to sort the flags
 					tmp := strings.Split(flags, "")
 					tmp = append(tmp, string(l.ch))
 					flags = strings.Join(tmp, "")
-
 				}
-
 				// read the next
 				l.readChar()
 			}
-
 			// convert the regexp to go-lang
 			if len(flags) > 0 {
 				out = "(?" + flags + ")" + out
@@ -448,27 +552,31 @@ func (l *Lexer) readRegexp() (string, error) {
 		}
 		out = out + string(l.ch)
 	}
-
-	return out, nil
+	return out, err
 }
 
-func (l *Lexer) readBacktick() string {
+func (l *Lexer) readBacktick() (string, error) {
+	var err error
 	position := l.position + 1
 	for {
+		peekChar := l.peekChar()
+		if peekChar == rune(0) {
+			err = fmt.Errorf("unterminated string literal")
+			break
+		}
 		l.readChar()
 		if l.ch == '`' {
 			break
 		}
 	}
-	out := string(l.characters[position:l.position])
-	return out
+	return string(l.characters[position:l.position]), err
 }
 
 func (l *Lexer) peekChar() rune {
-	if l.readPosition >= len(l.characters) {
+	if l.nextPosition >= len(l.characters) {
 		return rune(0)
 	}
-	return l.characters[l.readPosition]
+	return l.characters[l.nextPosition]
 }
 
 func isIdentifier(ch rune) bool {

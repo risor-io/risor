@@ -46,6 +46,9 @@ type Opts struct {
 	// Input is the main source code to execute.
 	Input string
 
+	// File is the name of the file being executed (optional).
+	File string
+
 	// Importer may optionally be supplied as an interface
 	// used to import modules. If not provided, any attempt
 	// to import will fail, halting execution with an error.
@@ -111,7 +114,9 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	// Parse the program
 	program, err := parser.Parse(opts.Input)
 	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
+		pe := err.(parser.ParserError)
+		fmt.Printf("loc: %+v\n", pe.StartPosition())
+		return nil, err
 	}
 
 	// Evaluate the program

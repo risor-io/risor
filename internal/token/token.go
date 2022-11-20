@@ -5,13 +5,31 @@ package token
 // Type is a string
 type Type string
 
+// Position points to a particular location in an input string.
+// It helps track offset since the beginning of the input as well
+// as line offsets.
+type Position struct {
+	Value     rune
+	Char      int
+	LineStart int
+	Line      int
+	Column    int
+}
+
+func (p Position) LineNumber() int {
+	return p.Line + 1
+}
+
+func (p Position) ColumnNumber() int {
+	return p.Column + 1
+}
+
 // Token struct represent the lexer token
 type Token struct {
 	Type          Type
 	Literal       string
-	Line          int
-	StartPosition int
-	EndPosition   int
+	StartPosition Position
+	EndPosition   Position
 }
 
 // pre-defined Type
