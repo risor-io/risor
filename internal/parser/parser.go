@@ -6,7 +6,7 @@
 package parser
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -14,7 +14,6 @@ import (
 	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/cloudcmds/tamarin/internal/lexer"
 	"github.com/cloudcmds/tamarin/internal/token"
-	"github.com/hashicorp/go-multierror"
 )
 
 type (
@@ -24,9 +23,28 @@ type (
 )
 
 // Parse is a shortcut that can be used to parse the given Tamarin source code.
-// The lexer and parser are created internally and not exposed.
+// The lexer and parser are created internally and not exposed. ParseWithOpts
+// should be used in production in order to pass a context.
 func Parse(input string) (*ast.Program, error) {
-	return New(lexer.New(input)).Parse()
+	return New(lexer.New(input)).Parse(context.Background())
+}
+
+// ParseWithOpts is a shortcut that can be used to parse the given Tamarin source code.
+// The lexer and parser are created internally and not exposed.
+func ParseWithOpts(ctx context.Context, opts Opts) (*ast.Program, error) {
+	lexerOpts := lexer.Opts{
+		Input: opts.Input,
+		File:  opts.File,
+	}
+	return New(lexer.NewWithOptions(lexerOpts)).Parse(ctx)
+}
+
+// Opts contains options for the parser.
+type Opts struct {
+	// Input is the string being parsed.
+	Input string
+	// File is the name of the file being parsed (optional).
+	File string
 }
 
 // Parser object
@@ -34,18 +52,17 @@ type Parser struct {
 	// l is our lexer
 	l *lexer.Lexer
 
-	// prevToken holds the previous token from our lexer.
-	// (used for "++" + "--")
+	// prevToken holds the previous token, which we already processed.
 	prevToken token.Token
 
-	// curToken holds the current token from our lexer.
+	// curToken holds the current token from the lexer.
 	curToken token.Token
 
-	// peekToken holds the next token which will come from the lexer.
+	// peekToken holds the next token from the lexer.
 	peekToken token.Token
 
-	// errors holds parsing-errors.
-	errors []string
+	// the parsing error, if any
+	err ParserError
 
 	// prefixParseFns holds a map of parsing methods for
 	// prefix-based syntax.
@@ -71,24 +88,23 @@ func New(l *lexer.Lexer) *Parser {
 	// Create the parser and prime the token pump
 	p := &Parser{
 		l:               l,
-		errors:          []string{},
 		prefixParseFns:  map[token.Type]prefixParseFn{},
 		infixParseFns:   map[token.Type]infixParseFn{},
 		postfixParseFns: map[token.Type]postfixParseFn{},
 	}
-	p.nextToken() // loads peekToken with token0
-	p.nextToken() // loads curToken with token0 and peekToken with token1
+	p.nextToken() // makes curToken=<empty>, peekToken=token[0]
+	p.nextToken() // makes curToken=token[0], peekToken=token[1]
 
 	// Register prefix-functions
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.FUNC, p.parseFunctionDefinition)
-	p.registerPrefix(token.EOF, p.parsingBroken)
+	p.registerPrefix(token.EOF, p.illegalToken)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.FOR, p.parseForLoopExpression)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.IF, p.parseIfExpression)
-	p.registerPrefix(token.ILLEGAL, p.parsingBroken)
+	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
@@ -141,28 +157,64 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 // nextToken moves to the next token from the lexer, updating all of
-// prevToken, curToken, and peekToken.
+// prevToken, curToken, and peekToken. Any lexer error is captured but
+// ignored.
 func (p *Parser) nextToken() {
+	p.nextTokenWithError()
+}
+
+// nextToken moves to the next token from the lexer, updating all of
+// prevToken, curToken, and peekToken.
+func (p *Parser) nextTokenWithError() error {
+	// If we have an error, we can't move forward
+	if p.err != nil {
+		return p.err
+	}
+	var err error
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
+	p.peekToken, err = p.l.NextToken()
+	if err == nil {
+		return nil // success
+	}
+	// The lexer encountered an error. We consider all lexer errors
+	// "syntax errors" and parsing will now be considered broken.
+	p.err = NewSyntaxError(ErrorOpts{
+		Cause:         err,
+		File:          p.l.File(),
+		StartPosition: p.peekToken.StartPosition,
+		EndPosition:   p.peekToken.EndPosition,
+		SourceCode:    p.l.GetTokenLineText(p.peekToken),
+	})
+	return p.err
 }
 
 // Parse the program that is provided via the lexer.
-func (p *Parser) Parse() (*ast.Program, error) {
+func (p *Parser) Parse(ctx context.Context) (*ast.Program, error) {
+	// It's possible for an error to already exist because we read tokens from
+	// the lexer in the constructor. Parsing is already broken if so.
+	if p.err != nil {
+		return nil, p.err
+	}
+	// Parse the entire input program as a series of statements.
+	// Parsing stops on the first occurence of an error.
 	program := &ast.Program{Statements: []ast.Statement{}}
 	for p.curToken.Type != token.EOF {
+		// Check for context timeout
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil, err
+		}
 	}
-	var combinedErrors error
-	for _, err := range p.Errors() {
-		combinedErrors = multierror.Append(combinedErrors, errors.New(err))
-	}
-	return program, combinedErrors
+	return program, p.err
 }
 
 // registerPrefix registers a function for handling a prefix-based statement.
@@ -180,22 +232,43 @@ func (p *Parser) registerPostfix(tokenType token.Type, fn postfixParseFn) {
 	p.postfixParseFns[tokenType] = fn
 }
 
-func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found around line %d",
-		t, p.curToken.Line+1)
-	p.errors = append(p.errors, msg)
-}
-
-// Errors returns all error messages accumulated during program parsing.
-func (p *Parser) Errors() []string {
-	return p.errors
+func (p *Parser) noPrefixParseFnError(t token.Token) {
+	if p.err != nil {
+		return
+	}
+	p.err = NewParserError(ErrorOpts{
+		ErrType:       "parse error",
+		Message:       fmt.Sprintf("unexpected token %s", t.Literal),
+		File:          p.l.File(),
+		StartPosition: t.StartPosition,
+		EndPosition:   t.EndPosition,
+		SourceCode:    p.l.GetTokenLineText(t),
+	})
 }
 
 // peekError raises an error if the next token is not the expected type.
-func (p *Parser) peekError(t token.Type) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead around line %d:%d",
-		t, p.peekToken.Type, p.curToken.Line+1, p.curToken.EndPosition+2)
-	p.errors = append(p.errors, msg)
+func (p *Parser) peekError(context string, expected token.Type, got token.Token) {
+	if p.err != nil {
+		return
+	}
+	gotDesc := tokenDescription(got)
+	expDesc := tokenTypeDescription(expected)
+	p.err = NewParserError(ErrorOpts{
+		ErrType: "parse error",
+		Message: fmt.Sprintf("unexpected %s while parsing %s (expected %s)",
+			gotDesc, context, expDesc),
+		File:          p.l.File(),
+		StartPosition: got.StartPosition,
+		EndPosition:   got.EndPosition,
+		SourceCode:    p.l.GetTokenLineText(got),
+	})
+}
+
+func (p *Parser) setError(err ParserError) {
+	if p.err != nil {
+		return
+	}
+	p.err = err
 }
 
 // parseStatement parses a single statement.
@@ -222,11 +295,11 @@ func (p *Parser) parseStatement() ast.Statement {
 // parseLetStatement parses a let statement.
 func (p *Parser) parseLetStatement() *ast.LetStatement {
 	stmt := &ast.LetStatement{Token: p.curToken}
-	if !p.expectPeek(token.IDENT) {
+	if !p.expectPeek("let statement", token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-	if !p.expectPeek(token.ASSIGN) {
+	if !p.expectPeek("let statement", token.ASSIGN) {
 		return nil
 	}
 	p.nextToken()
@@ -240,7 +313,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 // parseDeclarationStatement parses a "i := value" statement as a "let" statement.
 func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
 	name := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-	if !p.expectPeek(token.DECLARE) {
+	if !p.expectPeek("declaration statement", token.DECLARE) {
 		return nil
 	}
 	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
@@ -255,11 +328,11 @@ func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
 // parseConstStatement parses a constant declaration.
 func (p *Parser) parseConstStatement() *ast.ConstStatement {
 	stmt := &ast.ConstStatement{Token: p.curToken}
-	if !p.expectPeek(token.IDENT) {
+	if !p.expectPeek("const statement", token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-	if !p.expectPeek(token.ASSIGN) {
+	if !p.expectPeek("const statement", token.ASSIGN) {
 		return nil
 	}
 	p.nextToken()
@@ -276,7 +349,14 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 	// Parse the value being assigned (the right hand side)
 	result := p.parseExpression(LOWEST)
 	if result == nil {
-		p.errors = append(p.errors, "assignment statement is missing a value")
+		p.setError(NewParserError(ErrorOpts{
+			ErrType:       "parse error",
+			Message:       "assignment is missing a value",
+			File:          p.l.File(),
+			StartPosition: p.prevToken.EndPosition,
+			EndPosition:   p.prevToken.EndPosition,
+			SourceCode:    p.l.GetTokenLineText(p.prevToken),
+		}))
 		return nil
 	}
 	switch p.peekToken.Type {
@@ -285,8 +365,14 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 		p.nextToken()
 		return result
 	default:
-		err := fmt.Sprintf("assignment statement is followed by an unexpected token: %s", p.peekToken.Literal)
-		p.errors = append(p.errors, err)
+		p.setError(NewParserError(ErrorOpts{
+			ErrType:       "parse error",
+			Message:       fmt.Sprintf("unexpected token %s following assignment value", p.peekToken.Literal),
+			File:          p.l.File(),
+			StartPosition: p.peekToken.StartPosition,
+			EndPosition:   p.peekToken.EndPosition,
+			SourceCode:    p.l.GetTokenLineText(p.peekToken),
+		}))
 		return nil
 	}
 }
@@ -302,7 +388,14 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 			p.nextToken()
 			return stmt
 		default:
-			p.errors = append(p.errors, fmt.Sprintf("unexpected token in return statement: %s", p.peekToken.Literal))
+			p.setError(NewParserError(ErrorOpts{
+				ErrType:       "parse error",
+				Message:       fmt.Sprintf("unexpected token %s following return value", p.peekToken.Literal),
+				File:          p.l.File(),
+				StartPosition: p.peekToken.StartPosition,
+				EndPosition:   p.peekToken.EndPosition,
+				SourceCode:    p.l.GetTokenLineText(p.peekToken),
+			}))
 			return nil
 		}
 	}
@@ -312,7 +405,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 func (p *Parser) parseBreakStatement() *ast.BreakStatement {
 	stmt := &ast.BreakStatement{Token: p.curToken}
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return stmt
 }
@@ -322,22 +417,30 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return stmt
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if p.curToken.Type == token.EOF {
+		return nil
+	}
 	postfix := p.postfixParseFns[p.curToken.Type]
 	if postfix != nil {
 		return (postfix())
 	}
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
+		p.noPrefixParseFnError(p.curToken)
 		return nil
 	}
 	leftExp := prefix()
+	if p.err != nil {
+		return nil
+	}
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
@@ -345,14 +448,35 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 		p.nextToken()
 		leftExp = infix(leftExp)
+		if p.err != nil {
+			break
+		}
 	}
 	p.eatNewlines()
 	return leftExp
 }
 
-// parsingBroken is hit if we see an EOF in our input-stream
-// this means we're screwed
-func (p *Parser) parsingBroken() ast.Expression {
+func (p *Parser) illegalToken() ast.Expression {
+	p.setError(NewParserError(ErrorOpts{
+		ErrType:       "parse error",
+		Message:       fmt.Sprintf("illegal token %s", p.curToken.Literal),
+		File:          p.l.File(),
+		StartPosition: p.curToken.StartPosition,
+		EndPosition:   p.curToken.EndPosition,
+		SourceCode:    p.l.GetTokenLineText(p.curToken),
+	}))
+	return nil
+}
+
+func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) ast.Expression {
+	p.setError(NewParserError(ErrorOpts{
+		ErrType:       "parse error",
+		Message:       fmt.Sprintf(msg, args...),
+		File:          p.l.File(),
+		StartPosition: t.StartPosition,
+		EndPosition:   t.EndPosition,
+		SourceCode:    p.l.GetTokenLineText(t),
+	}))
 	return nil
 }
 
@@ -377,9 +501,14 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as integer around line %d",
-			p.curToken.Literal, p.curToken.Line+1)
-		p.errors = append(p.errors, msg)
+		p.setError(NewParserError(ErrorOpts{
+			ErrType:       "parse error",
+			Message:       fmt.Sprintf("invalid integer: %s", p.curToken.Literal),
+			File:          p.l.File(),
+			StartPosition: p.curToken.StartPosition,
+			EndPosition:   p.curToken.EndPosition,
+			SourceCode:    p.l.GetTokenLineText(p.curToken),
+		}))
 		return nil
 	}
 	lit.Value = value
@@ -388,16 +517,21 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 
 // parseFloatLiteral parses a float-literal
 func (p *Parser) parseFloatLiteral() ast.Expression {
-	flo := &ast.FloatLiteral{Token: p.curToken}
+	f := &ast.FloatLiteral{Token: p.curToken}
 	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float around line %d",
-			p.curToken.Literal, p.curToken.Line+1)
-		p.errors = append(p.errors, msg)
+		p.setError(NewParserError(ErrorOpts{
+			ErrType:       "parse error",
+			Message:       fmt.Sprintf("invalid float: %s", p.curToken.Literal),
+			File:          p.l.File(),
+			StartPosition: p.curToken.StartPosition,
+			EndPosition:   p.curToken.EndPosition,
+			SourceCode:    p.l.GetTokenLineText(p.curToken),
+		}))
 		return nil
 	}
-	flo.Value = value
-	return flo
+	f.Value = value
+	return f
 }
 
 // parseSwitchStatement handles a switch statement
@@ -408,7 +542,7 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 	if expression.Value == nil {
 		return nil
 	}
-	if !p.expectPeek(token.LBRACE) {
+	if !p.expectPeek("switch statement", token.LBRACE) {
 		return nil
 	}
 	p.nextToken()
@@ -417,12 +551,11 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 	// Process the block which we think will contain various case-statements
 	for !p.curTokenIs(token.RBRACE) {
 		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated switch statement")
+			p.setTokenError(p.prevToken, "unterminated switch statement")
 			return nil
 		}
 		if p.curToken.Literal != "case" && p.curToken.Literal != "default" {
-			p.errors = append(p.errors, fmt.Sprintf("unexpected token %s; expected case or default",
-				p.curToken.Literal))
+			p.setTokenError(p.curToken, "expected 'case' or 'default' (got %s)", p.curToken.Literal)
 			return nil
 		}
 		tmp := &ast.CaseExpression{Token: p.curToken}
@@ -442,11 +575,10 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 				tmp.Expr = append(tmp.Expr, p.parseExpression(LOWEST))
 			}
 		} else {
-			// error - unexpected token
-			p.errors = append(p.errors, fmt.Sprintf("expected case|default, got %s", p.curToken.Type))
+			p.setTokenError(p.curToken, "expected 'case' or 'default' (got %s)", p.curToken.Literal)
 			return nil
 		}
-		if !p.expectPeek(token.COLON) {
+		if !p.expectPeek("switch statement", token.COLON) {
 			return nil
 		}
 		p.nextToken()
@@ -469,21 +601,22 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 	}
 	// More than one default is a bug
 	count := 0
+	var lastDefault token.Token
 	for _, c := range expression.Choices {
 		if c.Default {
 			count++
 		}
+		lastDefault = c.Token
 	}
 	if count > 1 {
-		msg := "A switch-statement should only have one default block"
-		p.errors = append(p.errors, msg)
+		p.setTokenError(lastDefault, "switch statement has multiple default blocks")
 		return nil
 	}
 	return expression
 }
 
 func (p *Parser) parseImportStatement() ast.Expression {
-	if !p.expectPeek(token.IDENT) {
+	if !p.expectPeek("an import statement", token.IDENT) {
 		return nil
 	}
 	return &ast.ImportStatement{
@@ -544,8 +677,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 // parseTernaryExpression parses a ternary expression
 func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression {
 	if p.tern {
-		msg := fmt.Sprintf("nested ternary expressions are illegal, around line %d", p.curToken.Line+1)
-		p.errors = append(p.errors, msg)
+		p.setTokenError(p.curToken, "nested ternary expression detected")
 		return nil
 	}
 	p.tern = true
@@ -559,7 +691,7 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 	precedence := p.curPrecedence()
 	expression.IfTrue = p.parseExpression(precedence)
 
-	if !p.expectPeek(token.COLON) { //skip the ":"
+	if !p.expectPeek("ternary expression", token.COLON) { //skip the ":"
 		return nil
 	}
 
@@ -574,7 +706,7 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
 	exp := p.parseExpression(LOWEST)
-	if !p.expectPeek(token.RPAREN) {
+	if !p.expectPeek("grouped expression", token.RPAREN) {
 		return nil
 	}
 	return exp
@@ -589,15 +721,12 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		return nil
 	}
 	// Now "{"
-	if !p.expectPeek(token.LBRACE) {
-		msg := fmt.Sprintf("expected '{' but got %s", p.curToken.Literal)
-		p.errors = append(p.errors, msg)
+	if !p.expectPeek("an if expression", token.LBRACE) {
 		return nil
 	}
 	// The consequence
 	expression.Consequence = p.parseBlockStatement()
 	if expression.Consequence == nil {
-		p.errors = append(p.errors, "unexpected nil expression")
 		return nil
 	}
 	// Optional else block
@@ -616,14 +745,11 @@ func (p *Parser) parseIfExpression() ast.Expression {
 			return expression
 		}
 		// else { block }
-		if !p.expectPeek(token.LBRACE) {
-			msg := fmt.Sprintf("expected '{' but got %s", p.curToken.Literal)
-			p.errors = append(p.errors, msg)
+		if !p.expectPeek("an if expression", token.LBRACE) {
 			return nil
 		}
 		expression.Alternative = p.parseBlockStatement()
 		if expression.Alternative == nil {
-			p.errors = append(p.errors, "unexpected nil expression")
 			return nil
 		}
 	}
@@ -648,24 +774,25 @@ func (p *Parser) parseForLoopExpression() ast.Expression {
 		expression.Consequence = p.parseBlockStatement()
 		return expression
 	default:
-		p.errors = append(p.errors, fmt.Sprintf("unexpected token in for loop: %s", p.peekToken.Literal))
+		desc := tokenDescription(p.peekToken)
+		p.setTokenError(p.peekToken, "unexpected token in for loop: %s", desc)
 		p.nextToken()
 		return nil
 	}
 	expression.InitStatement = initExpression
 
 	if !p.curTokenIs(token.SEMICOLON) {
-		p.errors = append(p.errors, "expected a semicolon")
+		p.setTokenError(p.curToken, "expected a semicolon (got %s)", p.curToken.Literal)
 		return nil
 	}
 	p.nextToken()
 
 	expression.Condition = p.parseExpression(LOWEST)
 
-	if !p.expectPeek(token.SEMICOLON) {
+	if !p.expectPeek("for loop", token.SEMICOLON) {
 		return nil
 	}
-	if !p.expectPeek(token.IDENT) {
+	if !p.expectPeek("for loop", token.IDENT) {
 		return nil
 	}
 	if p.peekTokenIs(token.PLUS_PLUS) || p.peekTokenIs(token.MINUS_MINUS) {
@@ -675,31 +802,32 @@ func (p *Parser) parseForLoopExpression() ast.Expression {
 		expression.PostStatement = p.parseExpression(LOWEST)
 	}
 	if expression.PostStatement == nil {
-		p.errors = append(p.errors, "unable to parse for loop post statement")
 		return nil
 	}
-	if !p.expectPeek(token.LBRACE) {
+	if !p.expectPeek("for loop", token.LBRACE) {
 		return nil
 	}
 	expression.Consequence = p.parseBlockStatement()
 	return expression
 }
 
-// parseBlockStatement parsea a block.
+// parseBlockStatement parses a block.
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
 	block.Statements = []ast.Statement{}
 	p.nextToken()
 	for !p.curTokenIs(token.RBRACE) {
 		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated block statement")
+			p.setTokenError(block.Token, "unterminated block statement")
 			return nil
 		}
 		stmt := p.parseStatement()
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		}
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	return block
 }
@@ -707,11 +835,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // parseFunctionLiteral parses a function-literal.
 func (p *Parser) parseFunctionLiteral() ast.Expression {
 	lit := &ast.FunctionLiteral{Token: p.curToken}
-	if !p.expectPeek(token.LPAREN) {
+	if !p.expectPeek("function", token.LPAREN) {
 		return nil
 	}
 	lit.Defaults, lit.Parameters = p.parseFunctionParameters()
-	if !p.expectPeek(token.LBRACE) {
+	if !p.expectPeek("function", token.LBRACE) {
 		return nil
 	}
 	lit.Body = p.parseBlockStatement()
@@ -725,11 +853,11 @@ func (p *Parser) parseFunctionDefinition() ast.Expression {
 	}
 	p.nextToken()
 	lit := &ast.FunctionDefineLiteral{Token: p.curToken}
-	if !p.expectPeek(token.LPAREN) {
+	if !p.expectPeek("function", token.LPAREN) {
 		return nil
 	}
 	lit.Defaults, lit.Parameters = p.parseFunctionParameters()
-	if !p.expectPeek(token.LBRACE) {
+	if !p.expectPeek("function", token.LBRACE) {
 		return nil
 	}
 	lit.Body = p.parseBlockStatement()
@@ -751,12 +879,14 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 	// Keep going until we find a ")"
 	for !p.curTokenIs(token.RPAREN) {
 		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated function parameters")
+			p.setTokenError(p.prevToken, "unterminated function parameters")
 			return nil, nil
 		}
 		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 		identifiers = append(identifiers, ident)
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil, nil
+		}
 		// If there is "=x" after the name then that is a default parameter value
 		if p.curTokenIs(token.ASSIGN) {
 			p.nextToken()
@@ -808,26 +938,34 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		return list
 	}
 	for p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	p.nextToken()
 	list = append(list, p.parseExpression(LOWEST))
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 		// advance across any extra newlines
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 		}
 		// check if the list has ended after the newlines
 		if p.peekTokenIs(end) {
 			break
 		}
 		// move to the next expression
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 		list = append(list, p.parseExpression(LOWEST))
 	}
-	if !p.expectPeek(end) {
+	if !p.expectPeek("an expression list", end) {
 		return nil
 	}
 	return list
@@ -838,7 +976,7 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)
-	if !p.expectPeek(token.RBRACKET) {
+	if !p.expectPeek("an index expression", token.RBRACKET) {
 		return nil
 	}
 	return exp
@@ -850,9 +988,7 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	if n, ok := name.(*ast.Identifier); ok {
 		stmt.Name = n
 	} else {
-		msg := fmt.Sprintf("expected assign token to be IDENT, got %s instead around line %d",
-			name.TokenLiteral(), p.curToken.Line+1)
-		p.errors = append(p.errors, msg)
+		p.setTokenError(p.curToken, "unexpected token for assignment: %s", name.TokenLiteral())
 		return nil
 	}
 	oper := p.curToken
@@ -885,16 +1021,14 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 	exp := &ast.PipeExpression{Token: p.curToken, Arguments: []ast.Expression{first}}
 	for {
-		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated pipe expression")
+		// Move past the pipe operator itself
+		if err := p.nextTokenWithError(); err != nil {
 			return nil
 		}
-		// Move past the pipe operator itself
-		p.nextToken()
 		// Parse the next expression and add it to the ast.PipeExpression Arguments
 		expr := p.parseExpression(PIPE)
 		if expr == nil {
-			p.errors = append(p.errors, "unable to parse pipe expression")
+			p.setTokenError(p.curToken, "invalid pipe expression")
 			return nil
 		}
 		exp.Arguments = append(exp.Arguments, expr)
@@ -902,9 +1036,6 @@ func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 		if p.peekTokenIs(token.PIPE) {
 			p.nextToken()
 			continue
-		} else if p.peekTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated pipe expression")
-			return nil
 		} else {
 			// Anything else indicates the end of the pipe expression
 			break
@@ -916,7 +1047,9 @@ func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 // parseHashLiteral parses a hash literal
 func (p *Parser) parseHashLiteral() ast.Expression {
 	for p.peekTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
 	}
 	// Empty {} turns into an empty hash (not a set)
 	if p.peekTokenIs(token.RBRACE) {
@@ -936,11 +1069,13 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 			},
 		}
 		for !p.peekTokenIs(token.RBRACE) {
-			if !p.expectPeek(token.COMMA) {
+			if !p.expectPeek("hash", token.COMMA) {
 				return nil
 			}
 			for p.peekTokenIs(token.NEWLINE) {
-				p.nextToken()
+				if err := p.nextTokenWithError(); err != nil {
+					return nil
+				}
 			}
 			if p.peekTokenIs(token.RBRACE) {
 				break
@@ -957,23 +1092,27 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		for p.peekTokenIs(token.NEWLINE) {
 			p.nextToken()
 		}
-		if !p.expectPeek(token.RBRACE) {
+		if !p.expectPeek("hash", token.RBRACE) {
 			return nil
 		}
 		return hash
 	} else { // This is a set
-		if !p.expectPeek(token.COMMA) {
+		if !p.expectPeek("set", token.COMMA) {
 			return nil
 		}
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 		}
 		set := &ast.SetLiteral{
 			Token: p.curToken,
 			Items: []ast.Expression{firstKey},
 		}
 		for !p.peekTokenIs(token.RBRACE) {
-			p.nextToken()
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
 			key := p.parseExpression(LOWEST)
 			set.Items = append(set.Items, key)
 			if !p.peekTokenIs(token.COMMA) {
@@ -981,10 +1120,12 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 			}
 			p.nextToken() // move to the comma
 			for p.peekTokenIs(token.NEWLINE) {
-				p.nextToken()
+				if err := p.nextTokenWithError(); err != nil {
+					return nil
+				}
 			}
 		}
-		if !p.expectPeek(token.RBRACE) {
+		if !p.expectPeek("set", token.RBRACE) {
 			return nil
 		}
 		return set
@@ -994,7 +1135,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 func (p *Parser) parseHashKeyValue() (ast.Expression, ast.Expression) {
 	p.nextToken()
 	key := p.parseExpression(LOWEST)
-	if !p.expectPeek(token.COLON) {
+	if !p.expectPeek("hash value", token.COLON) {
 		return nil, nil
 	}
 	p.nextToken()
@@ -1027,12 +1168,12 @@ func (p *Parser) peekTokenIs(t token.Type) bool {
 
 // expectPeek validates the next token is of the given type,
 // and advances if so.  If it is not an error is stored.
-func (p *Parser) expectPeek(t token.Type) bool {
+func (p *Parser) expectPeek(context string, t token.Type) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
 	}
-	p.peekError(t)
+	p.peekError(context, t, p.peekToken)
 	return false
 }
 
@@ -1054,6 +1195,8 @@ func (p *Parser) curPrecedence() int {
 
 func (p *Parser) eatNewlines() {
 	for p.curTokenIs(token.NEWLINE) {
-		p.nextToken()
+		if err := p.nextTokenWithError(); err != nil {
+			return
+		}
 	}
 }

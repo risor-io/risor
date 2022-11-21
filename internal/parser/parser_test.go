@@ -1,12 +1,13 @@
 package parser
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/hashicorp/go-multierror"
+	"github.com/cloudcmds/tamarin/internal/token"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,21 +52,21 @@ func TestDeclareStatements(t *testing.T) {
 }
 
 func TestBadLetConstStatement(t *testing.T) {
-	inputs := []string{
-		"let",
-		"const",
-		"let x;",
-		"const x;",
+	inputs := []struct {
+		input string
+		err   string
+	}{
+		{"let", "parse error: unexpected end of file while parsing let statement (expected identifier)"},
+		{"const", "parse error: unexpected end of file while parsing const statement (expected identifier)"},
+		{"let x;", "parse error: unexpected ; while parsing let statement (expected =)"},
+		{"const x;", "parse error: unexpected ; while parsing const statement (expected =)"},
 	}
-	for _, input := range inputs {
-		_, err := Parse(input)
+	for _, tt := range inputs {
+		_, err := Parse(tt.input)
 		require.NotNil(t, err)
-		errors, ok := err.(*multierror.Error)
+		e, ok := err.(ParserError)
 		require.True(t, ok)
-		require.True(t, len(errors.Errors) > 0)
-		// TODO: confirm error message is exactly right
-		// err0 := errors.Errors[0]
-		// assert.Equal(t, err0.Error(), "foo")
+		require.Equal(t, tt.err, e.Error())
 	}
 }
 
@@ -485,22 +486,20 @@ func TestIncompleThings(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{`if ( true ) { `, "unterminated block statement"},
-		{`if ( true ) { puts( "OK" ) ; } else { `, "unterminated block statement"},
-		{`let x = `, "assignment statement is missing a value"},
-		{`const x =`, "assignment statement is missing a value"},
-		{`func foo( a, b ="steve", `, "unterminated function parameters"},
-		{`func foo() {`, "unterminated block statement"},
-		{`switch (foo) { `, "unterminated switch statement"},
-		{`foo | bar`, "unterminated pipe expression"}, // TODO: fix this?
+		{`if ( true ) { `, "parse error: unterminated block statement"},
+		{`if ( true ) { puts( "OK" ) ; } else { `, "parse error: unterminated block statement"},
+		{`let x = `, "parse error: assignment is missing a value"},
+		{`const x =`, "parse error: assignment is missing a value"},
+		{`func foo( a, b ="steve", `, "parse error: unterminated function parameters"},
+		{`func foo() {`, "parse error: unterminated block statement"},
+		{`switch (foo) { `, "parse error: unterminated switch statement"},
 	}
 	for _, tt := range tests {
 		_, err := Parse(tt.input)
 		require.NotNil(t, err)
-		errors, ok := err.(*multierror.Error)
+		pe, ok := err.(ParserError)
 		require.True(t, ok)
-		require.True(t, len(errors.Errors) > 0)
-		require.Equal(t, tt.expected, errors.Errors[0].Error())
+		require.Equal(t, tt.expected, pe.Error())
 	}
 }
 
@@ -542,13 +541,13 @@ default:
 }`
 	_, err := Parse(input)
 	require.NotNil(t, err)
-	errors, ok := err.(*multierror.Error)
+	parserErr, ok := err.(ParserError)
 	require.True(t, ok)
-	require.Len(t, errors.Errors, 1)
-	err0 := errors.Errors[0]
-	if !strings.Contains(err0.Error(), "only have one default block") {
-		t.Errorf("Unexpected error-message %s\n", err0)
-	}
+	require.Equal(t, "parse error: switch statement has multiple default blocks", parserErr.Error())
+	require.Equal(t, 0, parserErr.StartPosition().Column)
+	require.Equal(t, 8, parserErr.StartPosition().Line)
+	require.Equal(t, 6, parserErr.EndPosition().Column) // last col in the word "default"
+	require.Equal(t, 8, parserErr.EndPosition().Line)
 }
 
 func TestPipeExpression(t *testing.T) {
@@ -726,4 +725,65 @@ func TestBacktick(t *testing.T) {
 	str, ok := stmt.Expression.(*ast.StringLiteral)
 	require.True(t, ok)
 	require.Equal(t, `\\n\t foo bar /hey there/`, str.Value)
+}
+
+func TestUnterminatedBacktickString(t *testing.T) {
+	input := "`foo"
+	_, err := Parse(input)
+	require.NotNil(t, err)
+	require.Equal(t, "syntax error: unterminated string literal", err.Error())
+	var syntaxErr *SyntaxError
+	ok := errors.As(err, &syntaxErr)
+	require.True(t, ok)
+	require.NotNil(t, syntaxErr.Cause())
+	require.Equal(t, "unterminated string literal", syntaxErr.Cause().Error())
+	require.Equal(t, NewSyntaxError(ErrorOpts{
+		ErrType: "syntax error",
+		Cause:   syntaxErr.Cause(),
+		StartPosition: token.Position{
+			Value: rune('`'),
+		},
+		EndPosition: token.Position{
+			Value:  rune('o'),
+			Column: 3, // the last "o" in foo is at index 3
+			Char:   3, // the last "o" in foo is at index 3
+		},
+		File:       "",
+		SourceCode: "`foo",
+	}), syntaxErr)
+}
+
+func TestUnterminatedString(t *testing.T) {
+	input := `42
+x := "a`
+	ctx := context.Background()
+	_, err := ParseWithOpts(ctx, Opts{Input: input, File: "main.tm"})
+	require.NotNil(t, err)
+	fmt.Printf("%+v\n", err.(*SyntaxError).StartPosition())
+	require.Equal(t, "syntax error: unterminated string literal", err.Error())
+	var syntaxErr *SyntaxError
+	ok := errors.As(err, &syntaxErr)
+	require.True(t, ok)
+	require.NotNil(t, syntaxErr.Cause())
+	require.Equal(t, "unterminated string literal", syntaxErr.Cause().Error())
+	require.Equal(t, NewSyntaxError(ErrorOpts{
+		ErrType: "syntax error",
+		Cause:   syntaxErr.Cause(),
+		StartPosition: token.Position{
+			Value:     rune('"'),
+			Column:    5,
+			Line:      1,
+			LineStart: 3,
+			Char:      8,
+		},
+		EndPosition: token.Position{
+			Value:     rune('a'),
+			Column:    6,
+			Line:      1,
+			LineStart: 3,
+			Char:      9,
+		},
+		File:       "main.tm",
+		SourceCode: "x := \"a",
+	}), syntaxErr)
 }

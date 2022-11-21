@@ -24,6 +24,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/exec"
+	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -63,10 +64,12 @@ func main() {
 	// Read input
 	var err error
 	var input []byte
+	var filename string
 	if isStdinInput {
 		input, err = io.ReadAll(os.Stdin)
 	} else {
-		input, err = os.ReadFile(flag.Args()[0])
+		filename = flag.Args()[0]
+		input, err = os.ReadFile(filename)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "input error: %s\n", err)
@@ -77,10 +80,18 @@ func main() {
 	ctx := context.Background()
 	result, err := exec.Execute(ctx, exec.Opts{
 		Input:    string(input),
+		File:     filename,
 		Importer: &evaluator.SimpleImporter{},
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		parserErr, ok := err.(parser.ParserError)
+		if ok {
+			fmt.Fprintf(os.Stderr, "%s\n", parserErr.FriendlyMessage())
+			// fmt.Fprintf(os.Stderr, "\n")
+			// fmt.Fprintf(os.Stderr, "%s\n", parserErr.File())
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
 		os.Exit(1)
 	}
 
