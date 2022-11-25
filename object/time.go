@@ -27,3 +27,7 @@ func (t *Time) ToInterface() interface{} {
 func (t *Time) String() string {
 	return t.Inspect()
 }
+
+func NewTime(t time.Time) *Time {
+	return &Time{Value: t}
+}

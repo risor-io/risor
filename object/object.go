@@ -41,6 +41,7 @@ const (
 	HTTP_RESPONSE_OBJ = "HTTP_RESPONSE"
 	DB_CONNECTION_OBJ = "DB_CONNECTION"
 	TIME_OBJ          = "TIME"
+	PROXY_OBJ         = "PROXY"
 )
 
 var (

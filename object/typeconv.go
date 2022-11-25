@@ -1,11 +1,18 @@
 package object
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/gofrs/uuid"
 )
+
+// *****************************************************************************
+// Type assertion helpers
+// *****************************************************************************
 
 func AsString(obj Object) (result string, err *Error) {
 	s, ok := obj.(*String)
@@ -49,6 +56,10 @@ func AsTime(obj Object) (result time.Time, err *Error) {
 	}
 	return s.Value, nil
 }
+
+// *****************************************************************************
+// Converting types from Go to Tamarin
+// *****************************************************************************
 
 func FromGoType(obj interface{}) Object {
 	switch obj := obj.(type) {
@@ -114,6 +125,10 @@ func FromGoType(obj interface{}) Object {
 	}
 }
 
+// *****************************************************************************
+// Converting types Tamarin to Go
+// *****************************************************************************
+
 func ToGoType(obj Object) interface{} {
 	switch obj := obj.(type) {
 	case *Null:
@@ -141,15 +156,269 @@ func ToGoType(obj Object) interface{} {
 		}
 		return array
 	case *Hash:
-		m := make(map[interface{}]interface{}, len(obj.Pairs))
+		keys := make([]any, 0, len(obj.Pairs))
+		vals := make([]any, 0, len(obj.Pairs))
+		keysAllStr := true
 		for _, v := range obj.Pairs {
-			key := ToGoType(v.Key)
-			val := ToGoType(v.Value)
-			m[key] = val
+			if v.Key.Type() != STRING_OBJ {
+				keysAllStr = false
+			}
+			keys = append(keys, ToGoType(v.Key))
+			vals = append(vals, ToGoType(v.Value))
+		}
+		if keysAllStr {
+			m := make(map[string]interface{}, len(keys))
+			for i, k := range keys {
+				m[k.(string)] = vals[i]
+			}
+			return m
+		}
+		m := make(map[interface{}]interface{}, len(keys))
+		for i, k := range keys {
+			m[k] = vals[i]
 		}
 		return m
 	default:
 		return NewError("type error: marshaling %v (%v)",
 			obj, reflect.TypeOf(obj))
 	}
+}
+
+// *****************************************************************************
+// TypeConverter interface and implementations
+//   - These are applicable when the Go type(s) are known in advance
+// *****************************************************************************
+
+// TypeConverter is an interface used to convert between Go and Tamarin objects
+// for a single Go type. There may be a way to use generics here...
+type TypeConverter interface {
+
+	// To converts a Tamarin object to a Go object.
+	To(Object) (interface{}, error)
+
+	// From converts a Go object to a Tamarin object.
+	From(interface{}) (Object, error)
+
+	// Type that this TypeConverter is responsbile for.
+	Type() reflect.Type
+}
+
+var (
+	intType         = reflect.TypeOf(int(0))
+	int64Type       = reflect.TypeOf(int64(0))
+	stringType      = reflect.TypeOf("")
+	floatType       = reflect.TypeOf(float64(0))
+	booleanType     = reflect.TypeOf(false)
+	timeType        = reflect.TypeOf(time.Time{})
+	mapStrIfaceType = reflect.TypeOf(map[string]interface{}{})
+	errType         = reflect.TypeOf(errors.New(""))
+)
+
+// Int64Converter converts between int64 and Integer.
+type Int64Converter struct{}
+
+func (c *Int64Converter) To(obj Object) (interface{}, error) {
+	integer, ok := obj.(*Integer)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+	}
+	return integer.Value, nil
+}
+
+func (c *Int64Converter) From(obj interface{}) (Object, error) {
+	return NewInteger(obj.(int64)), nil
+}
+
+func (c *Int64Converter) Type() reflect.Type {
+	return int64Type
+}
+
+// IntConverter converts between int and Integer.
+type IntConverter struct{}
+
+func (c *IntConverter) To(obj Object) (interface{}, error) {
+	integer, ok := obj.(*Integer)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+	}
+	return int(integer.Value), nil
+}
+
+func (c *IntConverter) From(obj interface{}) (Object, error) {
+	return NewInteger(int64(obj.(int))), nil
+}
+
+func (c *IntConverter) Type() reflect.Type {
+	return intType
+}
+
+// StringConverter converts between string and String.
+type StringConverter struct{}
+
+func (c *StringConverter) To(obj Object) (interface{}, error) {
+	s, ok := obj.(*String)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
+	}
+	return s.Value, nil
+}
+
+func (c *StringConverter) From(obj interface{}) (Object, error) {
+	return NewString(obj.(string)), nil
+}
+
+func (c *StringConverter) Type() reflect.Type {
+	return stringType
+}
+
+// FloatConverter converts between float64 and Float.
+type FloatConverter struct{}
+
+func (c *FloatConverter) To(obj Object) (interface{}, error) {
+	f, ok := obj.(*Float)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+	}
+	return f.Value, nil
+}
+
+func (c *FloatConverter) From(obj interface{}) (Object, error) {
+	return NewFloat(obj.(float64)), nil
+}
+
+func (c *FloatConverter) Type() reflect.Type {
+	return floatType
+}
+
+// BooleanConverter converts between bool and Boolean.
+type BooleanConverter struct{}
+
+func (c *BooleanConverter) To(obj Object) (interface{}, error) {
+	b, ok := obj.(*Boolean)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a boolean (got %v)", obj.Type())
+	}
+	return b.Value, nil
+}
+
+func (c *BooleanConverter) From(obj interface{}) (Object, error) {
+	return NewBoolean(obj.(bool)), nil
+}
+
+func (c *BooleanConverter) Type() reflect.Type {
+	return booleanType
+}
+
+// TimeConverter converts between time.Time and Time.
+type TimeConverter struct{}
+
+func (c *TimeConverter) To(obj Object) (interface{}, error) {
+	t, ok := obj.(*Time)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a time (got %v)", obj.Type())
+	}
+	return t.Value, nil
+}
+
+func (c *TimeConverter) From(obj interface{}) (Object, error) {
+	return NewTime(obj.(time.Time)), nil
+}
+
+func (c *TimeConverter) Type() reflect.Type {
+	return timeType
+}
+
+// MapStrIfaceConverter converts between map[string]interface{} and Hash.
+type MapStrIfaceConverter struct{}
+
+func (c *MapStrIfaceConverter) To(obj Object) (interface{}, error) {
+	hash, ok := obj.(*Hash)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
+	}
+	m := make(map[string]interface{}, len(hash.Pairs))
+	for _, pair := range hash.Pairs {
+		key, ok := pair.Key.(*String)
+		if !ok {
+			return nil, fmt.Errorf("type error: expected a string key (got %v)", pair.Key.Type())
+		}
+		m[key.Value] = ToGoType(pair.Value)
+	}
+	return m, nil
+}
+
+func (c *MapStrIfaceConverter) From(obj interface{}) (Object, error) {
+	m := obj.(map[string]interface{})
+	hash := &Hash{Pairs: make(map[HashKey]HashPair, len(m))}
+	for k, v := range m {
+		hashKey := NewString(k)
+		hash.Pairs[hashKey.HashKey()] = HashPair{
+			Key:   hashKey,
+			Value: FromGoType(v),
+		}
+	}
+	return hash, nil
+}
+
+func (c *MapStrIfaceConverter) Type() reflect.Type {
+	return mapStrIfaceType
+}
+
+// StructConverter converts between a struct and a Hash via JSON marshaling.
+type StructConverter struct {
+	Prototype interface{}
+}
+
+func (c *StructConverter) To(obj Object) (interface{}, error) {
+	hash, ok := obj.(*Hash)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
+	}
+	goMap := ToGoType(hash)
+	jsonBytes, err := json.Marshal(goMap)
+	if err != nil {
+		return nil, err
+	}
+	inst := reflect.New(reflect.TypeOf(c.Prototype))
+	instValue := inst.Interface()
+	if err := json.Unmarshal(jsonBytes, &instValue); err != nil {
+		return nil, err
+	}
+	return inst.Elem().Interface(), nil
+}
+
+func (c *StructConverter) From(obj interface{}) (Object, error) {
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	var goMap map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &goMap); err != nil {
+		return nil, err
+	}
+	return FromGoType(goMap), nil
+}
+
+func (c *StructConverter) Type() reflect.Type {
+	return reflect.TypeOf(c.Prototype)
+}
+
+// ErrorConverter converts between error and Error.
+
+type ErrorConverter struct{}
+
+func (c *ErrorConverter) To(obj Object) (interface{}, error) {
+	e, ok := obj.(*Error)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected an error (got %v)", obj.Type())
+	}
+	return e.Message, nil
+}
+
+func (c *ErrorConverter) From(obj interface{}) (Object, error) {
+	return NewError(obj.(error).Error()), nil
+}
+
+func (c *ErrorConverter) Type() reflect.Type {
+	return errType
 }
