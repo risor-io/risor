@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func (e *Evaluator) evalIndexExpression(
@@ -54,15 +54,15 @@ func (e *Evaluator) evalArrayIndexExpression(array, index object.Object) object.
 
 func (e *Evaluator) evalHashIndexExpression(hash, index object.Object) object.Object {
 	hashObject := hash.(*object.Hash)
-	key, ok := index.(object.Hashable)
-	if !ok {
-		return newError("type error: %s object is unhashable", index.Type())
+	key, err := object.AsString(index)
+	if err != nil {
+		return err
 	}
-	pair, ok := hashObject.Pairs[key.HashKey()]
+	value, ok := hashObject.Map[key]
 	if !ok {
 		return newError("key error: %v", index.Inspect())
 	}
-	return pair.Value
+	return value
 }
 
 func (e *Evaluator) evalStringIndexExpression(input, index object.Object) object.Object {

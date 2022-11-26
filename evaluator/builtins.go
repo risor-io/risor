@@ -27,7 +27,7 @@ func lenFun(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Set:
 		return object.NewInteger(int64(len(arg.Items)))
 	case *object.Hash:
-		return object.NewInteger(int64(len(arg.Pairs)))
+		return object.NewInteger(int64(len(arg.Map)))
 	default:
 		return newError("type error: len() argument is unsupported (%s given)", args[0].Type())
 	}
@@ -48,8 +48,8 @@ func matchFun(ctx context.Context, args ...object.Object) object.Object {
 	}
 	reg := regexp.MustCompile(arg0)
 	res := reg.FindStringSubmatch(arg1)
+	newHash := object.NewHash(nil)
 	if len(res) > 0 {
-		newHash := make(map[object.HashKey]object.HashPair)
 		//
 		// If we get a match then the output is an array
 		// First entry is the match, any additional parts
@@ -58,15 +58,14 @@ func matchFun(ctx context.Context, args ...object.Object) object.Object {
 		if len(res) > 1 {
 			for i := 1; i < len(res); i++ {
 				// Capture groups start at index 0.
-				k := object.NewInteger(int64(i - 1))
+				k := fmt.Sprintf("%d", int64(i-1))
 				v := object.NewString(res[i])
-				newHashPair := object.HashPair{Key: k, Value: v}
-				newHash[k.HashKey()] = newHashPair
+				newHash.Map[k] = v
 			}
 		}
-		return &object.Hash{Pairs: newHash}
+		return newHash
 	}
-	return object.NULL
+	return newHash
 }
 
 // sprintfFun is the implementation of our `sprintf` function
@@ -90,21 +89,11 @@ func hashKeys(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("keys", 1, args); err != nil {
 		return err
 	}
-	if args[0].Type() != object.HASH_OBJ {
-		return newError("type error: keys() argument must be a hash (%s given)", args[0].Type())
+	hash, err := object.AsHash(args[0])
+	if err != nil {
+		return err
 	}
-	// The object we're working with
-	hash := args[0].(*object.Hash)
-	ents := len(hash.Pairs)
-	// Create a new array for the results.
-	array := make([]object.Object, ents)
-	// Now copy the keys into it.
-	i := 0
-	for _, ent := range hash.Pairs {
-		array[i] = ent.Key
-		i++
-	}
-	return &object.Array{Elements: array}
+	return hash.Keys()
 }
 
 // Delete a given hash key
@@ -112,21 +101,16 @@ func hashDelete(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("delete", 2, args); err != nil {
 		return err
 	}
-	if args[0].Type() != object.HASH_OBJ {
-		return newError("type error: delete() argument must be a hash (%s given)", args[0].Type())
+	hash, err := object.AsHash(args[0])
+	if err != nil {
+		return err
 	}
-	hash := args[0].(*object.Hash)
-	key, ok := args[1].(object.Hashable)
-	if !ok {
-		return newError("type error: delete() key argument must be hashable (%s given)", args[1].Type())
+	key, err := object.AsString(args[1])
+	if err != nil {
+		return err
 	}
-	newHash := make(map[object.HashKey]object.HashPair, len(hash.Pairs))
-	for k, v := range hash.Pairs {
-		if k != key.HashKey() {
-			newHash[k] = v
-		}
-	}
-	return &object.Hash{Pairs: newHash}
+	hash.Delete(key)
+	return hash
 }
 
 func setFun(ctx context.Context, args ...object.Object) object.Object {
@@ -244,8 +228,8 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Hash:
-		for _, ent := range arg.Pairs {
-			if isTruthy(ent.Value) {
+		for _, v := range arg.Map {
+			if isTruthy(v) {
 				return object.TRUE
 			}
 		}
@@ -273,8 +257,8 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Hash:
-		for _, ent := range arg.Pairs {
-			if !isTruthy(ent.Value) {
+		for _, v := range arg.Map {
+			if !isTruthy(v) {
 				return object.FALSE
 			}
 		}
@@ -346,8 +330,8 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 		if headersObj := params.Get("headers"); headersObj != object.NULL {
 			switch headersObj := headersObj.(type) {
 			case *object.Hash:
-				for _, v := range headersObj.Pairs {
-					hdr.Add(v.Key.Inspect(), v.Value.Inspect())
+				for k, v := range headersObj.Map {
+					hdr.Add(k, v.Inspect())
 				}
 			}
 		}

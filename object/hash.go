@@ -15,36 +15,19 @@ type HashKey struct {
 	Value uint64
 }
 
-// HashPair is a structure which is used to store hash-entries
-type HashPair struct {
-	// Key holds our hash-key key.
-	Key Object
-
-	// Value holds our hash-key value.
-	Value Object
-}
-
-// Hash wrap map[HashKey]HashPair and implements Object interface.
 type Hash struct {
-	// Pairs holds the key/value pairs of the hash we wrap
-	Pairs map[HashKey]HashPair
-
-	// offset holds our iteration-offset.
-	offset int
+	Map map[string]Object
 }
 
-// Type returns the type of this object.
 func (h *Hash) Type() Type {
 	return HASH_OBJ
 }
 
-// Inspect returns a string-representation of the given object.
 func (h *Hash) Inspect() string {
 	var out bytes.Buffer
 	pairs := make([]string, 0)
-	for _, pair := range h.Pairs {
-		pairs = append(pairs, fmt.Sprintf("%s: %s",
-			pair.Key.Inspect(), pair.Value.Inspect()))
+	for k, v := range h.Map {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v.Inspect()))
 	}
 	out.WriteString("{")
 	out.WriteString(strings.Join(pairs, ", "))
@@ -52,73 +35,69 @@ func (h *Hash) Inspect() string {
 	return out.String()
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
 func (h *Hash) InvokeMethod(method string, args ...Object) Object {
-	if method == "keys" {
-		ents := len(h.Pairs)
-		array := make([]Object, ents)
-		// Now copy the keys into it.
-		i := 0
-		for _, ent := range h.Pairs {
-			array[i] = ent.Key
-			i++
-		}
-		return &Array{Elements: array}
+	switch method {
+	case "keys":
+		return h.Keys()
+	case "values":
+		return h.Values()
 	}
 	return nil
 }
 
-// Reset implements the Iterable interface, and allows the contents
-// of the array to be reset to allow re-iteration.
-func (h *Hash) Reset() {
-	h.offset = 0
+func (h *Hash) Keys() *Array {
+	elements := make([]Object, 0, len(h.Map))
+	for k := range h.Map {
+		elements = append(elements, &String{Value: k})
+	}
+	return &Array{Elements: elements}
 }
 
-// Next implements the Iterable interface, and allows the contents
-// of our array to be iterated over.
-func (h *Hash) Next() (Object, Object, bool) {
-	if h.offset < len(h.Pairs) {
-		idx := 0
-		for _, pair := range h.Pairs {
-			if h.offset == idx {
-				h.offset++
-				return pair.Key, pair.Value, true
-			}
-			idx++
-		}
+func (h *Hash) Values() *Array {
+	elements := make([]Object, 0, len(h.Map))
+	for _, v := range h.Map {
+		elements = append(elements, v)
 	}
-	return nil, &Integer{Value: 0}, false
+	return &Array{Elements: elements}
 }
 
-// GetWithObject gets an item from the hash, returning NULL if the item is not
-// found.
-func (h *Hash) GetWithObject(key Object) Object {
-	hashable, ok := key.(Hashable)
-	if !ok {
-		return NULL
-	}
-	pair, found := h.Pairs[hashable.HashKey()]
+func (h *Hash) GetWithObject(key *String) Object {
+	value, found := h.Map[key.Value]
 	if !found {
 		return NULL
 	}
-	return pair.Value
+	return value
 }
 
-// Get an item from the hash, returning NULL if the item is not found.
 func (h *Hash) Get(key string) Object {
-	s := String{Value: key}
-	pair, found := h.Pairs[s.HashKey()]
+	value, found := h.Map[key]
 	if !found {
 		return NULL
 	}
-	return pair.Value
+	return value
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
+func (h *Hash) Delete(key string) Object {
+	delete(h.Map, key)
+	return NULL
+}
+
 func (h *Hash) ToInterface() interface{} {
-	return "<HASH>"
+	result := make(map[string]any, len(h.Map))
+	for k, v := range h.Map {
+		result[k] = v.ToInterface()
+	}
+	return result
+}
+
+func NewHash(m map[string]interface{}) *Hash {
+	result := &Hash{Map: make(map[string]Object, len(m))}
+	for k, v := range m {
+		value := FromGoType(v)
+		if value == nil {
+			panic(fmt.Sprintf("type error: cannot convert %v to a tamarin object", v))
+		}
+		result.Map[k] = value
+	}
+	return result
 }

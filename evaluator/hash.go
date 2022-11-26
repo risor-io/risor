@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/object"
 )
 
 func (e *Evaluator) evalHashLiteral(
@@ -13,22 +13,21 @@ func (e *Evaluator) evalHashLiteral(
 	node *ast.HashLiteral,
 	s *scope.Scope,
 ) object.Object {
-	pairs := make(map[object.HashKey]object.HashPair)
+	hash := object.NewHash(make(map[string]interface{}, len(node.Pairs)))
 	for keyNode, valueNode := range node.Pairs {
 		key := e.Evaluate(ctx, keyNode, s)
 		if isError(key) {
 			return key
 		}
-		hashKey, ok := key.(object.Hashable)
-		if !ok {
-			return newError("type error: %s object is unhashable", key.Type())
+		hashKey, err := object.AsString(key)
+		if err != nil {
+			return err
 		}
 		value := e.Evaluate(ctx, valueNode, s)
 		if isError(value) {
 			return value
 		}
-		hashed := hashKey.HashKey()
-		pairs[hashed] = object.HashPair{Key: key, Value: value}
+		hash.Map[hashKey] = value
 	}
-	return &object.Hash{Pairs: pairs}
+	return hash
 }

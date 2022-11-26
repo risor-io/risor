@@ -57,14 +57,12 @@ func TestProxy(t *testing.T) {
 	}
 
 	proxy := object.NewProxy(mgr, v)
-
-	hashKey := object.NewString("A")
-	hashVal := object.NewInteger(99)
-	B := object.NewString("B")
-	hash := &object.Hash{Pairs: map[object.HashKey]object.HashPair{
-		hashKey.HashKey(): {Key: hashKey, Value: hashVal},
-		B.HashKey():       {Key: B, Value: B},
-	}}
+	hash := &object.Hash{
+		Map: map[string]object.Object{
+			"A": object.NewInteger(99),
+			"B": object.NewString("B"),
+		},
+	}
 	res := proxy.InvokeMethod("Flub", hash)
 	fmt.Println("RES", res)
 }

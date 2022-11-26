@@ -205,13 +205,7 @@ func (e *Evaluator) evalGetAttributeExpression(
 	attrName := node.Attribute.Token.Literal
 	switch obj := obj.(type) {
 	case *object.Hash:
-		attrString := &object.String{Value: attrName}
-		pair, ok := obj.Pairs[attrString.HashKey()]
-		if !ok {
-			return newError("attribute error: %s object has no attribute %s",
-				obj.Type(), attrName)
-		}
-		return pair.Value
+		return obj.Get(attrName)
 	case *object.Module:
 		s := obj.Scope.(*scope.Scope)
 		result, ok := s.Get(attrName)

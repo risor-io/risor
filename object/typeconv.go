@@ -49,6 +49,14 @@ func AsArray(obj Object) (*Array, *Error) {
 	return arr, nil
 }
 
+func AsHash(obj Object) (*Hash, *Error) {
+	hash, ok := obj.(*Hash)
+	if !ok {
+		return nil, NewError("type error: expected a hash (got %v)", obj.Type())
+	}
+	return hash, nil
+}
+
 func AsTime(obj Object) (result time.Time, err *Error) {
 	s, ok := obj.(*Time)
 	if !ok {
@@ -97,26 +105,13 @@ func FromGoType(obj interface{}) Object {
 		}
 		return array
 	case map[string]interface{}:
-		hash := &Hash{
-			Pairs: make(map[HashKey]HashPair, len(obj)),
-		}
+		hash := &Hash{Map: make(map[string]Object, len(obj))}
 		for k, v := range obj {
-			hashKey := FromGoType(k)
-			if hashKey == nil {
-				return nil
-			}
 			hashVal := FromGoType(v)
 			if hashVal == nil {
 				return nil
 			}
-			hashable, ok := hashKey.(Hashable)
-			if !ok {
-				return nil
-			}
-			hash.Pairs[hashable.HashKey()] = HashPair{
-				Key:   hashKey,
-				Value: hashVal,
-			}
+			hash.Map[k] = hashVal
 		}
 		return hash
 	default:
@@ -156,26 +151,9 @@ func ToGoType(obj Object) interface{} {
 		}
 		return array
 	case *Hash:
-		keys := make([]any, 0, len(obj.Pairs))
-		vals := make([]any, 0, len(obj.Pairs))
-		keysAllStr := true
-		for _, v := range obj.Pairs {
-			if v.Key.Type() != STRING_OBJ {
-				keysAllStr = false
-			}
-			keys = append(keys, ToGoType(v.Key))
-			vals = append(vals, ToGoType(v.Value))
-		}
-		if keysAllStr {
-			m := make(map[string]interface{}, len(keys))
-			for i, k := range keys {
-				m[k.(string)] = vals[i]
-			}
-			return m
-		}
-		m := make(map[interface{}]interface{}, len(keys))
-		for i, k := range keys {
-			m[k] = vals[i]
+		m := make(map[string]interface{}, len(obj.Map))
+		for k, v := range obj.Map {
+			m[k] = ToGoType(v)
 		}
 		return m
 	default:
@@ -336,26 +314,18 @@ func (c *MapStrIfaceConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
 	}
-	m := make(map[string]interface{}, len(hash.Pairs))
-	for _, pair := range hash.Pairs {
-		key, ok := pair.Key.(*String)
-		if !ok {
-			return nil, fmt.Errorf("type error: expected a string key (got %v)", pair.Key.Type())
-		}
-		m[key.Value] = ToGoType(pair.Value)
+	m := make(map[string]interface{}, len(hash.Map))
+	for k, v := range hash.Map {
+		m[k] = ToGoType(v)
 	}
 	return m, nil
 }
 
 func (c *MapStrIfaceConverter) From(obj interface{}) (Object, error) {
 	m := obj.(map[string]interface{})
-	hash := &Hash{Pairs: make(map[HashKey]HashPair, len(m))}
+	hash := NewHash(make(map[string]interface{}, len(m)))
 	for k, v := range m {
-		hashKey := NewString(k)
-		hash.Pairs[hashKey.HashKey()] = HashPair{
-			Key:   hashKey,
-			Value: FromGoType(v),
-		}
+		hash.Map[k] = FromGoType(v)
 	}
 	return hash, nil
 }

@@ -69,9 +69,9 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 		if err != nil {
 			return object.NewErrorResult(err.Error())
 		}
-		row := &object.Hash{Pairs: map[object.HashKey]object.HashPair{}}
+		row := object.NewHash(nil)
 		for colIndex, val := range values {
-			key := &object.String{Value: fields[colIndex].Name}
+			key := fields[colIndex].Name
 			var hashVal object.Object
 			if timeVal, ok := val.(pgtype.Time); ok {
 				usec := timeVal.Microseconds
@@ -79,10 +79,13 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 			} else {
 				hashVal = object.FromGoType(val)
 			}
+			if hashVal == nil {
+				return object.NewErrorResult("type error: unsupported type in sql results: %T", val)
+			}
 			if !object.IsError(hashVal) {
-				row.Pairs[key.HashKey()] = object.HashPair{Key: key, Value: hashVal}
+				row.Map[key] = hashVal
 			} else {
-				row.Pairs[key.HashKey()] = object.HashPair{Key: key, Value: object.NULL}
+				row.Map[key] = object.NULL
 			}
 		}
 		results = append(results, row)

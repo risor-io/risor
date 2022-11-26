@@ -21,7 +21,7 @@ func isTruthy(obj object.Object) bool {
 		case *object.Array:
 			return len(obj.Elements) > 0
 		case *object.Hash:
-			return len(obj.Pairs) > 0
+			return len(obj.Map) > 0
 		case *object.Set:
 			return len(obj.Items) > 0
 		case *object.Boolean:
@@ -51,7 +51,7 @@ func objectToNativeBoolean(o object.Object) bool {
 	case *object.Array:
 		return len(obj.Elements) != 0
 	case *object.Hash:
-		return len(obj.Pairs) != 0
+		return len(obj.Map) != 0
 	case *object.Set:
 		return len(obj.Items) != 0
 	default:
