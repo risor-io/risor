@@ -193,7 +193,8 @@ var (
 	intType         = reflect.TypeOf(int(0))
 	int64Type       = reflect.TypeOf(int64(0))
 	stringType      = reflect.TypeOf("")
-	floatType       = reflect.TypeOf(float64(0))
+	float32Type     = reflect.TypeOf(float32(0))
+	float64Type     = reflect.TypeOf(float64(0))
 	booleanType     = reflect.TypeOf(false)
 	timeType        = reflect.TypeOf(time.Time{})
 	mapStrIfaceType = reflect.TypeOf(map[string]interface{}{})
@@ -257,10 +258,10 @@ func (c *StringConverter) Type() reflect.Type {
 	return stringType
 }
 
-// FloatConverter converts between float64 and Float.
-type FloatConverter struct{}
+// Float64Converter converts between float64 and Float.
+type Float64Converter struct{}
 
-func (c *FloatConverter) To(obj Object) (interface{}, error) {
+func (c *Float64Converter) To(obj Object) (interface{}, error) {
 	f, ok := obj.(*Float)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
@@ -268,12 +269,31 @@ func (c *FloatConverter) To(obj Object) (interface{}, error) {
 	return f.Value, nil
 }
 
-func (c *FloatConverter) From(obj interface{}) (Object, error) {
+func (c *Float64Converter) From(obj interface{}) (Object, error) {
 	return NewFloat(obj.(float64)), nil
 }
 
-func (c *FloatConverter) Type() reflect.Type {
-	return floatType
+func (c *Float64Converter) Type() reflect.Type {
+	return float64Type
+}
+
+// Float32Converter converts between float32 and Float.
+type Float32Converter struct{}
+
+func (c *Float32Converter) To(obj Object) (interface{}, error) {
+	f, ok := obj.(*Float)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+	}
+	return float32(f.Value), nil
+}
+
+func (c *Float32Converter) From(obj interface{}) (Object, error) {
+	return NewFloat(float64(obj.(float32))), nil
+}
+
+func (c *Float32Converter) Type() reflect.Type {
+	return float32Type
 }
 
 // BooleanConverter converts between bool and Boolean.
@@ -314,10 +334,10 @@ func (c *TimeConverter) Type() reflect.Type {
 	return timeType
 }
 
-// MapStrIfaceConverter converts between map[string]interface{} and Hash.
-type MapStrIfaceConverter struct{}
+// MapStringIfaceConverter converts between map[string]interface{} and Hash.
+type MapStringIfaceConverter struct{}
 
-func (c *MapStrIfaceConverter) To(obj Object) (interface{}, error) {
+func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
 	hash, ok := obj.(*Hash)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
@@ -329,7 +349,7 @@ func (c *MapStrIfaceConverter) To(obj Object) (interface{}, error) {
 	return m, nil
 }
 
-func (c *MapStrIfaceConverter) From(obj interface{}) (Object, error) {
+func (c *MapStringIfaceConverter) From(obj interface{}) (Object, error) {
 	m := obj.(map[string]interface{})
 	hash := NewHash(make(map[string]interface{}, len(m)))
 	for k, v := range m {
@@ -338,7 +358,7 @@ func (c *MapStrIfaceConverter) From(obj interface{}) (Object, error) {
 	return hash, nil
 }
 
-func (c *MapStrIfaceConverter) Type() reflect.Type {
+func (c *MapStringIfaceConverter) Type() reflect.Type {
 	return mapStrIfaceType
 }
 
@@ -394,6 +414,9 @@ func (c *ErrorConverter) To(obj Object) (interface{}, error) {
 }
 
 func (c *ErrorConverter) From(obj interface{}) (Object, error) {
+	if obj == nil {
+		return nil, nil
+	}
 	return NewError(obj.(error).Error()), nil
 }
 

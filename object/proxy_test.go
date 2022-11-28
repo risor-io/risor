@@ -2,67 +2,106 @@ package object_test
 
 import (
 	"fmt"
-	"reflect"
+	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/stretchr/testify/require"
 )
 
-type FlubOpts struct {
+// Used to confirm we can proxy method calls that use complex types.
+type ProxyTestOpts struct {
 	A int
 	B string
+	C bool `json:"c"`
 }
 
-type Embedded struct{}
+// We use this struct embedded in ProxyService to prove that methods provided by
+// embedded structs are also proxied.
+type ProxyServiceEmbedded struct{}
 
-func (e *Embedded) Flub(opts FlubOpts) string {
-	return fmt.Sprintf("flubbed:%d.%s", opts.A, opts.B)
+func (e ProxyServiceEmbedded) Flub(opts ProxyTestOpts) string {
+	return fmt.Sprintf("flubbed:%d.%s.%v", opts.A, opts.B, opts.C)
 }
 
-func (e *Embedded) Test(i int64) int {
-	return int(i)
+func (e ProxyServiceEmbedded) Increment(i int64) int64 {
+	return i + 1
 }
 
-type Whatever struct {
-	*Embedded
+// This represents a "service" provided by Go code that we want to call from
+// Tamarin code using a proxy.
+type ProxyService struct {
+	ProxyServiceEmbedded
 }
 
-func (w *Whatever) Hello(response string, allCaps bool) string {
-	if allCaps {
-		return strings.ToUpper(response)
-	}
-	return response
+func (pt *ProxyService) ToUpper(s string) string {
+	return strings.ToUpper(s)
+}
+
+func (pt *ProxyService) ParseInt(s string) (int, error) {
+	return strconv.Atoi(s)
 }
 
 func TestProxy(t *testing.T) {
-	w := &Whatever{
-		Embedded: &Embedded{},
-	}
-	var v interface{} = w
-	type foo struct{}
-	fmt.Println("TYPE:", reflect.TypeOf(struct{}{}), reflect.TypeOf(foo{}), reflect.TypeOf(foo{}).Kind())
 
-	mgr := object.NewProxyManager([]object.TypeConverter{
-		&object.IntConverter{},
-		&object.Int64Converter{},
-		&object.StringConverter{},
-		&object.BooleanConverter{},
-		&object.ErrorConverter{},
-		&object.StructConverter{Prototype: FlubOpts{}},
+	mgr, err := object.NewProxyManager(
+		object.ProxyManagerOpts{
+			Types: []any{
+				&ProxyService{},
+				ProxyTestOpts{},
+			},
+		})
+	require.Nil(t, err)
+
+	proxyType, found := mgr.GetType(&ProxyService{})
+	require.True(t, found)
+	methods := proxyType.Methods
+	require.Len(t, methods, 4)
+
+	sort.Slice(methods, func(i, j int) bool {
+		return methods[i].Name < methods[j].Name
 	})
-	_, err := mgr.RegisterType("whatev", v)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	proxy := object.NewProxy(mgr, v)
-	hash := &object.Hash{
+	require.Equal(t, "Flub", methods[0].Name)
+	require.Equal(t, "Increment", methods[1].Name)
+	require.Equal(t, "ParseInt", methods[2].Name)
+	require.Equal(t, "ToUpper", methods[3].Name)
+
+	// Create a proxy around an instance of ProxyService
+	proxy := object.NewProxy(mgr, &ProxyService{})
+
+	// Call Flub and check the result
+	res := proxy.InvokeMethod("Flub", &object.Hash{
 		Map: map[string]object.Object{
 			"A": object.NewInteger(99),
 			"B": object.NewString("B"),
+			"C": object.NewBoolean(true),
 		},
-	}
-	res := proxy.InvokeMethod("Flub", hash)
-	fmt.Println("RES", res)
+	})
+	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value)
+
+	// Try calling Increment
+	res = proxy.InvokeMethod("Increment", object.NewInteger(123))
+	require.Equal(t, int64(124), res.(*object.Integer).Value)
+
+	// Try calling ToUpper
+	res = proxy.InvokeMethod("ToUpper", object.NewString("hello"))
+	require.Equal(t, "HELLO", res.(*object.String).Value)
+
+	// Call ParseInt and check that an Ok result is returned
+	res = proxy.InvokeMethod("ParseInt", object.NewString("234"))
+	result, ok := res.(*object.Result)
+	require.True(t, ok)
+	require.True(t, result.IsOk())
+	require.Equal(t, int64(234), result.Ok.(*object.Integer).Value)
+
+	// Call ParseInt with an invalid input and check that an Err result is returned
+	res = proxy.InvokeMethod("ParseInt", object.NewString("not-an-int"))
+	result, ok = res.(*object.Result)
+	require.True(t, ok)
+	require.True(t, result.IsErr())
+	require.Equal(t, "strconv.Atoi: parsing \"not-an-int\": invalid syntax",
+		result.Err.(*object.Error).Message)
 }
