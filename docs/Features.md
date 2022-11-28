@@ -175,10 +175,25 @@ arr = arr.map(func(x) { x * x })
 ## Builtins
 
 ```
-type(x)  // returns the string type name of x
-len(s)   // returns the size of the string, array, hash, or set
-any(arr) // true if any item in arr is truthy
-all(arr) // true if all items in arr are truthy
+type(x)           // returns the string type name of x
+len(s)            // returns the size of the string, array, hash, or set
+any(arr)          // true if any item in arr is truthy
+all(arr)          // true if all items in arr are truthy
+match(regex, str) // check if the string matches the regex
+sprintf(msg, ...) // equivalent to fmt.Sprintf
+keys(hash)        // returns an array of keys in the given hash
+delete(hash, key) // delete an item from the hash
+string(obj)       // convert an object to its string representation
+bool(obj)         // evaluates an object's truthiness
+ok(result)        // create a Result object containing the given object
+err(message)      // create a Result error object
+unwrap(result)    // unwraps the ok value from the Result if allowed
+unwrap_or(obj)    // unwraps but returns the provided obj if the Result is an Error
+sorted(obj)       // works with arrays, hashes, and sets
+reversed(arr)     // returns a reversed version of the given array
+assert(obj, msg)  // raises an error if obj is falsy
+print(...)        // equivalent to fmt.Println
+printf(...)       // equivalent to fmt.Printf
 ```
 
 ## Types
@@ -203,3 +218,40 @@ There are also `HttpResponse` and `DatabaseConnection` types in progress.
 ## Standard Library
 
 Documentation for this is a work in progress. For now, browse the modules [here](../internal/modules).
+
+## Proxying Calls to Go Objects
+
+You can expose arbitrary Go objects to Tamarin code in order to enable method
+calls on those objects. This allows you to expose existing structs in your
+application as Tamarin objects that scripts can be written against. Tamarin
+automatically discovers public methods on your Go types and converts inputs and
+outputs for primitive types and for structs that you register.
+
+In order to do this, create a ProxyManager and indicate which Go types you
+want to support working with:
+
+```go
+	proxyMgr, err := object.NewProxyManager(object.ProxyManagerOpts{
+		Types: []any{
+			&MyService{},    // a service type
+			MyServiceOpts{}, // a struct used as a parameter to service methods
+		},
+	})
+```
+
+Then create a global scope for your script executions that includes a proxy
+to your Go service:
+
+```go
+    svc := &MyService{}
+	s := scope.New(scope.Opts{})
+	s.Declare("svc", object.NewProxy(proxyMgr, svc), true)
+
+	result, err := exec.Execute(ctx, exec.Opts{
+		Input: string(scriptSourceCode),
+		Scope: s,
+	})
+```
+
+Now in your Tamarin script you can make calls against the service. See
+[example-proxy](./cmd/example-proxy/main.go) for a complete example.
