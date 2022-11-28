@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/ast"
 )
 
 // Function wraps ast.Identifier array and ast.BlockStatement and implements Object interface.

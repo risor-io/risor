@@ -3,9 +3,9 @@ package evaluator
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 // evalTernaryExpression handles a ternary-expression. If the condition

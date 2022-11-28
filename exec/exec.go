@@ -7,17 +7,17 @@ import (
 	"fmt"
 
 	"github.com/cloudcmds/tamarin/evaluator"
-	modJson "github.com/cloudcmds/tamarin/internal/modules/json"
-	modMath "github.com/cloudcmds/tamarin/internal/modules/math"
-	modRand "github.com/cloudcmds/tamarin/internal/modules/rand"
-	modSql "github.com/cloudcmds/tamarin/internal/modules/sql"
-	modStrconv "github.com/cloudcmds/tamarin/internal/modules/strconv"
-	modStrings "github.com/cloudcmds/tamarin/internal/modules/strings"
-	modTime "github.com/cloudcmds/tamarin/internal/modules/time"
-	modUuid "github.com/cloudcmds/tamarin/internal/modules/uuid"
-	"github.com/cloudcmds/tamarin/internal/parser"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	modJson "github.com/cloudcmds/tamarin/modules/json"
+	modMath "github.com/cloudcmds/tamarin/modules/math"
+	modRand "github.com/cloudcmds/tamarin/modules/rand"
+	modSql "github.com/cloudcmds/tamarin/modules/sql"
+	modStrconv "github.com/cloudcmds/tamarin/modules/strconv"
+	modStrings "github.com/cloudcmds/tamarin/modules/strings"
+	modTime "github.com/cloudcmds/tamarin/modules/time"
+	modUuid "github.com/cloudcmds/tamarin/modules/uuid"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 // ModuleFunc is the signature of a function that returns a module

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
-	"github.com/cloudcmds/tamarin/internal/ast"
 	"github.com/rs/zerolog/log"
 )
 

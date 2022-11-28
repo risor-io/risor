@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudcmds/tamarin/internal/parser"
-	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/scope"
 	"github.com/stretchr/testify/require"
 )
 

@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 func matches(left, right object.Object, s *scope.Scope) object.Object {
