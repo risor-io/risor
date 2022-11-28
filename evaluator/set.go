@@ -3,9 +3,9 @@ package evaluator
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/internal/ast"
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 func (e *Evaluator) evalSetLiteral(
@@ -13,18 +13,15 @@ func (e *Evaluator) evalSetLiteral(
 	node *ast.SetLiteral,
 	s *scope.Scope,
 ) object.Object {
-	items := make(map[object.HashKey]object.Object, len(node.Items))
+	set := object.NewSetWithSize(len(node.Items))
+	items := make([]object.Object, 0, len(node.Items))
 	for _, itemNode := range node.Items {
-		key := e.Evaluate(ctx, itemNode, s)
-		if isError(key) {
-			return key
+		item := e.Evaluate(ctx, itemNode, s)
+		if isError(item) {
+			return item
 		}
-		hashKey, ok := key.(object.Hashable)
-		if !ok {
-			return newError("type error: %s object is unhashable", key.Type())
-		}
-		hashed := hashKey.HashKey()
-		items[hashed] = key
+		items = append(items, item)
 	}
-	return &object.Set{Items: items}
+	set.Add(items...)
+	return set
 }

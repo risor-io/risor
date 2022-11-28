@@ -41,6 +41,7 @@ const (
 	HTTP_RESPONSE_OBJ = "HTTP_RESPONSE"
 	DB_CONNECTION_OBJ = "DB_CONNECTION"
 	TIME_OBJ          = "TIME"
+	PROXY_OBJ         = "PROXY"
 )
 
 var (
@@ -68,9 +69,30 @@ type Object interface {
 	ToInterface() interface{}
 }
 
-// Hashable type can be hashed.
+// Hashable types can be hashed and consequently used in a set.
 type Hashable interface {
 
 	// HashKey returns a hash key for the given object.
-	HashKey() HashKey
+	HashKey() Key
+}
+
+// Comparable is an interface used to compare two objects.
+//
+//	-1 if this < other
+//	 0 if this == other
+//	 1 if this > other
+type Comparable interface {
+	Compare(other Object) (int, error)
+}
+
+func CompareTypes(a, b Object) int {
+	aType := a.Type()
+	bType := b.Type()
+	if aType != bType {
+		if aType < bType {
+			return -1
+		}
+		return 1
+	}
+	return 0
 }

@@ -2,12 +2,12 @@ package object
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 )
 
 type Set struct {
-	Items  map[HashKey]Object
-	offset int
+	Items map[Key]Object
 }
 
 func (s *Set) Type() Type {
@@ -27,35 +27,154 @@ func (s *Set) Inspect() string {
 }
 
 func (s *Set) InvokeMethod(method string, args ...Object) Object {
-	return nil
-}
-
-func (s *Set) Reset() {
-	s.offset = 0
-}
-
-func (s *Set) Next() (Object, bool) {
-	if s.offset < len(s.Items) {
-		idx := 0
-		for _, item := range s.Items {
-			if s.offset == idx {
-				s.offset++
-				return item, true
-			}
-			idx++
+	switch method {
+	case "values":
+		return s.Array()
+	case "contains":
+		if len(args) == 0 {
+			return NewError("type error: set.contains() expects at least one argument")
 		}
+		if s.Contains(args...) {
+			return TRUE
+		}
+		return FALSE
+	case "add":
+		if len(args) == 0 {
+			return NewError("type error: set.add() expects at least one argument")
+		}
+		if err := s.Add(args...); err != nil {
+			return NewError(err.Error())
+		}
+		return NULL
+	case "remove":
+		if len(args) == 0 {
+			return NewError("type error: set.remove() expects at least one argument")
+		}
+		if err := s.Remove(args...); err != nil {
+			return NewError(err.Error())
+		}
+		return NULL
+	case "union":
+		if len(args) != 1 {
+			return NewError("type error: set.union() expects one argument")
+		}
+		other, err := AsSet(args[0])
+		if err != nil {
+			return err
+		}
+		return s.Union(other)
+	case "intersection":
+		if len(args) != 1 {
+			return NewError("type error: set.intersection() expects one argument")
+		}
+		other, err := AsSet(args[0])
+		if err != nil {
+			return err
+		}
+		return s.Intersection(other)
+	case "difference":
+		if len(args) != 1 {
+			return NewError("type error: set.difference() expects one argument")
+		}
+		other, err := AsSet(args[0])
+		if err != nil {
+			return err
+		}
+		return s.Difference(other)
+	default:
+		return NewError("type error: %s object has no method %s", s.Type(), method)
 	}
-	return nil, false
 }
 
 func (s *Set) ToInterface() interface{} {
-	return "<SET>"
+	items := make([]interface{}, 0, len(s.Items))
+	for _, v := range s.Items {
+		items = append(items, v.ToInterface())
+	}
+	return items
 }
 
-func (s *Set) Array() []Object {
-	array := make([]Object, 0, len(s.Items))
+func (s *Set) Size() int {
+	return len(s.Items)
+}
+
+func (s *Set) Add(items ...Object) error {
+	for _, item := range items {
+		hashable, ok := item.(Hashable)
+		if !ok {
+			return fmt.Errorf("type error: %s object is unhashable", item.Type())
+		}
+		s.Items[hashable.HashKey()] = item
+	}
+	return nil
+}
+
+func (s *Set) Remove(items ...Object) error {
+	for _, item := range items {
+		hashable, ok := item.(Hashable)
+		if !ok {
+			return fmt.Errorf("type error: %s object is unhashable", item.Type())
+		}
+		delete(s.Items, hashable.HashKey())
+	}
+	return nil
+}
+
+func (s *Set) Contains(items ...Object) bool {
+	for _, item := range items {
+		hashable, ok := item.(Hashable)
+		if !ok {
+			return false
+		}
+		if _, ok = s.Items[hashable.HashKey()]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// Union returns a new set that is the union of the two sets.
+func (s *Set) Union(other *Set) *Set {
+	union := &Set{Items: map[Key]Object{}}
+	for k, v := range s.Items {
+		union.Items[k] = v
+	}
+	for k, v := range other.Items {
+		union.Items[k] = v
+	}
+	return union
+}
+
+// Intersection returns a new set that is the intersection of the two sets.
+func (s *Set) Intersection(other *Set) *Set {
+	intersection := &Set{Items: map[Key]Object{}}
+	for k, v := range s.Items {
+		if _, ok := other.Items[k]; ok {
+			intersection.Items[k] = v
+		}
+	}
+	return intersection
+}
+
+// Difference returns a new set that is the difference of the two sets.
+func (s *Set) Difference(other *Set) *Set {
+	difference := &Set{Items: map[Key]Object{}}
+	for k, v := range s.Items {
+		if _, ok := other.Items[k]; !ok {
+			difference.Items[k] = v
+		}
+	}
+	return difference
+}
+
+func (s *Set) Array() *Array {
+	array := &Array{Elements: make([]Object, 0, len(s.Items))}
 	for _, item := range s.Items {
-		array = append(array, item)
+		array.Elements = append(array.Elements, item)
 	}
 	return array
+}
+
+func NewSetWithSize(size int) *Set {
+	return &Set{Items: make(map[Key]Object, size)}
 }

@@ -10,8 +10,8 @@ import (
 
 	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/exec"
-	"github.com/cloudcmds/tamarin/internal/parser"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/parser"
 	"github.com/stretchr/testify/require"
 )
 

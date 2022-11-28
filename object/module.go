@@ -23,7 +23,7 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", m.Type(), method)
 }
 
 func (m *Module) ToInterface() interface{} {
@@ -32,4 +32,19 @@ func (m *Module) ToInterface() interface{} {
 
 func (m *Module) String() string {
 	return fmt.Sprintf("Module(%s)", m.Name)
+}
+
+func (m *Module) Compare(other Object) (int, error) {
+	typeComp := CompareTypes(m, other)
+	if typeComp != 0 {
+		return typeComp, nil
+	}
+	otherStr := other.(*Module)
+	if m.Name == otherStr.Name {
+		return 0, nil
+	}
+	if m.Name > otherStr.Name {
+		return 1, nil
+	}
+	return -1, nil
 }

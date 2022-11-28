@@ -1,9 +1,9 @@
 package evaluator
 
 import (
-	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 func (e *Evaluator) evalIdentifier(node *ast.Identifier, s *scope.Scope) object.Object {

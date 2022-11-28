@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 // Opts configures Tamarin code evaluation.

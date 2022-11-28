@@ -19,7 +19,7 @@ func (e *Error) Inspect() string {
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
 func (e *Error) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", e.Type(), method)
 }
 
 // ToInterface converts this object to a go-interface, which will allow
@@ -28,4 +28,19 @@ func (e *Error) InvokeMethod(method string, args ...Object) Object {
 // It might also be helpful for embedded users.
 func (e *Error) ToInterface() interface{} {
 	return "<ERROR>"
+}
+
+func (e *Error) Compare(other Object) (int, error) {
+	typeComp := CompareTypes(e, other)
+	if typeComp != 0 {
+		return typeComp, nil
+	}
+	otherStr := other.(*Error)
+	if e.Message == otherStr.Message {
+		return 0, nil
+	}
+	if e.Message > otherStr.Message {
+		return 1, nil
+	}
+	return -1, nil
 }

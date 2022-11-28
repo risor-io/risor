@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cloudcmds/tamarin/internal/ast"
-	"github.com/cloudcmds/tamarin/internal/parser"
-	"github.com/cloudcmds/tamarin/internal/scope"
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/scope"
 )
 
 type Importer interface {

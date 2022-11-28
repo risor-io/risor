@@ -44,7 +44,7 @@ func (b *Builtin) String() string {
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
 func (b *Builtin) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", b.Type(), method)
 }
 
 // ToInterface converts this object to a go-interface, which will allow

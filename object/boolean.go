@@ -10,43 +10,49 @@ type Boolean struct {
 	Value bool
 }
 
-// Type returns the type of this object.
 func (b *Boolean) Type() Type {
 	return BOOLEAN_OBJ
 }
 
-// Inspect returns a string-representation of the given object.
 func (b *Boolean) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
 }
 
-// HashKey returns a hash key for the given object.
-func (b *Boolean) HashKey() HashKey {
-	var value uint64
+func (b *Boolean) HashKey() Key {
+	var value int64
 	if b.Value {
 		value = 1
 	} else {
 		value = 0
 	}
-	return HashKey{Type: b.Type(), Value: value}
+	return Key{Type: b.Type(), IntValue: value}
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
 func (b *Boolean) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", b.Type(), method)
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (b *Boolean) ToInterface() interface{} {
 	return b.Value
 }
 
 func (b *Boolean) String() string {
 	return fmt.Sprintf("Boolean(%v)", b.Value)
+}
+
+func (b *Boolean) Compare(other Object) (int, error) {
+	typeComp := CompareTypes(b, other)
+	if typeComp != 0 {
+		return typeComp, nil
+	}
+	otherBool := other.(*Boolean)
+	if b.Value == otherBool.Value {
+		return 0, nil
+	}
+	if b.Value {
+		return 1, nil
+	}
+	return -1, nil
 }
 
 func NewBoolean(value bool) *Boolean {

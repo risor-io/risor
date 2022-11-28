@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudcmds/tamarin/internal/parser"
-	"github.com/cloudcmds/tamarin/internal/scope"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/scope"
 	"github.com/stretchr/testify/require"
 )
 
@@ -513,9 +513,6 @@ func TestHashLiterals(t *testing.T) {
 		"one":10-9,
 		two:1+1,
 		"thr" + "ee" : 6/2,
-		4 : 4,
-		true:5,
-		false:6
 	}`
 	evaluated := testEval(input)
 	result, ok := evaluated.(*object.Hash)
@@ -523,24 +520,19 @@ func TestHashLiterals(t *testing.T) {
 		t.Fatalf("Eval did't return Hash. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	expected := map[object.HashKey]int64{
-		(&object.String{Value: "one"}).HashKey():   1,
-		(&object.String{Value: "two"}).HashKey():   2,
-		(&object.String{Value: "three"}).HashKey(): 3,
-		(&object.Integer{Value: 4}).HashKey():      4,
-		object.TRUE.HashKey():                      5,
-		object.FALSE.HashKey():                     6,
-	}
-	if len(result.Pairs) != len(expected) {
-		t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
-	}
-	for expectedKey, expectedValue := range expected {
-		pair, ok := result.Pairs[expectedKey]
-		if !ok {
-			t.Errorf("no pair for given key in Pairs")
-		}
-		testDecimalObject(t, pair.Value, expectedValue)
-	}
+	require.Len(t, result.Map, 3)
+
+	one, ok := result.Get("one").(*object.Integer)
+	require.True(t, ok)
+	require.Equal(t, int64(1), one.Value)
+
+	two, ok := result.Get("two").(*object.Integer)
+	require.True(t, ok)
+	require.Equal(t, int64(2), two.Value)
+
+	thr, ok := result.Get("three").(*object.Integer)
+	require.True(t, ok)
+	require.Equal(t, int64(3), thr.Value)
 }
 
 func TestHashIndexExpression(t *testing.T) {
@@ -554,18 +546,6 @@ func TestHashIndexExpression(t *testing.T) {
 		},
 		{
 			`let key = "foo"; {"foo":5}[key]`,
-			5,
-		},
-		{
-			`{5:5}[5]`,
-			5,
-		},
-		{
-			`{true:5}[true]`,
-			5,
-		},
-		{
-			`{false:5}[false]`,
 			5,
 		},
 	}
@@ -665,7 +645,7 @@ func TestTypeBuiltin(t *testing.T) {
 			"array",
 		},
 		{
-			"type( { \"name\":\"monkey\", true:1, 7:\"sevent\"} );",
+			"type( { \"name\":\"monkey\" } );",
 			"hash",
 		},
 	}
