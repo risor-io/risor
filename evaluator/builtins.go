@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"time"
 	"unicode/utf8"
 
@@ -15,7 +16,7 @@ import (
 )
 
 // length of a string, array, set, or hash
-func lenFun(ctx context.Context, args ...object.Object) object.Object {
+func Len(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
 		return err
 	}
@@ -34,7 +35,7 @@ func lenFun(ctx context.Context, args ...object.Object) object.Object {
 }
 
 // regular expression match
-func matchFun(ctx context.Context, args ...object.Object) object.Object {
+func Match(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("match", 2, args); err != nil {
 		return err
 	}
@@ -68,8 +69,8 @@ func matchFun(ctx context.Context, args ...object.Object) object.Object {
 	return newHash
 }
 
-// sprintfFun is the implementation of our `sprintf` function
-func sprintfFun(ctx context.Context, args ...object.Object) object.Object {
+// Sprintf is the implementation of our `sprintf` function
+func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
 		return newError("type error: sprintf() takes 1 or more arguments (%d given)", len(args))
 	}
@@ -85,7 +86,7 @@ func sprintfFun(ctx context.Context, args ...object.Object) object.Object {
 }
 
 // Get hash keys
-func hashKeys(ctx context.Context, args ...object.Object) object.Object {
+func Keys(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("keys", 1, args); err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func hashKeys(ctx context.Context, args ...object.Object) object.Object {
 }
 
 // Delete a given hash key
-func hashDelete(ctx context.Context, args ...object.Object) object.Object {
+func Delete(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("delete", 2, args); err != nil {
 		return err
 	}
@@ -113,38 +114,49 @@ func hashDelete(ctx context.Context, args ...object.Object) object.Object {
 	return hash
 }
 
-func setFun(ctx context.Context, args ...object.Object) object.Object {
+func Set(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("set", 1, args); err != nil {
 		return err
 	}
-	set := &object.Set{Items: map[object.HashKey]object.Object{}}
+	set := object.NewSetWithSize(0)
 	arg := args[0]
 	switch arg := arg.(type) {
 	case *object.String:
 		for _, v := range arg.Value {
-			vStr := object.NewString(string(v))
-			set.Items[vStr.HashKey()] = vStr
+			set.Add(object.NewString(string(v)))
 		}
 	case *object.Array:
 		for _, obj := range arg.Elements {
-			hashable, ok := obj.(object.Hashable)
-			if !ok {
-				return newError("type error: set() argument contains an object that is not hashable (of type %s)", obj.Type())
+			if err := set.Add(obj); err != nil {
+				return newError(err.Error())
 			}
-			set.Items[hashable.HashKey()] = obj
 		}
+	case *object.Set:
+		for _, obj := range arg.Items {
+			if err := set.Add(obj); err != nil {
+				return newError(err.Error())
+			}
+		}
+	case *object.Hash:
+		for k := range arg.Map {
+			if err := set.Add(object.NewString(k)); err != nil {
+				return newError(err.Error())
+			}
+		}
+	default:
+		return newError("type error: set() argument is unsupported (%s given)", args[0].Type())
 	}
 	return set
 }
 
-func strFun(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("str", 1, args); err != nil {
+func String(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("string", 1, args); err != nil {
 		return err
 	}
 	return object.NewString(args[0].Inspect())
 }
 
-func typeFun(ctx context.Context, args ...object.Object) object.Object {
+func Type(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("type", 1, args); err != nil {
 		return err
 	}
@@ -184,7 +196,7 @@ func typeFun(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
-func okFun(ctx context.Context, args ...object.Object) object.Object {
+func Ok(ctx context.Context, args ...object.Object) object.Object {
 	switch len(args) {
 	case 0:
 		return &object.Result{Ok: object.NULL}
@@ -195,14 +207,14 @@ func okFun(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
-func errFun(ctx context.Context, args ...object.Object) object.Object {
+func Err(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("err", 1, args); err != nil {
 		return err
 	}
 	return &object.Result{Err: args[0]}
 }
 
-func assertFun(ctx context.Context, args ...object.Object) object.Object {
+func Assert(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
 		return newError("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
@@ -284,7 +296,7 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 	return object.FALSE
 }
 
-func fetchFun(ctx context.Context, args ...object.Object) object.Object {
+func Fetch(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
 		return newError("type error: fetch() takes 1 or 2 arguments (%d given)", len(args))
@@ -354,7 +366,7 @@ func fetchFun(ctx context.Context, args ...object.Object) object.Object {
 }
 
 // output a string to stdout
-func printFun(ctx context.Context, args ...object.Object) object.Object {
+func Print(ctx context.Context, args ...object.Object) object.Object {
 	values := make([]interface{}, len(args))
 	for i, arg := range args {
 		values[i] = arg.Inspect()
@@ -363,10 +375,10 @@ func printFun(ctx context.Context, args ...object.Object) object.Object {
 	return object.NULL
 }
 
-// printfFun is the implementation of our `printf` function.
-func printfFun(ctx context.Context, args ...object.Object) object.Object {
+// Printf is the implementation of our `printf` function.
+func Printf(ctx context.Context, args ...object.Object) object.Object {
 	// Convert to the formatted version, via our `sprintf` function
-	out := sprintfFun(ctx, args...)
+	out := Sprintf(ctx, args...)
 	// If that returned a string then we can print it
 	if out.Type() == object.STRING_OBJ {
 		fmt.Print(out.(*object.String).Value)
@@ -398,26 +410,80 @@ func UnwrapOr(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+func Sorted(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("sorted", 1, args); err != nil {
+		return err
+	}
+	var items []object.Object
+	switch arg := args[0].(type) {
+	case *object.Array:
+		items = arg.Elements
+	case *object.Hash:
+		items = arg.Keys().Elements
+	case *object.Set:
+		items = arg.Array().Elements
+	default:
+		return newError("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
+	}
+	var comparableErr error
+	sort.SliceStable(items, func(a, b int) bool {
+		itemA := items[a]
+		itemB := items[b]
+		compA, ok := itemA.(object.Comparable)
+		if !ok {
+			comparableErr = fmt.Errorf("type error: sorted() encountered a non-comparable item (%s)", itemA.Type())
+		}
+		if _, ok := itemB.(object.Comparable); !ok {
+			comparableErr = fmt.Errorf("type error: sorted() encountered a non-comparable item (%s)", itemB.Type())
+		}
+		result, err := compA.Compare(itemB)
+		if err != nil {
+			comparableErr = err
+		}
+		return result == -1
+	})
+	if comparableErr != nil {
+		return newError(comparableErr.Error())
+	}
+	return &object.Array{Elements: items}
+}
+
+func Reversed(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("reversed", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Array:
+		return arg.Reversed()
+	case *object.String:
+		return arg.Reversed()
+	default:
+		return newError("type error: reversed() argument must be an array or string (%s given)", arg.Type())
+	}
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	return []*object.Builtin{
-		{Name: "delete", Fn: hashDelete},
-		{Name: "keys", Fn: hashKeys},
-		{Name: "len", Fn: lenFun},
-		{Name: "match", Fn: matchFun},
-		{Name: "set", Fn: setFun},
-		{Name: "sprintf", Fn: sprintfFun},
-		{Name: "str", Fn: strFun},
-		{Name: "type", Fn: typeFun},
-		{Name: "ok", Fn: okFun},
-		{Name: "err", Fn: errFun},
-		{Name: "assert", Fn: assertFun},
-		{Name: "fetch", Fn: fetchFun},
+		{Name: "delete", Fn: Delete},
+		{Name: "keys", Fn: Keys},
+		{Name: "len", Fn: Len},
+		{Name: "match", Fn: Match},
+		{Name: "set", Fn: Set},
+		{Name: "sprintf", Fn: Sprintf},
+		{Name: "string", Fn: String},
+		{Name: "type", Fn: Type},
+		{Name: "ok", Fn: Ok},
+		{Name: "err", Fn: Err},
+		{Name: "assert", Fn: Assert},
+		{Name: "fetch", Fn: Fetch},
 		{Name: "any", Fn: Any},
 		{Name: "all", Fn: All},
 		{Name: "bool", Fn: Bool},
-		{Name: "print", Fn: printFun},
-		{Name: "printf", Fn: printfFun},
+		{Name: "print", Fn: Print},
+		{Name: "printf", Fn: Printf},
 		{Name: "unwrap", Fn: Unwrap},
 		{Name: "unwrap_or", Fn: UnwrapOr},
+		{Name: "sorted", Fn: Sorted},
+		{Name: "reversed", Fn: Reversed},
 	}
 }

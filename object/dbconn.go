@@ -13,9 +13,9 @@ func (c *DatabaseConnection) Inspect() string {
 }
 
 func (c *DatabaseConnection) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", c.Type(), method)
 }
 
 func (c *DatabaseConnection) ToInterface() interface{} {
-	return nil
+	return c.Conn
 }

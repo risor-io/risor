@@ -1,19 +1,20 @@
 package object
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestStringHashKey(t *testing.T) {
-	hello1 := &String{Value: "Hello World"}
-	hello2 := &String{Value: "Hello World"}
-	diff1 := &String{Value: "My name is johnny"}
-	diff2 := &String{Value: "My name is johnny"}
-	if hello1.HashKey() != hello2.HashKey() {
-		t.Errorf("string with same content have different keys")
-	}
-	if diff1.HashKey() != diff2.HashKey() {
-		t.Errorf("string with same content have different keys")
-	}
-	if hello1.HashKey() == diff1.HashKey() {
-		t.Errorf("string with different have same hash key")
-	}
+	a := &String{Value: "hello"}
+	b := &String{Value: "hello"}
+	c := &String{Value: "goodbye"}
+	d := &String{Value: "goodbye"}
+
+	require.Equal(t, a.HashKey(), b.HashKey())
+	require.Equal(t, c.HashKey(), d.HashKey())
+	require.NotEqual(t, a.HashKey(), c.HashKey())
+
+	require.Equal(t, Key{Type: STRING_OBJ, StrValue: "hello"}, a.HashKey())
 }

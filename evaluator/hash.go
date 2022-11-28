@@ -19,7 +19,7 @@ func (e *Evaluator) evalHashLiteral(
 		if isError(key) {
 			return key
 		}
-		hashKey, err := object.AsString(key)
+		keyStr, err := object.AsString(key)
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,7 @@ func (e *Evaluator) evalHashLiteral(
 		if isError(value) {
 			return value
 		}
-		hash.Map[hashKey] = value
+		hash.Set(keyStr, value)
 	}
 	return hash
 }

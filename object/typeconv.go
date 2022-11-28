@@ -65,6 +65,14 @@ func AsTime(obj Object) (result time.Time, err *Error) {
 	return s.Value, nil
 }
 
+func AsSet(obj Object) (*Set, *Error) {
+	set, ok := obj.(*Set)
+	if !ok {
+		return nil, NewError("type error: expected a set (got %v)", obj.Type())
+	}
+	return set, nil
+}
+
 // *****************************************************************************
 // Converting types from Go to Tamarin
 // *****************************************************************************

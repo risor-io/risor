@@ -10,9 +10,6 @@ import (
 type Array struct {
 	// Elements holds the individual members of the array we're wrapping.
 	Elements []Object
-
-	// offset holds our iteration-offset.
-	offset int
 }
 
 // Type returns the type of this object.
@@ -39,32 +36,9 @@ func (ao *Array) InvokeMethod(method string, args ...Object) Object {
 	if method == "len" {
 		return &Integer{Value: int64(len(ao.Elements))}
 	}
-	return nil
+	return NewError("type error: %s object has no method %s", ao.Type(), method)
 }
 
-// Reset implements the Iterable interface, and allows the contents
-// of the array to be reset to allow re-iteration.
-func (ao *Array) Reset() {
-	ao.offset = 0
-}
-
-// Next implements the Iterable interface, and allows the contents
-// of our array to be iterated over.
-func (ao *Array) Next() (Object, Object, bool) {
-	if ao.offset < len(ao.Elements) {
-		ao.offset++
-
-		element := ao.Elements[ao.offset-1]
-		return element, &Integer{Value: int64(ao.offset - 1)}, true
-	}
-
-	return nil, &Integer{Value: 0}, false
-}
-
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (ao *Array) ToInterface() interface{} {
 	return "<ARRAY>"
 }
@@ -75,6 +49,43 @@ func (ao *Array) String() string {
 		items = append(items, fmt.Sprintf("%s", item))
 	}
 	return fmt.Sprintf("Array([%s])", strings.Join(items, ", "))
+}
+
+func (ao *Array) Compare(other Object) (int, error) {
+	typeComp := CompareTypes(ao, other)
+	if typeComp != 0 {
+		return typeComp, nil
+	}
+	otherArr := other.(*Array)
+	if len(ao.Elements) > len(otherArr.Elements) {
+		return 1, nil
+	} else if len(ao.Elements) < len(otherArr.Elements) {
+		return -1, nil
+	}
+	for i := 0; i < len(ao.Elements); i++ {
+		comparable, ok := ao.Elements[i].(Comparable)
+		if !ok {
+			return 0, fmt.Errorf("type error: %s object is not comparable",
+				ao.Elements[i].Type())
+		}
+		comp, err := comparable.Compare(otherArr.Elements[i])
+		if err != nil {
+			return 0, err
+		}
+		if comp != 0 {
+			return comp, nil
+		}
+	}
+	return 0, nil
+}
+
+func (ao *Array) Reversed() *Array {
+	result := &Array{Elements: make([]Object, 0, len(ao.Elements))}
+	size := len(ao.Elements)
+	for i := 0; i < size; i++ {
+		result.Elements = append(result.Elements, ao.Elements[size-1-i])
+	}
+	return result
 }
 
 func NewStringArray(s []string) *Array {

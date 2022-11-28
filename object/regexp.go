@@ -11,26 +11,39 @@ type Regexp struct {
 	Flags string
 }
 
-// Type returns the type of this object.
 func (r *Regexp) Type() Type {
 	return REGEXP_OBJ
 }
 
-// Inspect returns a string-representation of the given object.
 func (r *Regexp) Inspect() string {
 	return r.Value
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
 func (r *Regexp) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", r.Type(), method)
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (r *Regexp) ToInterface() interface{} {
 	return "<REGEXP>"
+}
+
+func (r *Regexp) Compare(other Object) (int, error) {
+	typeComp := CompareTypes(r, other)
+	if typeComp != 0 {
+		return typeComp, nil
+	}
+	otherRegex := other.(*Regexp)
+	if r.Value == otherRegex.Value {
+		if r.Flags == otherRegex.Flags {
+			return 0, nil
+		}
+		if r.Flags > otherRegex.Flags {
+			return 1, nil
+		}
+		return -1, nil
+	}
+	if r.Value > otherRegex.Value {
+		return 1, nil
+	}
+	return -1, nil
 }

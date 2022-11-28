@@ -39,7 +39,7 @@ func (f *Function) Inspect() string {
 // InvokeMethod invokes a method against the object.
 // (Built-in methods only.)
 func (f *Function) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", f.Type(), method)
 }
 
 // ToInterface converts this object to a go-interface, which will allow

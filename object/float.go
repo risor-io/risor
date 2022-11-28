@@ -2,49 +2,60 @@ package object
 
 import (
 	"fmt"
-	"hash/fnv"
 	"strconv"
 )
 
 // Float wraps float64 and implements Object and Hashable interfaces.
 type Float struct {
-	// Value holds the float-value this object wraps.
+	// Value holds the float64 wrapped by this object.
 	Value float64
 }
 
-// Inspect returns a string-representation of the given object.
 func (f *Float) Inspect() string {
 	return strconv.FormatFloat(f.Value, 'f', -1, 64)
 }
 
-// Type returns the type of this object.
 func (f *Float) Type() Type {
 	return FLOAT_OBJ
 }
 
-// HashKey returns a hash key for the given object.
-func (f *Float) HashKey() HashKey {
-	h := fnv.New64a()
-	h.Write([]byte(f.Inspect()))
-	return HashKey{Type: f.Type(), Value: h.Sum64()}
+func (f *Float) HashKey() Key {
+	return Key{Type: f.Type(), FltValue: f.Value}
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
 func (f *Float) InvokeMethod(method string, args ...Object) Object {
-	return nil
+	return NewError("type error: %s object has no method %s", f.Type(), method)
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (f *Float) ToInterface() interface{} {
 	return f.Value
 }
 
 func (f *Float) String() string {
 	return fmt.Sprintf("Float(%v)", f.Value)
+}
+
+func (f *Float) Compare(other Object) (int, error) {
+	switch other := other.(type) {
+	case *Float:
+		if f.Value == other.Value {
+			return 0, nil
+		}
+		if f.Value > other.Value {
+			return 1, nil
+		}
+		return -1, nil
+	case *Integer:
+		if f.Value == float64(other.Value) {
+			return 0, nil
+		}
+		if f.Value > float64(other.Value) {
+			return 1, nil
+		}
+		return -1, nil
+	default:
+		return CompareTypes(f, other), nil
+	}
 }
 
 func NewFloat(value float64) *Float {

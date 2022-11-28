@@ -61,7 +61,7 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Array:
 		array = arg.Elements
 	case *object.Set:
-		array = arg.Array()
+		array = arg.Array().Elements
 	default:
 		return object.NewError("type error: %s object is not iterable", args[0].Type())
 	}
@@ -106,7 +106,7 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Array:
 		array = arg.Elements
 	case *object.Set:
-		array = arg.Array()
+		array = arg.Array().Elements
 	default:
 		return object.NewError("type error: %s object is not iterable", args[0].Type())
 	}
@@ -151,7 +151,7 @@ func Sum(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Array:
 		array = arg.Elements
 	case *object.Set:
-		array = arg.Array()
+		array = arg.Array().Elements
 	default:
 		return object.NewError("type error: %s object is not iterable", arg.Type())
 	}

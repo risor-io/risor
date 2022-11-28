@@ -89,7 +89,7 @@ print(resp, type(resp))
 
 print("uuid:", uuid.v4())
 
-[1, 1, 2, 3, 4, 4] | set | str
+[1, 1, 2, 3, 4, 4] | set | string
 
 print(strings.join(["hey", "ya"], "_"))
 
