@@ -243,7 +243,7 @@ Then create a global scope for your script executions that includes a proxy
 to your Go service:
 
 ```go
-    svc := &MyService{}
+	svc := &MyService{}
 	s := scope.New(scope.Opts{})
 	s.Declare("svc", object.NewProxy(proxyMgr, svc), true)
 
