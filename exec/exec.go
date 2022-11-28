@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/evaluator"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
 	modMath "github.com/cloudcmds/tamarin/modules/math"
@@ -45,6 +46,10 @@ func init() {
 type Opts struct {
 	// Input is the main source code to execute.
 	Input string
+
+	// InputProgram may be used instead of Input to provide an AST that
+	// was already parsed.
+	InputProgram *ast.Program
 
 	// File is the name of the file being executed (optional).
 	File string
@@ -111,13 +116,19 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 		}
 	}
 
-	// Parse the program
-	program, err := parser.ParseWithOpts(ctx, parser.Opts{
-		Input: opts.Input,
-		File:  opts.File,
-	})
-	if err != nil {
-		return nil, err
+	// Get the AST for the program, parsing it from opts.Input or accepting
+	// it directly from opts.InputProgram if that is set
+	var program *ast.Program
+	if opts.InputProgram != nil {
+		program = opts.InputProgram
+	} else {
+		program, err = parser.ParseWithOpts(ctx, parser.Opts{
+			Input: opts.Input,
+			File:  opts.File,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Evaluate the program
