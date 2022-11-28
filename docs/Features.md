@@ -254,4 +254,4 @@ to your Go service:
 ```
 
 Now in your Tamarin script you can make calls against the service. See
-[example-proxy](./cmd/example-proxy/main.go) for a complete example.
+[example-proxy](../cmd/example-proxy/main.go) for a complete example.
