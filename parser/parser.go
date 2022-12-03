@@ -905,7 +905,7 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 func (p *Parser) parseStringLiteral() ast.Expression {
 	s := p.curToken.Literal
 	if p.curToken.Type == token.BACKTICK {
-		if strings.Contains(s, "${") {
+		if strings.Contains(s, "{") {
 			tmpl, err := tmpl.Parse(s)
 			if err != nil {
 				p.setTokenError(p.curToken, err.Error())

@@ -22,11 +22,11 @@ func (e *Evaluator) evalStringLiteral(ctx context.Context,
 		switch f.IsVariable {
 		case true:
 			expr := node.TemplateExpressions[exprIndex]
+			exprIndex++
 			if expr == nil {
 				parts = append(parts, "")
 				continue
 			}
-			exprIndex++
 			// Evaluate the variable
 			obj := New(Opts{}).Evaluate(ctx, expr, s)
 			if isError(obj) {

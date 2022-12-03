@@ -13,7 +13,7 @@ func TestParseString(t *testing.T) {
 		want  []*tmpl.Fragment
 	}{
 		{
-			"Hello ${name}!",
+			"Hello {name}!",
 			[]*tmpl.Fragment{
 				{Value: "Hello ", IsVariable: false},
 				{Value: "name", IsVariable: true},
@@ -21,24 +21,28 @@ func TestParseString(t *testing.T) {
 			},
 		},
 		{
-			"abc Def {foo} $bar $} baz",
+			"ab{{c}} {foo} $bar baz\t",
 			[]*tmpl.Fragment{
-				{Value: "abc Def {foo} $bar $} baz", IsVariable: false},
+				{Value: "ab{c} ", IsVariable: false},
+				{Value: "foo", IsVariable: true},
+				{Value: " $bar baz\t", IsVariable: false},
 			},
 		},
 		{
-			"${ hi + 3 }${h[0]+foo.bar()}X{}${}",
+			"{ hi + 3 }{h[0]+foo.bar()}X{}${}",
 			[]*tmpl.Fragment{
 				{Value: " hi + 3 ", IsVariable: true},
 				{Value: "h[0]+foo.bar()", IsVariable: true},
-				{Value: "X{}", IsVariable: false},
+				{Value: "X", IsVariable: false},
+				{Value: "", IsVariable: true},
+				{Value: "$", IsVariable: false},
 				{Value: "", IsVariable: true},
 			},
 		},
 		{
-			`\${1}`,
+			`{{1}}`,
 			[]*tmpl.Fragment{
-				{Value: "${1}", IsVariable: false},
+				{Value: "{1}", IsVariable: false},
 			},
 		},
 	}
@@ -55,9 +59,11 @@ func TestParseStringErrors(t *testing.T) {
 		input   string
 		wantErr string
 	}{
-		{"${ ", `unterminated variable in template: "${ "`},
-		{"a${0} ${cd", `unterminated variable in template: "a${0} ${cd"`},
-		{"${bar + ${0}}", `invalid nesting in template: "${bar + ${0}}"`},
+		{"{", `missing '}' in template: {`},
+		{"a{0} {cd", `missing '}' in template: a{0} {cd`},
+		{`{ x.update({"foo": 1}) }`, `invalid '{' in template: { x.update({"foo": 1}) }`},
+		{"{a}}", `invalid '}' in template: {a}}`},
+		{"}a", `invalid '}' in template: }a`},
 	}
 	for _, tc := range tests {
 		_, err := tmpl.Parse(tc.input)
