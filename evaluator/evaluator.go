@@ -136,7 +136,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
 	case *ast.StringLiteral:
-		return &object.String{Value: node.Value}
+		return e.evalStringLiteral(ctx, node, s)
 	case *ast.RegexpLiteral:
 		return &object.Regexp{Value: node.Value, Flags: node.Flags}
 	case *ast.ArrayLiteral:
