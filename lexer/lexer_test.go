@@ -53,7 +53,7 @@ func TestNextToken1(t *testing.T) {
 		{token.QUESTION, "?"},
 		{token.OR, "||"},
 		{token.AND, "&&"},
-		{token.STRING, "/foo"},
+		{token.BACKTICK, "/foo"},
 		{token.PLUS_PLUS, "++"},
 		{token.MINUS_MINUS, "--"},
 		{token.POW, "**"},

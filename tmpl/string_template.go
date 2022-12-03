@@ -30,29 +30,42 @@ func Parse(s string) (*Template, error) {
 	var curFragment *Fragment
 	for i := 0; i < len(runes); i++ {
 		char := getChar(i)
-		prevChar := getChar(i - 1)
-		nextChar := getChar(i + 1)
-		if char == '\\' && nextChar == '$' {
-			// Escaped $, so skip forward one and treat the $ as a literal
-			char = '$'
+		peekChar := getChar(i + 1)
+		if char == '{' && peekChar == '{' {
+			// Escaped { literal
+			char = '{'
 			i++
-		} else if char == '$' {
-			if prevChar != '\\' && nextChar == '{' {
-				if curFragment != nil && curFragment.IsVariable {
-					return nil, fmt.Errorf("invalid nesting in template: \"%s\"", s)
-				}
-				curFragment = &Fragment{
-					IsVariable: true,
-					Value:      "",
-				}
-				template.Fragments = append(template.Fragments, curFragment)
-				i += 1 // Skip the following { character
+		} else if char == '}' {
+			if curFragment != nil && curFragment.IsVariable {
+				// Closed expression
+				curFragment = nil
 				continue
 			}
+			if peekChar == '}' {
+				// Escaped } literal
+				char = '}'
+				i++
+			} else {
+				// Unescaped } literal is illegal
+				return nil, fmt.Errorf("invalid '}' in template: %v", s)
+			}
+		} else if char == '{' {
+			// Start of an expression. Error if we're already in an expression.
+			if curFragment != nil && curFragment.IsVariable {
+				return nil, fmt.Errorf("invalid '{' in template: %v", s)
+			}
+			curFragment = &Fragment{
+				IsVariable: true,
+				Value:      "",
+			}
+			template.Fragments = append(template.Fragments, curFragment)
+			continue
 		} else if curFragment != nil && curFragment.IsVariable && char == '}' {
+			// End of an expression
 			curFragment = nil
 			continue
 		}
+		// Append current character to the current fragment
 		if curFragment == nil {
 			curFragment = &Fragment{
 				IsVariable: false,
@@ -64,7 +77,7 @@ func Parse(s string) (*Template, error) {
 	}
 
 	if curFragment != nil && curFragment.IsVariable {
-		return nil, fmt.Errorf("unterminated variable in template: \"%s\"", s)
+		return nil, fmt.Errorf("missing '}' in template: %v", s)
 	}
 	return template, nil
 }
