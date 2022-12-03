@@ -13,6 +13,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/lexer"
+	"github.com/cloudcmds/tamarin/tmpl"
 	"github.com/cloudcmds/tamarin/token"
 )
 
@@ -902,7 +903,47 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 
 // parseStringLiteral parses a string-literal.
 func (p *Parser) parseStringLiteral() ast.Expression {
-	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+	s := p.curToken.Literal
+	if p.curToken.Type == token.BACKTICK {
+		if strings.Contains(s, "${") {
+			tmpl, err := tmpl.Parse(s)
+			if err != nil {
+				p.setTokenError(p.curToken, err.Error())
+				return nil
+			}
+			var templateExps []*ast.ExpressionStatement
+			for _, e := range tmpl.Fragments {
+				if e.IsVariable {
+					tmplAst, err := Parse(e.Value)
+					if err != nil {
+						p.setTokenError(p.curToken, err.Error())
+						return nil
+					}
+					if len(tmplAst.Statements) == 0 {
+						templateExps = append(templateExps, nil)
+					} else if len(tmplAst.Statements) > 1 {
+						p.setTokenError(p.curToken, "template contains more than one expression")
+						return nil
+					} else {
+						stmt := tmplAst.Statements[0]
+						exprStmt, ok := stmt.(*ast.ExpressionStatement)
+						if !ok {
+							p.setTokenError(p.curToken, "template contains an unexpected statement type")
+							return nil
+						}
+						templateExps = append(templateExps, exprStmt)
+					}
+				}
+			}
+			return &ast.StringLiteral{
+				Token:               p.curToken,
+				Value:               s,
+				Template:            tmpl,
+				TemplateExpressions: templateExps,
+			}
+		}
+	}
+	return &ast.StringLiteral{Token: p.curToken, Value: s}
 }
 
 // parseRegexpLiteral parses a regular-expression.

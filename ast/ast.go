@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudcmds/tamarin/tmpl"
 	"github.com/cloudcmds/tamarin/token"
 )
 
@@ -731,6 +732,11 @@ type StringLiteral struct {
 
 	// Value is the value of the string.
 	Value string
+
+	// Template is the templatized version of the string, if any
+	Template *tmpl.Template
+
+	TemplateExpressions []*ExpressionStatement
 }
 
 func (sl *StringLiteral) expressionNode() {}

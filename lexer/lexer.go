@@ -344,12 +344,12 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	case rune('`'):
 		s, err := l.readBacktick()
 		if err != nil {
-			tok = l.newToken(token.STRING, s)
+			tok = l.newToken(token.BACKTICK, s)
 			l.readChar()
 			l.prevToken = tok
 			return tok, err
 		}
-		tok = l.newToken(token.STRING, s)
+		tok = l.newToken(token.BACKTICK, s)
 	case rune('['):
 		tok = l.newToken(token.LBRACKET, string(l.ch))
 	case rune(']'):
