@@ -260,27 +260,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			l.readChar()
 			tok = l.newToken(token.SLASH_EQUALS, string(ch)+string(l.ch))
 		} else {
-			// Slash is mostly division, but could be the start of a regex
-			// We exclude:
-			//   a[b] / c        -> RBRACKET
-			//   ( a + b ) / c   -> RPAREN
-			//   a / c           -> IDENT
-			//   3.2 / c         -> FLOAT
-			//   1 / c           -> IDENT
-			if l.prevToken.Type == token.RBRACKET ||
-				l.prevToken.Type == token.RPAREN ||
-				l.prevToken.Type == token.IDENT ||
-				l.prevToken.Type == token.INT ||
-				l.prevToken.Type == token.FLOAT {
-				tok = l.newToken(token.SLASH, string(l.ch))
-			} else {
-				str, err := l.readRegexp()
-				if err != nil {
-					return l.newToken(token.REGEXP, str), err
-				} else {
-					tok = l.newToken(token.REGEXP, str)
-				}
-			}
+			tok = l.newToken(token.SLASH, string(l.ch))
 		}
 	case rune('*'):
 		if l.peekChar() == rune('*') {
@@ -521,47 +501,6 @@ func (l *Lexer) readString(end rune) (string, error) {
 	return strings.Join(out, ""), err
 }
 
-// Read a regexp, including flags.
-func (l *Lexer) readRegexp() (string, error) {
-	var err error
-	out := ""
-	for {
-		l.readChar()
-		if l.ch == rune(0) || l.ch == rune('\n') {
-			err = fmt.Errorf("unterminated regular expression")
-			break
-		}
-		if l.ch == '/' {
-			// consume the terminating "/".
-			l.readChar()
-			// prepare to look for flags
-			flags := ""
-			// two flags are supported:
-			//   i -> Ignore-case
-			//   m -> Multiline
-			//
-			for l.ch == rune('i') || l.ch == rune('m') {
-				// save the char - unless it is a repeat
-				if !strings.Contains(flags, string(l.ch)) {
-					// we're going to sort the flags
-					tmp := strings.Split(flags, "")
-					tmp = append(tmp, string(l.ch))
-					flags = strings.Join(tmp, "")
-				}
-				// read the next
-				l.readChar()
-			}
-			// convert the regexp to go-lang
-			if len(flags) > 0 {
-				out = "(?" + flags + ")" + out
-			}
-			break
-		}
-		out = out + string(l.ch)
-	}
-	return out, err
-}
-
 func (l *Lexer) readBacktick() (string, error) {
 	var err error
 	position := l.position + 1
@@ -594,13 +533,6 @@ func isWhitespace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t')
 	// ch == rune('\r')
 	// ch == rune('\n') ||
-}
-
-func isWhitespaceWithNewlines(ch rune) bool {
-	return ch == rune(' ') ||
-		ch == rune('\t') ||
-		ch == rune('\r') ||
-		ch == rune('\n')
 }
 
 func isDigit(ch rune) bool {
