@@ -705,12 +705,10 @@ func TestStringTypes(t *testing.T) {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		// {`"foo"`, token.STRING, "foo"},
-		// {"`foo`", token.BACKTICK, "foo"},
-		// {"\"\\nhey\"", token.STRING, "\nhey"},
-		// {"`\\nhey`", token.BACKTICK, `\nhey`},
-		// {"'foo'", token.ILLEGAL, `'`},
-		{"'", token.ILLEGAL, `'`},
+		{`"\"foo'"`, token.STRING, "\"foo'"},
+		{`'"foo\''`, token.STRING, "\"foo'"},
+		{"`foo`", token.BACKTICK, "foo"},
+		{"\"\\nhey\"", token.STRING, "\nhey"},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {

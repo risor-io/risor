@@ -905,45 +905,46 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 func (p *Parser) parseStringLiteral() ast.Expression {
 	s := p.curToken.Literal
 	if p.curToken.Type == token.BACKTICK {
-		if strings.Contains(s, "{") {
-			tmpl, err := tmpl.Parse(s)
+		return &ast.StringLiteral{Token: p.curToken, Value: s}
+	}
+	if !strings.Contains(s, "{") {
+		return &ast.StringLiteral{Token: p.curToken, Value: s}
+	}
+	tmpl, err := tmpl.Parse(s)
+	if err != nil {
+		p.setTokenError(p.curToken, err.Error())
+		return nil
+	}
+	var templateExps []*ast.ExpressionStatement
+	for _, e := range tmpl.Fragments {
+		if e.IsVariable {
+			tmplAst, err := Parse(e.Value)
 			if err != nil {
 				p.setTokenError(p.curToken, err.Error())
 				return nil
 			}
-			var templateExps []*ast.ExpressionStatement
-			for _, e := range tmpl.Fragments {
-				if e.IsVariable {
-					tmplAst, err := Parse(e.Value)
-					if err != nil {
-						p.setTokenError(p.curToken, err.Error())
-						return nil
-					}
-					if len(tmplAst.Statements) == 0 {
-						templateExps = append(templateExps, nil)
-					} else if len(tmplAst.Statements) > 1 {
-						p.setTokenError(p.curToken, "template contains more than one expression")
-						return nil
-					} else {
-						stmt := tmplAst.Statements[0]
-						exprStmt, ok := stmt.(*ast.ExpressionStatement)
-						if !ok {
-							p.setTokenError(p.curToken, "template contains an unexpected statement type")
-							return nil
-						}
-						templateExps = append(templateExps, exprStmt)
-					}
+			if len(tmplAst.Statements) == 0 {
+				templateExps = append(templateExps, nil)
+			} else if len(tmplAst.Statements) > 1 {
+				p.setTokenError(p.curToken, "template contains more than one expression")
+				return nil
+			} else {
+				stmt := tmplAst.Statements[0]
+				exprStmt, ok := stmt.(*ast.ExpressionStatement)
+				if !ok {
+					p.setTokenError(p.curToken, "template contains an unexpected statement type")
+					return nil
 				}
-			}
-			return &ast.StringLiteral{
-				Token:               p.curToken,
-				Value:               s,
-				Template:            tmpl,
-				TemplateExpressions: templateExps,
+				templateExps = append(templateExps, exprStmt)
 			}
 		}
 	}
-	return &ast.StringLiteral{Token: p.curToken, Value: s}
+	return &ast.StringLiteral{
+		Token:               p.curToken,
+		Value:               s,
+		Template:            tmpl,
+		TemplateExpressions: templateExps,
+	}
 }
 
 // parseRegexpLiteral parses a regular-expression.

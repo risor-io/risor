@@ -1,4 +1,4 @@
-// expected value: foo 21 bar abcd
+// expected value: foo {a+11} bar { "ab" + "cd" }
 // expected type: STRING
 
 a := 10

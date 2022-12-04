@@ -730,11 +730,11 @@ func TestStringInterpolation(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"`{10+3}`", "13"},
-		{"`hey, {}{strings.to_upper(name) + \"!\"}`", "hey, JOE!"},
-		{"`length: {len(name)}`", "length: 3"},
-		{"`{{1,2,  3}} is a set`", "{1,2,  3} is a set"},
-		{"`{\"hey\"}`", "hey"},
+		{"`{10+3}`", "{10+3}"},
+		{`"hey, {}{strings.to_upper(name) + \"!\"}"`, "hey, JOE!"},
+		{`"length: {len(name)}"`, "length: 3"},
+		{`"{{1,2,  3}} is a set"`, "{1,2,  3} is a set"},
+		{`"{\"hey\"}"`, "hey"},
 	}
 	for _, tt := range tests {
 
