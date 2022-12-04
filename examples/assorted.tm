@@ -74,6 +74,8 @@ switch b.is_err() {
         print("case 5")
 }
 
+print('b is {b}')
+
 assert(true)
 
 resp := fetch("https://httpbin.org/post", {

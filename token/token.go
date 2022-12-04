@@ -91,6 +91,7 @@ const (
 	SLASH           = "/"
 	SLASH_EQUALS    = "/="
 	STRING          = "STRING"
+	FSTRING         = "FSTRING"
 	SWITCH          = "switch"
 	TRUE            = "TRUE"
 	NEWLINE         = "EOL"
