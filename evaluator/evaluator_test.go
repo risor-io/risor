@@ -731,24 +731,26 @@ func TestStringInterpolation(t *testing.T) {
 		expected string
 	}{
 		{"`{10+3}`", "{10+3}"},
-		{`"hey, {}{strings.to_upper(name) + \"!\"}"`, "hey, JOE!"},
-		{`"length: {len(name)}"`, "length: 3"},
-		{`"{{1,2,  3}} is a set"`, "{1,2,  3} is a set"},
-		{`"{\"hey\"}"`, "hey"},
+		{"'{10+3}'", "13"},
+		{`"{10+3}"`, "{10+3}"},
+		{`'hey, {}{strings.to_upper(name) + \"!\"}'`, "hey, JOE!"},
+		{`'length: {len(name)}'`, "length: 3"},
+		{`'{{1,2,  3}} is a set'`, "{1,2,  3} is a set"},
+		{`'{"hey"}'`, "hey"},
+		{`'a\'b'`, `a'b`},
+		{`'a\'b'`, `a'b`},
+		{`"a\'b"`, `a'b`},
+		{`'a"b'`, `a"b`},
+		{`'a\"b'`, `a"b`},
 	}
 	for _, tt := range tests {
-
 		program, err := parser.Parse(tt.input)
 		require.Nil(t, err)
-
 		s := scope.New(scope.Opts{})
-
 		mod, err := modStrings.Module(s)
 		require.Nil(t, err)
-
 		s.Declare("name", &object.String{Value: "Joe"}, true)
 		s.Declare("strings", mod, true)
-
 		e := &Evaluator{}
 		obj := e.Evaluate(ctx, program, s)
 		str, ok := obj.(*object.String)

@@ -115,6 +115,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.FSTRING, p.parseStringLiteral)
 	p.registerPrefix(token.BACKTICK, p.parseStringLiteral)
 	p.registerPrefix(token.SWITCH, p.parseSwitchStatement)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
@@ -904,12 +905,13 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 // parseStringLiteral parses a string-literal.
 func (p *Parser) parseStringLiteral() ast.Expression {
 	s := p.curToken.Literal
-	if p.curToken.Type == token.BACKTICK {
+	if p.curToken.Type == token.BACKTICK || p.curToken.Type == token.STRING {
 		return &ast.StringLiteral{Token: p.curToken, Value: s}
 	}
 	if !strings.Contains(s, "{") {
 		return &ast.StringLiteral{Token: p.curToken, Value: s}
 	}
+	// Formatted/template string here (FSTRING)
 	tmpl, err := tmpl.Parse(s)
 	if err != nil {
 		p.setTokenError(p.curToken, err.Error())

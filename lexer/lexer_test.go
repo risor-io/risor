@@ -621,7 +621,7 @@ func TestStringTypes(t *testing.T) {
 		expectedLiteral string
 	}{
 		{`"\"foo'"`, token.STRING, "\"foo'"},
-		{`'"foo\''`, token.STRING, "\"foo'"},
+		{`'"foo\''`, token.FSTRING, "\"foo'"},
 		{"`foo`", token.BACKTICK, "foo"},
 		{"\"\\nhey\"", token.STRING, "\nhey"},
 	}

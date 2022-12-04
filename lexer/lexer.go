@@ -313,12 +313,12 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	case rune('\''):
 		s, err := l.readString('\'')
 		if err != nil {
-			tok = l.newToken(token.STRING, s)
+			tok = l.newToken(token.FSTRING, s)
 			l.readChar()
 			l.prevToken = tok
 			return tok, err
 		}
-		tok = l.newToken(token.STRING, s)
+		tok = l.newToken(token.FSTRING, s)
 	case rune('"'):
 		s, err := l.readString('"')
 		if err != nil {
@@ -488,9 +488,6 @@ func (l *Lexer) readString(end rune) (string, error) {
 			}
 			if l.ch == rune('t') {
 				l.ch = '\t'
-			}
-			if l.ch == rune('"') {
-				l.ch = '"'
 			}
 			if l.ch == rune('\\') {
 				l.ch = '\\'
