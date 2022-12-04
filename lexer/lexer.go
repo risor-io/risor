@@ -331,9 +331,16 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			}
 		}
 	case rune('\''):
-		tok = l.newToken(token.ILLEGAL, string(l.ch))
+		s, err := l.readString('\'')
+		if err != nil {
+			tok = l.newToken(token.STRING, s)
+			l.readChar()
+			l.prevToken = tok
+			return tok, err
+		}
+		tok = l.newToken(token.STRING, s)
 	case rune('"'):
-		s, err := l.readString()
+		s, err := l.readString('"')
 		if err != nil {
 			tok = l.newToken(token.STRING, s)
 			l.readChar()
@@ -477,7 +484,7 @@ func (l *Lexer) readDecimal() token.Token {
 	return l.newToken(token.INT, integer)
 }
 
-func (l *Lexer) readString() (string, error) {
+func (l *Lexer) readString(end rune) (string, error) {
 	var err error
 	var out []string
 	for {
@@ -487,7 +494,7 @@ func (l *Lexer) readString() (string, error) {
 			break
 		}
 		l.readChar()
-		if l.ch == '"' {
+		if l.ch == end {
 			break
 		}
 		// Handle \n, \r, \t, \", etc
