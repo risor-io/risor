@@ -156,10 +156,10 @@ failed.unwrap() // raises error that stops execution
 These execute a series of function calls, passing the result from one stage
 in as the first argument to the next.
 
-This pipe expression evalutes to the string `"50"`.
+This pipe expression evalutes to the string `"HELLO"`.
 
 ```
-42 | math.sum(8) | string
+"hello" | strings.to_upper
 ```
 
 ## Array Methods
