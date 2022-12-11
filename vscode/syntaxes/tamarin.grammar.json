@@ -1,89 +1,117 @@
 {
-    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-    "name": "Tamarin",
-    "patterns": [
-        {
-            "include": "#keywords"
-        },
-        {
-            "include": "#strings"
-        },
-        {
-            "include": "#comments"
-        },
-        {
-            "include": "#constants"
-        },
-        {
-            "include": "#variables"
-        },
-        {
-            "include": "#backtick_strings"
-        }
-    ],
-    "repository": {
-        "variables": {
-            "patterns": [
-                {
-                    "name": "variable.other",
-                    "match": "[a-zA-Z0-9_]+(?=[\\s]+(:=|=)[\\s]+)"
-                },
-                {
-                    "name": "entity.name.function",
-                    "match": "[a-zA-Z0-9_]+(?=\\()"
-                }
-            ]
-        },
-        "comments": {
-            "patterns": [
-                {
-                    "name": "comment.line.double-slash",
-                    "match": "(^\/\/)(.*)"
-                }
-            ]
-        },
-        "constants": {
-            "patterns": [
-                {
-                    "name": "constant.language",
-                    "match": "\\b(true|false|null)\\b"
-                },
-                {
-                    "name": "constant.numeric",
-                    "match": "\\b([0-9]+[.]*[0-9]*)\\b"
-                }
-            ]
-        },
-        "keywords": {
-            "patterns": [
-                {
-                    "name": "keyword.control.tamarin",
-                    "match": "\\b(if|else|switch|case|let|const|for|func|fn|import|return)\\b"
-                }
-            ]
-        },
-        "strings": {
-            "name": "string.quoted.double.tamarin",
-            "begin": "\"",
-            "end": "\"",
-            "patterns": [
-                {
-                    "name": "constant.character.escape.tamarin",
-                    "match": "\\\\."
-                }
-            ]
-        },
-        "backtick_strings": {
-            "name": "string.quoted.other.tamarin",
-            "begin": "`",
-            "end": "`",
-            "patterns": [
-                {
-                    "name": "constant.character.escape.tamarin",
-                    "match": "\\\\."
-                }
-            ]
-        }
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tamarin",
+  "patterns": [
+    {
+      "include": "#keywords"
     },
-    "scopeName": "source.tamarin"
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#variables"
+    },
+    {
+      "include": "#backtick_strings"
+    },
+    {
+      "include": "#single_quote_strings"
+    },
+    {
+      "include": "#block_comments"
+    }
+  ],
+  "repository": {
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other",
+          "match": "[a-zA-Z0-9_]+(?=[\\s]+(:=|=)[\\s]+)"
+        },
+        {
+          "name": "entity.name.function",
+          "match": "[a-zA-Z0-9_]+(?=\\()"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash",
+          "match": "(^//)(.*)"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language",
+          "match": "\\b(true|false|null)\\b"
+        },
+        {
+          "name": "constant.numeric",
+          "match": "\\b([0-9]+[.]*[0-9]*)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.tamarin",
+          "match": "\\b(if|else|switch|case|default|let|const|for|func|import|return|break|continue)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.tamarin",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tamarin",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "backtick_strings": {
+      "name": "string.quoted.other.tamarin",
+      "begin": "`",
+      "end": "`",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tamarin",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "single_quote_strings": {
+      "name": "string.quoted.other.tamarin",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tamarin",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "block_comments": {
+      "name": "comment.block.tamarin",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tamarin",
+          "match": "\\\\."
+        }
+      ]
+    }
+  },
+  "scopeName": "source.tamarin"
 }
