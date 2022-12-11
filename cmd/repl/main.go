@@ -4,62 +4,23 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"atomicgo.dev/keyboard"
+	"atomicgo.dev/keyboard/keys"
 	"github.com/cloudcmds/tamarin/exec"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/scope"
-	"github.com/gdamore/tcell"
-	"github.com/gdamore/tcell/encoding"
-	"github.com/mattn/go-runewidth"
-	term "github.com/nsf/termbox-go"
 )
 
-func emitStr(s tcell.Screen, x, y int, style tcell.Style, str string) {
-	for _, c := range str {
-		var comb []rune
-		w := runewidth.RuneWidth(c)
-		if w == 0 {
-			comb = []rune{c}
-			c = ' '
-			w = 1
-		}
-		s.SetContent(x, y, c, comb, style)
-		x += w
-	}
-}
-
-func displayLines(screen tcell.Screen, lines []string) {
-	// w, h := screen.Size()
-	screen.Clear()
-	style := tcell.StyleDefault.Foreground(tcell.ColorCadetBlue).Background(tcell.ColorWhite)
-	for y, line := range lines {
-		var x int
-		for _, c := range line {
-			var comb []rune
-			w := runewidth.RuneWidth(c)
-			if w == 0 {
-				comb = []rune{c}
-				c = ' '
-				w = 1
-			}
-			screen.SetContent(x, y, c, comb, style)
-			x += w
-		}
-	}
-	screen.Show()
-}
+const clearLine = "\033[2K\r"
 
 func main() {
 
 	ctx := context.Background()
 
-	encoding.Register()
-
-	if err := term.Init(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer term.Close()
+	fmt.Println("Tamarin")
+	fmt.Println("")
 
 	// Global scope
 	sc := scope.New(scope.Opts{Name: "global"})
@@ -69,8 +30,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	fmt.Printf(">>> ")
 
 	run := func(line string) {
 		result, err := exec.Execute(ctx, exec.Opts{
@@ -82,59 +41,66 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		if _, ok := result.(*object.Null); !ok {
+		switch result.(type) {
+		case *object.Null:
+		default:
 			fmt.Println(result.Inspect())
 		}
 	}
 
-	var currentLine string
-	for {
-		switch ev := term.PollEvent(); ev.Type {
-		case term.EventKey:
-			switch ev.Key {
-			case term.KeyEsc:
-				term.Sync()
-				fmt.Println("ESC pressed")
-			case term.KeyF1:
-				term.Sync()
-				fmt.Println("F1 pressed")
-			case term.KeyInsert:
-				term.Sync()
-				fmt.Println("Insert pressed")
-			case term.KeyDelete:
-				term.Sync()
-				fmt.Println("Delete pressed")
-			case term.KeyHome:
-				term.Sync()
-				fmt.Println("Home pressed")
-			case term.KeyEnd:
-				term.Sync()
-				fmt.Println("End pressed")
-			case term.KeyPgup:
-				term.Sync()
-			case term.KeyArrowRight:
-				term.Sync()
-				fmt.Println("Arrow Right pressed")
-			case term.KeySpace:
-				term.Sync()
-				fmt.Println("Space pressed")
-			case term.KeyBackspace:
-				term.Sync()
-				fmt.Println("Backspace pressed")
-			case term.KeyEnter:
-				term.Sync()
-				fmt.Println("Enter pressed")
-				run(currentLine)
-			case term.KeyTab:
-				term.Sync()
-				fmt.Println("Tab pressed")
-			default:
-				term.Sync()
-				fmt.Println("ASCII : ", ev.Ch)
-				currentLine += string(ev.Ch)
+	fmt.Print(">>> ")
+	var historyIndex int
+	var history []string
+	var accumulate string
+
+	keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+		switch key.Code {
+		case keys.CtrlC:
+			os.Exit(0)
+			return true, nil
+		case keys.Enter:
+			fmt.Printf("\n")
+			run(accumulate)
+			history = append(history, accumulate)
+			historyIndex = len(history)
+			accumulate = ""
+			fmt.Print(">>> ")
+		case keys.RuneKey, keys.Space, keys.Tab:
+			accumulate += string(key.Runes)
+			fmt.Print(string(key.Runes))
+		case keys.Backspace:
+			if len(accumulate) > 0 {
+				accumulate = accumulate[:len(accumulate)-1]
+				fmt.Printf("\b \b")
 			}
-		case term.EventError:
-			panic(ev.Err)
+		case keys.Up:
+			if historyIndex > 0 {
+				historyIndex--
+			}
+			if historyIndex < len(history) {
+				accumulate = history[historyIndex]
+				fmt.Printf(clearLine + ">>> " + accumulate)
+			}
+		case keys.Down:
+			if historyIndex < len(history) {
+				historyIndex++
+			}
+			if historyIndex < len(history) {
+				accumulate = history[historyIndex]
+				fmt.Printf(clearLine + ">>> " + accumulate)
+			} else {
+				fmt.Printf(clearLine + ">>> ")
+				accumulate = ""
+			}
+		case keys.Left, keys.Right:
+			// Ignore
+		default:
+			fmt.Println(key)
 		}
+		return false, nil // Return false to continue listening
+	})
+
+	for {
+		time.Sleep(time.Second)
 	}
 }
