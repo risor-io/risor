@@ -6,16 +6,49 @@
 
 A fun and pragmatic scripting language written in Go. May be used as a CLI or embedded as a library.
 
-This project is very early and should be considered **alpha** software. Please visit the
-[Github discussions](https://github.com/cloudcmds/tamarin/discussions) page for Tamarin
-to share thoughts and questions!
+## Getting Started
+
+Install the Tamarin CLI as follows:
+
+```
+go install github.com/cloudcmds/tamarin@latest
+```
+
+Having done that, you can use the CLI in three different ways. Running `tamarin`
+by itself runs an interaction REPL:
+
+```bash
+tamarin
+```
+
+Pass a short script to execute using the `-c` flag:
+
+```bash
+tamarin -c 'uuid.v4()'
+```
+
+Or pass the path to a Tamarin script to execute:
+
+```bash
+tamarin ./examples/hello.tm
+```
+
+To use Tamarin as a library, see the example
+[cmd/simple-example/main.go](./cmd/simple-example/main.go).
+
+## Project Status
+
+This project is early so Tamarin should be considered **alpha** software.
+Please visit the [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
+page to share thoughts and questions! Feedback now is useful to guide the
+project as it matures.
 
 ## Goals
 
-Tamarin is meant to be useful for web, cloud, and general backend scripting.
+Tamarin is meant to be useful for cloud, web, and general scripting.
 The syntax should be familiar to Go, Typescript, and Python developers.
-The language should be "batteries included" with a large and handy
-standard library (this is a work in progress).
+Tamarin should be "batteries included" with a large and handy standard library
+(this is a work in progress).
 
 Miscellaneous popular Go open source libraries may be integrated into the
 Tamarin standard library. Please share suggestions for what you think would
@@ -30,7 +63,7 @@ It is **not** currently considered important to be performance competitive
 with widely used scripting languages. If you are looking for top performance
 you should probably be using sandboxed V8/Javascript or Lua.
 
-## Overview
+## Feature Overview
 
 - Familiar syntax inspired by Go, Typescript, and Python
 - Growing standard library which generally wraps the Go stdlib
@@ -45,27 +78,10 @@ you should probably be using sandboxed V8/Javascript or Lua.
 - Pipe expressions to create processing chains
 - Error handling inspired by Rust, using a Result type
 
-## Getting Started
+## Making Tamarin Scripts Executable
 
-Try the Tamarin CLI as follows:
-
-```
-go install github.com/cloudcmds/tamarin@latest
-echo 'print("hello")' | tamarin
-```
-
-You can also use Tamarin as a library, however please be aware Tamarin has not yet reached
-a stable 1.0.0 release yet, so the APIs are likely to change. That said, fundamental changes
-are not anticipated at this point. See [cmd/simple-example/main.go](./cmd/simple-example/main.go)
-for an example of using Tamarin as a library.
-
-## Usage
-
-To execute a Tamarin script, pass the path of a script to the tamarin binary:
-
-     $ tamarin ./examples/hello.tm
-
-Scripts can be made executable by adding a suitable shebang line:
+Make a Tamarin script executable by adding a shebang line (`#!`). For example,
+for a script named `hello.tm`:
 
      $ cat hello.tm
      #!/usr/bin/env tamarin
@@ -96,7 +112,8 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 
 ## Contributing
 
-🎉 This project is just getting started. Tamarin is intended to be a community project and you can lend a hand in many different ways.
+🎉 This project is just getting started. Tamarin is intended to be a community
+project and you can lend a hand in many different ways.
 
 - Please ask questions and share ideas in [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
 - Share Tamarin on any social channels that may appreciate it
@@ -108,8 +125,6 @@ Work in progress. See [assorted.tm](./examples/assorted.tm).
 - File I/O was intentionally omitted for now
 - No concurrency support yet
 - No user-defined types yet
-- Hash key collisions are unlikely but possible and not yet handled (a straight-forward fix)
-- I'm sure edge cases exist that have poor error messages
 
 ## Pipe Expressions
 
