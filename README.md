@@ -47,8 +47,7 @@ project as it matures.
 
 Tamarin is meant to be useful for cloud, web, and general scripting.
 The syntax should be familiar to Go, Typescript, and Python developers.
-Tamarin should be "batteries included" with a large and handy standard library
-(this is a work in progress).
+Tamarin should be "batteries included" with a handy standard library.
 
 Miscellaneous popular Go open source libraries may be integrated into the
 Tamarin standard library. Please share suggestions for what you think would
@@ -69,14 +68,14 @@ you should probably be using sandboxed V8/Javascript or Lua.
 - Growing standard library which generally wraps the Go stdlib
 - Includes higher level libraries that are beyond the Go stdlib
 - Currently libraries include: `json`, `math`, `rand`, `strings`, `time`, `uuid`, `strconv`, `sql`
-- Control which libraries are available during execution
-- Built-in types include: `set`, `hash`, `array`, `regexp`, and more
+- Built-in types include: `set`, `hash`, `list`, `result`, and more
 - Functions are values; closures are supported
-- Evaluation is cancellable using Go contexts
+- Cancel evaluation using Go contexts
 - Library may be imported using the `import` keyword
 - Easy HTTP requests via the `fetch` built-in function
 - Pipe expressions to create processing chains
 - Error handling inspired by Rust, using a Result type
+- String templates similar to Python's f-strings
 
 ## Making Tamarin Scripts Executable
 

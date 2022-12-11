@@ -59,6 +59,21 @@ Lines are commented using `//`.
 // This line is commented out
 ```
 
+## Strings
+
+Strings come in three varieties, with some different features available depending
+on each type. The most basic form is the double-quoted string, which behaves very
+similarly to Go's string type. Single quoted strings have the additional behavior
+of string templating using variables like Python f-strings. Finally, strings defined
+using backticks opt out of all character escaping and support multi-line strings.
+
+```
+salutation := "hello there"         // double-quoted string
+count := 12
+count_str := "the count is {count}" // single-quoted string with variable
+backtick_str := `\t\r\n`            // backtick string
+```
+
 ## Functions
 
 Functions are defined using the `func` keyword. They may be passed around as values.
@@ -67,27 +82,31 @@ expression in the block is understood to be the return value. Expressions that d
 evaluate to a value will result in an `*object.Null` being returned.
 
 ```
+
 func addOne(x) {
-    x + 1
+x + 1
 }
 
 // This way of defining a function is equivalent to the above
 const subOne = func(x) {
-    return x - 1
+return x - 1
 }
 
 addOne(100)
 subOne(100)
+
 ```
 
 Default parameter values are supported:
 
 ```
+
 func increment(value, amount=1) {
-    return value + amount
+return value + amount
 }
 
 print(increment(100)) // 101
+
 ```
 
 ## Conditionals
@@ -95,13 +114,15 @@ print(increment(100)) // 101
 Go style if-else statements are supported.
 
 ```
+
 name := "ben"
 
 if name == "noa" {
-    print("the name is noa")
+print("the name is noa")
 } else {
-    print("the name is something else")
+print("the name is something else")
 }
+
 ```
 
 ## Switch Statements
@@ -109,16 +130,18 @@ if name == "noa" {
 Go style switch statements are supported.
 
 ```
+
 name := "ben"
 
 switch name {
-    case "ben":
-        print("matched ben")
-    case "noa":
-        print("matched noa")
-    default:
-        print("default")
+case "ben":
+print("matched ben")
+case "noa":
+print("matched noa")
+default:
+print("default")
 }
+
 ```
 
 ## Loops
@@ -127,15 +150,17 @@ Two forms of for loops are accepted. The `break` keyword may be used to
 stop looping in either form.
 
 ```
+
 for i := 0; i < 10; i++ {
-    print(i)
+print(i)
 }
 
 for {
-    if condition {
-        break
-    }
+if condition {
+break
 }
+}
+
 ```
 
 ## Operations that may fail
@@ -143,12 +168,14 @@ for {
 `Result` objects wrap `Ok` and `Err` values for operations that may fail.
 
 ```
+
 obj := json.unmarshal("true")
 obj.unwrap() // returns true
 
 failed := json.unmarshal("/not-valid/")
 failed.is_err() // returns true
 failed.unwrap() // raises error that stops execution
+
 ```
 
 ## Pipe Expressions
@@ -159,7 +186,9 @@ in as the first argument to the next.
 This pipe expression evalutes to the string `"HELLO"`.
 
 ```
+
 "hello" | strings.to_upper
+
 ```
 
 ## Array Methods
@@ -167,33 +196,37 @@ This pipe expression evalutes to the string `"HELLO"`.
 Arrays offer `map` and `filter` methods:
 
 ```
+
 arr := [1, 2, 3, 4].filter(func(x) { x < 3 })
-arr = arr.map(func(x) { x * x })
+arr = arr.map(func(x) { x \* x })
 // arr is now [1, 4]
+
 ```
 
 ## Builtins
 
 ```
-type(x)           // returns the string type name of x
-len(s)            // returns the size of the string, array, hash, or set
-any(arr)          // true if any item in arr is truthy
-all(arr)          // true if all items in arr are truthy
+
+type(x) // returns the string type name of x
+len(s) // returns the size of the string, array, hash, or set
+any(arr) // true if any item in arr is truthy
+all(arr) // true if all items in arr are truthy
 match(regex, str) // check if the string matches the regex
 sprintf(msg, ...) // equivalent to fmt.Sprintf
-keys(hash)        // returns an array of keys in the given hash
+keys(hash) // returns an array of keys in the given hash
 delete(hash, key) // delete an item from the hash
-string(obj)       // convert an object to its string representation
-bool(obj)         // evaluates an object's truthiness
-ok(result)        // create a Result object containing the given object
-err(message)      // create a Result error object
-unwrap(result)    // unwraps the ok value from the Result if allowed
-unwrap_or(obj)    // unwraps but returns the provided obj if the Result is an Error
-sorted(obj)       // works with arrays, hashes, and sets
-reversed(arr)     // returns a reversed version of the given array
-assert(obj, msg)  // raises an error if obj is falsy
-print(...)        // equivalent to fmt.Println
-printf(...)       // equivalent to fmt.Printf
+string(obj) // convert an object to its string representation
+bool(obj) // evaluates an object's truthiness
+ok(result) // create a Result object containing the given object
+err(message) // create a Result error object
+unwrap(result) // unwraps the ok value from the Result if allowed
+unwrap_or(obj) // unwraps but returns the provided obj if the Result is an Error
+sorted(obj) // works with arrays, hashes, and sets
+reversed(arr) // returns a reversed version of the given array
+assert(obj, msg) // raises an error if obj is falsy
+print(...) // equivalent to fmt.Println
+printf(...) // equivalent to fmt.Printf
+
 ```
 
 ## Types
@@ -201,16 +234,18 @@ printf(...)       // equivalent to fmt.Printf
 A variety of built-in types are available.
 
 ```
-101        // integer
-1.1        // float
-"1"        // string
-[1,2,3]    // array
-{1:2}      // hash
-{1,2}      // set
-false      // boolean
-null       // null
-func() {}  // function
+
+101 // integer
+1.1 // float
+"1" // string
+[1,2,3] // array
+{1:2} // hash
+{1,2} // set
+false // boolean
+null // null
+func() {} // function
 time.now() // time
+
 ```
 
 There are also `HttpResponse` and `DatabaseConnection` types in progress.
