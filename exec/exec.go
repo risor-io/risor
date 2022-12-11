@@ -4,6 +4,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cloudcmds/tamarin/ast"
@@ -169,7 +170,7 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	// If evaluation failed, we will have a Tamarin error object
 	// and we should transform that into a Go error
 	if errObj, ok := result.(*object.Error); ok {
-		return nil, fmt.Errorf("eval error: %s", errObj.Message)
+		return nil, errors.New(errObj.Message)
 	}
 
 	// At this point we know evaluation succeeded and we can
