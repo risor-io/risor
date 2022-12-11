@@ -74,6 +74,22 @@ count_str := "the count is {count}" // single-quoted string with variable
 backtick_str := `\t\r\n`            // backtick string
 ```
 
+## String Templates
+
+Arbitrary Tamarin code can be specified in string templates. The only limitation
+is that `{` and `}` are disallowed, since those are used to delineate the template
+variables. In practice we think this limitation doesn't get in the way of most
+common uses of string templating.
+
+A few quick examples:
+
+```
+len_msg := 'list length: {len([1, 2, 3])}' // "list length: 3"
+count := 42
+count_msg := 'the count is {count}'        // "the count is 42"
+type_msg := 'type: {type(1.2)}'            // "type: float"
+```
+
 ## Functions
 
 Functions are defined using the `func` keyword. They may be passed around as values.
