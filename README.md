@@ -14,7 +14,7 @@ Install the Tamarin CLI as follows:
 go install github.com/cloudcmds/tamarin@latest
 ```
 
-Having done that, you can use the CLI in three different ways. Running `tamarin`
+You can then use the CLI in three different ways. Running `tamarin`
 by itself runs an interaction REPL:
 
 ```bash
