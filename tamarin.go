@@ -17,8 +17,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"runtime/pprof"
 
@@ -26,71 +24,85 @@ import (
 	"github.com/cloudcmds/tamarin/exec"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/repl"
+	"github.com/cloudcmds/tamarin/scope"
+	"github.com/fatih/color"
 )
 
 func main() {
-	var profilerOutputPath string
+	var noColor bool
+	var profilerOutputPath, code string
+	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
+	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
 	flag.Parse()
+
+	if noColor {
+		color.NoColor = true
+	}
+	red := color.New(color.FgRed).SprintfFunc()
 
 	if profilerOutputPath != "" {
 		f, err := os.Create(profilerOutputPath)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+			os.Exit(1)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 
-	// Determine if input is being provided via stdin
-	var isStdinInput bool
-	if fi, err := os.Stdin.Stat(); err == nil {
-		if fi.Mode()&os.ModeNamedPipe != 0 {
-			isStdinInput = true
-		}
+	ctx := context.Background()
+	globalScope := scope.New(scope.Opts{Name: "global"})
+	if err := exec.AutoImport(globalScope, nil, nil); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+		os.Exit(1)
 	}
 
 	// Input can only come from one source
 	nArgs := len(flag.Args())
-	if nArgs > 0 && isStdinInput {
-		fmt.Fprintf(os.Stderr, "error: cannot provide both a script file and stdin input\n")
+	if nArgs > 0 && len(code) > 0 {
+		fmt.Fprintf(os.Stderr, "%s\n", red("error: cannot provide both a script file and -c input\n"))
 		os.Exit(1)
-	} else if nArgs == 0 && !isStdinInput {
-		fmt.Fprintf(os.Stderr, "error: expected one argument, a path to a tamarin script\n\n")
-		fmt.Fprintf(os.Stderr, "example:\n ./tamarin ./examples/hello.tm\n\n")
-		os.Exit(1)
+	} else if nArgs == 0 && len(code) == 0 {
+		// Run REPL
+		if err := repl.Run(ctx, globalScope); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+			os.Exit(1)
+		}
+		return
 	}
 
-	// Read input
+	// Otherwise, use input from either -c or the first argument
 	var err error
-	var input []byte
+	var input string
 	var filename string
-	if isStdinInput {
-		input, err = io.ReadAll(os.Stdin)
+	if nArgs == 0 {
+		input = code
 	} else {
 		filename = flag.Args()[0]
-		input, err = os.ReadFile(filename)
-	}
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "input error: %s\n", err)
-		os.Exit(1)
+		bytes, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+			os.Exit(1)
+		}
+		input = string(bytes)
 	}
 
 	// Execute the script
-	ctx := context.Background()
 	result, err := exec.Execute(ctx, exec.Opts{
-		Input:    string(input),
-		File:     filename,
-		Importer: &evaluator.SimpleImporter{},
+		Input:             string(input),
+		Scope:             globalScope,
+		DisableAutoImport: true,
+		File:              filename,
+		Importer:          &evaluator.SimpleImporter{},
 	})
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {
-			fmt.Fprintf(os.Stderr, "%s\n", parserErr.FriendlyMessage())
-			// fmt.Fprintf(os.Stderr, "\n")
-			// fmt.Fprintf(os.Stderr, "%s\n", parserErr.File())
+			fmt.Fprintf(os.Stderr, "%s\n", red(parserErr.FriendlyMessage()))
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 		}
 		os.Exit(1)
 	}
