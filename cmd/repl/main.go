@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"atomicgo.dev/keyboard"
@@ -94,8 +95,12 @@ func main() {
 			}
 		case keys.Left, keys.Right:
 			// Ignore
+		case keys.CtrlA:
+			fmt.Printf(clearLine + ">>> " + accumulate + strings.Repeat("\b", len(accumulate)))
 		default:
-			fmt.Println(key)
+			if key.Runes != nil {
+				fmt.Println(key)
+			}
 		}
 		return false, nil // Return false to continue listening
 	})
