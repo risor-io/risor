@@ -18,8 +18,8 @@ func isTruthy(obj object.Object) bool {
 			return obj.Value != 0.0
 		case *object.String:
 			return obj.Value != ""
-		case *object.Array:
-			return len(obj.Elements) > 0
+		case *object.List:
+			return len(obj.Items) > 0
 		case *object.Hash:
 			return len(obj.Map) > 0
 		case *object.Set:
@@ -48,8 +48,8 @@ func objectToNativeBoolean(o object.Object) bool {
 		return obj.Value != 0
 	case *object.Float:
 		return obj.Value != 0.0
-	case *object.Array:
-		return len(obj.Elements) != 0
+	case *object.List:
+		return len(obj.Items) != 0
 	case *object.Hash:
 		return len(obj.Map) != 0
 	case *object.Set:

@@ -108,7 +108,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
-	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
+	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.NULL, p.parseNull)
@@ -969,10 +969,10 @@ func (p *Parser) parseRegexpLiteral() ast.Expression {
 	return &ast.RegexpLiteral{Token: p.curToken, Value: val, Flags: flags}
 }
 
-func (p *Parser) parseArrayLiteral() ast.Expression {
-	array := &ast.ArrayLiteral{Token: p.curToken}
-	array.Elements = p.parseExpressionList(token.RBRACKET)
-	return array
+func (p *Parser) parseListLiteral() ast.Expression {
+	ll := &ast.ListLiteral{Token: p.curToken}
+	ll.Items = p.parseExpressionList(token.RBRACKET)
+	return ll
 }
 
 func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {

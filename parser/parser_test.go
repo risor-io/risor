@@ -369,12 +369,12 @@ func TestParsingArrayLiteral(t *testing.T) {
 	require.Nil(t, err)
 	require.Len(t, program.Statements, 1)
 	stmt, _ := program.Statements[0].(*ast.ExpressionStatement)
-	array, ok := stmt.Expression.(*ast.ArrayLiteral)
+	ll, ok := stmt.Expression.(*ast.ListLiteral)
 	require.True(t, ok)
-	require.Len(t, array.Elements, 3)
-	testIntegerLiteral(t, array.Elements[0], 1)
-	testInfixExpression(t, array.Elements[1], 2, "*", 2)
-	testInfixExpression(t, array.Elements[2], 3, "+", 3)
+	require.Len(t, ll.Items, 3)
+	testIntegerLiteral(t, ll.Items[0], 1)
+	testInfixExpression(t, ll.Items[1], 2, "*", 2)
+	testInfixExpression(t, ll.Items[2], 3, "+", 3)
 }
 
 func TestParsingIndexExpression(t *testing.T) {

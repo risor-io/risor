@@ -770,25 +770,25 @@ func (rl *RegexpLiteral) String() string {
 	return (fmt.Sprintf("/%s/%s", rl.Value, rl.Flags))
 }
 
-// ArrayLiteral holds an inline array
-type ArrayLiteral struct {
+// ListLiteral holds an inline list
+type ListLiteral struct {
 	// Token is the token
 	Token token.Token
 
-	// Elements holds the members of the array.
-	Elements []Expression
+	// Items holds the members of the list.
+	Items []Expression
 }
 
-func (al *ArrayLiteral) expressionNode() {}
+func (ll *ListLiteral) expressionNode() {}
 
 // TokenLiteral returns the literal token.
-func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
 
 // String returns this object as a string.
-func (al *ArrayLiteral) String() string {
+func (ll *ListLiteral) String() string {
 	var out bytes.Buffer
 	elements := make([]string, 0)
-	for _, el := range al.Elements {
+	for _, el := range ll.Items {
 		elements = append(elements, el.String())
 	}
 	out.WriteString("[")

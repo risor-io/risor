@@ -31,7 +31,7 @@ const (
 	FUNCTION_OBJ      = "FUNCTION"
 	STRING_OBJ        = "STRING"
 	BUILTIN_OBJ       = "BUILTIN"
-	ARRAY_OBJ         = "ARRAY"
+	LIST_OBJ          = "LIST"
 	HASH_OBJ          = "HASH"
 	FILE_OBJ          = "FILE"
 	REGEXP_OBJ        = "REGEXP"

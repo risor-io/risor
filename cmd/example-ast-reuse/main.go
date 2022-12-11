@@ -37,8 +37,8 @@ func main() {
 		scope.New(scope.Opts{Name: "execution1-scope"}),
 		scope.New(scope.Opts{Name: "execution2-scope"}),
 	}
-	inputs[0].Declare("input", object.NewStringArray([]string{"b", "a", "c"}), false)
-	inputs[1].Declare("input", object.NewStringArray([]string{"z", "y", "x"}), false)
+	inputs[0].Declare("input", object.NewStringList([]string{"b", "a", "c"}), false)
+	inputs[1].Declare("input", object.NewStringList([]string{"z", "y", "x"}), false)
 
 	// Execute the same AST multiple times, with a different scope each time.
 	for i, input := range inputs {

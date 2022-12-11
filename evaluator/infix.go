@@ -124,7 +124,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 				array[i] = &object.Integer{Value: leftVal}
 				leftVal++
 			}
-			return &object.Array{Elements: array}
+			return object.NewList(array)
 		}
 		len := int(leftVal-rightVal) + 1
 		if len > 1000 {
@@ -135,7 +135,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 			array[i] = &object.Integer{Value: leftVal}
 			leftVal--
 		}
-		return &object.Array{Elements: array}
+		return object.NewList(array)
 	default:
 		return newError("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())

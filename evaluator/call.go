@@ -49,14 +49,14 @@ func (e *Evaluator) evalObjectCall(
 	args []object.Object,
 ) object.Object {
 	switch obj := obj.(type) {
-	case *object.Array:
+	case *object.List:
 		switch method {
 		case "map":
-			return e.execArrayMap(ctx, s, obj, args...)
+			return e.execListMap(ctx, s, obj, args...)
 		case "filter":
-			return e.execArrayFilter(ctx, s, obj, args...)
+			return e.execListFilter(ctx, s, obj, args...)
 		case "each":
-			return e.execArrayEach(ctx, s, obj, args...)
+			return e.execListEach(ctx, s, obj, args...)
 		}
 	case *object.Module:
 		moduleScope := obj.Scope.(*scope.Scope)
@@ -74,10 +74,10 @@ func (e *Evaluator) evalObjectCall(
 	return newError("failed to invoke method: %s", method)
 }
 
-func (e *Evaluator) execArrayMap(
+func (e *Evaluator) execListMap(
 	ctx context.Context,
 	s *scope.Scope,
-	array *object.Array,
+	array *object.List,
 	args ...object.Object,
 ) object.Object {
 	if len(args) != 1 {
@@ -101,8 +101,8 @@ func (e *Evaluator) execArrayMap(
 
 	var index object.Integer
 	mapArgs := make([]object.Object, 2)
-	result := make([]object.Object, 0, len(array.Elements))
-	for i, value := range array.Elements {
+	result := make([]object.Object, 0, len(array.Items))
+	for i, value := range array.Items {
 		index.Value = int64(i)
 		mapArgs[0] = &index
 		mapArgs[1] = value
@@ -117,13 +117,13 @@ func (e *Evaluator) execArrayMap(
 		}
 		result = append(result, outputValue)
 	}
-	return &object.Array{Elements: result}
+	return &object.List{Items: result}
 }
 
-func (e *Evaluator) execArrayEach(
+func (e *Evaluator) execListEach(
 	ctx context.Context,
 	s *scope.Scope,
-	array *object.Array,
+	array *object.List,
 	args ...object.Object,
 ) object.Object {
 	if len(args) != 1 {
@@ -143,7 +143,7 @@ func (e *Evaluator) execArrayEach(
 	if numParameters != 1 {
 		return newError("error: function parameter count is incompatible with each call")
 	}
-	for _, value := range array.Elements {
+	for _, value := range array.Items {
 		callArgs := []object.Object{value}
 		outputValue := e.applyFunction(ctx, s, mapFunc, callArgs)
 		if isError(outputValue) {
@@ -153,10 +153,10 @@ func (e *Evaluator) execArrayEach(
 	return object.NULL
 }
 
-func (e *Evaluator) execArrayFilter(
+func (e *Evaluator) execListFilter(
 	ctx context.Context,
 	s *scope.Scope,
-	array *object.Array,
+	array *object.List,
 	args ...object.Object,
 ) object.Object {
 	if len(args) != 1 {
@@ -180,7 +180,7 @@ func (e *Evaluator) execArrayFilter(
 
 	filterArgs := make([]object.Object, 1)
 	var result []object.Object
-	for _, value := range array.Elements {
+	for _, value := range array.Items {
 		filterArgs[0] = value
 		decision := e.applyFunction(ctx, s, mapFunc, filterArgs)
 		if isError(decision) {
@@ -190,7 +190,7 @@ func (e *Evaluator) execArrayFilter(
 			result = append(result, value)
 		}
 	}
-	return &object.Array{Elements: result}
+	return &object.List{Items: result}
 }
 
 func (e *Evaluator) evalGetAttributeExpression(

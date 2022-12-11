@@ -8,14 +8,14 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalArrayLiteral(
+func (e *Evaluator) evalListLiteral(
 	ctx context.Context,
-	node *ast.ArrayLiteral,
+	node *ast.ListLiteral,
 	s *scope.Scope,
 ) object.Object {
-	elements := e.evalExpressions(ctx, node.Elements, s)
+	elements := e.evalExpressions(ctx, node.Items, s)
 	if len(elements) == 1 && isError(elements[0]) {
 		return elements[0]
 	}
-	return &object.Array{Elements: elements}
+	return &object.List{Items: elements}
 }

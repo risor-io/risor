@@ -1,6 +1,6 @@
 // github issue: n/a
 // expected value: [1, 2, 3]
-// expected type: ARRAY
+// expected type: LIST
 
 a := [
     "1",

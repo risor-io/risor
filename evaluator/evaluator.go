@@ -139,8 +139,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalStringLiteral(ctx, node, s)
 	case *ast.RegexpLiteral:
 		return &object.Regexp{Value: node.Value, Flags: node.Flags}
-	case *ast.ArrayLiteral:
-		return e.evalArrayLiteral(ctx, node, s)
+	case *ast.ListLiteral:
+		return e.evalListLiteral(ctx, node, s)
 	case *ast.HashLiteral:
 		return e.evalHashLiteral(ctx, node, s)
 	case *ast.SetLiteral:

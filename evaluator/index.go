@@ -22,7 +22,7 @@ func (e *Evaluator) evalIndexExpression(
 		return index
 	}
 	switch {
-	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.LIST_OBJ && index.Type() == object.INTEGER_OBJ:
 		return e.evalArrayIndexExpression(left, index)
 	case left.Type() == object.HASH_OBJ:
 		return e.evalHashIndexExpression(left, index)
@@ -33,23 +33,23 @@ func (e *Evaluator) evalIndexExpression(
 	}
 }
 
-func (e *Evaluator) evalArrayIndexExpression(array, index object.Object) object.Object {
-	arrayObject := array.(*object.Array)
+func (e *Evaluator) evalArrayIndexExpression(list, index object.Object) object.Object {
+	listObject := list.(*object.List)
 	idx := index.(*object.Integer).Value
-	len := int64(len(arrayObject.Elements))
+	len := int64(len(listObject.Items))
 	max := len - 1
 	if idx > max {
 		return newError("index error: array index out of range: %d", idx)
 	}
 	if idx >= 0 {
-		return arrayObject.Elements[idx]
+		return listObject.Items[idx]
 	}
 	// Handle negative indices, where -1 is the last item in the array
 	reversed := idx + len
 	if reversed < 0 || reversed > max {
 		return newError("index error: array index out of range: %d", idx)
 	}
-	return arrayObject.Elements[reversed]
+	return listObject.Items[reversed]
 }
 
 func (e *Evaluator) evalHashIndexExpression(hash, index object.Object) object.Object {

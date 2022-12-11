@@ -92,7 +92,7 @@ func Join(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.join", 2, args); err != nil {
 		return err
 	}
-	array, err := object.AsArray(args[0])
+	ls, err := object.AsList(args[0])
 	if err != nil {
 		return err
 	}
@@ -100,15 +100,15 @@ func Join(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	var stringArray []string
-	for _, item := range array.Elements {
+	var strs []string
+	for _, item := range ls.Items {
 		itemStr, err := object.AsString(item)
 		if err != nil {
 			return err
 		}
-		stringArray = append(stringArray, itemStr)
+		strs = append(strs, itemStr)
 	}
-	return object.NewString(strings.Join(stringArray, separator))
+	return object.NewString(strings.Join(strs, separator))
 }
 
 func Split(ctx context.Context, args ...object.Object) object.Object {
@@ -123,7 +123,7 @@ func Split(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewStringArray(strings.Split(s, sep))
+	return object.NewStringList(strings.Split(s, sep))
 }
 
 func Fields(ctx context.Context, args ...object.Object) object.Object {
@@ -134,7 +134,7 @@ func Fields(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewStringArray(strings.Fields(s))
+	return object.NewStringList(strings.Fields(s))
 }
 
 func Index(ctx context.Context, args ...object.Object) object.Object {

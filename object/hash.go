@@ -36,20 +36,20 @@ func (h *Hash) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", h.Type(), method)
 }
 
-func (h *Hash) Keys() *Array {
-	elements := make([]Object, 0, len(h.Map))
+func (h *Hash) Keys() *List {
+	items := make([]Object, 0, len(h.Map))
 	for k := range h.Map {
-		elements = append(elements, &String{Value: k})
+		items = append(items, &String{Value: k})
 	}
-	return &Array{Elements: elements}
+	return &List{Items: items}
 }
 
-func (h *Hash) Values() *Array {
-	elements := make([]Object, 0, len(h.Map))
+func (h *Hash) Values() *List {
+	items := make([]Object, 0, len(h.Map))
 	for _, v := range h.Map {
-		elements = append(elements, v)
+		items = append(items, v)
 	}
-	return &Array{Elements: elements}
+	return &List{Items: items}
 }
 
 func (h *Hash) GetWithObject(key *String) Object {
