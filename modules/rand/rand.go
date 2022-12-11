@@ -56,15 +56,15 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("rand.shuffle", 1, args); err != nil {
 		return err
 	}
-	arr, err := object.AsArray(args[0])
+	ls, err := object.AsList(args[0])
 	if err != nil {
 		return err
 	}
-	elements := arr.Elements
-	rand.Shuffle(len(elements), func(i, j int) {
-		elements[i], elements[j] = elements[j], elements[i]
+	items := ls.Items
+	rand.Shuffle(len(items), func(i, j int) {
+		items[i], items[j] = items[j], items[i]
 	})
-	return arr
+	return ls
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {

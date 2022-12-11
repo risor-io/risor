@@ -1,5 +1,5 @@
 // expected value: [1, 2, 2.2, 3, a]
-// expected type: ARRAY
+// expected type: LIST
 
 s1 := {1, "a", 2.2}
 s2 := {2, "a", 2.2}

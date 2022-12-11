@@ -41,8 +41,8 @@ func AsFloat(obj Object) (float64, *Error) {
 	}
 }
 
-func AsArray(obj Object) (*Array, *Error) {
-	arr, ok := obj.(*Array)
+func AsList(obj Object) (*List, *Error) {
+	arr, ok := obj.(*List)
 	if !ok {
 		return nil, NewError("type error: expected an array (got %v)", obj.Type())
 	}
@@ -103,15 +103,15 @@ func FromGoType(obj interface{}) Object {
 	case time.Time:
 		return &Time{Value: obj}
 	case []interface{}:
-		array := &Array{Elements: make([]Object, 0, len(obj))}
+		ls := &List{Items: make([]Object, 0, len(obj))}
 		for _, item := range obj {
-			arrayItem := FromGoType(item)
-			if arrayItem == nil {
+			listItem := FromGoType(item)
+			if listItem == nil {
 				return nil
 			}
-			array.Elements = append(array.Elements, arrayItem)
+			ls.Items = append(ls.Items, listItem)
 		}
-		return array
+		return ls
 	case map[string]interface{}:
 		hash := &Hash{Map: make(map[string]Object, len(obj))}
 		for k, v := range obj {
@@ -146,12 +146,12 @@ func ToGoType(obj Object) interface{} {
 		return obj.Value
 	case *Time:
 		return obj.Value
-	case *Array:
-		array := make([]interface{}, 0, len(obj.Elements))
-		for _, item := range obj.Elements {
-			array = append(array, ToGoType(item))
+	case *List:
+		ls := make([]interface{}, 0, len(obj.Items))
+		for _, item := range obj.Items {
+			ls = append(ls, ToGoType(item))
 		}
-		return array
+		return ls
 	case *Set:
 		array := make([]interface{}, 0, len(obj.Items))
 		for _, item := range obj.Items {

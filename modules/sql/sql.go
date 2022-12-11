@@ -90,7 +90,7 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 		}
 		results = append(results, row)
 	}
-	return &object.Result{Ok: &object.Array{Elements: results}}
+	return &object.Result{Ok: &object.List{Items: results}}
 }
 
 // Module returns the `sql` module object

@@ -29,7 +29,7 @@ func (s *Set) Inspect() string {
 func (s *Set) InvokeMethod(method string, args ...Object) Object {
 	switch method {
 	case "values":
-		return s.Array()
+		return s.List()
 	case "contains":
 		if len(args) == 0 {
 			return NewError("type error: set.contains() expects at least one argument")
@@ -167,12 +167,12 @@ func (s *Set) Difference(other *Set) *Set {
 	return difference
 }
 
-func (s *Set) Array() *Array {
-	array := &Array{Elements: make([]Object, 0, len(s.Items))}
+func (s *Set) List() *List {
+	l := &List{Items: make([]Object, 0, len(s.Items))}
 	for _, item := range s.Items {
-		array.Elements = append(array.Elements, item)
+		l.Items = append(l.Items, item)
 	}
-	return array
+	return l
 }
 
 func NewSetWithSize(size int) *Set {

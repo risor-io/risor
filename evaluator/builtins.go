@@ -23,8 +23,8 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.String:
 		return object.NewInteger(int64(utf8.RuneCountInString(arg.Value)))
-	case *object.Array:
-		return object.NewInteger(int64(len(arg.Elements)))
+	case *object.List:
+		return object.NewInteger(int64(len(arg.Items)))
 	case *object.Set:
 		return object.NewInteger(int64(len(arg.Items)))
 	case *object.Hash:
@@ -125,8 +125,8 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 		for _, v := range arg.Value {
 			set.Add(object.NewString(string(v)))
 		}
-	case *object.Array:
-		for _, obj := range arg.Elements {
+	case *object.List:
+		for _, obj := range arg.Items {
 			if err := set.Add(obj); err != nil {
 				return newError(err.Error())
 			}
@@ -169,7 +169,7 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("bool")
 	case *object.Builtin:
 		return object.NewString("builtin")
-	case *object.Array:
+	case *object.List:
 		return object.NewString("array")
 	case *object.Function:
 		return object.NewString("function")
@@ -233,8 +233,8 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Array:
-		for _, obj := range arg.Elements {
+	case *object.List:
+		for _, obj := range arg.Items {
 			if isTruthy(obj) {
 				return object.TRUE
 			}
@@ -262,8 +262,8 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Array:
-		for _, obj := range arg.Elements {
+	case *object.List:
+		for _, obj := range arg.Items {
 			if !isTruthy(obj) {
 				return object.FALSE
 			}
@@ -416,19 +416,21 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var items []object.Object
 	switch arg := args[0].(type) {
-	case *object.Array:
-		items = arg.Elements
+	case *object.List:
+		items = arg.Items
 	case *object.Hash:
-		items = arg.Keys().Elements
+		items = arg.Keys().Items
 	case *object.Set:
-		items = arg.Array().Elements
+		items = arg.List().Items
 	default:
 		return newError("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
 	}
+	itemsCopy := make([]object.Object, len(items))
+	copy(itemsCopy, items)
 	var comparableErr error
-	sort.SliceStable(items, func(a, b int) bool {
-		itemA := items[a]
-		itemB := items[b]
+	sort.SliceStable(itemsCopy, func(a, b int) bool {
+		itemA := itemsCopy[a]
+		itemB := itemsCopy[b]
 		compA, ok := itemA.(object.Comparable)
 		if !ok {
 			comparableErr = fmt.Errorf("type error: sorted() encountered a non-comparable item (%s)", itemA.Type())
@@ -445,7 +447,7 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	if comparableErr != nil {
 		return newError(comparableErr.Error())
 	}
-	return &object.Array{Elements: items}
+	return &object.List{Items: itemsCopy}
 }
 
 func Reversed(ctx context.Context, args ...object.Object) object.Object {
@@ -453,7 +455,7 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Array:
+	case *object.List:
 		return arg.Reversed()
 	case *object.String:
 		return arg.Reversed()
