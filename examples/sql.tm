@@ -4,7 +4,7 @@ conn := sql.connect("postgres://postgres:mysecretpassword@localhost:5432/postgre
 
 result := sql.query(conn, "select * from users where age > $1", 40)
 
-assert(result.is_ok(), "SQL query failed")
+assert(result.is_ok(), 'SQL query failed: {result}')
 
 rows := result.unwrap()
 rows.each(func(row) { print("row:", row) })
