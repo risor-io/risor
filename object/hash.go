@@ -55,7 +55,7 @@ func (m *Map) Values() *List {
 func (m *Map) GetWithObject(key *String) Object {
 	value, found := m.Items[key.Value]
 	if !found {
-		return Null
+		return Nil
 	}
 	return value
 }
@@ -63,14 +63,14 @@ func (m *Map) GetWithObject(key *String) Object {
 func (m *Map) Get(key string) Object {
 	value, found := m.Items[key]
 	if !found {
-		return Null
+		return Nil
 	}
 	return value
 }
 
 func (m *Map) Delete(key string) Object {
 	delete(m.Items, key)
-	return Null
+	return Nil
 }
 
 func (m *Map) Set(key string, value Object) {

@@ -183,14 +183,14 @@ func (p *DefaultProxyManager) Call(obj interface{}, method string, args ...Objec
 		// TODO: handle panic and translate to error
 		outputs := m.Method.Func.Call(inputs)
 		if len(outputs) == 0 {
-			return Null
+			return Nil
 		} else if len(outputs) == 1 {
 			if m.OutputHasErr {
 				if obj != nil {
 					err := outputs[0].Interface().(error)
 					return NewErrorResult(err.Error())
 				}
-				return NewOkResult(Null)
+				return NewOkResult(Nil)
 			}
 			obj, err := m.OutputConverters[0].From(outputs[0].Interface())
 			if err != nil {

@@ -52,7 +52,7 @@
       "patterns": [
         {
           "name": "constant.language",
-          "match": "\\b(true|false|null)\\b"
+          "match": "\\b(true|false|nil)\\b"
         },
         {
           "name": "constant.numeric",

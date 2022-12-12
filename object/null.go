@@ -1,23 +1,23 @@
 package object
 
-type NullType struct{}
+type NilType struct{}
 
-func (n *NullType) Type() Type {
-	return NULL
+func (n *NilType) Type() Type {
+	return NIL
 }
 
-func (n *NullType) Inspect() string {
-	return "null"
+func (n *NilType) Inspect() string {
+	return "nil"
 }
 
-func (n *NullType) InvokeMethod(method string, args ...Object) Object {
+func (n *NilType) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", n.Type(), method)
 }
 
-func (n *NullType) ToInterface() interface{} {
+func (n *NilType) ToInterface() interface{} {
 	return nil
 }
 
-func (n *NullType) Compare(other Object) (int, error) {
+func (n *NilType) Compare(other Object) (int, error) {
 	return CompareTypes(n, other), nil
 }

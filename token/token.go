@@ -73,7 +73,7 @@ const (
 	MOD             = "%"
 	NOT_CONTAINS    = "!~"
 	NOT_EQ          = "!="
-	NULL            = "null"
+	NIL             = "nil"
 	PIPE            = "|"
 	OR              = "||"
 	PERIOD          = "."
@@ -110,7 +110,7 @@ var keywords = map[string]Type{
 	"func":    FUNC,
 	"if":      IF,
 	"let":     LET,
-	"null":    NULL,
+	"nil":     NIL,
 	"return":  RETURN,
 	"switch":  SWITCH,
 	"true":    TRUE,

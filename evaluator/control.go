@@ -25,7 +25,7 @@ func (e *Evaluator) evalIfExpression(
 	} else if ie.Alternative != nil {
 		return e.Evaluate(ctx, ie.Alternative, s)
 	} else {
-		return object.Null
+		return object.Nil
 	}
 }
 
@@ -45,7 +45,7 @@ func (e *Evaluator) evalForLoopExpression(
 
 	// The for loop evaluates to this value. It is set to the last value
 	// evaluated in the for loop block.
-	var latestValue object.Object = object.Null
+	var latestValue object.Object = object.Nil
 
 	// This is a simple for loop, like "for { ... }". It will run until
 	// an error occurs or a break or return statement is encountered.
@@ -244,7 +244,7 @@ func (e *Evaluator) evalPipeExpression(
 	if nextArg != nil {
 		return nextArg
 	}
-	return object.Null
+	return object.Nil
 }
 
 func (e *Evaluator) evalReturnStatement(

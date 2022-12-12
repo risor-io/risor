@@ -80,7 +80,7 @@ func AsSet(obj Object) (*Set, *Error) {
 func FromGoType(obj interface{}) Object {
 	switch obj := obj.(type) {
 	case nil:
-		return Null
+		return Nil
 	case int:
 		return &Int{Value: int64(obj)}
 	case int32:
@@ -134,7 +134,7 @@ func FromGoType(obj interface{}) Object {
 
 func ToGoType(obj Object) interface{} {
 	switch obj := obj.(type) {
-	case *NullType:
+	case *NilType:
 		return nil
 	case *Int:
 		return obj.Value

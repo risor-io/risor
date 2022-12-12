@@ -24,7 +24,7 @@ const (
 	INT           = "int"
 	FLOAT         = "float"
 	BOOL          = "bool"
-	NULL          = "null"
+	NIL           = "nil"
 	ERROR         = "error"
 	FUNCTION      = "function"
 	STRING        = "string"
@@ -45,7 +45,7 @@ const (
 )
 
 var (
-	Null  = &NullType{}
+	Nil   = &NilType{}
 	True  = &Bool{Value: true}
 	False = &Bool{Value: false}
 )

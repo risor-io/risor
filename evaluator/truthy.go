@@ -4,7 +4,7 @@ import "github.com/cloudcmds/tamarin/object"
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
-	case object.Null:
+	case object.Nil:
 		return false
 	case object.True:
 		return true
@@ -42,7 +42,7 @@ func objectToNativeBoolean(o object.Object) bool {
 		return obj.Value != ""
 	case *object.Regexp:
 		return obj.Value != ""
-	case *object.NullType:
+	case *object.NilType:
 		return false
 	case *object.Int:
 		return obj.Value != 0

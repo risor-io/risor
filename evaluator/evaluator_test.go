@@ -206,15 +206,15 @@ func TestIfElseExpression(t *testing.T) {
 		if ok {
 			testDecimalObject(t, evaluated, int64(integer))
 		} else {
-			testNullObject(t, evaluated)
+			testNilObject(t, evaluated)
 		}
 	}
 }
 
-func testNullObject(t *testing.T, obj object.Object) bool {
+func testNilObject(t *testing.T, obj object.Object) bool {
 	t.Helper()
-	if obj != object.Null {
-		t.Errorf("object is not NULL. got=%T(%+v)", obj, obj)
+	if obj != object.Nil {
+		t.Errorf("object is not nil. got=%T(%+v)", obj, obj)
 		return false
 	}
 	return true
@@ -370,8 +370,8 @@ func TestBuiltinFunction(t *testing.T) {
 		case int:
 			testDecimalObject(t, evaluated, int64(expected))
 		case string:
-			if evaluated == object.Null {
-				t.Errorf("Got NULL output on input of '%s'\n", tt.input)
+			if evaluated == object.Nil {
+				t.Errorf("Got nil output on input of '%s'\n", tt.input)
 			} else {
 				errObj, ok := evaluated.(*object.Error)
 				if !ok {
@@ -503,7 +503,7 @@ func TestStringIndexExpression(t *testing.T) {
 		if ok {
 			testStringObject(t, evaluated, str)
 		} else {
-			testNullObject(t, evaluated)
+			testNilObject(t, evaluated)
 		}
 	}
 }
@@ -556,7 +556,7 @@ func TestHashIndexExpression(t *testing.T) {
 		if ok {
 			testDecimalObject(t, evaluated, int64(integer))
 		} else {
-			testNullObject(t, evaluated)
+			testNilObject(t, evaluated)
 		}
 	}
 }
@@ -656,7 +656,7 @@ func TestTypeBuiltin(t *testing.T) {
 		if ok {
 			testStringObject(t, evaluated, str)
 		} else {
-			testNullObject(t, evaluated)
+			testNilObject(t, evaluated)
 		}
 	}
 }

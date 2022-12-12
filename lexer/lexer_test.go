@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNull(t *testing.T) {
-	input := "a = null;"
+func TestNil(t *testing.T) {
+	input := "a = nil;"
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
-		{token.NULL, "null"},
+		{token.NIL, "nil"},
 		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}

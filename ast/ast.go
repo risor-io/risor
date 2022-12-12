@@ -320,19 +320,19 @@ func (pe *PostfixExpression) String() string {
 	return out.String()
 }
 
-// NullLiteral represents a literal null
-type NullLiteral struct {
+// NilLiteral represents a literal nil
+type NilLiteral struct {
 	// Token holds the actual token
 	Token token.Token
 }
 
-func (n *NullLiteral) expressionNode() {}
+func (n *NilLiteral) expressionNode() {}
 
 // TokenLiteral returns the literal token.
-func (n *NullLiteral) TokenLiteral() string { return n.Token.Literal }
+func (n *NilLiteral) TokenLiteral() string { return n.Token.Literal }
 
 // String returns this object as a string.
-func (n *NullLiteral) String() string { return n.Token.Literal }
+func (n *NilLiteral) String() string { return n.Token.Literal }
 
 // Bool holds a boolean type
 type Bool struct {
