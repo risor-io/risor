@@ -70,7 +70,7 @@ you should probably be using sandboxed V8/Javascript or Lua.
 - Growing standard library which generally wraps the Go stdlib
 - Includes higher level libraries that are beyond the Go stdlib
 - Currently libraries include: `json`, `math`, `rand`, `strings`, `time`, `uuid`, `strconv`, `sql`
-- Built-in types include: `set`, `hash`, `list`, `result`, and more
+- Built-in types include: `set`, `map`, `list`, `result`, and more
 - Functions are values; closures are supported
 - Cancel evaluation using Go contexts
 - Library may be imported using the `import` keyword
