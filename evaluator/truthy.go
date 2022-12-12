@@ -4,15 +4,15 @@ import "github.com/cloudcmds/tamarin/object"
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
-	case object.NULL:
+	case object.Null:
 		return false
-	case object.TRUE:
+	case object.True:
 		return true
-	case object.FALSE:
+	case object.False:
 		return false
 	default:
 		switch obj := obj.(type) {
-		case *object.Integer:
+		case *object.Int:
 			return obj.Value != 0
 		case *object.Float:
 			return obj.Value != 0.0
@@ -20,11 +20,11 @@ func isTruthy(obj object.Object) bool {
 			return obj.Value != ""
 		case *object.List:
 			return len(obj.Items) > 0
-		case *object.Hash:
-			return len(obj.Map) > 0
+		case *object.Map:
+			return len(obj.Items) > 0
 		case *object.Set:
 			return len(obj.Items) > 0
-		case *object.Boolean:
+		case *object.Bool:
 			return obj.Value
 		}
 		return true
@@ -36,22 +36,22 @@ func objectToNativeBoolean(o object.Object) bool {
 		o = r.Value
 	}
 	switch obj := o.(type) {
-	case *object.Boolean:
+	case *object.Bool:
 		return obj.Value
 	case *object.String:
 		return obj.Value != ""
 	case *object.Regexp:
 		return obj.Value != ""
-	case *object.Null:
+	case *object.NullType:
 		return false
-	case *object.Integer:
+	case *object.Int:
 		return obj.Value != 0
 	case *object.Float:
 		return obj.Value != 0.0
 	case *object.List:
 		return len(obj.Items) != 0
-	case *object.Hash:
-		return len(obj.Map) != 0
+	case *object.Map:
+		return len(obj.Items) != 0
 	case *object.Set:
 		return len(obj.Items) != 0
 	default:
@@ -59,9 +59,9 @@ func objectToNativeBoolean(o object.Object) bool {
 	}
 }
 
-func nativeBoolToBooleanObject(input bool) *object.Boolean {
+func nativeBoolToBooleanObject(input bool) *object.Bool {
 	if input {
-		return object.TRUE
+		return object.True
 	}
-	return object.FALSE
+	return object.False
 }

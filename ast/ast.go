@@ -334,8 +334,8 @@ func (n *NullLiteral) TokenLiteral() string { return n.Token.Literal }
 // String returns this object as a string.
 func (n *NullLiteral) String() string { return n.Token.Literal }
 
-// Boolean holds a boolean type
-type Boolean struct {
+// Bool holds a boolean type
+type Bool struct {
 	// Token holds the actual token
 	Token token.Token
 
@@ -343,13 +343,13 @@ type Boolean struct {
 	Value bool
 }
 
-func (b *Boolean) expressionNode() {}
+func (b *Bool) expressionNode() {}
 
 // TokenLiteral returns the literal token.
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+func (b *Bool) TokenLiteral() string { return b.Token.Literal }
 
 // String returns this object as a string.
-func (b *Boolean) String() string { return b.Token.Literal }
+func (b *Bool) String() string { return b.Token.Literal }
 
 // BlockStatement holds a group of statements, which are treated
 // as a block.  (For example the body of an `if` expression.)

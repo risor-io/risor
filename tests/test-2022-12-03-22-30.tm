@@ -1,5 +1,5 @@
 // expected value: foo 21 bar abcd
-// expected type: STRING
+// expected type: string
 
 a := 10
 

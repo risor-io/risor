@@ -30,21 +30,21 @@ func (e *Evaluator) evalPrefixExpression(
 
 func evalBangOperatorExpression(right object.Object) object.Object {
 	switch right {
-	case object.TRUE:
-		return object.FALSE
-	case object.FALSE:
-		return object.TRUE
-	case object.NULL:
-		return object.TRUE
+	case object.True:
+		return object.False
+	case object.False:
+		return object.True
+	case object.Null:
+		return object.True
 	default:
-		return object.FALSE
+		return object.False
 	}
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	switch obj := right.(type) {
-	case *object.Integer:
-		return &object.Integer{Value: -obj.Value}
+	case *object.Int:
+		return &object.Int{Value: -obj.Value}
 	case *object.Float:
 		return &object.Float{Value: -obj.Value}
 	default:

@@ -1,5 +1,5 @@
 // expected value: abc
-// expected type: STRING
+// expected type: string
 
 
 

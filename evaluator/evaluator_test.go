@@ -73,7 +73,7 @@ func testDecimalObject(t *testing.T, obj object.Object, expected interface{}) bo
 }
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	t.Helper()
-	result, ok := obj.(*object.Integer)
+	result, ok := obj.(*object.Int)
 	if !ok {
 		t.Errorf("obj is not Integer. got=%T(%+v)", obj, obj)
 		return false
@@ -156,9 +156,9 @@ func TestEvalBooleanExpression(t *testing.T) {
 }
 
 func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
-	result, ok := obj.(*object.Boolean)
+	result, ok := obj.(*object.Bool)
 	if !ok {
-		t.Errorf("object is not boolean. got=%T(%+v)", obj, obj)
+		t.Errorf("object is not bool. got=%T(%+v)", obj, obj)
 		return false
 	}
 	if result.Value != expected {
@@ -213,7 +213,7 @@ func TestIfElseExpression(t *testing.T) {
 
 func testNullObject(t *testing.T, obj object.Object) bool {
 	t.Helper()
-	if obj != object.NULL {
+	if obj != object.Null {
 		t.Errorf("object is not NULL. got=%T(%+v)", obj, obj)
 		return false
 	}
@@ -242,21 +242,21 @@ func TestErrorHandling(t *testing.T) {
 		input           string
 		expectedMessage string
 	}{
-		{"5+true;", "type error: unsupported operand types for +: INTEGER and BOOLEAN"},
-		{"5+true; 5;", "type error: unsupported operand types for +: INTEGER and BOOLEAN"},
-		{"-true", "type error: bad operand type for unary -: BOOLEAN"},
+		{"5+true;", "type error: unsupported operand types for +: int and bool"},
+		{"5+true; 5;", "type error: unsupported operand types for +: int and bool"},
+		{"-true", "type error: bad operand type for unary -: bool"},
 		{"3--", "name error: 3 is not defined"},
-		{"true+false", "type error: unsupported operand types for +: BOOLEAN and BOOLEAN"},
-		{"5;true+false;5", "type error: unsupported operand types for +: BOOLEAN and BOOLEAN"},
-		{"if (10>1) { true+false;}", "type error: unsupported operand types for +: BOOLEAN and BOOLEAN"},
+		{"true+false", "type error: unsupported operand types for +: bool and bool"},
+		{"5;true+false;5", "type error: unsupported operand types for +: bool and bool"},
+		{"if (10>1) { true+false;}", "type error: unsupported operand types for +: bool and bool"},
 		{`if (10 > 1) {
       if (10>1) {
 			return true+false;
 			}
 			return 1;
-}`, "type error: unsupported operand types for +: BOOLEAN and BOOLEAN"},
+}`, "type error: unsupported operand types for +: bool and bool"},
 		{"foobar", "name error: foobar is not defined"},
-		{`"Hello" - "World"`, "type error: unsupported operand types for -: STRING and STRING"},
+		{`"Hello" - "World"`, "type error: unsupported operand types for -: string and string"},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -361,7 +361,7 @@ func TestBuiltinFunction(t *testing.T) {
 		{`len("four")`, 4},
 		{`len("狐犬")`, 2},
 		{`len("hello world")`, 11},
-		{`len(1)`, "type error: len() argument is unsupported (INTEGER given)"},
+		{`len(1)`, "type error: len() argument is unsupported (int given)"},
 		{`len("one", "two")`, "type error: len() takes exactly 1 argument (2 given)"},
 	}
 	for _, tt := range tests {
@@ -370,7 +370,7 @@ func TestBuiltinFunction(t *testing.T) {
 		case int:
 			testDecimalObject(t, evaluated, int64(expected))
 		case string:
-			if evaluated == object.NULL {
+			if evaluated == object.Null {
 				t.Errorf("Got NULL output on input of '%s'\n", tt.input)
 			} else {
 				errObj, ok := evaluated.(*object.Error)
@@ -516,22 +516,22 @@ func TestHashLiterals(t *testing.T) {
 		"thr" + "ee" : 6/2,
 	}`
 	evaluated := testEval(input)
-	result, ok := evaluated.(*object.Hash)
+	result, ok := evaluated.(*object.Map)
 	if !ok {
 		t.Fatalf("Eval did't return Hash. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	require.Len(t, result.Map, 3)
+	require.Len(t, result.Items, 3)
 
-	one, ok := result.Get("one").(*object.Integer)
+	one, ok := result.Get("one").(*object.Int)
 	require.True(t, ok)
 	require.Equal(t, int64(1), one.Value)
 
-	two, ok := result.Get("two").(*object.Integer)
+	two, ok := result.Get("two").(*object.Int)
 	require.True(t, ok)
 	require.Equal(t, int64(2), two.Value)
 
-	thr, ok := result.Get("three").(*object.Integer)
+	thr, ok := result.Get("three").(*object.Int)
 	require.True(t, ok)
 	require.Equal(t, int64(3), thr.Value)
 }
@@ -635,7 +635,7 @@ func TestTypeBuiltin(t *testing.T) {
 		},
 		{
 			"type( 1 );",
-			"integer",
+			"int",
 		},
 		{
 			"type( 3.14159 );",
@@ -643,11 +643,11 @@ func TestTypeBuiltin(t *testing.T) {
 		},
 		{
 			"type( [1,2,3] );",
-			"array",
+			"list",
 		},
 		{
 			"type( { \"name\":\"monkey\" } );",
-			"hash",
+			"map",
 		},
 	}
 	for _, tt := range tests {
@@ -699,13 +699,13 @@ func TestSet(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, set.Items, 3)
 
-	hk1 := (&object.Integer{Value: 1}).HashKey()
-	hk2 := (&object.Integer{Value: 2}).HashKey()
-	hk3 := (&object.Integer{Value: 3}).HashKey()
+	hk1 := (&object.Int{Value: 1}).HashKey()
+	hk2 := (&object.Int{Value: 2}).HashKey()
+	hk3 := (&object.Int{Value: 3}).HashKey()
 
-	require.Equal(t, int64(1), set.Items[hk1].(*object.Integer).Value)
-	require.Equal(t, int64(2), set.Items[hk2].(*object.Integer).Value)
-	require.Equal(t, int64(3), set.Items[hk3].(*object.Integer).Value)
+	require.Equal(t, int64(1), set.Items[hk1].(*object.Int).Value)
+	require.Equal(t, int64(2), set.Items[hk2].(*object.Int).Value)
+	require.Equal(t, int64(3), set.Items[hk3].(*object.Int).Value)
 }
 
 func TestIndexErrors(t *testing.T) {

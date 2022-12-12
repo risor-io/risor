@@ -22,13 +22,13 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.String:
-		return object.NewInteger(int64(utf8.RuneCountInString(arg.Value)))
+		return object.NewInt(int64(utf8.RuneCountInString(arg.Value)))
 	case *object.List:
-		return object.NewInteger(int64(len(arg.Items)))
+		return object.NewInt(int64(len(arg.Items)))
 	case *object.Set:
-		return object.NewInteger(int64(len(arg.Items)))
-	case *object.Hash:
-		return object.NewInteger(int64(len(arg.Map)))
+		return object.NewInt(int64(len(arg.Items)))
+	case *object.Map:
+		return object.NewInt(int64(len(arg.Items)))
 	default:
 		return newError("type error: len() argument is unsupported (%s given)", args[0].Type())
 	}
@@ -49,7 +49,7 @@ func Match(ctx context.Context, args ...object.Object) object.Object {
 	}
 	reg := regexp.MustCompile(arg0)
 	res := reg.FindStringSubmatch(arg1)
-	newHash := object.NewHash(nil)
+	newMap := object.NewMap(nil)
 	if len(res) > 0 {
 		//
 		// If we get a match then the output is an array
@@ -61,12 +61,12 @@ func Match(ctx context.Context, args ...object.Object) object.Object {
 				// Capture groups start at index 0.
 				k := fmt.Sprintf("%d", int64(i-1))
 				v := object.NewString(res[i])
-				newHash.Map[k] = v
+				newMap.Items[k] = v
 			}
 		}
-		return newHash
+		return newMap
 	}
-	return newHash
+	return newMap
 }
 
 // Sprintf is the implementation of our `sprintf` function
@@ -90,7 +90,7 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("keys", 1, args); err != nil {
 		return err
 	}
-	hash, err := object.AsHash(args[0])
+	hash, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func Delete(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("delete", 2, args); err != nil {
 		return err
 	}
-	hash, err := object.AsHash(args[0])
+	hash, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
@@ -137,8 +137,8 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 				return newError(err.Error())
 			}
 		}
-	case *object.Hash:
-		for k := range arg.Map {
+	case *object.Map:
+		for k := range arg.Items {
 			if err := set.Add(object.NewString(k)); err != nil {
 				return newError(err.Error())
 			}
@@ -165,20 +165,20 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("string")
 	case *object.Regexp:
 		return object.NewString("regexp")
-	case *object.Boolean:
+	case *object.Bool:
 		return object.NewString("bool")
 	case *object.Builtin:
 		return object.NewString("builtin")
 	case *object.List:
-		return object.NewString("array")
+		return object.NewString("list")
 	case *object.Function:
 		return object.NewString("function")
-	case *object.Integer:
-		return object.NewString("integer")
+	case *object.Int:
+		return object.NewString("int")
 	case *object.Float:
 		return object.NewString("float")
-	case *object.Hash:
-		return object.NewString("hash")
+	case *object.Map:
+		return object.NewString("map")
 	case *object.Set:
 		return object.NewString("set")
 	case *object.Result:
@@ -187,10 +187,12 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("http_response")
 	case *object.Time:
 		return object.NewString("time")
-	case *object.Null:
+	case *object.NullType:
 		return object.NewString("null")
 	case *object.DatabaseConnection:
 		return object.NewString("db_connection")
+	case *object.Module:
+		return object.NewString("module")
 	default:
 		return newError("type error: type() argument not supported (%s given)", args[0].Type())
 	}
@@ -199,7 +201,7 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 func Ok(ctx context.Context, args ...object.Object) object.Object {
 	switch len(args) {
 	case 0:
-		return &object.Result{Ok: object.NULL}
+		return &object.Result{Ok: object.Null}
 	case 1:
 		return &object.Result{Ok: args[0]}
 	default:
@@ -225,7 +227,7 @@ func Assert(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return newError("assertion failed")
 	}
-	return object.NULL
+	return object.Null
 }
 
 func Any(ctx context.Context, args ...object.Object) object.Object {
@@ -236,25 +238,25 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		for _, obj := range arg.Items {
 			if isTruthy(obj) {
-				return object.TRUE
+				return object.True
 			}
 		}
-	case *object.Hash:
-		for _, v := range arg.Map {
+	case *object.Map:
+		for _, v := range arg.Items {
 			if isTruthy(v) {
-				return object.TRUE
+				return object.True
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Items {
 			if isTruthy(obj) {
-				return object.TRUE
+				return object.True
 			}
 		}
 	default:
 		return newError("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
-	return object.FALSE
+	return object.False
 }
 
 func All(ctx context.Context, args ...object.Object) object.Object {
@@ -265,25 +267,25 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		for _, obj := range arg.Items {
 			if !isTruthy(obj) {
-				return object.FALSE
+				return object.False
 			}
 		}
-	case *object.Hash:
-		for _, v := range arg.Map {
+	case *object.Map:
+		for _, v := range arg.Items {
 			if !isTruthy(v) {
-				return object.FALSE
+				return object.False
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Items {
 			if !isTruthy(obj) {
-				return object.FALSE
+				return object.False
 			}
 		}
 	default:
 		return newError("type error: all() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
-	return object.TRUE
+	return object.True
 }
 
 func Bool(ctx context.Context, args ...object.Object) object.Object {
@@ -291,9 +293,9 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	if isTruthy(args[0]) {
-		return object.TRUE
+		return object.True
 	}
-	return object.FALSE
+	return object.False
 }
 
 func Fetch(ctx context.Context, args ...object.Object) object.Object {
@@ -305,9 +307,9 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 	if argErr != nil {
 		return argErr
 	}
-	var params *object.Hash
+	var params *object.Map
 	if numArgs == 2 {
-		objParams, ok := args[1].(*object.Hash)
+		objParams, ok := args[1].(*object.Map)
 		if !ok {
 			return newError("type error: expected a hash argument; got %v", args[1].Type())
 		}
@@ -322,27 +324,27 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			method = value.Value
 		}
 		timeout := params.Get("timeout")
-		if timeout != object.NULL {
+		if timeout != object.Null {
 			switch value := timeout.(type) {
 			case *object.Float:
 				client.Timeout = time.Millisecond * time.Duration(value.Value*1000.0)
-			case *object.Integer:
+			case *object.Int:
 				client.Timeout = time.Second * time.Duration(value.Value)
 			default:
 				return newError("type error: timeout value should be an integer or float")
 			}
 		}
-		if bodyObj := params.Get("body"); bodyObj != object.NULL {
+		if bodyObj := params.Get("body"); bodyObj != object.Null {
 			switch bodyObj := bodyObj.(type) {
 			case *object.String:
 				body = bytes.NewBufferString(bodyObj.Value)
 			}
 			// TODO: support more buffer and/or stream options
 		}
-		if headersObj := params.Get("headers"); headersObj != object.NULL {
+		if headersObj := params.Get("headers"); headersObj != object.Null {
 			switch headersObj := headersObj.(type) {
-			case *object.Hash:
-				for k, v := range headersObj.Map {
+			case *object.Map:
+				for k, v := range headersObj.Items {
 					hdr.Add(k, v.Inspect())
 				}
 			}
@@ -372,7 +374,7 @@ func Print(ctx context.Context, args ...object.Object) object.Object {
 		values[i] = arg.Inspect()
 	}
 	fmt.Println(values...)
-	return object.NULL
+	return object.Null
 }
 
 // Printf is the implementation of our `printf` function.
@@ -380,10 +382,10 @@ func Printf(ctx context.Context, args ...object.Object) object.Object {
 	// Convert to the formatted version, via our `sprintf` function
 	out := Sprintf(ctx, args...)
 	// If that returned a string then we can print it
-	if out.Type() == object.STRING_OBJ {
+	if out.Type() == object.STRING {
 		fmt.Print(out.(*object.String).Value)
 	}
-	return object.NULL
+	return object.Null
 }
 
 func Unwrap(ctx context.Context, args ...object.Object) object.Object {
@@ -418,7 +420,7 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.List:
 		items = arg.Items
-	case *object.Hash:
+	case *object.Map:
 		items = arg.Keys().Items
 	case *object.Set:
 		items = arg.List().Items

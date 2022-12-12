@@ -4,7 +4,7 @@ package object
 type BreakValue struct{}
 
 func (rv *BreakValue) Type() Type {
-	return BREAK_VALUE_OBJ
+	return BREAK_VALUE
 }
 
 func (rv *BreakValue) Inspect() string {

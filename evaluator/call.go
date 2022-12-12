@@ -99,7 +99,7 @@ func (e *Evaluator) execListMap(
 		return newError("error: function parameter count is incompatible with map call")
 	}
 
-	var index object.Integer
+	var index object.Int
 	mapArgs := make([]object.Object, 2)
 	result := make([]object.Object, 0, len(array.Items))
 	for i, value := range array.Items {
@@ -150,7 +150,7 @@ func (e *Evaluator) execListEach(
 			return outputValue
 		}
 	}
-	return object.NULL
+	return object.Null
 }
 
 func (e *Evaluator) execListFilter(
@@ -204,7 +204,7 @@ func (e *Evaluator) evalGetAttributeExpression(
 	}
 	attrName := node.Attribute.Token.Literal
 	switch obj := obj.(type) {
-	case *object.Hash:
+	case *object.Map:
 		return obj.Get(attrName)
 	case *object.Module:
 		s := obj.Scope.(*scope.Scope)

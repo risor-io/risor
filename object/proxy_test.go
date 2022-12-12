@@ -73,9 +73,9 @@ func TestProxy(t *testing.T) {
 	proxy := object.NewProxy(mgr, &ProxyService{})
 
 	// Call Flub and check the result
-	res := proxy.InvokeMethod("Flub", &object.Hash{
-		Map: map[string]object.Object{
-			"A": object.NewInteger(99),
+	res := proxy.InvokeMethod("Flub", &object.Map{
+		Items: map[string]object.Object{
+			"A": object.NewInt(99),
 			"B": object.NewString("B"),
 			"C": object.NewBoolean(true),
 		},
@@ -83,8 +83,8 @@ func TestProxy(t *testing.T) {
 	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value)
 
 	// Try calling Increment
-	res = proxy.InvokeMethod("Increment", object.NewInteger(123))
-	require.Equal(t, int64(124), res.(*object.Integer).Value)
+	res = proxy.InvokeMethod("Increment", object.NewInt(123))
+	require.Equal(t, int64(124), res.(*object.Int).Value)
 
 	// Try calling ToUpper
 	res = proxy.InvokeMethod("ToUpper", object.NewString("hello"))
@@ -95,7 +95,7 @@ func TestProxy(t *testing.T) {
 	result, ok := res.(*object.Result)
 	require.True(t, ok)
 	require.True(t, result.IsOk())
-	require.Equal(t, int64(234), result.Ok.(*object.Integer).Value)
+	require.Equal(t, int64(234), result.Ok.(*object.Int).Value)
 
 	// Call ParseInt with an invalid input and check that an Err result is returned
 	res = proxy.InvokeMethod("ParseInt", object.NewString("not-an-int"))

@@ -115,7 +115,7 @@ func AutoImport(s *scope.Scope, allowList, denyList []string) error {
 // Any panic is handled internally and propagated as an error.
 //
 // The result value is the final of the final statement or
-// expression in the main source code, which may be object.NULL
+// expression in the main source code, which may be object.Null
 // if the expression doesn't evaluate to a value.
 func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 
@@ -162,9 +162,9 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	}).Evaluate(ctx, program, s)
 
 	// Let's guarantee that if there's no error we return a
-	// Tamarin object, so defaulting to object.NULL may make sense
+	// Tamarin object, so defaulting to object.Null may make sense
 	if result == nil {
-		return object.NULL, nil
+		return object.Null, nil
 	}
 
 	// If evaluation failed, we will have a Tamarin error object

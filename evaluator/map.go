@@ -13,7 +13,7 @@ func (e *Evaluator) evalHashLiteral(
 	node *ast.HashLiteral,
 	s *scope.Scope,
 ) object.Object {
-	hash := object.NewHash(make(map[string]interface{}, len(node.Pairs)))
+	m := object.NewMap(make(map[string]interface{}, len(node.Pairs)))
 	for keyNode, valueNode := range node.Pairs {
 		key := e.Evaluate(ctx, keyNode, s)
 		if isError(key) {
@@ -27,7 +27,7 @@ func (e *Evaluator) evalHashLiteral(
 		if isError(value) {
 			return value
 		}
-		hash.Set(keyStr, value)
+		m.Set(keyStr, value)
 	}
-	return hash
+	return m
 }

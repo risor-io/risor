@@ -183,14 +183,14 @@ func (p *DefaultProxyManager) Call(obj interface{}, method string, args ...Objec
 		// TODO: handle panic and translate to error
 		outputs := m.Method.Func.Call(inputs)
 		if len(outputs) == 0 {
-			return NULL
+			return Null
 		} else if len(outputs) == 1 {
 			if m.OutputHasErr {
 				if obj != nil {
 					err := outputs[0].Interface().(error)
 					return NewErrorResult(err.Error())
 				}
-				return NewOkResult(NULL)
+				return NewOkResult(Null)
 			}
 			obj, err := m.OutputConverters[0].From(outputs[0].Interface())
 			if err != nil {
@@ -229,7 +229,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) Type() Type {
-	return PROXY_OBJ
+	return PROXY
 }
 
 func (p *Proxy) Inspect() string {

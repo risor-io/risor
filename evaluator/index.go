@@ -22,11 +22,11 @@ func (e *Evaluator) evalIndexExpression(
 		return index
 	}
 	switch {
-	case left.Type() == object.LIST_OBJ && index.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.LIST && index.Type() == object.INT:
 		return e.evalArrayIndexExpression(left, index)
-	case left.Type() == object.HASH_OBJ:
+	case left.Type() == object.HASH:
 		return e.evalHashIndexExpression(left, index)
-	case left.Type() == object.STRING_OBJ:
+	case left.Type() == object.STRING:
 		return e.evalStringIndexExpression(left, index)
 	default:
 		return newError("type error: %s object is not scriptable", left.Type())
@@ -35,7 +35,7 @@ func (e *Evaluator) evalIndexExpression(
 
 func (e *Evaluator) evalArrayIndexExpression(list, index object.Object) object.Object {
 	listObject := list.(*object.List)
-	idx := index.(*object.Integer).Value
+	idx := index.(*object.Int).Value
 	len := int64(len(listObject.Items))
 	max := len - 1
 	if idx > max {
@@ -53,12 +53,12 @@ func (e *Evaluator) evalArrayIndexExpression(list, index object.Object) object.O
 }
 
 func (e *Evaluator) evalHashIndexExpression(hash, index object.Object) object.Object {
-	hashObject := hash.(*object.Hash)
+	m := hash.(*object.Map)
 	key, err := object.AsString(index)
 	if err != nil {
 		return err
 	}
-	value, ok := hashObject.Map[key]
+	value, ok := m.Items[key]
 	if !ok {
 		return newError("key error: %v", index.Inspect())
 	}
@@ -67,7 +67,7 @@ func (e *Evaluator) evalHashIndexExpression(hash, index object.Object) object.Ob
 
 func (e *Evaluator) evalStringIndexExpression(input, index object.Object) object.Object {
 	str := input.(*object.String).Value
-	idx := index.(*object.Integer).Value
+	idx := index.(*object.Int).Value
 	len := int64(len(str))
 	max := len - 1
 	if idx > max {

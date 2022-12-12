@@ -161,7 +161,7 @@ func TestBooleanExpression(t *testing.T) {
 		require.Len(t, program.Statements, 1)
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		require.True(t, ok)
-		exp, ok := stmt.Expression.(*ast.Boolean)
+		exp, ok := stmt.Expression.(*ast.Bool)
 		require.True(t, ok)
 		require.Equal(t, exp.Value, tt.boolValue)
 	}

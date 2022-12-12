@@ -14,7 +14,7 @@ type List struct {
 
 // Type returns the type of this object.
 func (ls *List) Type() Type {
-	return LIST_OBJ
+	return LIST
 }
 
 // Inspect returns a string-representation of the given object.
@@ -32,7 +32,7 @@ func (ls *List) Inspect() string {
 
 func (ls *List) InvokeMethod(method string, args ...Object) Object {
 	if method == "len" {
-		return &Integer{Value: int64(len(ls.Items))}
+		return &Int{Value: int64(len(ls.Items))}
 	}
 	return NewError("type error: %s object has no method %s", ls.Type(), method)
 }

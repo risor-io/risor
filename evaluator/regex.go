@@ -12,7 +12,7 @@ func matches(left, right object.Object, s *scope.Scope) object.Object {
 
 	str := left.Inspect()
 
-	if right.Type() != object.REGEXP_OBJ {
+	if right.Type() != object.REGEXP {
 		return newError("regexp required for regexp-match, given %s", right.Type())
 	}
 
@@ -40,16 +40,16 @@ func matches(left, right object.Object, s *scope.Scope) object.Object {
 
 	// Test if it matched
 	if len(res) > 0 {
-		return object.TRUE
+		return object.True
 	}
 
-	return object.FALSE
+	return object.False
 }
 
 func notMatches(left, right object.Object) object.Object {
 	str := left.Inspect()
 
-	if right.Type() != object.REGEXP_OBJ {
+	if right.Type() != object.REGEXP {
 		return newError("regexp required for regexp-match, given %s", right.Type())
 	}
 
@@ -68,8 +68,8 @@ func notMatches(left, right object.Object) object.Object {
 
 	// Test if it matched
 	if r.MatchString(str) {
-		return object.FALSE
+		return object.False
 	}
 
-	return object.TRUE
+	return object.True
 }

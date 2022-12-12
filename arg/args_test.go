@@ -15,9 +15,9 @@ func TestRequire(t *testing.T) {
 		"foo",
 		1,
 		[]object.Object{
-			&object.Integer{Value: 1},
-			&object.Integer{Value: 1},
-			&object.Integer{Value: 1},
+			&object.Int{Value: 1},
+			&object.Int{Value: 1},
+			&object.Int{Value: 1},
 		},
 	)
 	require.NotNil(t, err)
@@ -28,7 +28,7 @@ func TestRequire(t *testing.T) {
 		"bar",
 		2,
 		[]object.Object{
-			&object.Integer{Value: 1},
+			&object.Int{Value: 1},
 		},
 	)
 	require.NotNil(t, err)

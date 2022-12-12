@@ -25,7 +25,7 @@ func (e *Evaluator) evalIfExpression(
 	} else if ie.Alternative != nil {
 		return e.Evaluate(ctx, ie.Alternative, s)
 	} else {
-		return object.NULL
+		return object.Null
 	}
 }
 
@@ -45,7 +45,7 @@ func (e *Evaluator) evalForLoopExpression(
 
 	// The for loop evaluates to this value. It is set to the last value
 	// evaluated in the for loop block.
-	var latestValue object.Object = object.NULL
+	var latestValue object.Object = object.Null
 
 	// This is a simple for loop, like "for { ... }". It will run until
 	// an error occurs or a break or return statement is encountered.
@@ -123,9 +123,9 @@ func (e *Evaluator) evalSwitchStatement(
 				return blockOut
 			}
 			// Is it a regexp-match?
-			if out.Type() == object.REGEXP_OBJ {
+			if out.Type() == object.REGEXP {
 				m := matches(obj, out, s)
-				if m == object.TRUE {
+				if m == object.True {
 					// Evaluate the block and return the value
 					out := e.evalBlockStatement(ctx, opt.Block, s)
 					return out
@@ -244,7 +244,7 @@ func (e *Evaluator) evalPipeExpression(
 	if nextArg != nil {
 		return nextArg
 	}
-	return object.NULL
+	return object.Null
 }
 
 func (e *Evaluator) evalReturnStatement(

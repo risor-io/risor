@@ -108,7 +108,7 @@ func main() {
 	}
 
 	// Print the result
-	if result != object.NULL {
+	if result != object.Null {
 		fmt.Println(result.Inspect())
 	}
 }

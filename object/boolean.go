@@ -4,21 +4,21 @@ import (
 	"fmt"
 )
 
-// Boolean wraps bool and implements Object and Hashable interface.
-type Boolean struct {
+// Bool wraps bool and implements Object and Hashable interface.
+type Bool struct {
 	// Value holds the boolean value we wrap.
 	Value bool
 }
 
-func (b *Boolean) Type() Type {
-	return BOOLEAN_OBJ
+func (b *Bool) Type() Type {
+	return BOOL
 }
 
-func (b *Boolean) Inspect() string {
+func (b *Bool) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
 }
 
-func (b *Boolean) HashKey() Key {
+func (b *Bool) HashKey() Key {
 	var value int64
 	if b.Value {
 		value = 1
@@ -28,24 +28,24 @@ func (b *Boolean) HashKey() Key {
 	return Key{Type: b.Type(), IntValue: value}
 }
 
-func (b *Boolean) InvokeMethod(method string, args ...Object) Object {
+func (b *Bool) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", b.Type(), method)
 }
 
-func (b *Boolean) ToInterface() interface{} {
+func (b *Bool) ToInterface() interface{} {
 	return b.Value
 }
 
-func (b *Boolean) String() string {
-	return fmt.Sprintf("Boolean(%v)", b.Value)
+func (b *Bool) String() string {
+	return fmt.Sprintf("Bool(%v)", b.Value)
 }
 
-func (b *Boolean) Compare(other Object) (int, error) {
+func (b *Bool) Compare(other Object) (int, error) {
 	typeComp := CompareTypes(b, other)
 	if typeComp != 0 {
 		return typeComp, nil
 	}
-	otherBool := other.(*Boolean)
+	otherBool := other.(*Bool)
 	if b.Value == otherBool.Value {
 		return 0, nil
 	}
@@ -55,9 +55,9 @@ func (b *Boolean) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
-func NewBoolean(value bool) *Boolean {
+func NewBoolean(value bool) *Bool {
 	if value {
-		return TRUE
+		return True
 	}
-	return FALSE
+	return False
 }

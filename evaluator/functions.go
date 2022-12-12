@@ -36,7 +36,7 @@ func (e *Evaluator) evalFunctionDefinition(
 	if err := s.Declare(node.TokenLiteral(), fn, true); err != nil {
 		return newError(err.Error())
 	}
-	return object.NULL
+	return object.Null
 }
 
 func (e *Evaluator) applyFunction(

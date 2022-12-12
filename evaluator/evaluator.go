@@ -87,7 +87,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalIdentifier(node, s)
 	case *ast.IndexExpression:
 		return e.evalIndexExpression(ctx, node, s)
-	case *ast.Boolean:
+	case *ast.Bool:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.ImportStatement:
 		return e.evalImportStatement(ctx, node, s)
@@ -130,9 +130,9 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 
 	// Literals
 	case *ast.NullLiteral:
-		return object.NULL
+		return object.Null
 	case *ast.IntegerLiteral:
-		return &object.Integer{Value: node.Value}
+		return &object.Int{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
 	case *ast.StringLiteral:

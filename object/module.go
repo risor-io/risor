@@ -11,7 +11,7 @@ type Module struct {
 }
 
 func (m *Module) Type() Type {
-	return MODULE_OBJ
+	return MODULE
 }
 
 func (m *Module) Inspect() string {

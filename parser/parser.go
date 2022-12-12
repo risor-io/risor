@@ -628,7 +628,7 @@ func (p *Parser) parseImportStatement() ast.Expression {
 
 // parseBoolean parses a boolean token.
 func (p *Parser) parseBoolean() ast.Expression {
-	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+	return &ast.Bool{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
 
 // parseNull parses a null keyword

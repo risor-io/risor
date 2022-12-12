@@ -1,5 +1,5 @@
 // expected value: 101
-// expected type: STRING
+// expected type: string
 
 inc := func(x) {
     x + 1

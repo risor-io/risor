@@ -18,12 +18,12 @@ func Abs(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		v := arg.Value
 		if v < 0 {
 			v = v * -1
 		}
-		return &object.Integer{Value: v}
+		return &object.Int{Value: v}
 	case *object.Float:
 		v := arg.Value
 		if v < 0 {
@@ -40,7 +40,7 @@ func Sqrt(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		v := arg.Value
 		return &object.Float{Value: math.Sqrt(float64(v))}
 	case *object.Float:
@@ -73,7 +73,7 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 	var hasFlt, hasInt bool
 	for _, value := range array {
 		switch val := value.(type) {
-		case *object.Integer:
+		case *object.Int:
 			if !hasInt || maxInt < val.Value {
 				maxInt = val.Value
 				hasInt = true
@@ -118,7 +118,7 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	var hasFlt, hasInt bool
 	for _, value := range array {
 		switch val := value.(type) {
-		case *object.Integer:
+		case *object.Int:
 			if !hasInt || minInt > val.Value {
 				minInt = val.Value
 				hasInt = true
@@ -161,7 +161,7 @@ func Sum(ctx context.Context, args ...object.Object) object.Object {
 	var sum float64
 	for _, value := range array {
 		switch val := value.(type) {
-		case *object.Integer:
+		case *object.Int:
 			sum += float64(val.Value)
 		case *object.Float:
 			sum += val.Value
@@ -177,7 +177,7 @@ func Ceil(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		return arg
 	case *object.Float:
 		return object.NewFloat(math.Ceil(arg.Value))
@@ -191,7 +191,7 @@ func Floor(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		return arg
 	case *object.Float:
 		return object.NewFloat(math.Floor(arg.Value))
@@ -205,7 +205,7 @@ func Sin(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		return object.NewFloat(math.Sin(float64(arg.Value)))
 	case *object.Float:
 		return object.NewFloat(math.Sin(arg.Value))
@@ -219,7 +219,7 @@ func Cos(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch arg := args[0].(type) {
-	case *object.Integer:
+	case *object.Int:
 		return object.NewFloat(math.Cos(float64(arg.Value)))
 	case *object.Float:
 		return object.NewFloat(math.Cos(arg.Value))
