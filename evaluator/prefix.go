@@ -34,7 +34,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 		return object.False
 	case object.False:
 		return object.True
-	case object.Null:
+	case object.Nil:
 		return object.True
 	default:
 		return object.False

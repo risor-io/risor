@@ -111,7 +111,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
-	p.registerPrefix(token.NULL, p.parseNull)
+	p.registerPrefix(token.NIL, p.parseNil)
 	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
@@ -631,9 +631,9 @@ func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Bool{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
 
-// parseNull parses a null keyword
-func (p *Parser) parseNull() ast.Expression {
-	return &ast.NullLiteral{Token: p.curToken}
+// parseNil parses a nil keyword
+func (p *Parser) parseNil() ast.Expression {
+	return &ast.NilLiteral{Token: p.curToken}
 }
 
 // parsePrefixExpression parses a prefix-based expression.

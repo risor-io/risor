@@ -85,7 +85,7 @@ func execute(ctx context.Context, code string, sc *scope.Scope) (object.Object, 
 		return nil, err
 	}
 	switch result.(type) {
-	case *object.NullType:
+	case *object.NilType:
 	default:
 		fmt.Println(result.Inspect())
 	}

@@ -45,7 +45,7 @@ func (s *Set) InvokeMethod(method string, args ...Object) Object {
 		if err := s.Add(args...); err != nil {
 			return NewError(err.Error())
 		}
-		return Null
+		return Nil
 	case "remove":
 		if len(args) == 0 {
 			return NewError("type error: set.remove() expects at least one argument")
@@ -53,7 +53,7 @@ func (s *Set) InvokeMethod(method string, args ...Object) Object {
 		if err := s.Remove(args...); err != nil {
 			return NewError(err.Error())
 		}
-		return Null
+		return Nil
 	case "union":
 		if len(args) != 1 {
 			return NewError("type error: set.union() expects one argument")

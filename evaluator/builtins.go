@@ -187,8 +187,8 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("http_response")
 	case *object.Time:
 		return object.NewString("time")
-	case *object.NullType:
-		return object.NewString("null")
+	case *object.NilType:
+		return object.NewString("nil")
 	case *object.DatabaseConnection:
 		return object.NewString("db_connection")
 	case *object.Module:
@@ -201,7 +201,7 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 func Ok(ctx context.Context, args ...object.Object) object.Object {
 	switch len(args) {
 	case 0:
-		return &object.Result{Ok: object.Null}
+		return &object.Result{Ok: object.Nil}
 	case 1:
 		return &object.Result{Ok: args[0]}
 	default:
@@ -227,7 +227,7 @@ func Assert(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return newError("assertion failed")
 	}
-	return object.Null
+	return object.Nil
 }
 
 func Any(ctx context.Context, args ...object.Object) object.Object {
@@ -324,7 +324,7 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			method = value.Value
 		}
 		timeout := params.Get("timeout")
-		if timeout != object.Null {
+		if timeout != object.Nil {
 			switch value := timeout.(type) {
 			case *object.Float:
 				client.Timeout = time.Millisecond * time.Duration(value.Value*1000.0)
@@ -334,14 +334,14 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 				return newError("type error: timeout value should be an integer or float")
 			}
 		}
-		if bodyObj := params.Get("body"); bodyObj != object.Null {
+		if bodyObj := params.Get("body"); bodyObj != object.Nil {
 			switch bodyObj := bodyObj.(type) {
 			case *object.String:
 				body = bytes.NewBufferString(bodyObj.Value)
 			}
 			// TODO: support more buffer and/or stream options
 		}
-		if headersObj := params.Get("headers"); headersObj != object.Null {
+		if headersObj := params.Get("headers"); headersObj != object.Nil {
 			switch headersObj := headersObj.(type) {
 			case *object.Map:
 				for k, v := range headersObj.Items {
@@ -374,7 +374,7 @@ func Print(ctx context.Context, args ...object.Object) object.Object {
 		values[i] = arg.Inspect()
 	}
 	fmt.Println(values...)
-	return object.Null
+	return object.Nil
 }
 
 // Printf is the implementation of our `printf` function.
@@ -385,7 +385,7 @@ func Printf(ctx context.Context, args ...object.Object) object.Object {
 	if out.Type() == object.STRING {
 		fmt.Print(out.(*object.String).Value)
 	}
-	return object.Null
+	return object.Nil
 }
 
 func Unwrap(ctx context.Context, args ...object.Object) object.Object {

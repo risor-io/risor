@@ -85,7 +85,7 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 			if !object.IsError(hashVal) {
 				row.Items[key] = hashVal
 			} else {
-				row.Items[key] = object.Null
+				row.Items[key] = object.Nil
 			}
 		}
 		results = append(results, row)

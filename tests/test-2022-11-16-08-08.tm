@@ -1,6 +1,6 @@
 // github issue: n/a
-// expected value: null
-// expected type: null
+// expected value: nil
+// expected type: nil
 
 id := uuid.v4()
 assert(type(id) == "string")

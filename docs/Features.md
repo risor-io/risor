@@ -105,7 +105,7 @@ raw_str := `\t\r\n`                // raw string
 Functions are defined using the `func` keyword. They may be passed around as values.
 The `return` keyword is optional. If not present, the value of the last statement or
 expression in the block is understood to be the return value. Expressions that do not
-evaluate to a value will result in an `*object.Null` being returned.
+evaluate to a value will result in an `*object.Nil` being returned.
 
 ```
 func addOne(x) {
@@ -249,7 +249,7 @@ A variety of built-in types are available.
 {"key":2}  // map
 {1,2}      // set
 false      // bool
-null       // null
+nil        // nil
 func() {}  // function
 time.now() // time
 ```

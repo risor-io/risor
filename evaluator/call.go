@@ -150,7 +150,7 @@ func (e *Evaluator) execListEach(
 			return outputValue
 		}
 	}
-	return object.Null
+	return object.Nil
 }
 
 func (e *Evaluator) execListFilter(

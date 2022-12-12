@@ -129,8 +129,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return &object.BreakValue{}
 
 	// Literals
-	case *ast.NullLiteral:
-		return object.Null
+	case *ast.NilLiteral:
+		return object.Nil
 	case *ast.IntegerLiteral:
 		return &object.Int{Value: node.Value}
 	case *ast.FloatLiteral:

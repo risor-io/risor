@@ -69,7 +69,7 @@ func (b *Builtin) Key() string {
 func NewNoopBuiltin(Name string, Module *Module) *Builtin {
 	b := &Builtin{
 		Fn: func(ctx context.Context, args ...Object) Object {
-			return Null
+			return Nil
 		},
 		Name:   Name,
 		Module: Module,
