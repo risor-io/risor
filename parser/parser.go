@@ -199,7 +199,7 @@ func (p *Parser) Parse(ctx context.Context) (*ast.Program, error) {
 		return nil, p.err
 	}
 	// Parse the entire input program as a series of statements.
-	// Parsing stops on the first occurence of an error.
+	// Parsing stops on the first occurrence of an error.
 	program := &ast.Program{Statements: []ast.Statement{}}
 	for p.curToken.Type != token.EOF {
 		// Check for context timeout

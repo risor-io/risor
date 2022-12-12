@@ -185,7 +185,7 @@ type TypeConverter interface {
 	// From converts a Go object to a Tamarin object.
 	From(interface{}) (Object, error)
 
-	// Type that this TypeConverter is responsbile for.
+	// Type that this TypeConverter is responsible for.
 	Type() reflect.Type
 }
 
