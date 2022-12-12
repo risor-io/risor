@@ -1,6 +1,6 @@
 // github issue: n/a
 // expected value: "hello"
-// expected type: STRING
+// expected type: string
 
 let s = "\"hello\""
 let j = json.unmarshal(s)

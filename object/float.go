@@ -16,7 +16,7 @@ func (f *Float) Inspect() string {
 }
 
 func (f *Float) Type() Type {
-	return FLOAT_OBJ
+	return FLOAT
 }
 
 func (f *Float) HashKey() Key {
@@ -45,7 +45,7 @@ func (f *Float) Compare(other Object) (int, error) {
 			return 1, nil
 		}
 		return -1, nil
-	case *Integer:
+	case *Int:
 		if f.Value == float64(other.Value) {
 			return 0, nil
 		}

@@ -11,7 +11,7 @@ type HttpResponse struct {
 }
 
 func (r *HttpResponse) Type() Type {
-	return HTTP_RESPONSE_OBJ
+	return HTTP_RESPONSE
 }
 
 func (r *HttpResponse) Inspect() string {

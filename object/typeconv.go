@@ -23,7 +23,7 @@ func AsString(obj Object) (result string, err *Error) {
 }
 
 func AsInteger(obj Object) (int64, *Error) {
-	i, ok := obj.(*Integer)
+	i, ok := obj.(*Int)
 	if !ok {
 		return 0, NewError("type error: expected an integer (got %v)", obj.Type())
 	}
@@ -32,7 +32,7 @@ func AsInteger(obj Object) (int64, *Error) {
 
 func AsFloat(obj Object) (float64, *Error) {
 	switch obj := obj.(type) {
-	case *Integer:
+	case *Int:
 		return float64(obj.Value), nil
 	case *Float:
 		return obj.Value, nil
@@ -42,19 +42,19 @@ func AsFloat(obj Object) (float64, *Error) {
 }
 
 func AsList(obj Object) (*List, *Error) {
-	arr, ok := obj.(*List)
+	list, ok := obj.(*List)
 	if !ok {
-		return nil, NewError("type error: expected an array (got %v)", obj.Type())
+		return nil, NewError("type error: expected a list (got %v)", obj.Type())
 	}
-	return arr, nil
+	return list, nil
 }
 
-func AsHash(obj Object) (*Hash, *Error) {
-	hash, ok := obj.(*Hash)
+func AsMap(obj Object) (*Map, *Error) {
+	m, ok := obj.(*Map)
 	if !ok {
-		return nil, NewError("type error: expected a hash (got %v)", obj.Type())
+		return nil, NewError("type error: expected a map (got %v)", obj.Type())
 	}
-	return hash, nil
+	return m, nil
 }
 
 func AsTime(obj Object) (result time.Time, err *Error) {
@@ -80,13 +80,13 @@ func AsSet(obj Object) (*Set, *Error) {
 func FromGoType(obj interface{}) Object {
 	switch obj := obj.(type) {
 	case nil:
-		return NULL
+		return Null
 	case int:
-		return &Integer{Value: int64(obj)}
+		return &Int{Value: int64(obj)}
 	case int32:
-		return &Integer{Value: int64(obj)}
+		return &Int{Value: int64(obj)}
 	case int64:
-		return &Integer{Value: obj}
+		return &Int{Value: obj}
 	case float32:
 		return &Float{Value: float64(obj)}
 	case float64:
@@ -95,9 +95,9 @@ func FromGoType(obj interface{}) Object {
 		return &String{Value: obj}
 	case bool:
 		if obj {
-			return TRUE
+			return True
 		}
-		return FALSE
+		return False
 	case [16]uint8:
 		return &String{Value: uuid.UUID(obj).String()}
 	case time.Time:
@@ -113,15 +113,15 @@ func FromGoType(obj interface{}) Object {
 		}
 		return ls
 	case map[string]interface{}:
-		hash := &Hash{Map: make(map[string]Object, len(obj))}
+		m := &Map{Items: make(map[string]Object, len(obj))}
 		for k, v := range obj {
-			hashVal := FromGoType(v)
-			if hashVal == nil {
+			valueObj := FromGoType(v)
+			if valueObj == nil {
 				return nil
 			}
-			hash.Map[k] = hashVal
+			m.Items[k] = valueObj
 		}
-		return hash
+		return m
 	default:
 		return NewError("type error: unmarshaling %v (%v)",
 			obj, reflect.TypeOf(obj))
@@ -134,15 +134,15 @@ func FromGoType(obj interface{}) Object {
 
 func ToGoType(obj Object) interface{} {
 	switch obj := obj.(type) {
-	case *Null:
+	case *NullType:
 		return nil
-	case *Integer:
+	case *Int:
 		return obj.Value
 	case *Float:
 		return obj.Value
 	case *String:
 		return obj.Value
-	case *Boolean:
+	case *Bool:
 		return obj.Value
 	case *Time:
 		return obj.Value
@@ -158,9 +158,9 @@ func ToGoType(obj Object) interface{} {
 			array = append(array, ToGoType(item))
 		}
 		return array
-	case *Hash:
-		m := make(map[string]interface{}, len(obj.Map))
-		for k, v := range obj.Map {
+	case *Map:
+		m := make(map[string]interface{}, len(obj.Items))
+		for k, v := range obj.Items {
 			m[k] = ToGoType(v)
 		}
 		return m
@@ -205,7 +205,7 @@ var (
 type Int64Converter struct{}
 
 func (c *Int64Converter) To(obj Object) (interface{}, error) {
-	integer, ok := obj.(*Integer)
+	integer, ok := obj.(*Int)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
 	}
@@ -213,7 +213,7 @@ func (c *Int64Converter) To(obj Object) (interface{}, error) {
 }
 
 func (c *Int64Converter) From(obj interface{}) (Object, error) {
-	return NewInteger(obj.(int64)), nil
+	return NewInt(obj.(int64)), nil
 }
 
 func (c *Int64Converter) Type() reflect.Type {
@@ -224,7 +224,7 @@ func (c *Int64Converter) Type() reflect.Type {
 type IntConverter struct{}
 
 func (c *IntConverter) To(obj Object) (interface{}, error) {
-	integer, ok := obj.(*Integer)
+	integer, ok := obj.(*Int)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
 	}
@@ -232,7 +232,7 @@ func (c *IntConverter) To(obj Object) (interface{}, error) {
 }
 
 func (c *IntConverter) From(obj interface{}) (Object, error) {
-	return NewInteger(int64(obj.(int))), nil
+	return NewInt(int64(obj.(int))), nil
 }
 
 func (c *IntConverter) Type() reflect.Type {
@@ -296,11 +296,11 @@ func (c *Float32Converter) Type() reflect.Type {
 	return float32Type
 }
 
-// BooleanConverter converts between bool and Boolean.
+// BooleanConverter converts between bool and Bool.
 type BooleanConverter struct{}
 
 func (c *BooleanConverter) To(obj Object) (interface{}, error) {
-	b, ok := obj.(*Boolean)
+	b, ok := obj.(*Bool)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a boolean (got %v)", obj.Type())
 	}
@@ -338,12 +338,12 @@ func (c *TimeConverter) Type() reflect.Type {
 type MapStringIfaceConverter struct{}
 
 func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
-	hash, ok := obj.(*Hash)
+	mapObj, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
 	}
-	m := make(map[string]interface{}, len(hash.Map))
-	for k, v := range hash.Map {
+	m := make(map[string]interface{}, len(mapObj.Items))
+	for k, v := range mapObj.Items {
 		m[k] = ToGoType(v)
 	}
 	return m, nil
@@ -351,11 +351,11 @@ func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
 
 func (c *MapStringIfaceConverter) From(obj interface{}) (Object, error) {
 	m := obj.(map[string]interface{})
-	hash := NewHash(make(map[string]interface{}, len(m)))
+	newMap := NewMap(make(map[string]interface{}, len(m)))
 	for k, v := range m {
-		hash.Map[k] = FromGoType(v)
+		newMap.Items[k] = FromGoType(v)
 	}
-	return hash, nil
+	return newMap, nil
 }
 
 func (c *MapStringIfaceConverter) Type() reflect.Type {
@@ -368,11 +368,11 @@ type StructConverter struct {
 }
 
 func (c *StructConverter) To(obj Object) (interface{}, error) {
-	hash, ok := obj.(*Hash)
+	m, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a hash (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
 	}
-	goMap := ToGoType(hash)
+	goMap := ToGoType(m)
 	jsonBytes, err := json.Marshal(goMap)
 	if err != nil {
 		return nil, err

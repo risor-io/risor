@@ -12,7 +12,7 @@ type String struct {
 }
 
 func (s *String) Type() Type {
-	return STRING_OBJ
+	return STRING
 }
 
 func (s *String) Inspect() string {
@@ -29,10 +29,10 @@ func (s *String) HashKey() Key {
 
 func (s *String) InvokeMethod(method string, args ...Object) Object {
 	if method == "len" {
-		return &Integer{Value: int64(utf8.RuneCountInString(s.Value))}
+		return &Int{Value: int64(utf8.RuneCountInString(s.Value))}
 	}
 	if method == "ord" {
-		return &Integer{Value: int64(s.Value[0])}
+		return &Int{Value: int64(s.Value[0])}
 	}
 	return NewError("type error: %s object has no method %s", s.Type(), method)
 }

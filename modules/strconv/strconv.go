@@ -23,7 +23,7 @@ func Atoi(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.Atoi(s)
 	if err == nil {
-		return object.NewOkResult(object.NewInteger(int64(i)))
+		return object.NewOkResult(object.NewInt(int64(i)))
 	}
 	return object.NewErrorResult("strconv.atoi: %s", err)
 }
@@ -76,7 +76,7 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.ParseInt(s, int(base), int(bitSize))
 	if err == nil {
-		return object.NewOkResult(object.NewInteger(i))
+		return object.NewOkResult(object.NewInt(i))
 	}
 	return object.NewErrorResult("strconv.parse_int: %s", err)
 }

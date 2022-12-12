@@ -21,33 +21,33 @@ type Type string
 
 // Type constants
 const (
-	INTEGER_OBJ       = "INTEGER"
-	FLOAT_OBJ         = "FLOAT"
-	BOOLEAN_OBJ       = "BOOLEAN"
-	NULL_OBJ          = "NULL"
-	RETURN_VALUE_OBJ  = "RETURN_VALUE"
-	BREAK_VALUE_OBJ   = "BREAK_VALUE"
-	ERROR_OBJ         = "ERROR"
-	FUNCTION_OBJ      = "FUNCTION"
-	STRING_OBJ        = "STRING"
-	BUILTIN_OBJ       = "BUILTIN"
-	LIST_OBJ          = "LIST"
-	HASH_OBJ          = "HASH"
-	FILE_OBJ          = "FILE"
-	REGEXP_OBJ        = "REGEXP"
-	SET_OBJ           = "SET"
-	MODULE_OBJ        = "MODULE"
-	RESULT_OBJ        = "RESULT"
-	HTTP_RESPONSE_OBJ = "HTTP_RESPONSE"
-	DB_CONNECTION_OBJ = "DB_CONNECTION"
-	TIME_OBJ          = "TIME"
-	PROXY_OBJ         = "PROXY"
+	INT           = "int"
+	FLOAT         = "float"
+	BOOL          = "bool"
+	NULL          = "null"
+	ERROR         = "error"
+	FUNCTION      = "function"
+	STRING        = "string"
+	BUILTIN       = "builtin"
+	LIST          = "list"
+	HASH          = "hash"
+	FILE          = "file"
+	REGEXP        = "regexp"
+	SET           = "set"
+	MODULE        = "module"
+	RESULT        = "result"
+	HTTP_RESPONSE = "http_response"
+	DB_CONNECTION = "db_connection"
+	TIME          = "time"
+	PROXY         = "proxy"
+	RETURN_VALUE  = "return_value"
+	BREAK_VALUE   = "break_value"
 )
 
 var (
-	NULL  = &Null{}
-	TRUE  = &Boolean{Value: true}
-	FALSE = &Boolean{Value: false}
+	Null  = &NullType{}
+	True  = &Bool{Value: true}
+	False = &Bool{Value: false}
 )
 
 // Object is the interface that all object types in Tamarin must implement.

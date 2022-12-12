@@ -23,15 +23,15 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpr
 
 func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *scope.Scope) object.Object {
 	switch {
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.INT && right.Type() == object.INT:
 		return evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.FLOAT && right.Type() == object.FLOAT:
 		return evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.FLOAT && right.Type() == object.INT:
 		return evalFloatIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.INT && right.Type() == object.FLOAT:
 		return evalIntegerFloatInfixExpression(operator, left, right)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
 	case operator == "&&":
 		return nativeBoolToBooleanObject(objectToNativeBoolean(left) && objectToNativeBoolean(right))
@@ -45,7 +45,7 @@ func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *sco
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
-	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
+	case left.Type() == object.BOOL && right.Type() == object.BOOL:
 		return evalBooleanInfixExpression(operator, left, right)
 	case left.Type() != right.Type():
 		return newError("type error: unsupported operand types for %s: %s and %s",
@@ -75,32 +75,32 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 }
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Integer).Value
-	rightVal := right.(*object.Integer).Value
+	leftVal := left.(*object.Int).Value
+	rightVal := right.(*object.Int).Value
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+		return &object.Int{Value: leftVal + rightVal}
 	case "+=":
-		return &object.Integer{Value: leftVal + rightVal}
+		return &object.Int{Value: leftVal + rightVal}
 	case "%":
-		return &object.Integer{Value: leftVal % rightVal}
+		return &object.Int{Value: leftVal % rightVal}
 	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		return &object.Int{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+		return &object.Int{Value: leftVal - rightVal}
 	case "-=":
-		return &object.Integer{Value: leftVal - rightVal}
+		return &object.Int{Value: leftVal - rightVal}
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+		return &object.Int{Value: leftVal * rightVal}
 	case "*=":
-		return &object.Integer{Value: leftVal * rightVal}
+		return &object.Int{Value: leftVal * rightVal}
 	case "/":
 		if rightVal == 0 {
 			return newError("zero division error")
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		return &object.Int{Value: leftVal / rightVal}
 	case "/=":
-		return &object.Integer{Value: leftVal / rightVal}
+		return &object.Int{Value: leftVal / rightVal}
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -121,7 +121,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 			}
 			array := make([]object.Object, len)
 			for i := 0; i < len; i++ {
-				array[i] = &object.Integer{Value: leftVal}
+				array[i] = &object.Int{Value: leftVal}
 				leftVal++
 			}
 			return object.NewList(array)
@@ -132,7 +132,7 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		}
 		array := make([]object.Object, len)
 		for i := 0; i < len; i++ {
-			array[i] = &object.Integer{Value: leftVal}
+			array[i] = &object.Int{Value: leftVal}
 			leftVal--
 		}
 		return object.NewList(array)
@@ -184,7 +184,7 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 
 func evalFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Float).Value
-	rightVal := float64(right.(*object.Integer).Value)
+	rightVal := float64(right.(*object.Int).Value)
 	switch operator {
 	case "+":
 		return &object.Float{Value: leftVal + rightVal}
@@ -223,7 +223,7 @@ func evalFloatIntegerInfixExpression(operator string, left, right object.Object)
 }
 
 func evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := float64(left.(*object.Integer).Value)
+	leftVal := float64(left.(*object.Int).Value)
 	rightVal := right.(*object.Float).Value
 	switch operator {
 	case "+":

@@ -1,5 +1,5 @@
 // github issue: n/a
 // expected value: 2
-// expected type: FLOAT
+// expected type: float
 
 math.sqrt(4.0)

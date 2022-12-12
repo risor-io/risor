@@ -26,7 +26,7 @@ type Builtin struct {
 
 // Type returns the type of this object.
 func (b *Builtin) Type() Type {
-	return BUILTIN_OBJ
+	return BUILTIN
 }
 
 // Inspect returns a string-representation of the given object.
@@ -69,7 +69,7 @@ func (b *Builtin) Key() string {
 func NewNoopBuiltin(Name string, Module *Module) *Builtin {
 	b := &Builtin{
 		Fn: func(ctx context.Context, args ...Object) Object {
-			return NULL
+			return Null
 		},
 		Name:   Name,
 		Module: Module,

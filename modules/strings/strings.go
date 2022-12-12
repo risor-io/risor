@@ -70,7 +70,7 @@ func Count(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Integer{Value: int64(strings.Count(s, substr))}
+	return &object.Int{Value: int64(strings.Count(s, substr))}
 }
 
 func Compare(ctx context.Context, args ...object.Object) object.Object {
@@ -85,7 +85,7 @@ func Compare(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Integer{Value: int64(strings.Compare(s1, s2))}
+	return &object.Int{Value: int64(strings.Compare(s1, s2))}
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
@@ -149,7 +149,7 @@ func Index(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Integer{Value: int64(strings.Index(s, substr))}
+	return &object.Int{Value: int64(strings.Index(s, substr))}
 }
 
 func LastIndex(ctx context.Context, args ...object.Object) object.Object {
@@ -164,7 +164,7 @@ func LastIndex(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Integer{Value: int64(strings.LastIndex(s, substr))}
+	return &object.Int{Value: int64(strings.LastIndex(s, substr))}
 }
 
 func Replace(ctx context.Context, args ...object.Object) object.Object {

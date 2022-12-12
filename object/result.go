@@ -11,7 +11,7 @@ type Result struct {
 }
 
 func (rv *Result) Type() Type {
-	return RESULT_OBJ
+	return RESULT
 }
 
 func (rv *Result) Inspect() string {
@@ -28,17 +28,17 @@ func (rv *Result) InvokeMethod(method string, args ...Object) Object {
 			return NewError(fmt.Sprintf("type error: is_err() takes exactly 0 arguments (%d given)", len(args)))
 		}
 		if rv.Err != nil {
-			return TRUE
+			return True
 		}
-		return FALSE
+		return False
 	case "is_ok":
 		if len(args) != 0 {
 			return NewError(fmt.Sprintf("type error: is_ok() takes exactly 0 arguments (%d given)", len(args)))
 		}
 		if rv.Ok != nil {
-			return TRUE
+			return True
 		}
-		return FALSE
+		return False
 	case "unwrap":
 		if len(args) != 0 {
 			return NewError(fmt.Sprintf("type error: unwrap() takes exactly 0 arguments (%d given)", len(args)))

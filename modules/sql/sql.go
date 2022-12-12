@@ -69,7 +69,7 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 		if err != nil {
 			return object.NewErrorResult(err.Error())
 		}
-		row := object.NewHash(nil)
+		row := object.NewMap(nil)
 		for colIndex, val := range values {
 			key := fields[colIndex].Name
 			var hashVal object.Object
@@ -83,9 +83,9 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 				return object.NewErrorResult("type error: unsupported type in sql results: %T", val)
 			}
 			if !object.IsError(hashVal) {
-				row.Map[key] = hashVal
+				row.Items[key] = hashVal
 			} else {
-				row.Map[key] = object.NULL
+				row.Items[key] = object.Null
 			}
 		}
 		results = append(results, row)

@@ -9,7 +9,7 @@ type Time struct {
 }
 
 func (t *Time) Type() Type {
-	return TIME_OBJ
+	return TIME
 }
 
 func (t *Time) Inspect() string {

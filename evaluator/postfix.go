@@ -18,8 +18,8 @@ func (e *Evaluator) evalPostfixExpression(
 			return newError("name error: %s is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
-		case *object.Integer:
-			if err := s.Update(node.Token.Literal, &object.Integer{Value: arg.Value + 1}); err != nil {
+		case *object.Int:
+			if err := s.Update(node.Token.Literal, &object.Int{Value: arg.Value + 1}); err != nil {
 				return newError(err.Error())
 			}
 			return arg
@@ -32,8 +32,8 @@ func (e *Evaluator) evalPostfixExpression(
 			return newError("name error: %s is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
-		case *object.Integer:
-			if err := s.Update(node.Token.Literal, &object.Integer{Value: arg.Value - 1}); err != nil {
+		case *object.Int:
+			if err := s.Update(node.Token.Literal, &object.Int{Value: arg.Value - 1}); err != nil {
 				return newError(err.Error())
 			}
 			return arg

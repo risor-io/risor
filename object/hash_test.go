@@ -16,5 +16,5 @@ func TestStringHashKey(t *testing.T) {
 	require.Equal(t, c.HashKey(), d.HashKey())
 	require.NotEqual(t, a.HashKey(), c.HashKey())
 
-	require.Equal(t, Key{Type: STRING_OBJ, StrValue: "hello"}, a.HashKey())
+	require.Equal(t, Key{Type: STRING, StrValue: "hello"}, a.HashKey())
 }

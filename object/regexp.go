@@ -12,7 +12,7 @@ type Regexp struct {
 }
 
 func (r *Regexp) Type() Type {
-	return REGEXP_OBJ
+	return REGEXP
 }
 
 func (r *Regexp) Inspect() string {

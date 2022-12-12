@@ -1,6 +1,6 @@
 // github issue: n/a
 // expected value: 10
-// expected type: INTEGER
+// expected type: int
 
 i := 0
 

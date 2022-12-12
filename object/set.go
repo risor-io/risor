@@ -11,7 +11,7 @@ type Set struct {
 }
 
 func (s *Set) Type() Type {
-	return SET_OBJ
+	return SET
 }
 
 func (s *Set) Inspect() string {
@@ -35,9 +35,9 @@ func (s *Set) InvokeMethod(method string, args ...Object) Object {
 			return NewError("type error: set.contains() expects at least one argument")
 		}
 		if s.Contains(args...) {
-			return TRUE
+			return True
 		}
-		return FALSE
+		return False
 	case "add":
 		if len(args) == 0 {
 			return NewError("type error: set.add() expects at least one argument")
@@ -45,7 +45,7 @@ func (s *Set) InvokeMethod(method string, args ...Object) Object {
 		if err := s.Add(args...); err != nil {
 			return NewError(err.Error())
 		}
-		return NULL
+		return Null
 	case "remove":
 		if len(args) == 0 {
 			return NewError("type error: set.remove() expects at least one argument")
@@ -53,7 +53,7 @@ func (s *Set) InvokeMethod(method string, args ...Object) Object {
 		if err := s.Remove(args...); err != nil {
 			return NewError(err.Error())
 		}
-		return NULL
+		return Null
 	case "union":
 		if len(args) != 1 {
 			return NewError("type error: set.union() expects one argument")

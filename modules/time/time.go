@@ -103,7 +103,7 @@ func Unix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Integer{Value: t.Unix()}
+	return &object.Int{Value: t.Unix()}
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {

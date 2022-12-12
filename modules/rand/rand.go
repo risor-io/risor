@@ -24,7 +24,7 @@ func Int(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("rand.int", 0, args); err != nil {
 		return err
 	}
-	return object.NewInteger(rand.Int63())
+	return object.NewInt(rand.Int63())
 }
 
 func IntN(ctx context.Context, args ...object.Object) object.Object {
@@ -35,7 +35,7 @@ func IntN(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewInteger(rand.Int63n(n))
+	return object.NewInt(rand.Int63n(n))
 }
 
 func NormFloat(ctx context.Context, args ...object.Object) object.Object {
