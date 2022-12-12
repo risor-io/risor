@@ -43,7 +43,7 @@ x = "now a string"
 print(x)
 ```
 
-## Semicolons
+## Optional Semicolons
 
 Semicolons are optional, so statements are ended by newlines if semicolons are not present.
 
@@ -59,33 +59,45 @@ Lines are commented using `//`.
 // This line is commented out
 ```
 
+Block comments are defined using `/*` and `*/`.
+
+## Integers
+
+Integers are represented by Go's `int64` type internally. Numeric operations
+that involve a mix of int and float inputs generally produce a float output.
+Integers are automaticaly converted to floats in these situations.
+
+```
+>>> 1 + 3.3
+4.3
+>>> type(1)
+int
+```
+
+## Floats
+
+Floating point numbers use Go's `float64` type internally.
+
+```
+>>> math.max([1.0, 2.0])
+2.0
+>>> type(2.0)
+float
+```
+
 ## Strings
 
-Strings come in three varieties, with some different features available depending
-on each type. The most basic form is the double-quoted string, which behaves very
-similarly to Go's string type. Single quoted strings have the additional behavior
-of string templating using variables like Python f-strings. Finally, strings defined
-using backticks opt out of all character escaping and support multi-line strings.
+Strings come in three varieties. The standard string uses double quotes and
+behaves very similarly to Go's string. Single quoted strings are similar, but
+have the additional feature of supporting string templating similar to Python's
+f-strings. Finally, raw strings are defined using backticks. Use raw strings
+when you want to include backslashes, single or double quotes, or newlines in
+your string.
 
 ```
-salutation := "hello there"         // double-quoted string
-count := 12
-count_str := "the count is {count}" // single-quoted string with variable
-backtick_str := `\t\r\n`            // backtick string
-```
-
-## String Templates
-
-Arbitrary Tamarin code can be specified in string templates. The only limitation
-is that `{` and `}` are disallowed, since those are used to delineate the template
-variables. In practice we think this limitation doesn't get in the way of most
-common uses of string templating.
-
-A couple more examples:
-
-```
-len_msg := 'list length: {len([1, 2, 3])}' // "list length: 3"
-type_msg := 'type: {type(1.2)}'            // "type: float"
+salutation := "hello there"        // double-quoted string
+count_str := 'the count is {1+1}'  // single-quoted string
+raw_str := `\t\r\n`                // raw string
 ```
 
 ## Functions
@@ -102,7 +114,7 @@ func addOne(x) {
 
 // This way of defining a function is equivalent to the above
 const subOne = func(x) {
-return x - 1
+    return x - 1
 }
 
 addOne(100)
@@ -230,13 +242,13 @@ printf(...)       // equivalent to fmt.Printf
 A variety of built-in types are available.
 
 ```
-101        // integer
+101        // int
 1.1        // float
 "1"        // string
 [1,2,3]    // list
-{"key":2}  // hash
+{"key":2}  // map
 {1,2}      // set
-false      // boolean
+false      // bool
 null       // null
 func() {}  // function
 time.now() // time
