@@ -18,3 +18,10 @@ func (rv *BreakValue) InvokeMethod(method string, args ...Object) Object {
 func (rv *BreakValue) ToInterface() interface{} {
 	return "<BREAK_VALUE>"
 }
+
+func (rv *BreakValue) Equals(other Object) Object {
+	if other.Type() == BREAK_VALUE {
+		return True
+	}
+	return False
+}

@@ -19,3 +19,8 @@ func (c *DatabaseConnection) InvokeMethod(method string, args ...Object) Object 
 func (c *DatabaseConnection) ToInterface() interface{} {
 	return c.Conn
 }
+
+func (c *DatabaseConnection) Equals(other Object) Object {
+	value := other.Type() == DB_CONNECTION && c.Conn == other.(*DatabaseConnection).Conn
+	return NewBoolean(value)
+}

@@ -44,3 +44,13 @@ func (e *Error) Compare(other Object) (int, error) {
 	}
 	return -1, nil
 }
+
+func (e *Error) Equals(other Object) Object {
+	if other.Type() != ERROR {
+		return False
+	}
+	if e.Message == other.(*Error).Message {
+		return True
+	}
+	return False
+}

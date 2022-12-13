@@ -291,24 +291,14 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newToken(token.GT, string(l.ch))
 		}
 	case rune('~'):
-		if l.peekChar() == rune('=') {
-			ch := l.ch
-			l.readChar()
-			tok = l.newToken(token.CONTAINS, string(ch)+string(l.ch))
-		}
+		return token.Token{}, fmt.Errorf("unexpected character: %q", l.ch)
 	case rune('!'):
 		if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
 			tok = l.newToken(token.NOT_EQ, string(ch)+string(l.ch))
 		} else {
-			if l.peekChar() == rune('~') {
-				ch := l.ch
-				l.readChar()
-				tok = l.newToken(token.NOT_CONTAINS, string(ch)+string(l.ch))
-			} else {
-				tok = l.newToken(token.BANG, string(l.ch))
-			}
+			tok = l.newToken(token.BANG, string(l.ch))
 		}
 	case rune('\''):
 		s, err := l.readString('\'')

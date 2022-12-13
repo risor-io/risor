@@ -48,3 +48,7 @@ func (m *Module) Compare(other Object) (int, error) {
 	}
 	return -1, nil
 }
+
+func (m *Module) Equals(other Object) Object {
+	return NewBoolean(other.Type() == MODULE && m.Name == other.(*Module).Name)
+}

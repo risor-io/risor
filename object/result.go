@@ -98,3 +98,19 @@ func (rv *Result) IsOk() bool {
 func (rv *Result) IsErr() bool {
 	return rv.Err != nil
 }
+
+func (rv *Result) Equals(other Object) Object {
+	if other.Type() != RESULT {
+		return False
+	}
+	otherResult := other.(*Result)
+	if rv.Ok != nil {
+		return NewBoolean(otherResult.Ok != nil && rv.Ok.Equals(otherResult.Ok).(*Bool).Value)
+	} else if rv.Err != nil {
+		return NewBoolean(otherResult.Err != nil && rv.Err.Equals(otherResult.Err).(*Bool).Value)
+	}
+	if otherResult.Ok == nil && otherResult.Err == nil {
+		return True
+	}
+	return False
+}

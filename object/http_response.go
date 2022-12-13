@@ -2,7 +2,7 @@ package object
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -51,9 +51,16 @@ func (r *HttpResponse) JSON() (target interface{}, err error) {
 
 func (r *HttpResponse) Text() (string, error) {
 	defer r.Response.Body.Close()
-	bytes, err := ioutil.ReadAll(r.Response.Body)
+	bytes, err := io.ReadAll(r.Response.Body)
 	if err != nil {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+func (r *HttpResponse) Equals(other Object) Object {
+	if other.Type() != HTTP_RESPONSE {
+		return False
+	}
+	return NewBoolean(r.Response == other.(*HttpResponse).Response)
 }

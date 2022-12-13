@@ -65,6 +65,14 @@ func (b *Builtin) Key() string {
 	return fmt.Sprintf("%s.%s", b.Module.Name, b.Name)
 }
 
+func (b *Builtin) Equals(other Object) Object {
+	if other.Type() != BUILTIN {
+		return NewBoolean(false)
+	}
+	value := fmt.Sprintf("%v", b.Fn) == fmt.Sprintf("%v", other.(*Builtin).Fn)
+	return NewBoolean(value)
+}
+
 // NewNoopBuiltin creates a builtin function that has no effect.
 func NewNoopBuiltin(Name string, Module *Module) *Builtin {
 	b := &Builtin{

@@ -21,3 +21,10 @@ func (n *NilType) ToInterface() interface{} {
 func (n *NilType) Compare(other Object) (int, error) {
 	return CompareTypes(n, other), nil
 }
+
+func (n *NilType) Equals(other Object) Object {
+	if other.Type() == NIL {
+		return True
+	}
+	return False
+}

@@ -220,7 +220,6 @@ type(x)           // returns the string type name of x
 len(s)            // returns the size of the string, array, hash, or set
 any(arr)          // true if any item in arr is truthy
 all(arr)          // true if all items in arr are truthy
-match(regex, str) // check if the string matches the regex
 sprintf(msg, ...) // equivalent to fmt.Sprintf
 keys(hash)        // returns an array of keys in the given hash
 delete(hash, key) // delete an item from the hash
