@@ -1,5 +1,5 @@
 // expected value: [1, 2, 3, 4]
-// expected type: ARRAY
+// expected type: list
 
 a := [1,2,3]
 a.append(4)
