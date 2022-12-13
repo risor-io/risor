@@ -36,39 +36,39 @@ func (ls *List) InvokeMethod(method string, args ...Object) Object {
 		if len(args) != 1 {
 			return NewError("type error: array.append() expects one argument")
 		}
-		ao.Append(args[0])
-		return ao
+		ls.Append(args[0])
+		return ls
 	case "clear":
 		if len(args) != 0 {
 			return NewError("type error: array.clear() expects zero arguments")
 		}
-		ao.Clear()
-		return ao
+		ls.Clear()
+		return ls
 	case "copy":
 		if len(args) != 0 {
 			return NewError("type error: array.copy() expects zero arguments")
 		}
-		return ao.Copy()
+		return ls.Copy()
 	case "count":
 		if len(args) != 1 {
 			return NewError("type error: array.count() expects one argument")
 		}
-		return NewInteger(ao.Count(args[0]))
+		return NewInt(ls.Count(args[0]))
 	case "extend":
 		if len(args) != 1 {
 			return NewError("type error: array.extend() expects one argument")
 		}
-		other, err := AsArray(args[0])
+		other, err := AsList(args[0])
 		if err != nil {
 			return err
 		}
-		ao.Extend(other)
-		return ao
+		ls.Extend(other)
+		return ls
 	case "index":
 		if len(args) != 1 {
 			return NewError("type error: array.index() expects one argument")
 		}
-		return NewInteger(ao.Index(args[0]))
+		return NewInt(ls.Index(args[0]))
 	case "insert":
 		if len(args) != 2 {
 			return NewError("type error: array.insert() expects two arguments")
@@ -77,8 +77,8 @@ func (ls *List) InvokeMethod(method string, args ...Object) Object {
 		if err != nil {
 			return err
 		}
-		ao.Insert(idx, args[1])
-		return ao
+		ls.Insert(idx, args[1])
+		return ls
 	case "pop":
 		if len(args) != 1 {
 			return NewError("type error: array.pop() expects one argument")
@@ -87,31 +87,32 @@ func (ls *List) InvokeMethod(method string, args ...Object) Object {
 		if err != nil {
 			return err
 		}
-		return ao.Pop(idx)
+		return ls.Pop(idx)
 	}
+	return NewError("type error: %s object has no method %s", ls.Type(), method)
 }
 
 // Append adds an element at the end of the list.
-func (ao *Array) Append(obj Object) {
-	ao.Elements = append(ao.Elements, obj)
+func (ls *List) Append(obj Object) {
+	ls.Items = append(ls.Items, obj)
 }
 
 // Clear removes all the elements from the list.
-func (ao *Array) Clear() {
-	ao.Elements = make([]Object, 0)
+func (ls *List) Clear() {
+	ls.Items = make([]Object, 0)
 }
 
 // Copy returns a copy of the list.
-func (ao *Array) Copy() *Array {
-	result := &Array{Elements: make([]Object, 0, len(ao.Elements))}
-	copy(result.Elements, ao.Elements)
+func (ls *List) Copy() *List {
+	result := &List{Items: make([]Object, 0, len(ls.Items))}
+	copy(result.Items, ls.Items)
 	return result
 }
 
 // Count returns the number of elements with the specified value.
-func (ao *Array) Count(obj Object) int64 {
+func (ls *List) Count(obj Object) int64 {
 	count := int64(0)
-	for _, item := range ao.Elements {
+	for _, item := range ls.Items {
 		if item == obj { // TODO: equality check
 			count++
 		}
@@ -120,13 +121,13 @@ func (ao *Array) Count(obj Object) int64 {
 }
 
 // Extend adds the elements of a list (or any iterable), to the end of the current list.
-func (ao *Array) Extend(other *Array) {
-	ao.Elements = append(ao.Elements, other.Elements...)
+func (ls *List) Extend(other *List) {
+	ls.Items = append(ls.Items, other.Items...)
 }
 
 // Index returns the index of the first element with the specified value.
-func (ao *Array) Index(obj Object) int64 {
-	for i, item := range ao.Elements {
+func (ls *List) Index(obj Object) int64 {
+	for i, item := range ls.Items {
 		if item == obj { // TODO: equality check
 			return int64(i)
 		}
@@ -135,40 +136,40 @@ func (ao *Array) Index(obj Object) int64 {
 }
 
 // Insert adds an element at the specified position.
-func (ao *Array) Insert(index int64, obj Object) {
-	ao.Elements = append(ao.Elements, nil)
-	copy(ao.Elements[index+1:], ao.Elements[index:])
-	ao.Elements[index] = obj
+func (ls *List) Insert(index int64, obj Object) {
+	ls.Items = append(ls.Items, nil)
+	copy(ls.Items[index+1:], ls.Items[index:])
+	ls.Items[index] = obj
 }
 
 // Pop removes the element at the specified position.
-func (ao *Array) Pop(index int64) Object {
-	if index < 0 || index >= int64(len(ao.Elements)) {
+func (ls *List) Pop(index int64) Object {
+	if index < 0 || index >= int64(len(ls.Items)) {
 		return NewError("index out of range")
 	}
-	result := ao.Elements[index]
-	ao.Elements = append(ao.Elements[:index], ao.Elements[index+1:]...)
+	result := ls.Items[index]
+	ls.Items = append(ls.Items[:index], ls.Items[index+1:]...)
 	return result
 }
 
 // Remove removes the first item with the specified value.
-func (ao *Array) Remove(obj Object) {
-	index := ao.Index(obj)
+func (ls *List) Remove(obj Object) {
+	index := ls.Index(obj)
 	if index == -1 {
 		return
 	}
-	ao.Elements = append(ao.Elements[:index], ao.Elements[index+1:]...)
+	ls.Items = append(ls.Items[:index], ls.Items[index+1:]...)
 }
 
 // Reverse reverses the order of the list.
-func (ao *Array) Reverse() {
-	for i, j := 0, len(ao.Elements)-1; i < j; i, j = i+1, j-1 {
-		ao.Elements[i], ao.Elements[j] = ao.Elements[j], ao.Elements[i]
+func (ls *List) Reverse() {
+	for i, j := 0, len(ls.Items)-1; i < j; i, j = i+1, j-1 {
+		ls.Items[i], ls.Items[j] = ls.Items[j], ls.Items[i]
 	}
 }
 
 // Sort sorts the list.
-func (ao *Array) Sort() {
+func (ls *List) Sort() {
 	// TODO
 }
 
