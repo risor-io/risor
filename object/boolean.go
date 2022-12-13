@@ -55,9 +55,27 @@ func (b *Bool) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
+func (b *Bool) Equals(other Object) Object {
+	if other.Type() == BOOL && b.Value == other.(*Bool).Value {
+		return True
+	}
+	return False
+}
+
 func NewBoolean(value bool) *Bool {
 	if value {
 		return True
 	}
 	return False
+}
+
+func Not(b *Bool) *Bool {
+	if b.Value {
+		return False
+	}
+	return True
+}
+
+func Equals(a, b Object) bool {
+	return a.Equals(b).(*Bool).Value
 }

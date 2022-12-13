@@ -47,3 +47,14 @@ func (r *Regexp) Compare(other Object) (int, error) {
 	}
 	return -1, nil
 }
+
+func (r *Regexp) Equals(other Object) Object {
+	if other.Type() != REGEXP {
+		return False
+	}
+	otherRegex := other.(*Regexp)
+	if r.Value == otherRegex.Value && r.Flags == otherRegex.Flags {
+		return True
+	}
+	return False
+}

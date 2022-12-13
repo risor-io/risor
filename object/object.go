@@ -30,7 +30,7 @@ const (
 	STRING        = "string"
 	BUILTIN       = "builtin"
 	LIST          = "list"
-	HASH          = "hash"
+	MAP           = "map"
 	FILE          = "file"
 	REGEXP        = "regexp"
 	SET           = "set"
@@ -67,6 +67,9 @@ type Object interface {
 	// which is required to ensure that we can use the object in our
 	// `sprintf` or `printf` primitives.
 	ToInterface() interface{}
+
+	// Returns True if the given object is equal to this object.
+	Equals(other Object) Object
 }
 
 // Hashable types can be hashed and consequently used in a set.

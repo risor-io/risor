@@ -56,6 +56,13 @@ func (s *String) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
+func (s *String) Equals(other Object) Object {
+	if other.Type() == STRING && s.Value == other.(*String).Value {
+		return True
+	}
+	return False
+}
+
 func (s *String) Reversed() *String {
 	runes := []rune(s.Value)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {

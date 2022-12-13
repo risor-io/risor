@@ -175,6 +175,22 @@ func (s *Set) List() *List {
 	return l
 }
 
+func (s *Set) Equals(other Object) Object {
+	if other.Type() != SET {
+		return False
+	}
+	otherSet := other.(*Set)
+	if len(s.Items) != len(otherSet.Items) {
+		return False
+	}
+	for k, v := range s.Items {
+		if otherV, ok := otherSet.Items[k]; !ok || !v.Equals(otherV).(*Bool).Value {
+			return False
+		}
+	}
+	return True
+}
+
 func NewSetWithSize(size int) *Set {
 	return &Set{Items: make(map[Key]Object, size)}
 }

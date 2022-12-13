@@ -58,6 +58,20 @@ func (f *Float) Compare(other Object) (int, error) {
 	}
 }
 
+func (f *Float) Equals(other Object) Object {
+	switch other.Type() {
+	case INT:
+		if f.Value == float64(other.(*Int).Value) {
+			return True
+		}
+	case FLOAT:
+		if f.Value == other.(*Float).Value {
+			return True
+		}
+	}
+	return False
+}
+
 func NewFloat(value float64) *Float {
 	return &Float{Value: value}
 }

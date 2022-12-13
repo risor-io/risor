@@ -29,3 +29,10 @@ func (rv *ReturnValue) InvokeMethod(method string, args ...Object) Object {
 func (rv *ReturnValue) ToInterface() interface{} {
 	return "<RETURN_VALUE>"
 }
+
+func (rv *ReturnValue) Equals(other Object) Object {
+	if other.Type() == RETURN_VALUE && rv == other.(*ReturnValue) {
+		return True
+	}
+	return False
+}

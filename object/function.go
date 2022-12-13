@@ -49,3 +49,10 @@ func (f *Function) InvokeMethod(method string, args ...Object) Object {
 func (f *Function) ToInterface() interface{} {
 	return "<FUNCTION>"
 }
+
+func (f *Function) Equals(other Object) Object {
+	if other.Type() == FUNCTION && f == other.(*Function) {
+		return True
+	}
+	return False
+}

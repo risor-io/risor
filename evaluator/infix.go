@@ -22,37 +22,39 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpr
 }
 
 func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *scope.Scope) object.Object {
+	// Equality checks
+	switch operator {
+	case "==":
+		return left.Equals(right)
+	case "!=":
+		return object.Not(left.Equals(right).(*object.Bool))
+	}
+	// Everything else
+	leftType := left.Type()
+	rightType := right.Type()
 	switch {
-	case left.Type() == object.INT && right.Type() == object.INT:
+	case leftType == object.INT && rightType == object.INT:
 		return evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT && right.Type() == object.FLOAT:
+	case leftType == object.FLOAT && rightType == object.FLOAT:
 		return evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT && right.Type() == object.INT:
+	case leftType == object.FLOAT && rightType == object.INT:
 		return evalFloatIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INT && right.Type() == object.FLOAT:
+	case leftType == object.INT && rightType == object.FLOAT:
 		return evalIntegerFloatInfixExpression(operator, left, right)
-	case left.Type() == object.STRING && right.Type() == object.STRING:
+	case leftType == object.STRING && rightType == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
 	case operator == "&&":
 		return nativeBoolToBooleanObject(objectToNativeBoolean(left) && objectToNativeBoolean(right))
 	case operator == "||":
 		return nativeBoolToBooleanObject(objectToNativeBoolean(left) || objectToNativeBoolean(right))
-	case operator == "!~":
-		return notMatches(left, right)
-	case operator == "~=":
-		return matches(left, right, s)
-	case operator == "==":
-		return nativeBoolToBooleanObject(left == right)
-	case operator == "!=":
-		return nativeBoolToBooleanObject(left != right)
-	case left.Type() == object.BOOL && right.Type() == object.BOOL:
+	case leftType == object.BOOL && rightType == object.BOOL:
 		return evalBooleanInfixExpression(operator, left, right)
-	case left.Type() != right.Type():
+	case leftType != rightType:
 		return newError("type error: unsupported operand types for %s: %s and %s",
-			operator, left.Type(), right.Type())
+			operator, leftType, rightType)
 	default:
 		return newError("syntax error: invalid operation %s for types: %s and %s",
-			operator, left.Type(), right.Type())
+			operator, leftType, rightType)
 	}
 }
 
@@ -109,33 +111,6 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
-	case "..":
-		if rightVal > leftVal {
-			len := int(rightVal-leftVal) + 1
-			if len > 1000 {
-				return newError("exceeded max length: %d", len)
-			}
-			array := make([]object.Object, len)
-			for i := 0; i < len; i++ {
-				array[i] = &object.Int{Value: leftVal}
-				leftVal++
-			}
-			return object.NewList(array)
-		}
-		len := int(leftVal-rightVal) + 1
-		if len > 1000 {
-			return newError("exceeded max length: %d", len)
-		}
-		array := make([]object.Object, len)
-		for i := 0; i < len; i++ {
-			array[i] = &object.Int{Value: leftVal}
-			leftVal--
-		}
-		return object.NewList(array)
 	default:
 		return newError("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
@@ -172,10 +147,6 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return newError("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
@@ -212,10 +183,6 @@ func evalFloatIntegerInfixExpression(operator string, left, right object.Object)
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return newError("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
@@ -252,10 +219,6 @@ func evalIntegerFloatInfixExpression(operator string, left, right object.Object)
 		return nativeBoolToBooleanObject(leftVal > rightVal)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return newError("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
@@ -266,10 +229,6 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	l := left.(*object.String)
 	r := right.(*object.String)
 	switch operator {
-	case "==":
-		return nativeBoolToBooleanObject(l.Value == r.Value)
-	case "!=":
-		return nativeBoolToBooleanObject(l.Value != r.Value)
 	case ">=":
 		return nativeBoolToBooleanObject(l.Value >= r.Value)
 	case ">":

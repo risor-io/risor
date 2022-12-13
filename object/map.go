@@ -11,7 +11,7 @@ type Map struct {
 }
 
 func (m *Map) Type() Type {
-	return HASH
+	return MAP
 }
 
 func (m *Map) Inspect() string {
@@ -87,6 +87,26 @@ func (m *Map) ToInterface() interface{} {
 		result[k] = v.ToInterface()
 	}
 	return result
+}
+
+func (m *Map) Equals(other Object) Object {
+	if other.Type() != MAP {
+		return False
+	}
+	otherMap := other.(*Map)
+	if len(m.Items) != len(otherMap.Items) {
+		return False
+	}
+	for k, v := range m.Items {
+		otherValue, found := otherMap.Items[k]
+		if !found {
+			return False
+		}
+		if !v.Equals(otherValue).(*Bool).Value {
+			return False
+		}
+	}
+	return True
 }
 
 func NewMap(m map[string]interface{}) *Map {

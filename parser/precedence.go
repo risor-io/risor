@@ -6,22 +6,20 @@ import "github.com/cloudcmds/tamarin/token"
 const (
 	_ int = iota
 	LOWEST
-	PIPE         // |
-	COND         // OR or AND
-	ASSIGN       // =
-	DECLARE      // :=
-	TERNARY      // ? :
-	EQUALS       // == or !=
-	REGEXP_MATCH // !~ ~=
-	LESSGREATER  // > or <
-	SUM          // + or -
-	PRODUCT      // * or /
-	POWER        // **
-	MOD          // %
-	PREFIX       // -X or !X
-	CALL         // myFunction(X)
-	DOTDOT       // ..
-	INDEX        // array[index], map[key]
+	PIPE        // |
+	COND        // OR or AND
+	ASSIGN      // =
+	DECLARE     // :=
+	TERNARY     // ? :
+	EQUALS      // == or !=
+	LESSGREATER // > or <
+	SUM         // + or -
+	PRODUCT     // * or /
+	POWER       // **
+	MOD         // %
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+	INDEX       // array[index], map[key]
 	HIGHEST
 )
 
@@ -30,15 +28,12 @@ var precedences = map[token.Type]int{
 	token.QUESTION:        TERNARY,
 	token.ASSIGN:          ASSIGN,
 	token.DECLARE:         DECLARE,
-	token.DOTDOT:          DOTDOT,
 	token.EQ:              EQUALS,
 	token.NOT_EQ:          EQUALS,
 	token.LT:              LESSGREATER,
 	token.LT_EQUALS:       LESSGREATER,
 	token.GT:              LESSGREATER,
 	token.GT_EQUALS:       LESSGREATER,
-	token.CONTAINS:        REGEXP_MATCH,
-	token.NOT_CONTAINS:    REGEXP_MATCH,
 	token.PLUS:            SUM,
 	token.PLUS_EQUALS:     SUM,
 	token.MINUS:           SUM,

@@ -248,6 +248,13 @@ func (p *Proxy) String() string {
 	return fmt.Sprintf("%v", p.obj)
 }
 
+func (p *Proxy) Equals(other Object) Object {
+	if other.Type() == PROXY && p.obj == other.(*Proxy).obj {
+		return True
+	}
+	return False
+}
+
 // NewProxy returns a new Tamarin proxy object that wraps the given Go object.
 // The Go type should previously been registered with the ProxyManager.
 func NewProxy(mgr ProxyManager, obj interface{}) *Proxy {

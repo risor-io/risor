@@ -122,15 +122,6 @@ func (e *Evaluator) evalSwitchStatement(
 				blockOut := e.evalBlockStatement(ctx, opt.Block, s)
 				return blockOut
 			}
-			// Is it a regexp-match?
-			if out.Type() == object.REGEXP {
-				m := matches(obj, out, s)
-				if m == object.True {
-					// Evaluate the block and return the value
-					out := e.evalBlockStatement(ctx, opt.Block, s)
-					return out
-				}
-			}
 		}
 	}
 	// No match? Handle default if present.

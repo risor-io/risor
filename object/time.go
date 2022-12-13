@@ -43,6 +43,13 @@ func (t *Time) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
+func (t *Time) Equals(other Object) Object {
+	if other.Type() == TIME && t.Value == other.(*Time).Value {
+		return True
+	}
+	return False
+}
+
 func NewTime(t time.Time) *Time {
 	return &Time{Value: t}
 }

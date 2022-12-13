@@ -24,8 +24,8 @@ func (e *Evaluator) evalIndexExpression(
 	switch {
 	case left.Type() == object.LIST && index.Type() == object.INT:
 		return e.evalArrayIndexExpression(left, index)
-	case left.Type() == object.HASH:
-		return e.evalHashIndexExpression(left, index)
+	case left.Type() == object.MAP:
+		return e.evalMapIndexExpression(left, index)
 	case left.Type() == object.STRING:
 		return e.evalStringIndexExpression(left, index)
 	default:
@@ -52,8 +52,8 @@ func (e *Evaluator) evalArrayIndexExpression(list, index object.Object) object.O
 	return listObject.Items[reversed]
 }
 
-func (e *Evaluator) evalHashIndexExpression(hash, index object.Object) object.Object {
-	m := hash.(*object.Map)
+func (e *Evaluator) evalMapIndexExpression(mapObj, index object.Object) object.Object {
+	m := mapObj.(*object.Map)
 	key, err := object.AsString(index)
 	if err != nil {
 		return err
