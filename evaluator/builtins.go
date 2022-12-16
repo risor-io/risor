@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"sort"
 	"time"
 	"unicode/utf8"
 
@@ -241,12 +240,6 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 				return object.True
 			}
 		}
-	case *object.Map:
-		for _, v := range arg.Items {
-			if isTruthy(v) {
-				return object.True
-			}
-		}
 	case *object.Set:
 		for _, obj := range arg.Items {
 			if isTruthy(obj) {
@@ -267,12 +260,6 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		for _, obj := range arg.Items {
 			if !isTruthy(obj) {
-				return object.False
-			}
-		}
-	case *object.Map:
-		for _, v := range arg.Items {
-			if !isTruthy(v) {
 				return object.False
 			}
 		}
@@ -427,29 +414,12 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	default:
 		return newError("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
 	}
-	itemsCopy := make([]object.Object, len(items))
-	copy(itemsCopy, items)
-	var comparableErr error
-	sort.SliceStable(itemsCopy, func(a, b int) bool {
-		itemA := itemsCopy[a]
-		itemB := itemsCopy[b]
-		compA, ok := itemA.(object.Comparable)
-		if !ok {
-			comparableErr = fmt.Errorf("type error: sorted() encountered a non-comparable item (%s)", itemA.Type())
-		}
-		if _, ok := itemB.(object.Comparable); !ok {
-			comparableErr = fmt.Errorf("type error: sorted() encountered a non-comparable item (%s)", itemB.Type())
-		}
-		result, err := compA.Compare(itemB)
-		if err != nil {
-			comparableErr = err
-		}
-		return result == -1
-	})
-	if comparableErr != nil {
-		return newError(comparableErr.Error())
+	result := &object.List{Items: make([]object.Object, len(items))}
+	copy(result.Items, items)
+	if err := object.Sort(result.Items); err != nil {
+		return err
 	}
-	return &object.List{Items: itemsCopy}
+	return result
 }
 
 func Reversed(ctx context.Context, args ...object.Object) object.Object {
@@ -466,10 +436,43 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+func GetAttr(ctx context.Context, args ...object.Object) object.Object {
+	numArgs := len(args)
+	if numArgs < 2 || numArgs > 3 {
+		return newError("type error: getattr() takes 2 or 3 arguments (%d given)", len(args))
+	}
+	attrName, err := object.AsString(args[1])
+	if err != nil {
+		return err
+	}
+	if attr, found := args[0].GetAttr(attrName); found {
+		return attr
+	}
+	if numArgs == 3 {
+		return args[2]
+	}
+	return newError("attribute error: %s object has no attribute %q", args[0].Type(), attrName)
+}
+
+// Call the given builtin function with the provided arguments
+func Call(ctx context.Context, args ...object.Object) object.Object {
+	numArgs := len(args)
+	if numArgs < 1 {
+		return newError("type error: call() takes 1 or more arguments (%d given)", len(args))
+	}
+	switch fn := args[0].(type) {
+	case *object.Builtin:
+		return fn.Fn(ctx, args...)
+	case *object.Function:
+		// TODO: pass in applyer
+	}
+	return newError("type error: unable to call object (%s given)", args[0].Type())
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	return []*object.Builtin{
 		{Name: "delete", Fn: Delete},
-		{Name: "keys", Fn: Keys},
+		// {Name: "keys", Fn: Keys},
 		{Name: "len", Fn: Len},
 		{Name: "match", Fn: Match},
 		{Name: "set", Fn: Set},
@@ -479,7 +482,7 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "ok", Fn: Ok},
 		{Name: "err", Fn: Err},
 		{Name: "assert", Fn: Assert},
-		{Name: "fetch", Fn: Fetch},
+		// {Name: "fetch", Fn: Fetch},
 		{Name: "any", Fn: Any},
 		{Name: "all", Fn: All},
 		{Name: "bool", Fn: Bool},
@@ -489,5 +492,12 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "unwrap_or", Fn: UnwrapOr},
 		{Name: "sorted", Fn: Sorted},
 		{Name: "reversed", Fn: Reversed},
+		{Name: "getattr", Fn: GetAttr},
+		{Name: "call", Fn: Call},
+		// Add list
+		// Add int
+		// Add float
+		// Add ord
+		// Add chr
 	}
 }

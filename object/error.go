@@ -1,33 +1,30 @@
 package object
 
+import (
+	"errors"
+	"fmt"
+)
+
 // Error wraps string and implements Object interface.
 type Error struct {
 	// Message contains the error-message we're wrapping
 	Message string
 }
 
-// Type returns the type of this object.
 func (e *Error) Type() Type {
 	return ERROR
 }
 
-// Inspect returns a string-representation of the given object.
 func (e *Error) Inspect() string {
-	return "ERROR: " + e.Message
+	return fmt.Sprintf("Error(%s)", e.Message)
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
 func (e *Error) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", e.Type(), method)
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (e *Error) ToInterface() interface{} {
-	return "<ERROR>"
+	return errors.New(e.Message)
 }
 
 func (e *Error) Compare(other Object) (int, error) {
@@ -53,4 +50,8 @@ func (e *Error) Equals(other Object) Object {
 		return True
 	}
 	return False
+}
+
+func (e *Error) GetAttr(name string) (Object, bool) {
+	return nil, false
 }

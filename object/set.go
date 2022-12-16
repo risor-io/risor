@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 )
@@ -17,7 +18,7 @@ func (s *Set) Type() Type {
 func (s *Set) Inspect() string {
 	var out bytes.Buffer
 	items := make([]string, 0, len(s.Items))
-	for _, item := range s.Items {
+	for _, item := range s.SortedItems() {
 		items = append(items, item.Inspect())
 	}
 	out.WriteString("{")
@@ -26,76 +27,102 @@ func (s *Set) Inspect() string {
 	return out.String()
 }
 
-func (s *Set) InvokeMethod(method string, args ...Object) Object {
-	switch method {
-	case "values":
-		return s.List()
+func (s *Set) GetAttr(name string) (Object, bool) {
+	switch name {
 	case "contains":
-		if len(args) == 0 {
-			return NewError("type error: set.contains() expects at least one argument")
-		}
-		if s.Contains(args...) {
-			return True
-		}
-		return False
+		return &Builtin{
+			Name: "set.contains",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("set.contains", 1, len(args))
+				}
+				if s.Contains(args[0]) {
+					return True
+				}
+				return False
+			},
+		}, true
 	case "add":
-		if len(args) == 0 {
-			return NewError("type error: set.add() expects at least one argument")
-		}
-		if err := s.Add(args...); err != nil {
-			return NewError(err.Error())
-		}
-		return Nil
+		return &Builtin{
+			Name: "set.add",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("set.add", 1, len(args))
+				}
+				if err := s.Add(args[0]); err != nil {
+					return NewError(err.Error())
+				}
+				return s
+			},
+		}, true
 	case "remove":
-		if len(args) == 0 {
-			return NewError("type error: set.remove() expects at least one argument")
-		}
-		if err := s.Remove(args...); err != nil {
-			return NewError(err.Error())
-		}
-		return Nil
+		return &Builtin{
+			Name: "set.remove",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("set.remove", 1, len(args))
+				}
+				if err := s.Remove(args[0]); err != nil {
+					return NewError(err.Error())
+				}
+				return s
+			},
+		}, true
 	case "union":
-		if len(args) != 1 {
-			return NewError("type error: set.union() expects one argument")
-		}
-		other, err := AsSet(args[0])
-		if err != nil {
-			return err
-		}
-		return s.Union(other)
+		return &Builtin{
+			Name: "set.union",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("set.union", 1, len(args))
+				}
+				other, err := AsSet(args[0])
+				if err != nil {
+					return err
+				}
+				return s.Union(other)
+			},
+		}, true
 	case "intersection":
-		if len(args) != 1 {
-			return NewError("type error: set.intersection() expects one argument")
-		}
-		other, err := AsSet(args[0])
-		if err != nil {
-			return err
-		}
-		return s.Intersection(other)
-	case "difference":
-		if len(args) != 1 {
-			return NewError("type error: set.difference() expects one argument")
-		}
-		other, err := AsSet(args[0])
-		if err != nil {
-			return err
-		}
-		return s.Difference(other)
-	default:
-		return NewError("type error: %s object has no method %s", s.Type(), method)
+		return &Builtin{
+			Name: "set.intersection",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("set.intersection", 1, len(args))
+				}
+				other, err := AsSet(args[0])
+				if err != nil {
+					return err
+				}
+				return s.Intersection(other)
+			},
+		}, true
 	}
+	return nil, false
+}
+
+func (s *Set) InvokeMethod(method string, args ...Object) Object {
+	return NewError("type error: %s object has no method %s", s.Type(), method)
 }
 
 func (s *Set) ToInterface() interface{} {
 	items := make([]interface{}, 0, len(s.Items))
-	for _, v := range s.Items {
-		items = append(items, v.ToInterface())
+	for _, item := range s.SortedItems() {
+		items = append(items, item.ToInterface())
 	}
 	return items
 }
 
 func (s *Set) Size() int {
 	return len(s.Items)
+}
+
+func (s *Set) SortedItems() []Object {
+	items := make([]Object, 0, len(s.Items))
+	for _, v := range s.Items {
+		items = append(items, v)
+	}
+	Sort(items)
+	return items
 }
 
 func (s *Set) Add(items ...Object) error {
@@ -120,17 +147,13 @@ func (s *Set) Remove(items ...Object) error {
 	return nil
 }
 
-func (s *Set) Contains(items ...Object) bool {
-	for _, item := range items {
-		hashable, ok := item.(Hashable)
-		if !ok {
-			return false
-		}
-		if _, ok = s.Items[hashable.HashKey()]; !ok {
-			return false
-		}
+func (s *Set) Contains(item Object) bool {
+	hashable, ok := item.(Hashable)
+	if !ok {
+		return false
 	}
-	return true
+	_, ok = s.Items[hashable.HashKey()]
+	return ok
 }
 
 // Union returns a new set that is the union of the two sets.

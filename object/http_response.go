@@ -15,7 +15,11 @@ func (r *HttpResponse) Type() Type {
 }
 
 func (r *HttpResponse) Inspect() string {
-	return "<HTTP_RESPONSE>"
+	return "HttpResponse()"
+}
+
+func (r *HttpResponse) GetAttr(name string) (Object, bool) {
+	return nil, false
 }
 
 func (r *HttpResponse) InvokeMethod(method string, args ...Object) Object {

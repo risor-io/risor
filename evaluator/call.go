@@ -67,6 +67,9 @@ func (e *Evaluator) evalObjectCall(
 		}
 		return e.applyFunction(ctx, s, moduleFunc, args)
 	}
+	if attr, found := obj.GetAttr(method); found {
+		return e.applyFunction(ctx, s, attr, args)
+	}
 	result := obj.InvokeMethod(method, args...)
 	if result != nil {
 		return result
@@ -204,18 +207,19 @@ func (e *Evaluator) evalGetAttributeExpression(
 	}
 	attrName := node.Attribute.Token.Literal
 	switch obj := obj.(type) {
-	case *object.Map:
-		return obj.Get(attrName)
 	case *object.Module:
 		s := obj.Scope.(*scope.Scope)
 		result, ok := s.Get(attrName)
 		if !ok {
-			return newError("attribute error: %s object has no attribute %s",
+			return newError("attribute error: %s object has no attribute \"%s\"",
 				obj.Type(), attrName)
 		}
 		return result
 	default:
-		return newError("attribute error: %s object has no attribute %s",
+		if attr, found := obj.GetAttr(attrName); found {
+			return attr
+		}
+		return newError("attribute error: %s object has no attribute \"%s\"",
 			obj.Type(), attrName)
 	}
 }

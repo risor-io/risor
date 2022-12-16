@@ -14,6 +14,11 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpr
 	if isError(left) {
 		return left
 	}
+	if node.Operator == "&&" && !isTruthy(left) {
+		return left // Short circuit
+	} else if node.Operator == "||" && isTruthy(left) {
+		return left // Short circuit
+	}
 	right := e.Evaluate(ctx, node.Right, s)
 	if isError(right) {
 		return right
@@ -22,12 +27,22 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpr
 }
 
 func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *scope.Scope) object.Object {
-	// Equality checks
+	// Expressions that are handled the same for all types
 	switch operator {
 	case "==":
 		return left.Equals(right)
 	case "!=":
 		return object.Not(left.Equals(right).(*object.Bool))
+	case "&&":
+		if isTruthy(left) && isTruthy(right) {
+			return right
+		}
+		return right
+	case "||":
+		if isTruthy(left) {
+			return left
+		}
+		return right
 	}
 	// Everything else
 	leftType := left.Type()
@@ -43,10 +58,6 @@ func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *sco
 		return evalIntegerFloatInfixExpression(operator, left, right)
 	case leftType == object.STRING && rightType == object.STRING:
 		return evalStringInfixExpression(operator, left, right)
-	case operator == "&&":
-		return nativeBoolToBooleanObject(objectToNativeBoolean(left) && objectToNativeBoolean(right))
-	case operator == "||":
-		return nativeBoolToBooleanObject(objectToNativeBoolean(left) || objectToNativeBoolean(right))
 	case leftType == object.BOOL && rightType == object.BOOL:
 		return evalBooleanInfixExpression(operator, left, right)
 	case leftType != rightType:

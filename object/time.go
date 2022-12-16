@@ -16,6 +16,10 @@ func (t *Time) Inspect() string {
 	return t.Value.Format(time.RFC3339)
 }
 
+func (t *Time) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 func (t *Time) InvokeMethod(method string, args ...Object) Object {
 	return nil
 }

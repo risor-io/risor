@@ -25,3 +25,7 @@ func (rv *BreakValue) Equals(other Object) Object {
 	}
 	return False
 }
+
+func (rv *BreakValue) GetAttr(name string) (Object, bool) {
+	return nil, false
+}

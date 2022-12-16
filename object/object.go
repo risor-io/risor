@@ -70,6 +70,9 @@ type Object interface {
 
 	// Returns True if the given object is equal to this object.
 	Equals(other Object) Object
+
+	// GetAttr returns the attribute with the given name from this object.
+	GetAttr(name string) (Object, bool)
 }
 
 // Hashable types can be hashed and consequently used in a set.

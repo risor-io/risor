@@ -34,10 +34,8 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 		return object.False
 	case object.False:
 		return object.True
-	case object.Nil:
-		return object.True
 	default:
-		return object.False
+		return newError("type error: expected boolean to follow ! operator (got %s)", right.Type())
 	}
 }
 
@@ -48,6 +46,6 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	case *object.Float:
 		return &object.Float{Value: -obj.Value}
 	default:
-		return newError("type error: bad operand type for unary -: %s", right.Type())
+		return newError("type error: expected integer or float to follow - operator (got %s)", right.Type())
 	}
 }
