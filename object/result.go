@@ -26,27 +26,27 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "is_err":
 		return &Builtin{
-			Name: "Result.is_err",
+			Name: "result.is_err",
 			Fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("is_err", 0, len(args))
 				}
-				return NewBoolean(rv.IsErr())
+				return NewBool(rv.IsErr())
 			},
 		}, true
 	case "is_ok":
 		return &Builtin{
-			Name: "Result.is_ok",
+			Name: "result.is_ok",
 			Fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("is_ok", 0, len(args))
 				}
-				return NewBoolean(rv.IsOk())
+				return NewBool(rv.IsOk())
 			},
 		}, true
 	case "unwrap":
 		return &Builtin{
-			Name: "Result.unwrap",
+			Name: "result.unwrap",
 			Fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("unwrap", 0, len(args))
@@ -56,7 +56,7 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 		}, true
 	case "unwrap_or":
 		return &Builtin{
-			Name: "Result.unwrap_or",
+			Name: "result.unwrap_or",
 			Fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 1 {
 					return NewArgsError("unwrap_or", 1, len(args))
@@ -66,7 +66,7 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 		}, true
 	case "expect":
 		return &Builtin{
-			Name: "Result.expect",
+			Name: "result.expect",
 			Fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 1 {
 					return NewArgsError("expect", 1, len(args))
@@ -98,11 +98,11 @@ func (rv *Result) ToInterface() interface{} {
 
 func (rv *Result) String() string {
 	if rv.Ok != nil {
-		return fmt.Sprintf("Result(Ok: %s)", rv.Ok)
+		return fmt.Sprintf("result(Ok: %s)", rv.Ok)
 	} else if rv.Err != nil {
-		return fmt.Sprintf("Result(Err: %s)", rv.Err)
+		return fmt.Sprintf("result(Err: %s)", rv.Err)
 	}
-	return "Result()"
+	return "result()"
 }
 
 func (rv *Result) IsOk() bool {
@@ -143,9 +143,9 @@ func (rv *Result) Equals(other Object) Object {
 	}
 	otherResult := other.(*Result)
 	if rv.Ok != nil {
-		return NewBoolean(otherResult.Ok != nil && rv.Ok.Equals(otherResult.Ok).(*Bool).Value)
+		return NewBool(otherResult.Ok != nil && rv.Ok.Equals(otherResult.Ok).(*Bool).Value)
 	} else if rv.Err != nil {
-		return NewBoolean(otherResult.Err != nil && rv.Err.Equals(otherResult.Err).(*Bool).Value)
+		return NewBool(otherResult.Err != nil && rv.Err.Equals(otherResult.Err).(*Bool).Value)
 	}
 	if otherResult.Ok == nil && otherResult.Err == nil {
 		return True

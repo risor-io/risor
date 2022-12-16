@@ -56,7 +56,7 @@ func Valid(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(json.Valid([]byte(s)))
+	return object.NewBool(json.Valid([]byte(s)))
 }
 
 func Diff(ctx context.Context, args ...object.Object) object.Object {

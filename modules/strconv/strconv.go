@@ -38,7 +38,7 @@ func ParseBool(ctx context.Context, args ...object.Object) object.Object {
 	}
 	b, err := strconv.ParseBool(s)
 	if err == nil {
-		return object.NewOkResult(object.NewBoolean(b))
+		return object.NewOkResult(object.NewBool(b))
 	}
 	return object.NewErrorResult("strconv.parse_bool: %s", err)
 }

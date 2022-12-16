@@ -25,7 +25,7 @@ func Contains(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(strings.Contains(s, substr))
+	return object.NewBool(strings.Contains(s, substr))
 }
 
 func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
@@ -40,7 +40,7 @@ func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(strings.HasPrefix(s, prefix))
+	return object.NewBool(strings.HasPrefix(s, prefix))
 }
 
 func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
@@ -55,7 +55,7 @@ func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(strings.HasSuffix(s, suffix))
+	return object.NewBool(strings.HasSuffix(s, suffix))
 }
 
 func Count(ctx context.Context, args ...object.Object) object.Object {

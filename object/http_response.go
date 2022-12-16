@@ -66,5 +66,5 @@ func (r *HttpResponse) Equals(other Object) Object {
 	if other.Type() != HTTP_RESPONSE {
 		return False
 	}
-	return NewBoolean(r.Response == other.(*HttpResponse).Response)
+	return NewBool(r.Response == other.(*HttpResponse).Response)
 }

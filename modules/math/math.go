@@ -321,7 +321,7 @@ func IsInf(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(math.IsInf(x, 0))
+	return object.NewBool(math.IsInf(x, 0))
 }
 
 func Round(ctx context.Context, args ...object.Object) object.Object {

@@ -32,9 +32,9 @@ func (b *Builtin) Type() Type {
 // Inspect returns a string-representation of the given object.
 func (b *Builtin) Inspect() string {
 	if b.Module == nil {
-		return fmt.Sprintf("Builtin(%s)", b.Name)
+		return fmt.Sprintf("builtin(%s)", b.Name)
 	}
-	return fmt.Sprintf("Builtin(%s.%s)", b.Module.Name, b.Name)
+	return fmt.Sprintf("builtin(%s.%s)", b.Module.Name, b.Name)
 }
 
 func (b *Builtin) String() string {
@@ -71,10 +71,10 @@ func (b *Builtin) Key() string {
 
 func (b *Builtin) Equals(other Object) Object {
 	if other.Type() != BUILTIN {
-		return NewBoolean(false)
+		return NewBool(false)
 	}
 	value := fmt.Sprintf("%v", b.Fn) == fmt.Sprintf("%v", other.(*Builtin).Fn)
-	return NewBoolean(value)
+	return NewBool(value)
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

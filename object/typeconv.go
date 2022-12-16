@@ -308,7 +308,7 @@ func (c *BooleanConverter) To(obj Object) (interface{}, error) {
 }
 
 func (c *BooleanConverter) From(obj interface{}) (Object, error) {
-	return NewBoolean(obj.(bool)), nil
+	return NewBool(obj.(bool)), nil
 }
 
 func (c *BooleanConverter) Type() reflect.Type {

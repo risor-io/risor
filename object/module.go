@@ -26,11 +26,11 @@ func (m *Module) InvokeMethod(method string, args ...Object) Object {
 }
 
 func (m *Module) ToInterface() interface{} {
-	return "<MODULE>"
+	return nil
 }
 
 func (m *Module) String() string {
-	return fmt.Sprintf("Module(%s)", m.Name)
+	return fmt.Sprintf("module(%s)", m.Name)
 }
 
 func (m *Module) Compare(other Object) (int, error) {
@@ -49,5 +49,5 @@ func (m *Module) Compare(other Object) (int, error) {
 }
 
 func (m *Module) Equals(other Object) Object {
-	return NewBoolean(other.Type() == MODULE && m.Name == other.(*Module).Name)
+	return NewBool(other.Type() == MODULE && m.Name == other.(*Module).Name)
 }
