@@ -31,34 +31,6 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
-func objectToNativeBoolean(o object.Object) bool {
-	if r, ok := o.(*object.ReturnValue); ok {
-		o = r.Value
-	}
-	switch obj := o.(type) {
-	case *object.Bool:
-		return obj.Value
-	case *object.String:
-		return obj.Value != ""
-	case *object.Regexp:
-		return obj.Value != ""
-	case *object.NilType:
-		return false
-	case *object.Int:
-		return obj.Value != 0
-	case *object.Float:
-		return obj.Value != 0.0
-	case *object.List:
-		return len(obj.Items) != 0
-	case *object.Map:
-		return len(obj.Items) != 0
-	case *object.Set:
-		return len(obj.Items) != 0
-	default:
-		return true
-	}
-}
-
 func nativeBoolToBooleanObject(input bool) *object.Bool {
 	if input {
 		return object.True

@@ -20,3 +20,8 @@ func NewErrorResult(format string, a ...interface{}) *Result {
 func NewOkResult(value Object) *Result {
 	return &Result{Ok: value}
 }
+
+func NewArgsError(fn string, takes, given int) *Error {
+	return NewError(fmt.Sprintf("type error: %s() takes exactly %d arguments (%d given)",
+		fn, takes, given))
+}

@@ -2,7 +2,7 @@ package object
 
 import (
 	"fmt"
-	"unicode/utf8"
+	"strings"
 )
 
 // String wraps string and implements Object and Hashable interfaces.
@@ -16,7 +16,15 @@ func (s *String) Type() Type {
 }
 
 func (s *String) Inspect() string {
-	return s.Value
+	sLen := len(s.Value)
+	if sLen >= 2 {
+		if s.Value[0] == '"' && s.Value[sLen-1] == '"' {
+			if strings.Count(s.Value, "\"") == 2 {
+				return fmt.Sprintf("'%s'", s.Value)
+			}
+		}
+	}
+	return fmt.Sprintf("%q", s.Value)
 }
 
 func (s *String) String() string {
@@ -27,13 +35,11 @@ func (s *String) HashKey() Key {
 	return Key{Type: s.Type(), StrValue: s.Value}
 }
 
+func (s *String) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 func (s *String) InvokeMethod(method string, args ...Object) Object {
-	if method == "len" {
-		return &Int{Value: int64(utf8.RuneCountInString(s.Value))}
-	}
-	if method == "ord" {
-		return &Int{Value: int64(s.Value[0])}
-	}
 	return NewError("type error: %s object has no method %s", s.Type(), method)
 }
 

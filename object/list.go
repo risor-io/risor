@@ -30,6 +30,10 @@ func (ls *List) Inspect() string {
 	return out.String()
 }
 
+func (ls *List) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 func (ls *List) InvokeMethod(method string, args ...Object) Object {
 	switch method {
 	case "append":

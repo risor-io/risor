@@ -236,6 +236,10 @@ func (p *Proxy) Inspect() string {
 	return fmt.Sprintf("%v", p.obj)
 }
 
+func (p *Proxy) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 func (p *Proxy) InvokeMethod(method string, args ...Object) Object {
 	return p.mgr.Call(p.obj, method, args...)
 }

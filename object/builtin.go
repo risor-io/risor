@@ -47,6 +47,10 @@ func (b *Builtin) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", b.Type(), method)
 }
 
+func (b *Builtin) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 // ToInterface converts this object to a go-interface, which will allow
 // it to be used naturally in our sprintf/printf primitives.
 //

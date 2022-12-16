@@ -1,10 +1,11 @@
 package object
 
 import (
+	"context"
 	"fmt"
 )
 
-// Result contains one of: an "ok" value and an "err" value
+// Result contains one of: an "ok" value or an "err" value
 type Result struct {
 	Ok  Object
 	Err Object
@@ -21,58 +22,71 @@ func (rv *Result) Inspect() string {
 	return rv.Err.Inspect()
 }
 
-func (rv *Result) InvokeMethod(method string, args ...Object) Object {
-	switch method {
+func (rv *Result) GetAttr(name string) (Object, bool) {
+	switch name {
 	case "is_err":
-		if len(args) != 0 {
-			return NewError(fmt.Sprintf("type error: is_err() takes exactly 0 arguments (%d given)", len(args)))
-		}
-		if rv.Err != nil {
-			return True
-		}
-		return False
+		return &Builtin{
+			Name: "Result.is_err",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("is_err", 0, len(args))
+				}
+				return NewBoolean(rv.IsErr())
+			},
+		}, true
 	case "is_ok":
-		if len(args) != 0 {
-			return NewError(fmt.Sprintf("type error: is_ok() takes exactly 0 arguments (%d given)", len(args)))
-		}
-		if rv.Ok != nil {
-			return True
-		}
-		return False
+		return &Builtin{
+			Name: "Result.is_ok",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("is_ok", 0, len(args))
+				}
+				return NewBoolean(rv.IsOk())
+			},
+		}, true
 	case "unwrap":
-		if len(args) != 0 {
-			return NewError(fmt.Sprintf("type error: unwrap() takes exactly 0 arguments (%d given)", len(args)))
-		}
-		if rv.Ok != nil {
-			return rv.Ok
-		}
-		return &Error{Message: fmt.Sprintf("result error: attempted to unwrap an error: %s", rv.Err)}
+		return &Builtin{
+			Name: "Result.unwrap",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("unwrap", 0, len(args))
+				}
+				return rv.Unwrap()
+			},
+		}, true
 	case "unwrap_or":
-		if len(args) != 1 {
-			return NewError(fmt.Sprintf("type error: unwrap_or() takes exactly 1 argument (%d given)", len(args)))
-		}
-		if rv.Ok != nil {
-			return rv.Ok
-		}
-		return args[0]
+		return &Builtin{
+			Name: "Result.unwrap_or",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("unwrap_or", 1, len(args))
+				}
+				return rv.UnwrapOr(args[0])
+			},
+		}, true
 	case "expect":
-		if len(args) != 1 {
-			return NewError(fmt.Sprintf("type error: expect() takes exactly 1 argument (%d given)", len(args)))
-		}
-		arg := args[0]
-		if _, ok := arg.(*String); !ok {
-			return NewError(fmt.Sprintf("type error: expect() argument should be a string (%s given)", arg.Type()))
-		}
-		if rv.Ok != nil {
-			return rv.Ok
-		}
-		return arg
+		return &Builtin{
+			Name: "Result.expect",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("expect", 1, len(args))
+				}
+				return rv.Expect(args[0])
+			},
+		}, true
 	default:
 		if rv.Ok != nil {
-			return rv.Ok.InvokeMethod(method, args...)
+			return rv.Ok.GetAttr(name)
 		}
-		return NewError(fmt.Sprintf("result error: %v", rv.Err))
 	}
+	return nil, false
+}
+
+func (rv *Result) InvokeMethod(method string, args ...Object) Object {
+	if rv.Ok != nil {
+		return rv.Ok.InvokeMethod(method, args...)
+	}
+	return NewError(fmt.Sprintf("result error: %v", rv.Err))
 }
 
 func (rv *Result) ToInterface() interface{} {
@@ -97,6 +111,30 @@ func (rv *Result) IsOk() bool {
 
 func (rv *Result) IsErr() bool {
 	return rv.Err != nil
+}
+
+func (rv *Result) Unwrap() Object {
+	if rv.Ok != nil {
+		return rv.Ok
+	}
+	return &Error{Message: fmt.Sprintf("result error: attempted to unwrap an error: %s", rv.Err)}
+}
+
+func (rv *Result) UnwrapOr(other Object) Object {
+	if rv.Ok != nil {
+		return rv.Ok
+	}
+	return other
+}
+
+func (rv *Result) Expect(other Object) Object {
+	if _, ok := other.(*String); !ok {
+		return NewError(fmt.Sprintf("type error: expect() argument should be a string (%s given)", other.Type()))
+	}
+	if rv.Ok != nil {
+		return rv.Ok
+	}
+	return other
 }
 
 func (rv *Result) Equals(other Object) Object {

@@ -15,12 +15,10 @@ type Function struct {
 	Scope      interface{} // avoids circular package dependency; is a scope.Scope
 }
 
-// Type returns the type of this object.
 func (f *Function) Type() Type {
 	return FUNCTION
 }
 
-// Inspect returns a string-representation of the given object.
 func (f *Function) Inspect() string {
 	var out bytes.Buffer
 	parameters := make([]string, 0)
@@ -36,18 +34,16 @@ func (f *Function) Inspect() string {
 	return out.String()
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
+func (f *Function) GetAttr(name string) (Object, bool) {
+	return nil, false
+}
+
 func (f *Function) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", f.Type(), method)
 }
 
-// ToInterface converts this object to a go-interface, which will allow
-// it to be used naturally in our sprintf/printf primitives.
-//
-// It might also be helpful for embedded users.
 func (f *Function) ToInterface() interface{} {
-	return "<FUNCTION>"
+	return "Function()"
 }
 
 func (f *Function) Equals(other Object) Object {

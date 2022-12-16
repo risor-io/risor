@@ -1,7 +1,6 @@
 package object
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -15,11 +14,11 @@ func (m *Module) Type() Type {
 }
 
 func (m *Module) Inspect() string {
-	var out bytes.Buffer
-	out.WriteString("/")
-	out.WriteString(m.Name)
-	out.WriteString("/")
-	return out.String()
+	return m.String()
+}
+
+func (m *Module) GetAttr(name string) (Object, bool) {
+	return nil, false
 }
 
 func (m *Module) InvokeMethod(method string, args ...Object) Object {

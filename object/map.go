@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 )
@@ -26,13 +27,48 @@ func (m *Map) Inspect() string {
 	return out.String()
 }
 
-func (m *Map) InvokeMethod(method string, args ...Object) Object {
-	switch method {
+func (m *Map) GetAttr(name string) (Object, bool) {
+	switch name {
 	case "keys":
-		return m.Keys()
+		return &Builtin{
+			Name: "map.keys",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				return m.Keys()
+			},
+		}, true
 	case "values":
-		return m.Values()
+		return &Builtin{
+			Name: "map.values",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				return m.Values()
+			},
+		}, true
+	case "get":
+		return &Builtin{
+			Name: "map.get",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) < 1 || len(args) > 2 {
+					return NewArgsError("map.get", 1, len(args))
+				}
+				key, err := AsString(args[0])
+				if err != nil {
+					return err
+				}
+				value, found := m.Items[key]
+				if !found {
+					if len(args) == 2 {
+						return args[1]
+					}
+					return Nil
+				}
+				return value
+			},
+		}, true
 	}
+	return nil, false
+}
+
+func (m *Map) InvokeMethod(method string, args ...Object) Object {
 	return NewError("type error: %s object has no method %s", m.Type(), method)
 }
 
