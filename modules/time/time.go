@@ -51,7 +51,7 @@ func After(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(x.After(y))
+	return object.NewBool(x.After(y))
 }
 
 func Before(ctx context.Context, args ...object.Object) object.Object {
@@ -66,7 +66,7 @@ func Before(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewBoolean(x.Before(y))
+	return object.NewBool(x.Before(y))
 }
 
 func Format(ctx context.Context, args ...object.Object) object.Object {

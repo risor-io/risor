@@ -28,7 +28,7 @@ func (s *String) Inspect() string {
 }
 
 func (s *String) String() string {
-	return fmt.Sprintf("String(%s)", s.Value)
+	return fmt.Sprintf("string(%s)", s.Value)
 }
 
 func (s *String) HashKey() Key {

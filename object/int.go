@@ -27,9 +27,6 @@ func (i *Int) GetAttr(name string) (Object, bool) {
 }
 
 func (i *Int) InvokeMethod(method string, args ...Object) Object {
-	if method == "chr" {
-		return &String{Value: string(rune(i.Value))}
-	}
 	return NewError("type error: %s object has no method %s", i.Type(), method)
 }
 
@@ -38,7 +35,7 @@ func (i *Int) ToInterface() interface{} {
 }
 
 func (i *Int) String() string {
-	return fmt.Sprintf("Int(%v)", i.Value)
+	return fmt.Sprintf("int(%v)", i.Value)
 }
 
 func (i *Int) Compare(other Object) (int, error) {

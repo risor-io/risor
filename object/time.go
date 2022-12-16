@@ -1,6 +1,7 @@
 package object
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -29,7 +30,7 @@ func (t *Time) ToInterface() interface{} {
 }
 
 func (t *Time) String() string {
-	return t.Inspect()
+	return fmt.Sprintf("time(%s)", t.Inspect())
 }
 
 func (t *Time) Compare(other Object) (int, error) {

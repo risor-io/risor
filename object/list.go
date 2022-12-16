@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 )
@@ -12,12 +13,10 @@ type List struct {
 	Items []Object
 }
 
-// Type returns the type of this object.
 func (ls *List) Type() Type {
 	return LIST
 }
 
-// Inspect returns a string-representation of the given object.
 func (ls *List) Inspect() string {
 	var out bytes.Buffer
 	items := make([]string, 0)
@@ -31,80 +30,143 @@ func (ls *List) Inspect() string {
 }
 
 func (ls *List) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "append":
+		return &Builtin{
+			Name: "list.append",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.append", 1, len(args))
+				}
+				ls.Append(args[0])
+				return ls
+			},
+		}, true
+	case "clear":
+		return &Builtin{
+			Name: "list.clear",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("list.clear", 0, len(args))
+				}
+				ls.Clear()
+				return ls
+			},
+		}, true
+	case "copy":
+		return &Builtin{
+			Name: "list.copy",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("list.copy", 0, len(args))
+				}
+				return ls.Copy()
+			},
+		}, true
+	case "count":
+		return &Builtin{
+			Name: "list.count",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.count", 1, len(args))
+				}
+				return NewInt(ls.Count(args[0]))
+			},
+		}, true
+	case "extend":
+		return &Builtin{
+			Name: "list.extend",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.extend", 1, len(args))
+				}
+				other, err := AsList(args[0])
+				if err != nil {
+					return err
+				}
+				ls.Extend(other)
+				return ls
+			},
+		}, true
+	case "index":
+		return &Builtin{
+			Name: "list.index",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.index", 1, len(args))
+				}
+				return NewInt(ls.Index(args[0]))
+			},
+		}, true
+	case "insert":
+		return &Builtin{
+			Name: "list.insert",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 2 {
+					return NewArgsError("list.insert", 2, len(args))
+				}
+				index, err := AsInteger(args[0])
+				if err != nil {
+					return err
+				}
+				ls.Insert(index, args[1])
+				return ls
+			},
+		}, true
+	case "pop":
+		return &Builtin{
+			Name: "list.pop",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.pop", 1, len(args))
+				}
+				index, err := AsInteger(args[0])
+				if err != nil {
+					return err
+				}
+				return ls.Pop(index)
+			},
+		}, true
+	case "remove":
+		return &Builtin{
+			Name: "list.remove",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("list.remove", 1, len(args))
+				}
+				ls.Remove(args[0])
+				return ls
+			},
+		}, true
+	case "reverse":
+		return &Builtin{
+			Name: "list.reverse",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("list.reverse", 0, len(args))
+				}
+				ls.Reverse()
+				return ls
+			},
+		}, true
+	case "sort":
+		return &Builtin{
+			Name: "list.sort",
+			Fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("list.sort", 0, len(args))
+				}
+				if err := Sort(ls.Items); err != nil {
+					return err
+				}
+				return ls
+			},
+		}, true
+	}
 	return nil, false
 }
 
 func (ls *List) InvokeMethod(method string, args ...Object) Object {
-	switch method {
-	case "append":
-		if len(args) != 1 {
-			return NewError("type error: array.append() expects one argument")
-		}
-		ls.Append(args[0])
-		return ls
-	case "clear":
-		if len(args) != 0 {
-			return NewError("type error: array.clear() expects zero arguments")
-		}
-		ls.Clear()
-		return ls
-	case "copy":
-		if len(args) != 0 {
-			return NewError("type error: array.copy() expects zero arguments")
-		}
-		return ls.Copy()
-	case "count":
-		if len(args) != 1 {
-			return NewError("type error: array.count() expects one argument")
-		}
-		return NewInt(ls.Count(args[0]))
-	case "extend":
-		if len(args) != 1 {
-			return NewError("type error: array.extend() expects one argument")
-		}
-		other, err := AsList(args[0])
-		if err != nil {
-			return err
-		}
-		ls.Extend(other)
-		return ls
-	case "index":
-		if len(args) != 1 {
-			return NewError("type error: array.index() expects one argument")
-		}
-		return NewInt(ls.Index(args[0]))
-	case "remove":
-		if len(args) != 1 {
-			return NewError("type error: array.remove() expects one argument")
-		}
-		ls.Remove(args[0])
-		return ls
-	case "insert":
-		if len(args) != 2 {
-			return NewError("type error: array.insert() expects two arguments")
-		}
-		idx, err := AsInteger(args[0])
-		if err != nil {
-			return err
-		}
-		ls.Insert(idx, args[1])
-		return ls
-	case "pop":
-		if len(args) != 1 {
-			return NewError("type error: array.pop() expects one argument")
-		}
-		idx, err := AsInteger(args[0])
-		if err != nil {
-			return err
-		}
-		return ls.Pop(idx)
-	case "reverse":
-		if len(args) != 0 {
-			return NewError("type error: array.reverse() expects zero arguments")
-		}
-		ls.Reverse()
-		return ls
-	}
 	return NewError("type error: %s object has no method %s", ls.Type(), method)
 }
 
@@ -120,7 +182,7 @@ func (ls *List) Clear() {
 
 // Copy returns a shallow copy of the list.
 func (ls *List) Copy() *List {
-	result := &List{Items: make([]Object, 0, len(ls.Items))}
+	result := &List{Items: make([]Object, len(ls.Items))}
 	copy(result.Items, ls.Items)
 	return result
 }

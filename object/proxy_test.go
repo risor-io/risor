@@ -77,7 +77,7 @@ func TestProxy(t *testing.T) {
 		Items: map[string]object.Object{
 			"A": object.NewInt(99),
 			"B": object.NewString("B"),
-			"C": object.NewBoolean(true),
+			"C": object.NewBool(true),
 		},
 	})
 	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value)

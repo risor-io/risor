@@ -66,7 +66,7 @@ func (b *Bool) Equals(other Object) Object {
 	return False
 }
 
-func NewBoolean(value bool) *Bool {
+func NewBool(value bool) *Bool {
 	if value {
 		return True
 	}

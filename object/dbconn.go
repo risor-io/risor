@@ -22,7 +22,7 @@ func (c *DatabaseConnection) ToInterface() interface{} {
 
 func (c *DatabaseConnection) Equals(other Object) Object {
 	value := other.Type() == DB_CONNECTION && c.Conn == other.(*DatabaseConnection).Conn
-	return NewBoolean(value)
+	return NewBool(value)
 }
 
 func (c *DatabaseConnection) GetAttr(name string) (Object, bool) {

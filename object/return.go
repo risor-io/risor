@@ -23,7 +23,7 @@ func (rv *ReturnValue) InvokeMethod(method string, args ...Object) Object {
 }
 
 func (rv *ReturnValue) ToInterface() interface{} {
-	return "Return()"
+	return nil
 }
 
 func (rv *ReturnValue) Equals(other Object) Object {
