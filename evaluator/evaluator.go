@@ -50,9 +50,24 @@ func New(opts Opts) *Evaluator {
 	return e
 }
 
+// Returns a function that implements object.CallFunc
+func (e *Evaluator) getCallFunc() object.CallFunc {
+	return func(ctx context.Context, s interface{}, fn object.Object, args []object.Object) object.Object {
+		var scopeObj *scope.Scope
+		if s != nil {
+			scopeObj = s.(*scope.Scope)
+		}
+		return e.applyFunction(ctx, scopeObj, fn, args)
+	}
+}
+
 // Evaluate an AST node. The context can be used to cancel a running evaluation.
 // If evaluation encounters an error, a Tamarin error object is returned.
 func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope) object.Object {
+
+	// Add an object.CallFunc to the context so that objects can call Tamarin
+	// functions if needed
+	ctx = object.WithCallFunc(ctx, e.getCallFunc())
 
 	// Check for context timeout
 	select {

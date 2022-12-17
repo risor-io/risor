@@ -77,7 +77,7 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 				accumulate += string(key.Runes)
 				fmt.Print(string(key.Runes))
 			}
-			column++
+			column += len(key.Runes)
 		case keys.Backspace:
 			if len(accumulate) > 0 {
 				if column < len(accumulate) {
@@ -93,6 +93,20 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 				}
 				if column > 0 {
 					column--
+				}
+			}
+		case keys.Delete:
+			if len(accumulate) > 0 {
+				if column < len(accumulate) {
+					rest := accumulate[column+1:]
+					restLen := len(rest)
+					if restLen > 0 {
+						accumulate = accumulate[:column] + rest
+						fmt.Printf(clearLine + ">>> " + accumulate + fmt.Sprintf(moveBack, restLen))
+					} else {
+						accumulate = accumulate[:column]
+						fmt.Printf(clearLine + ">>> " + accumulate)
+					}
 				}
 			}
 		case keys.Up:

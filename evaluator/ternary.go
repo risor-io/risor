@@ -20,7 +20,7 @@ func (e *Evaluator) evalTernaryExpression(
 	if isError(condition) {
 		return condition
 	}
-	if isTruthy(condition) {
+	if object.IsTruthy(condition) {
 		return e.Evaluate(ctx, te.IfTrue, s)
 	}
 	return e.Evaluate(ctx, te.IfFalse, s)
