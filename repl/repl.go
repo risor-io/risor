@@ -83,13 +83,17 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 				if column < len(accumulate) {
 					rest := accumulate[column:]
 					restLen := len(rest)
-					accumulate = accumulate[:column-1] + rest
+					if column > 0 {
+						accumulate = accumulate[:column-1] + rest
+					}
 					fmt.Printf(clearLine + ">>> " + accumulate + fmt.Sprintf(moveBack, restLen))
 				} else {
 					accumulate = accumulate[:len(accumulate)-1]
 					fmt.Printf("\b \b")
 				}
-				column--
+				if column > 0 {
+					column--
+				}
 			}
 		case keys.Up:
 			if historyIndex > 0 {

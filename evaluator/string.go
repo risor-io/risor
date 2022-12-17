@@ -29,10 +29,14 @@ func (e *Evaluator) evalStringLiteral(ctx context.Context,
 			}
 			// Evaluate the variable
 			obj := New(Opts{}).Evaluate(ctx, expr, s)
-			if isError(obj) {
+			switch obj := obj.(type) {
+			case *object.Error:
 				return obj
+			case *object.String:
+				parts = append(parts, obj.Value)
+			default:
+				parts = append(parts, obj.Inspect())
 			}
-			parts = append(parts, obj.Inspect())
 		case false:
 			parts = append(parts, f.Value)
 		}

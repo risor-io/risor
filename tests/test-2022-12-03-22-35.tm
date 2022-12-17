@@ -1,4 +1,4 @@
-// expected value: 101
+// expected value: "101"
 // expected type: string
 
 inc := func(x) {

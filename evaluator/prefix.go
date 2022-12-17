@@ -46,6 +46,6 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	case *object.Float:
 		return &object.Float{Value: -obj.Value}
 	default:
-		return newError("type error: expected integer or float to follow - operator (got %s)", right.Type())
+		return newError("type error: expected int or float to follow - operator (got %s)", right.Type())
 	}
 }

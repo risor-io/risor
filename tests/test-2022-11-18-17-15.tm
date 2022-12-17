@@ -1,4 +1,4 @@
-// expected value: abc
+// expected value: "abc"
 // expected type: string
 
 

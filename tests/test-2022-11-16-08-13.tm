@@ -1,5 +1,5 @@
 // github issue: n/a
-// expected value: "hello"
+// expected value: '"hello"'
 // expected type: string
 
 let s = "\"hello\""

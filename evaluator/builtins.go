@@ -7,14 +7,16 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/object"
 )
 
-// length of a string, array, set, or hash
+// Len returns the length of a string, list, set, or map
 func Len(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
 		return err
@@ -68,7 +70,6 @@ func Match(ctx context.Context, args ...object.Object) object.Object {
 	return newMap
 }
 
-// Sprintf is the implementation of our `sprintf` function
 func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
 		return newError("type error: sprintf() takes 1 or more arguments (%d given)", len(args))
@@ -84,24 +85,11 @@ func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(fmt.Sprintf(fs, fmtArgs...))
 }
 
-// Get hash keys
-func Keys(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("keys", 1, args); err != nil {
-		return err
-	}
-	hash, err := object.AsMap(args[0])
-	if err != nil {
-		return err
-	}
-	return hash.Keys()
-}
-
-// Delete a given hash key
 func Delete(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("delete", 2, args); err != nil {
 		return err
 	}
-	hash, err := object.AsMap(args[0])
+	m, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
@@ -109,8 +97,8 @@ func Delete(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	hash.Delete(key)
-	return hash
+	m.Delete(key)
+	return m
 }
 
 func Set(ctx context.Context, args ...object.Object) object.Object {
@@ -148,53 +136,45 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 	return set
 }
 
+func List(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("list", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.String:
+		var items []object.Object
+		for _, v := range obj.Value {
+			items = append(items, object.NewString(string(v)))
+		}
+		return object.NewList(items)
+	case *object.List:
+		return obj.Copy()
+	case *object.Set:
+		return object.NewList(obj.SortedItems())
+	case *object.Map:
+		return obj.Keys()
+	default:
+		return newError("type error: list() argument is unsupported (%s given)", args[0].Type())
+	}
+}
+
 func String(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("string", 1, args); err != nil {
 		return err
 	}
-	return object.NewString(args[0].Inspect())
+	switch arg := args[0].(type) {
+	case *object.String:
+		return object.NewString(arg.Value)
+	default:
+		return object.NewString(args[0].Inspect())
+	}
 }
 
 func Type(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("type", 1, args); err != nil {
 		return err
 	}
-	switch args[0].(type) {
-	case *object.String:
-		return object.NewString("string")
-	case *object.Regexp:
-		return object.NewString("regexp")
-	case *object.Bool:
-		return object.NewString("bool")
-	case *object.Builtin:
-		return object.NewString("builtin")
-	case *object.List:
-		return object.NewString("list")
-	case *object.Function:
-		return object.NewString("function")
-	case *object.Int:
-		return object.NewString("int")
-	case *object.Float:
-		return object.NewString("float")
-	case *object.Map:
-		return object.NewString("map")
-	case *object.Set:
-		return object.NewString("set")
-	case *object.Result:
-		return object.NewString("result")
-	case *object.HttpResponse:
-		return object.NewString("http_response")
-	case *object.Time:
-		return object.NewString("time")
-	case *object.NilType:
-		return object.NewString("nil")
-	case *object.DatabaseConnection:
-		return object.NewString("db_connection")
-	case *object.Module:
-		return object.NewString("module")
-	default:
-		return newError("type error: type() argument not supported (%s given)", args[0].Type())
-	}
+	return object.NewString(string(args[0].Type()))
 }
 
 func Ok(ctx context.Context, args ...object.Object) object.Object {
@@ -332,7 +312,12 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			switch headersObj := headersObj.(type) {
 			case *object.Map:
 				for k, v := range headersObj.Items {
-					hdr.Add(k, v.Inspect())
+					switch v := v.(type) {
+					case *object.String:
+						hdr.Add(k, v.Value)
+					default:
+						hdr.Add(k, v.Inspect())
+					}
 				}
 			}
 		}
@@ -358,7 +343,12 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 func Print(ctx context.Context, args ...object.Object) object.Object {
 	values := make([]interface{}, len(args))
 	for i, arg := range args {
-		values[i] = arg.Inspect()
+		switch arg := arg.(type) {
+		case *object.String:
+			values[i] = arg.Value
+		default:
+			values[i] = arg.Inspect()
+		}
 	}
 	fmt.Println(values...)
 	return object.Nil
@@ -469,10 +459,92 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 	return newError("type error: unable to call object (%s given)", args[0].Type())
 }
 
+func Keys(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("keys", 1, args); err != nil {
+		return err
+	}
+	switch arg := args[0].(type) {
+	case *object.Map:
+		return arg.Keys()
+	case *object.List:
+		return arg.Keys()
+	default:
+		return newError("type error: keys() argument must be a map or list (%s given)", arg.Type())
+	}
+}
+
+func Int(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("int", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.Int:
+		return obj
+	case *object.Float:
+		return object.NewInt(int64(obj.Value))
+	case *object.String:
+		if i, err := strconv.ParseInt(obj.Value, 0, 64); err == nil {
+			return object.NewInt(i)
+		}
+		return newError("value error: invalid literal for int(): %q", obj.Value)
+	}
+	return newError("type error: int() argument must be a string, float, or int (%s given)", args[0].Type())
+}
+
+func Float(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("float", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.Int:
+		return object.NewFloat(float64(obj.Value))
+	case *object.Float:
+		return obj
+	case *object.String:
+		if f, err := strconv.ParseFloat(obj.Value, 64); err == nil {
+			return object.NewFloat(f)
+		}
+		return newError("value error: invalid literal for float(): %q", obj.Value)
+	}
+	return newError("type error: float() argument must be a string, float, or int (%s given)", args[0].Type())
+}
+
+func Ord(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("ord", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.String:
+		runes := []rune(obj.Value)
+		if len(runes) != 1 {
+			return newError("value error: ord() expected a character, but string of length %d found", len(obj.Value))
+		}
+		return object.NewInt(int64(runes[0]))
+	}
+	return newError("type error: ord() expected a string of length 1 (%s given)", args[0].Type())
+}
+
+func Chr(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("chr", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.Int:
+		if obj.Value < 0 {
+			return newError("value error: chr() argument out of range (%d given)", obj.Value)
+		}
+		if obj.Value > unicode.MaxRune {
+			return newError("value error: chr() argument out of range (%d given)", obj.Value)
+		}
+		return object.NewString(string(rune(obj.Value)))
+	}
+	return newError("type error: chr() expected an int (%s given)", args[0].Type())
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	return []*object.Builtin{
 		{Name: "delete", Fn: Delete},
-		// {Name: "keys", Fn: Keys},
+		{Name: "keys", Fn: Keys},
 		{Name: "len", Fn: Len},
 		{Name: "match", Fn: Match},
 		{Name: "set", Fn: Set},
@@ -482,7 +554,6 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "ok", Fn: Ok},
 		{Name: "err", Fn: Err},
 		{Name: "assert", Fn: Assert},
-		// {Name: "fetch", Fn: Fetch},
 		{Name: "any", Fn: Any},
 		{Name: "all", Fn: All},
 		{Name: "bool", Fn: Bool},
@@ -494,10 +565,11 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "reversed", Fn: Reversed},
 		{Name: "getattr", Fn: GetAttr},
 		{Name: "call", Fn: Call},
-		// Add list
-		// Add int
-		// Add float
-		// Add ord
-		// Add chr
+		{Name: "list", Fn: List},
+		{Name: "int", Fn: Int},
+		{Name: "float", Fn: Float},
+		{Name: "ord", Fn: Ord},
+		{Name: "chr", Fn: Chr},
+		// {Name: "fetch", Fn: Fetch},
 	}
 }

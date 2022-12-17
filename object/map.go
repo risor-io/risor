@@ -21,7 +21,7 @@ func (m *Map) Inspect() string {
 	pairs := make([]string, 0)
 	for _, k := range m.SortedKeys() {
 		v := m.Items[k]
-		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v.Inspect()))
+		pairs = append(pairs, fmt.Sprintf("%q: %s", k, v.Inspect()))
 	}
 	out.WriteString("{")
 	out.WriteString(strings.Join(pairs, ", "))
