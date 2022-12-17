@@ -331,6 +331,14 @@ func (ls *List) Reversed() *List {
 	return result
 }
 
+func (ls *List) Keys() Object {
+	items := make([]Object, 0, len(ls.Items))
+	for i := 0; i < len(ls.Items); i++ {
+		items = append(items, NewInt(int64(i)))
+	}
+	return NewList(items)
+}
+
 func NewList(items []Object) *List {
 	return &List{Items: items}
 }

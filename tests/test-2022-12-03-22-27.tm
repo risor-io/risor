@@ -1,4 +1,4 @@
-// expected value: foo 21 bar abcd
+// expected value: "foo 21 bar abcd"
 // expected type: string
 
 a := 10

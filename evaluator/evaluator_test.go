@@ -156,6 +156,7 @@ func TestEvalBooleanExpression(t *testing.T) {
 }
 
 func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
+	t.Helper()
 	result, ok := obj.(*object.Bool)
 	if !ok {
 		t.Errorf("object is not bool. got=%T(%+v)", obj, obj)
@@ -175,15 +176,17 @@ func TestBangOperator(t *testing.T) {
 	}{
 		{"!true", false},
 		{"!false", true},
-		{"!5", false},
 		{"!!true", true},
 		{"!!false", false},
-		{"!!5", true},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		testBooleanObject(t, evaluated, tt.expected)
 	}
+	result := testEval("!5")
+	resultErr, ok := result.(*object.Error)
+	require.True(t, ok)
+	require.Equal(t, "type error: expected boolean to follow ! operator (got int)", resultErr.Message)
 }
 
 func TestIfElseExpression(t *testing.T) {
@@ -244,7 +247,7 @@ func TestErrorHandling(t *testing.T) {
 	}{
 		{"5+true;", "type error: unsupported operand types for +: int and bool"},
 		{"5+true; 5;", "type error: unsupported operand types for +: int and bool"},
-		{"-true", "type error: bad operand type for unary -: bool"},
+		{"-true", "type error: expected int or float to follow - operator (got bool)"},
 		{"3--", "name error: 3 is not defined"},
 		{"true+false", "type error: unsupported operand types for +: bool and bool"},
 		{"5;true+false;5", "type error: unsupported operand types for +: bool and bool"},
@@ -714,7 +717,7 @@ func TestIndexErrors(t *testing.T) {
 		expected string
 	}{
 		{"[1,2,3][99]", "index error: array index out of range: 99"},
-		{`{"foo":1}["bar"]`, "key error: bar"},
+		{`{"foo":1}["bar"]`, "key error: \"bar\""},
 		{`"foo"[4]`, "index error: string index out of range: 4"},
 	}
 	for _, tt := range tests {
