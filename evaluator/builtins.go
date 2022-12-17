@@ -200,7 +200,7 @@ func Assert(ctx context.Context, args ...object.Object) object.Object {
 	if numArgs < 1 || numArgs > 2 {
 		return newError("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
 	}
-	if !isTruthy(args[0]) {
+	if !object.IsTruthy(args[0]) {
 		if numArgs == 2 {
 			return newError(args[1].Inspect())
 		}
@@ -216,13 +216,13 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.List:
 		for _, obj := range arg.Items {
-			if isTruthy(obj) {
+			if object.IsTruthy(obj) {
 				return object.True
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Items {
-			if isTruthy(obj) {
+			if object.IsTruthy(obj) {
 				return object.True
 			}
 		}
@@ -239,13 +239,13 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.List:
 		for _, obj := range arg.Items {
-			if !isTruthy(obj) {
+			if !object.IsTruthy(obj) {
 				return object.False
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Items {
-			if !isTruthy(obj) {
+			if !object.IsTruthy(obj) {
 				return object.False
 			}
 		}
@@ -259,7 +259,7 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("bool", 1, args); err != nil {
 		return err
 	}
-	if isTruthy(args[0]) {
+	if object.IsTruthy(args[0]) {
 		return object.True
 	}
 	return object.False
@@ -452,7 +452,7 @@ func GetAttr(ctx context.Context, args ...object.Object) object.Object {
 	return newError("attribute error: %s object has no attribute %q", args[0].Type(), attrName)
 }
 
-// Call the given builtin function with the provided arguments
+// Call the given function with the provided arguments
 func Call(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
@@ -460,9 +460,13 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch fn := args[0].(type) {
 	case *object.Builtin:
-		return fn.Fn(ctx, args...)
+		return fn.Fn(ctx, args[1:]...)
 	case *object.Function:
-		// TODO: pass in applyer
+		callFunc, found := object.GetCallFunc(ctx)
+		if !found {
+			return newError("eval error: context did not contain a call function")
+		}
+		return callFunc(ctx, fn.Scope, fn, args[1:])
 	}
 	return newError("type error: unable to call object (%s given)", args[0].Type())
 }

@@ -79,3 +79,32 @@ func Not(b *Bool) *Bool {
 func Equals(a, b Object) bool {
 	return a.Equals(b).(*Bool).Value
 }
+
+func IsTruthy(obj Object) bool {
+	switch obj {
+	case Nil:
+		return false
+	case True:
+		return true
+	case False:
+		return false
+	default:
+		switch obj := obj.(type) {
+		case *Int:
+			return obj.Value != 0
+		case *Float:
+			return obj.Value != 0.0
+		case *String:
+			return obj.Value != ""
+		case *List:
+			return len(obj.Items) > 0
+		case *Map:
+			return len(obj.Items) > 0
+		case *Set:
+			return len(obj.Items) > 0
+		case *Bool:
+			return obj.Value
+		}
+		return true
+	}
+}
