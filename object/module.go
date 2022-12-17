@@ -6,7 +6,7 @@ import (
 
 type Module struct {
 	Name  string
-	Scope interface{}
+	Scope Scope
 }
 
 func (m *Module) Type() Type {
@@ -18,7 +18,7 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) GetAttr(name string) (Object, bool) {
-	return nil, false
+	return m.Scope.Get(name)
 }
 
 func (m *Module) ToInterface() interface{} {

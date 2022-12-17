@@ -24,7 +24,6 @@ func (e *Evaluator) evalCallExpression(
 	return e.applyFunction(ctx, s, function, args)
 }
 
-// evalObjectCallExpression invokes methods against objects.
 func (e *Evaluator) evalObjectCallExpression(
 	ctx context.Context,
 	call *ast.ObjectCallExpression,
@@ -53,15 +52,6 @@ func (e *Evaluator) evalObjectCall(
 	method string,
 	args []object.Object,
 ) object.Object {
-	switch obj := obj.(type) {
-	case *object.Module:
-		moduleScope := obj.Scope.(*scope.Scope)
-		moduleFunc, ok := moduleScope.Get(method)
-		if !ok {
-			return newError("attribute error: module %s has no attribute \"%s\"", obj.Name, method)
-		}
-		return e.applyFunction(ctx, s, moduleFunc, args)
-	}
 	if attr, found := obj.GetAttr(method); found {
 		return e.applyFunction(ctx, s, attr, args)
 	}
@@ -78,20 +68,9 @@ func (e *Evaluator) evalGetAttributeExpression(
 		return obj
 	}
 	attrName := node.Attribute.Token.Literal
-	switch obj := obj.(type) {
-	case *object.Module:
-		s := obj.Scope.(*scope.Scope)
-		result, ok := s.Get(attrName)
-		if !ok {
-			return newError("attribute error: %s object has no attribute \"%s\"",
-				obj.Type(), attrName)
-		}
-		return result
-	default:
-		if attr, found := obj.GetAttr(attrName); found {
-			return attr
-		}
-		return newError("attribute error: %s object has no attribute \"%s\"",
-			obj.Type(), attrName)
+	if attr, found := obj.GetAttr(attrName); found {
+		return attr
 	}
+	return newError("attribute error: %s object has no attribute \"%s\"",
+		obj.Type(), attrName)
 }
