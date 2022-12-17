@@ -27,10 +27,6 @@ func (f *Float) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (f *Float) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", f.Type(), method)
-}
-
 func (f *Float) ToInterface() interface{} {
 	return f.Value
 }

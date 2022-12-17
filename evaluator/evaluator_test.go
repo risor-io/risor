@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -248,7 +249,7 @@ func TestErrorHandling(t *testing.T) {
 		{"5+true;", "type error: unsupported operand types for +: int and bool"},
 		{"5+true; 5;", "type error: unsupported operand types for +: int and bool"},
 		{"-true", "type error: expected int or float to follow - operator (got bool)"},
-		{"3--", "name error: 3 is not defined"},
+		{"3--", "name error: \"3\" is not defined"},
 		{"true+false", "type error: unsupported operand types for +: bool and bool"},
 		{"5;true+false;5", "type error: unsupported operand types for +: bool and bool"},
 		{"if (10>1) { true+false;}", "type error: unsupported operand types for +: bool and bool"},
@@ -258,7 +259,7 @@ func TestErrorHandling(t *testing.T) {
 			}
 			return 1;
 }`, "type error: unsupported operand types for +: bool and bool"},
-		{"foobar", "name error: foobar is not defined"},
+		{"foobar", "name error: \"foobar\" is not defined"},
 		{`"Hello" - "World"`, "type error: unsupported operand types for -: string and string"},
 	}
 	for _, tt := range tests {
@@ -281,12 +282,12 @@ func TestLetStatements(t *testing.T) {
 		input  string
 		expect int64
 	}{
-		{"let a=5;a;", 5},
-		{"let a=5*5; a;", 25},
-		{"let a=5; let b=a; b;", 5},
-		{"let a=5; a--; a;", 4},
-		{"let a=5; a++; a;", 6},
-		{"let a=5; let b=a; let c=a+b+5; c;", 15},
+		{"var a=5;a;", 5},
+		{"var a=5*5; a;", 25},
+		{"var a=5; var b=a; b;", 5},
+		{"var a=5; a--; a;", 4},
+		{"var a=5; a++; a;", 6},
+		{"var a=5; var b=a; var c=a+b+5; c;", 15},
 	}
 	for _, tt := range tests {
 		testDecimalObject(t, testEval(tt.input), tt.expect)
@@ -319,11 +320,11 @@ func TestFunctionApplication(t *testing.T) {
 		input    string
 		expected int64
 	}{
-		{"let identity=func(x){x;}; identity(5);", 5},
-		{"let identity=func(x){return x;}; identity(5);", 5},
-		{"let double=func(x){x*2;}; double(5);", 10},
-		{"let add = func(x, y) { x+y;}; add(5,5);", 10},
-		{"let add=func(x,y){x+y;}; add(5+5, add(5,5));", 20},
+		{"var identity=func(x){x;}; identity(5);", 5},
+		{"var identity=func(x){return x;}; identity(5);", 5},
+		{"var double=func(x){x*2;}; double(5);", 10},
+		{"var add = func(x, y) { x+y;}; add(5,5);", 10},
+		{"var add=func(x,y){x+y;}; add(5+5, add(5,5));", 20},
 		{"func(x){x;}(5)", 5},
 	}
 	for _, tt := range tests {
@@ -333,10 +334,10 @@ func TestFunctionApplication(t *testing.T) {
 
 func TestClosures(t *testing.T) {
 	input := `
-let newAdder = func(x) {
+var newAdder = func(x) {
 	func(y) { x + y };
 };
-let addTwo = newAdder(3);
+var addTwo = newAdder(3);
 addTwo(2);
 `
 	testDecimalObject(t, testEval(input), 5)
@@ -425,19 +426,19 @@ func TestArrayIndexExpression(t *testing.T) {
 			3,
 		},
 		{
-			"let i =0; [1][i]",
+			"var i =0; [1][i]",
 			1,
 		},
 		{
-			"let myArray=[1,2,3];myArray[2];",
+			"var myArray=[1,2,3];myArray[2];",
 			3,
 		},
 		{
-			"let myArray=[1,2,3];myArray[0]+myArray[1]+myArray[2]",
+			"var myArray=[1,2,3];myArray[0]+myArray[1]+myArray[2]",
 			6,
 		},
 		{
-			"let myArray=[1,2,3];let i = myArray[0]; myArray[i]",
+			"var myArray=[1,2,3];var i = myArray[0]; myArray[i]",
 			2,
 		},
 		{
@@ -512,7 +513,7 @@ func TestStringIndexExpression(t *testing.T) {
 }
 
 func TestHashLiterals(t *testing.T) {
-	input := `let two="two";
+	input := `var two="two";
 	{
 		"one":10-9,
 		two:1+1,
@@ -549,7 +550,7 @@ func TestHashIndexExpression(t *testing.T) {
 			5,
 		},
 		{
-			`let key = "foo"; {"foo":5}[key]`,
+			`var key = "foo"; {"foo":5}[key]`,
 			5,
 		},
 	}
@@ -586,8 +587,8 @@ func TestForLoopSimple(t *testing.T) {
 
 func TestForLoopAdditional(t *testing.T) {
 	input := `
-let sum = 0;
-let up = 100;
+var sum = 0;
+var up = 100;
 for x := 1; x < up; x += 1 {
 	sum = sum + x;
 }
@@ -599,7 +600,7 @@ sum
 
 func TestForLoopBreak(t *testing.T) {
 	input := `
-let sum = 0;
+var sum = 0;
 for x := 0; x < 100; x++ {
 	if x == 2 {
 		break
@@ -760,4 +761,19 @@ func TestStringInterpolation(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, tt.expected, str.Value)
 	}
+}
+
+func TestMethodCallOnError(t *testing.T) {
+	ctx := context.Background()
+	input := `flub(1).whatever()`
+	program, err := parser.Parse(input)
+	require.Nil(t, err)
+	s := scope.New(scope.Opts{})
+	e := &Evaluator{}
+	obj := e.Evaluate(ctx, program, s)
+	fmt.Println(obj)
+	errObj, ok := obj.(*object.Error)
+	require.True(t, ok)
+	fmt.Println(errObj)
+	require.Equal(t, "name error: \"flub\" is not defined", errObj.Message)
 }

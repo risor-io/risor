@@ -1,6 +1,7 @@
 package object_test
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -46,6 +47,8 @@ func (pt *ProxyService) ParseInt(s string) (int, error) {
 
 func TestProxy(t *testing.T) {
 
+	ctx := context.Background()
+
 	mgr, err := object.NewProxyManager(
 		object.ProxyManagerOpts{
 			Types: []any{
@@ -72,8 +75,19 @@ func TestProxy(t *testing.T) {
 	// Create a proxy around an instance of ProxyService
 	proxy := object.NewProxy(mgr, &ProxyService{})
 
+	getMethod := func(name string) *object.Builtin {
+		method, ok := proxy.GetAttr(name)
+		require.True(t, ok)
+		return method.(*object.Builtin)
+	}
+
+	flub := getMethod("Flub")
+	inc := getMethod("Increment")
+	toUpper := getMethod("ToUpper")
+	parseInt := getMethod("ParseInt")
+
 	// Call Flub and check the result
-	res := proxy.InvokeMethod("Flub", &object.Map{
+	res := flub.Fn(ctx, &object.Map{
 		Items: map[string]object.Object{
 			"A": object.NewInt(99),
 			"B": object.NewString("B"),
@@ -83,22 +97,22 @@ func TestProxy(t *testing.T) {
 	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value)
 
 	// Try calling Increment
-	res = proxy.InvokeMethod("Increment", object.NewInt(123))
+	res = inc.Fn(ctx, object.NewInt(123))
 	require.Equal(t, int64(124), res.(*object.Int).Value)
 
 	// Try calling ToUpper
-	res = proxy.InvokeMethod("ToUpper", object.NewString("hello"))
+	res = toUpper.Fn(ctx, object.NewString("hello"))
 	require.Equal(t, "HELLO", res.(*object.String).Value)
 
 	// Call ParseInt and check that an Ok result is returned
-	res = proxy.InvokeMethod("ParseInt", object.NewString("234"))
+	res = parseInt.Fn(ctx, object.NewString("234"))
 	result, ok := res.(*object.Result)
 	require.True(t, ok)
 	require.True(t, result.IsOk())
 	require.Equal(t, int64(234), result.Ok.(*object.Int).Value)
 
 	// Call ParseInt with an invalid input and check that an Err result is returned
-	res = proxy.InvokeMethod("ParseInt", object.NewString("not-an-int"))
+	res = parseInt.Fn(ctx, object.NewString("not-an-int"))
 	result, ok = res.(*object.Result)
 	require.True(t, ok)
 	require.True(t, result.IsErr())

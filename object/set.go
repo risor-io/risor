@@ -100,10 +100,6 @@ func (s *Set) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (s *Set) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", s.Type(), method)
-}
-
 func (s *Set) ToInterface() interface{} {
 	items := make([]interface{}, 0, len(s.Items))
 	for _, item := range s.SortedItems() {

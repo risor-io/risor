@@ -62,7 +62,6 @@ const (
 	INT             = "INT"
 	LBRACE          = "{"
 	LBRACKET        = "["
-	LET             = "LET"
 	LPAREN          = "("
 	LT              = "<"
 	LT_EQUALS       = "<="
@@ -94,6 +93,7 @@ const (
 	NEWLINE         = "EOL"
 	IMPORT          = "IMPORT"
 	BREAK           = "BREAK"
+	VAR             = "VAR"
 )
 
 // reserved keywords
@@ -106,7 +106,7 @@ var keywords = map[string]Type{
 	"for":     FOR,
 	"func":    FUNC,
 	"if":      IF,
-	"let":     LET,
+	"var":     VAR,
 	"nil":     NIL,
 	"return":  RETURN,
 	"switch":  SWITCH,

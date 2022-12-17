@@ -8,9 +8,9 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalLetStatement(
+func (e *Evaluator) evalVarStatement(
 	ctx context.Context,
-	node *ast.LetStatement,
+	node *ast.VarStatement,
 	s *scope.Scope,
 ) object.Object {
 	value := e.Evaluate(ctx, node.Value, s)
@@ -51,7 +51,7 @@ func (e *Evaluator) evalAssignStatement(
 	case "+=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %s is not defined", a.Name.String())
+			return newError("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("+=", current, evaluated, s)
 		if isError(res) {
@@ -65,7 +65,7 @@ func (e *Evaluator) evalAssignStatement(
 	case "-=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %s is not defined", a.Name.String())
+			return newError("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("-=", current, evaluated, s)
 		if isError(res) {
@@ -79,7 +79,7 @@ func (e *Evaluator) evalAssignStatement(
 	case "*=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %s is not defined", a.Name.String())
+			return newError("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("*=", current, evaluated, s)
 		if isError(res) {
@@ -93,7 +93,7 @@ func (e *Evaluator) evalAssignStatement(
 	case "/=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %s is not defined", a.Name.String())
+			return newError("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("/=", current, evaluated, s)
 		if isError(res) {

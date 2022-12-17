@@ -3,9 +3,9 @@ func maxArray(array) {
     if (len(array) == 0) {
         return 0;
     }
-    let max = array[0];
-    let len = len(array);
-    for (let idx = 0; idx < len; idx++) {
+    var max = array[0];
+    var len = len(array);
+    for (var idx = 0; idx < len; idx++) {
         if (array[idx] > max) {
             max = array[idx];
         }

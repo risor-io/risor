@@ -166,10 +166,6 @@ func (ls *List) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (ls *List) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", ls.Type(), method)
-}
-
 // Append adds an item at the end of the list.
 func (ls *List) Append(obj Object) {
 	ls.Items = append(ls.Items, obj)

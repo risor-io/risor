@@ -21,5 +21,5 @@ func TestExecError(t *testing.T) {
 	ctx := context.Background()
 	_, err := exec.Execute(ctx, exec.Opts{Input: `bogus()`})
 	require.NotNil(t, err)
-	require.Equal(t, "name error: bogus is not defined", err.Error())
+	require.Equal(t, "name error: \"bogus\" is not defined", err.Error())
 }

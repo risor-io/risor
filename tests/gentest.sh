@@ -9,7 +9,7 @@ cat <<EOF >>${TEST_FILE}
 // expected value: 10
 // expected type: int
 
-let a = 10
+var a = 10
 EOF
 
 echo "created test file: ${TEST_FILE}"

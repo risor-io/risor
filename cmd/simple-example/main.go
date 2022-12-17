@@ -18,10 +18,10 @@ func main() {
 	input := `
 		print("current time:", time.now())
 
-		let a = [1, 4, 9]
+		var a = [1, 4, 9]
 		print("a:", a)
 
-		let b = a.map(func(x) { math.sqrt(x) })
+		var b = a.map(func(x) { math.sqrt(x) })
 		print("b:", b)
 
 		rand.shuffle(b)

@@ -11,54 +11,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLetStatements(t *testing.T) {
+func TestVarStatements(t *testing.T) {
 	tests := []struct {
 		input string
 		ident string
 		value interface{}
 	}{
-		{"let x =5;", "x", 5},
-		{"let z =1.3;", "z", 1.3},
-		{"let y = true;", "y", true},
-		{"let foobar=y;", "foobar", "y"},
+		{"var x =5;", "x", 5},
+		{"var z =1.3;", "z", 1.3},
+		{"var y_ = true;", "y_", true},
+		{"var foobar=y;", "foobar", "y"},
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements, 1)
 		stmt := program.Statements[0]
-		testLetStatement(t, stmt, tt.ident)
-		val := stmt.(*ast.LetStatement).Value
+		testVarStatement(t, stmt, tt.ident)
+		val := stmt.(*ast.VarStatement).Value
 		testLiteralExpression(t, val, tt.value)
 	}
 }
 
 func TestDeclareStatements(t *testing.T) {
 	input := `
-	let x = foo.bar()
+	var x = foo.bar()
 	y := foo.bar()
 	`
 	program, err := Parse(input)
 	printMultiError(err)
 	require.Nil(t, err)
 	require.Len(t, program.Statements, 2)
-	stmt1, ok := program.Statements[0].(*ast.LetStatement)
+	stmt1, ok := program.Statements[0].(*ast.VarStatement)
 	require.True(t, ok)
-	stmt2, ok := program.Statements[1].(*ast.LetStatement)
+	stmt2, ok := program.Statements[1].(*ast.VarStatement)
 	require.True(t, ok)
 	fmt.Println(stmt1)
 	fmt.Println(stmt2)
 	// require.Equal(t, let.TokenLiteral(), "x")
 }
 
-func TestBadLetConstStatement(t *testing.T) {
+func TestBadVarConstStatement(t *testing.T) {
 	inputs := []struct {
 		input string
 		err   string
 	}{
-		{"let", "parse error: unexpected end of file while parsing let statement (expected identifier)"},
+		{"var", "parse error: unexpected end of file while parsing var statement (expected identifier)"},
 		{"const", "parse error: unexpected end of file while parsing const statement (expected identifier)"},
-		{"let x;", "parse error: unexpected ; while parsing let statement (expected =)"},
 		{"const x;", "parse error: unexpected ; while parsing const statement (expected =)"},
 	}
 	for _, tt := range inputs {
@@ -454,13 +453,13 @@ func TestParsingHashLiteralWithExpression(t *testing.T) {
 // Test operators: +=, -=, /=, and *=.
 func TestMutators(t *testing.T) {
 	inputs := []string{
-		"let w = 5; w *= 3;",
-		"let x = 15; x += 3;",
-		"let y = 10; y /= 2;",
-		"let z = 10; y -= 2;",
-		"let z = 1; z++;",
-		"let z = 1; z--;",
-		"let z = 10; let a = 3; y = a;",
+		"var w = 5; w *= 3;",
+		"var x = 15; x += 3;",
+		"var y = 10; y /= 2;",
+		"var z = 10; y -= 2;",
+		"var z = 1; z++;",
+		"var z = 1; z--;",
+		"var z = 10; var a = 3; y = a;",
 	}
 	for _, input := range inputs {
 		_, err := Parse(input)
@@ -472,7 +471,7 @@ func TestMutators(t *testing.T) {
 func TestObjectMethodCall(t *testing.T) {
 	inputs := []string{
 		"\"steve\".len()",
-		"let x = 15; x.string();",
+		"var x = 15; x.string();",
 	}
 	for _, input := range inputs {
 		_, err := Parse(input)
@@ -488,7 +487,7 @@ func TestIncompleThings(t *testing.T) {
 	}{
 		{`if ( true ) { `, "parse error: unterminated block statement"},
 		{`if ( true ) { puts( "OK" ) ; } else { `, "parse error: unterminated block statement"},
-		{`let x = `, "parse error: assignment is missing a value"},
+		{`var x = `, "parse error: assignment is missing a value"},
 		{`const x =`, "parse error: assignment is missing a value"},
 		{`func foo( a, b ="steve", `, "parse error: unterminated function parameters"},
 		{`func foo() {`, "parse error: unterminated block statement"},
@@ -556,15 +555,15 @@ func TestPipeExpression(t *testing.T) {
 		exprType       string
 		expectedIdents []string
 	}{
-		{"let x = foo | bar;", "ident", []string{"foo", "bar"}},
-		{`let x = foo() | bar(name="foo") | baz(y=4);`, "call", []string{"foo", "bar", "baz"}},
-		{`let x = a() | b();`, "call", []string{"a", "b"}},
+		{"var x = foo | bar;", "ident", []string{"foo", "bar"}},
+		{`var x = foo() | bar(name="foo") | baz(y=4);`, "call", []string{"foo", "bar", "baz"}},
+		{`var x = a() | b();`, "call", []string{"a", "b"}},
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements, 1)
-		stmt := program.Statements[0].(*ast.LetStatement)
+		stmt := program.Statements[0].(*ast.VarStatement)
 		expr, ok := stmt.Value.(*ast.PipeExpression)
 		require.True(t, ok)
 		require.Len(t, expr.Arguments, len(tt.expectedIdents))
@@ -666,8 +665,8 @@ func TestForLoop(t *testing.T) {
 		postStr string
 	}{
 		{
-			"for let i = 0; i < 5; i++ { }",
-			"let i = 0",
+			"for var i = 0; i < 5; i++ { }",
+			"var i = 0",
 			"(i < 5)",
 			"(i++)",
 		},

@@ -1,10 +1,10 @@
 #!/usr/bin/env tamarin
 
-let testValue = 100
+var testValue = 100
 
 // comment
 func getint() {
-    let foo = testValue + 1
+    var foo = testValue + 1
     func inner() {
         foo
     }
@@ -17,27 +17,27 @@ func inc(x) {
 
 print(getint()() )
 
-// let x = getint()() | inc
-let x = 4
+// var x = getint()() | inc
+var x = 4
 
 print(x)
 
-let data = {
+var data = {
     "foo": "bar",
     "value": 42
 }
 
-print("data-foo:", data["foo"], data.foo)
+print("data-foo:", data["foo"])
 
 a := [1, 2, 3, 4, 5]
 print(a[4])
-print("length of a:", a.len())
+print("length of a:", len(a))
 
 func addOne(index, value) {
     return value + 1
 }
 
-let mapped = a.map(type)
+var mapped = a.map(type)
 print("mapped:", mapped, type(mapped[0]))
 
 s := { 1, 3.3,
@@ -54,7 +54,7 @@ print(
     "min:", math.min(s),
 )
 
-let filtered = [1, 2, 3, 4, 5].filter(func(item) { item < 3 })
+var filtered = [1, 2, 3, 4, 5].filter(func(item) { item < 3 })
 print("filtered:", filtered)
 
 print("ok:", ok("yup").unwrap(), ok("yup").is_ok())

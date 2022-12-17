@@ -59,8 +59,8 @@ func (p *Program) String() string {
 	return out.String()
 }
 
-// LetStatement holds a let-statemnt
-type LetStatement struct {
+// VarStatement holds a var-statemnt
+type VarStatement struct {
 	// Token holds the token
 	Token token.Token
 
@@ -71,30 +71,30 @@ type LetStatement struct {
 	Value Expression
 }
 
-func (ls *LetStatement) statementNode() {}
+func (s *VarStatement) statementNode() {}
 
 // TokenLiteral returns the literal token.
-func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
+func (s *VarStatement) TokenLiteral() string { return s.Token.Literal }
 
 // String returns this object as a string.
-func (ls *LetStatement) String() string {
+func (s *VarStatement) String() string {
 	var out bytes.Buffer
-	if ls.Token.Literal == token.DECLARE {
-		out.WriteString(ls.Name.TokenLiteral() + " ")
-		out.WriteString(ls.TokenLiteral() + " ")
-		out.WriteString(ls.Value.String())
+	if s.Token.Literal == token.DECLARE {
+		out.WriteString(s.Name.TokenLiteral() + " ")
+		out.WriteString(s.TokenLiteral() + " ")
+		out.WriteString(s.Value.String())
 		return out.String()
 	}
-	out.WriteString(ls.TokenLiteral() + " ")
-	out.WriteString(ls.Name.TokenLiteral())
+	out.WriteString(s.TokenLiteral() + " ")
+	out.WriteString(s.Name.TokenLiteral())
 	out.WriteString(" = ")
-	if ls.Value != nil {
-		out.WriteString(ls.Value.String())
+	if s.Value != nil {
+		out.WriteString(s.Value.String())
 	}
 	return out.String()
 }
 
-// ConstStatement is the same as let-statement, but the value
+// ConstStatement is the same as var-statement, but the value
 // can't be changed later.
 type ConstStatement struct {
 	// Token is the token
@@ -502,7 +502,7 @@ type ForLoopExpression struct {
 
 	// Initialization statement which is executed once before evaluating the
 	// condition for the first iteration
-	InitStatement *LetStatement
+	InitStatement *VarStatement
 
 	// Statement which is executed after each execution of the block
 	// (and only if the block was executed)
@@ -825,7 +825,7 @@ func (ie *IndexExpression) String() string {
 	return out.String()
 }
 
-// AssignStatement is generally used for a (let-less) assignment,
+// AssignStatement is generally used for a (var-less) assignment,
 // such as "x = y", however we allow an operator to be stored ("=" in that
 // example), such that we can do self-operations.
 //

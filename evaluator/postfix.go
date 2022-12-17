@@ -11,11 +11,12 @@ func (e *Evaluator) evalPostfixExpression(
 	operator string,
 	node *ast.PostfixExpression,
 ) object.Object {
+	// TODO: Handle ints and floats
 	switch operator {
 	case "++":
 		val, ok := s.Get(node.Token.Literal)
 		if !ok {
-			return newError("name error: %s is not defined", node.Token.Literal)
+			return newError("name error: %q is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
 		case *object.Int:
@@ -29,7 +30,7 @@ func (e *Evaluator) evalPostfixExpression(
 	case "--":
 		val, ok := s.Get(node.Token.Literal)
 		if !ok {
-			return newError("name error: %s is not defined", node.Token.Literal)
+			return newError("name error: %q is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
 		case *object.Int:

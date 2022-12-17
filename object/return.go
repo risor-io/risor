@@ -18,10 +18,6 @@ func (rv *ReturnValue) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (rv *ReturnValue) InvokeMethod(method string, args ...Object) Object {
-	return nil
-}
-
 func (rv *ReturnValue) ToInterface() interface{} {
 	return nil
 }

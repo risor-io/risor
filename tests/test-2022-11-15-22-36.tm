@@ -2,4 +2,4 @@
 // expected value: 10
 // expected type: int
 
-let a = 10
+var a = 10

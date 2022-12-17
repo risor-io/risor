@@ -371,7 +371,11 @@ func Unwrap(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Result:
-		return arg.InvokeMethod("unwrap")
+		fn, ok := arg.GetAttr("unwrap")
+		if !ok {
+			return newError("type error: unwrap() method not found")
+		}
+		return fn.(*object.Builtin).Fn(ctx, args...)
 	default:
 		return newError("type error: unwrap() argument must be a result (%s given)", arg.Type())
 	}
@@ -383,7 +387,11 @@ func UnwrapOr(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Result:
-		return arg.InvokeMethod("unwrap_or", args[1])
+		fn, ok := arg.GetAttr("unwrap_or")
+		if !ok {
+			return newError("type error: unwrap_or() method not found")
+		}
+		return fn.(*object.Builtin).Fn(ctx, args...)
 	default:
 		return newError("type error: unwrap_or() argument must be a result (%s given)", arg.Type())
 	}
@@ -570,6 +578,6 @@ func GlobalBuiltins() []*object.Builtin {
 		{Name: "float", Fn: Float},
 		{Name: "ord", Fn: Ord},
 		{Name: "chr", Fn: Chr},
-		// {Name: "fetch", Fn: Fetch},
+		{Name: "fetch", Fn: Fetch},
 	}
 }

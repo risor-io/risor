@@ -2,13 +2,13 @@
 // expected value: '"hello"'
 // expected type: string
 
-let s = "\"hello\""
-let j = json.unmarshal(s)
+var s = "\"hello\""
+var j = json.unmarshal(s)
 assert(type(j) == "result")
 assert(j.is_ok())
 assert(!j.is_err())
 
-let v = j.unwrap()
+var v = j.unwrap()
 assert(type(v) == "string")
 assert(v == "hello")
 

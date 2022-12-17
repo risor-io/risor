@@ -21,10 +21,6 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (m *Module) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", m.Type(), method)
-}
-
 func (m *Module) ToInterface() interface{} {
 	return nil
 }
