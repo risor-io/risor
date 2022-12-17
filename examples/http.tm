@@ -1,6 +1,6 @@
 #!/usr/bin/env tamarin
 
-let body = json.marshal([1,2,3]).unwrap()
+var body = json.marshal([1,2,3]).unwrap()
 
 print("issuing post request to http://httpbin.org/post\n")
 

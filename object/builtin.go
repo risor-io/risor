@@ -41,12 +41,6 @@ func (b *Builtin) String() string {
 	return b.Inspect()
 }
 
-// InvokeMethod invokes a method against the object.
-// (Built-in methods only.)
-func (b *Builtin) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", b.Type(), method)
-}
-
 func (b *Builtin) GetAttr(name string) (Object, bool) {
 	return nil, false
 }

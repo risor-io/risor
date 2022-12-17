@@ -93,8 +93,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalImportStatement(ctx, node, s)
 
 	// Assignment
-	case *ast.LetStatement:
-		return e.evalLetStatement(ctx, node, s)
+	case *ast.VarStatement:
+		return e.evalVarStatement(ctx, node, s)
 	case *ast.ConstStatement:
 		return e.evalConstStatement(ctx, node, s)
 	case *ast.AssignStatement:

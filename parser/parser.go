@@ -273,8 +273,8 @@ func (p *Parser) setError(err ParserError) {
 // parseStatement parses a single statement.
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
-	case token.LET:
-		return p.parseLetStatement()
+	case token.VAR:
+		return p.parseVarStatement()
 	case token.CONST:
 		return p.parseConstStatement()
 	case token.RETURN:
@@ -291,14 +291,14 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-// parseLetStatement parses a let statement.
-func (p *Parser) parseLetStatement() *ast.LetStatement {
-	stmt := &ast.LetStatement{Token: p.curToken}
-	if !p.expectPeek("let statement", token.IDENT) {
+// parseVarStatement parses a var statement.
+func (p *Parser) parseVarStatement() *ast.VarStatement {
+	stmt := &ast.VarStatement{Token: p.curToken}
+	if !p.expectPeek("var statement", token.IDENT) {
 		return nil
 	}
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-	if !p.expectPeek("let statement", token.ASSIGN) {
+	if !p.expectPeek("var statement", token.ASSIGN) {
 		return nil
 	}
 	p.nextToken()
@@ -309,13 +309,13 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	return stmt
 }
 
-// parseDeclarationStatement parses a "i := value" statement as a "let" statement.
-func (p *Parser) parseDeclarationStatement() *ast.LetStatement {
+// parseDeclarationStatement parses a "i := value" statement as a "var" statement.
+func (p *Parser) parseDeclarationStatement() *ast.VarStatement {
 	name := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	if !p.expectPeek("declaration statement", token.DECLARE) {
 		return nil
 	}
-	stmt := &ast.LetStatement{Token: p.curToken, Name: name}
+	stmt := &ast.VarStatement{Token: p.curToken, Name: name}
 	p.nextToken()
 	stmt.Value = p.parseAssignmentValue()
 	if stmt.Value == nil {
@@ -343,7 +343,7 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 }
 
 // This is used to parse the right hand side (RHS) of the three types of
-// assignment statements: let, const, and :=
+// assignment statements: var, const, and :=
 func (p *Parser) parseAssignmentValue() ast.Expression {
 	// Parse the value being assigned (the right hand side)
 	result := p.parseExpression(LOWEST)
@@ -760,11 +760,11 @@ func (p *Parser) parseForLoopExpression() ast.Expression {
 	expression := &ast.ForLoopExpression{Token: p.curToken}
 	peekToken := p.peekToken
 
-	var initExpression *ast.LetStatement
+	var initExpression *ast.VarStatement
 	switch peekToken.Type {
-	case token.LET:
+	case token.VAR:
 		p.nextToken()
-		initExpression = p.parseLetStatement()
+		initExpression = p.parseVarStatement()
 	case token.IDENT:
 		p.nextToken()
 		initExpression = p.parseDeclarationStatement()
@@ -1023,7 +1023,7 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	return exp
 }
 
-// parseAssignExpression parses a bare assignment, without a `let`.
+// parseAssignExpression parses a bare assignment, without a `var`.
 func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	stmt := &ast.AssignStatement{Token: p.curToken}
 	if n, ok := name.(*ast.Identifier); ok {

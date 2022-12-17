@@ -132,9 +132,9 @@ project and you can lend a hand in many different ways.
 A single value may be passed between successive calls using pipe expressions.
 
 ```
-let array = ["gophers", "are", "burrowing", "rodents"]
+var array = ["gophers", "are", "burrowing", "rodents"]
 
-let sentence = array | strings.join(" ") | strings.to_upper
+var sentence = array | strings.join(" ") | strings.to_upper
 
 print(sentence)
 ```

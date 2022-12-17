@@ -4,7 +4,7 @@
 // and if it's not present the last expression in the body is the return value.
 func square(n) { n * n }
 
-let ints = [0, 1, 2, 3, 4]
+ints := [0, 1, 2, 3, 4]
 
 print("integers:", ints)
 

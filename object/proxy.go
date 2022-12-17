@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 )
@@ -37,10 +38,14 @@ type ProxyManager interface {
 	// HasType returns true if the type of the objects has been registered.
 	HasType(obj interface{}) bool
 
+	// GetMethod returns a wrapped method from the given object and a boolean
+	// that indicates whether the method was found.
+	GetMethod(obj interface{}, method string) (*ProxyMethod, bool)
+
 	// Call the named method on the object with the given arguments.
 	// The type of the object must have been previously registered, otherwise
 	// a Tamarin error object is returned.
-	Call(obj interface{}, method string, args ...Object) Object
+	Call(ctx context.Context, obj interface{}, method *ProxyMethod, args ...Object) Object
 }
 
 // DefaultProxyManager implements the ProxyManager interface.
@@ -158,67 +163,70 @@ func (p *DefaultProxyManager) GetType(obj interface{}) (*ProxyType, bool) {
 	return nil, false
 }
 
-func (p *DefaultProxyManager) Call(obj interface{}, method string, args ...Object) Object {
+func (p *DefaultProxyManager) GetMethod(obj interface{}, method string) (*ProxyMethod, bool) {
 	typ := reflect.TypeOf(obj)
 	proxyType, found := p.types[typ]
 	if !found {
-		return NewError("no proxy type found for %s", typ)
+		return nil, false
 	}
 	for _, m := range proxyType.Methods {
-		if m.Name != method {
-			continue
-		}
-		if len(args) != m.NumIn-1 {
-			return NewError("wrong number of arguments. got=%d, want=%d", len(args), m.NumIn-1)
-		}
-		inputs := make([]reflect.Value, m.NumIn)
-		inputs[0] = reflect.ValueOf(obj)
-		for i, arg := range args {
-			input, err := m.InputConverters[i].To(arg)
-			if err != nil {
-				return NewError("error converting input %d: %s", i, err)
-			}
-			inputs[i+1] = reflect.ValueOf(input)
-		}
-		// TODO: handle panic and translate to error
-		outputs := m.Method.Func.Call(inputs)
-		if len(outputs) == 0 {
-			return Nil
-		} else if len(outputs) == 1 {
-			if m.OutputHasErr {
-				if obj != nil {
-					err := outputs[0].Interface().(error)
-					return NewErrorResult(err.Error())
-				}
-				return NewOkResult(Nil)
-			}
-			obj, err := m.OutputConverters[0].From(outputs[0].Interface())
-			if err != nil {
-				return NewError("error converting output: %s", err)
-			}
-			return obj
-		} else if len(outputs) == 2 {
-			if !m.OutputHasErr {
-				return NewError("too many outputs")
-			}
-			obj0, err := m.OutputConverters[0].From(outputs[0].Interface())
-			if err != nil {
-				return NewError("error converting output: %s", err)
-			}
-			obj1, err := m.OutputConverters[1].From(outputs[1].Interface())
-			if err != nil {
-				return NewError("error converting output: %s", err)
-			}
-			if obj1 != nil {
-				errObj := obj1.(*Error)
-				return NewErrorResult(errObj.Message)
-			}
-			return NewOkResult(obj0)
-		} else {
-			return NewError("too many outputs")
+		if m.Name == method {
+			return m, true
 		}
 	}
-	return NewError("no method %s found for %s", method, typ)
+	return nil, false
+}
+
+func (p *DefaultProxyManager) Call(ctx context.Context, obj interface{}, m *ProxyMethod, args ...Object) Object {
+	if len(args) != m.NumIn-1 {
+		return NewError("wrong number of arguments. got=%d, want=%d", len(args), m.NumIn-1)
+	}
+	inputs := make([]reflect.Value, m.NumIn)
+	inputs[0] = reflect.ValueOf(obj)
+	for i, arg := range args {
+		input, err := m.InputConverters[i].To(arg)
+		if err != nil {
+			return NewError("error converting input %d: %s", i, err)
+		}
+		inputs[i+1] = reflect.ValueOf(input)
+	}
+	// TODO: pass through context
+	// TODO: handle panic and translate to error
+	outputs := m.Method.Func.Call(inputs)
+	if len(outputs) == 0 {
+		return Nil
+	} else if len(outputs) == 1 {
+		if m.OutputHasErr {
+			if obj != nil {
+				err := outputs[0].Interface().(error)
+				return NewErrorResult(err.Error())
+			}
+			return NewOkResult(Nil)
+		}
+		obj, err := m.OutputConverters[0].From(outputs[0].Interface())
+		if err != nil {
+			return NewError("error converting output: %s", err)
+		}
+		return obj
+	} else if len(outputs) == 2 {
+		if !m.OutputHasErr {
+			return NewError("too many outputs")
+		}
+		obj0, err := m.OutputConverters[0].From(outputs[0].Interface())
+		if err != nil {
+			return NewError("error converting output: %s", err)
+		}
+		obj1, err := m.OutputConverters[1].From(outputs[1].Interface())
+		if err != nil {
+			return NewError("error converting output: %s", err)
+		}
+		if obj1 != nil {
+			errObj := obj1.(*Error)
+			return NewErrorResult(errObj.Message)
+		}
+		return NewOkResult(obj0)
+	}
+	return NewError("too many outputs")
 }
 
 // Proxy is a Tamarin type that proxies method calls to a wrapped Go struct.
@@ -237,11 +245,16 @@ func (p *Proxy) Inspect() string {
 }
 
 func (p *Proxy) GetAttr(name string) (Object, bool) {
-	return nil, false
-}
-
-func (p *Proxy) InvokeMethod(method string, args ...Object) Object {
-	return p.mgr.Call(p.obj, method, args...)
+	method, found := p.mgr.GetMethod(p.obj, name)
+	if !found {
+		return nil, false
+	}
+	return &Builtin{
+		Name: fmt.Sprintf("%v.%s", reflect.TypeOf(p.obj), name),
+		Fn: func(ctx context.Context, args ...Object) Object {
+			return p.mgr.Call(ctx, p.obj, method, args...)
+		},
+	}, true
 }
 
 func (p *Proxy) ToInterface() interface{} {

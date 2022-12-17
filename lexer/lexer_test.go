@@ -75,12 +75,12 @@ func TestNextToken1(t *testing.T) {
 }
 
 func TestNextToken2(t *testing.T) {
-	input := `let five=5;
-let ten =10;
-let add = func(x, y){
+	input := `var five=5;
+var ten =10;
+var add = func(x, y){
   x+y
 };
-let result = add(five, ten);
+var result = add(five, ten);
 !- *5;
 5<10>5;
 
@@ -108,19 +108,19 @@ break
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
 		{token.NEWLINE, "\n"},
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
 		{token.NEWLINE, "\n"},
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
 		{token.FUNC, "func"},
@@ -138,7 +138,7 @@ break
 		{token.RBRACE, "}"},
 		{token.SEMICOLON, ";"},
 		{token.NEWLINE, "\n"},
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},
 		{token.IDENT, "add"},
@@ -288,7 +288,7 @@ func TestSimpleComment(t *testing.T) {
 	input := `=+// This is a comment
 // This is still a comment
 # I like comments
-let a = 1; # This is a comment too.
+var a = 1; # This is a comment too.
 // This is a final
 // comment on two-lines`
 
@@ -301,7 +301,7 @@ let a = 1; # This is a comment too.
 		{token.NEWLINE, "\n"},
 		{token.NEWLINE, "\n"},
 		{token.NEWLINE, "\n"},
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "1"},
@@ -327,8 +327,8 @@ func TestMultiLineComment(t *testing.T) {
 	input := `=+/* This is a comment
 
 We're still in a comment
-let c = 2; */
-let a = 1;
+var c = 2; */
+var a = 1;
 // This isa comment
 // This is still a comment.
 /* Now a multi-line again
@@ -342,7 +342,7 @@ let a = 1;
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
 		{token.NEWLINE, "\n"},
-		{token.LET, "let"},
+		{token.VAR, "var"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "1"},
@@ -431,35 +431,35 @@ func TestMoreHandling(t *testing.T) {
 3 /= 3;
 x */ 3;
 
-let t = true;
-let f = false;
+var t = true;
+var f = false;
 
 if ( t && f ) { puts( "What?" ); }
 if ( t || f ) { puts( "What?" ); }
 
-let a = 1;
+var a = 1;
 a++;
 
-let b = a % 1;
+var b = a % 1;
 b--;
 b -= 2;
 
 if ( a<3 ) { puts( "Blah!"); }
 if ( a>3 ) { puts( "Blah!"); }
 
-let b = 3;
+var b = 3;
 b**b;
 b *= 3;
 if ( b <= 3  ) { puts "blah\n" }
 if ( b >= 3  ) { puts "blah\n" }
 
-let a = "steve";
-let a = "steve\n";
-let a = "steve\t";
-let a = "steve\r";
-let a = "steve\\";
-let a = "steve\"";
-let c = 3.113;
+var a = "steve";
+var a = "steve\n";
+var a = "steve\t";
+var a = "steve\r";
+var a = "steve\\";
+var a = "steve\"";
+var c = 3.113;
 .;`
 	l := New(input)
 	tok, _ := l.NextToken()
@@ -592,7 +592,7 @@ func TestTokenLengths(t *testing.T) {
 		{"1.1", token.FLOAT, "1.1", 0, 0, 2},
 		{`"b"`, token.STRING, "b", 0, 0, 2},
 		{"for", token.FOR, "for", 0, 0, 2},
-		{"let", token.LET, "let", 0, 0, 2},
+		{"var", token.VAR, "var", 0, 0, 2},
 		{"false", token.FALSE, "false", 0, 0, 4},
 		{"import", token.IMPORT, "import", 0, 0, 5},
 		{">=", token.GT_EQUALS, ">=", 0, 0, 1},

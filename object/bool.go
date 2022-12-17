@@ -32,10 +32,6 @@ func (b *Bool) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (b *Bool) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", b.Type(), method)
-}
-
 func (b *Bool) ToInterface() interface{} {
 	return b.Value
 }

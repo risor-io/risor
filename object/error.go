@@ -19,10 +19,6 @@ func (e *Error) Inspect() string {
 	return fmt.Sprintf("Error(%s)", e.Message)
 }
 
-func (e *Error) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", e.Type(), method)
-}
-
 func (e *Error) ToInterface() interface{} {
 	return errors.New(e.Message)
 }

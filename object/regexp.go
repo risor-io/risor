@@ -23,10 +23,6 @@ func (r *Regexp) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (r *Regexp) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", r.Type(), method)
-}
-
 func (r *Regexp) ToInterface() interface{} {
 	return "<REGEXP>"
 }

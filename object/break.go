@@ -11,10 +11,6 @@ func (rv *BreakValue) Inspect() string {
 	return "BREAK"
 }
 
-func (rv *BreakValue) InvokeMethod(method string, args ...Object) Object {
-	return nil
-}
-
 func (rv *BreakValue) ToInterface() interface{} {
 	return "<BREAK_VALUE>"
 }

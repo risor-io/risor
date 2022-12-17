@@ -22,7 +22,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 	var symbols []protocol.DocumentSymbol
 	for i, stmt := range doc.ast.Statements {
 		switch stmt := stmt.(type) {
-		case *ast.LetStatement:
+		case *ast.VarStatement:
 			symbols = append(symbols, protocol.DocumentSymbol{
 				Name: stmt.Name.Value,
 				Kind: protocol.Variable,
@@ -42,7 +42,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 			// 	Str("call", "DocumentSymbol").
 			// 	Str("name", stmt.Name.Value).
 			// 	Str("stmt", stmt.String()).
-			// 	Msg("let statement found")
+			// 	Msg("var statement found")
 		}
 	}
 	log.Info().

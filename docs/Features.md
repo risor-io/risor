@@ -20,14 +20,14 @@ Equivalent to `fmt.Println`.
 
 ## Assignment Statements
 
-Both `let` and `const` statements are supported:
+Both `var` and `const` statements are supported:
 
 ```
-let x = 42
+var x = 42
 const y = "this is a constant"
 ```
 
-Using the `:=` operator instead of `let` is encouraged:
+Using the `:=` operator instead of `var` is encouraged:
 
 ```
 x := 42
@@ -38,7 +38,7 @@ x := 42
 Variables may change type, similar to Python.
 
 ```
-let x = 42
+x := 42
 x = "now a string"
 print(x)
 ```
@@ -48,7 +48,7 @@ print(x)
 Semicolons are optional, so statements are ended by newlines if semicolons are not present.
 
 ```
-let foo = "bar"; let baz = "qux"
+foo := "bar"; baz := "qux"
 ```
 
 ## Comments

@@ -14,10 +14,6 @@ func (n *NilType) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (n *NilType) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", n.Type(), method)
-}
-
 func (n *NilType) ToInterface() interface{} {
 	return nil
 }

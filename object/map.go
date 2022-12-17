@@ -221,10 +221,6 @@ func (m *Map) Update(other *Map) {
 	}
 }
 
-func (m *Map) InvokeMethod(method string, args ...Object) Object {
-	return NewError("type error: %s object has no method %s", m.Type(), method)
-}
-
 func (m *Map) SortedKeys() []string {
 	keys := make([]string, 0, len(m.Items))
 	for k := range m.Items {

@@ -32,6 +32,9 @@ func (e *Evaluator) evalObjectCallExpression(
 	s *scope.Scope,
 ) object.Object {
 	obj := e.Evaluate(ctx, call.Object, s)
+	if isError(obj) {
+		return obj
+	}
 	if method, ok := call.Call.(*ast.CallExpression); ok {
 		args := e.evalExpressions(ctx, call.Call.(*ast.CallExpression).Arguments, s)
 		funcName := method.Function.String()
@@ -62,19 +65,14 @@ func (e *Evaluator) evalObjectCall(
 		moduleScope := obj.Scope.(*scope.Scope)
 		moduleFunc, ok := moduleScope.Get(method)
 		if !ok {
-			return newError("attribute error: module %s has no attribute %s",
-				obj.Name, method)
+			return newError("attribute error: module %s has no attribute \"%s\"", obj.Name, method)
 		}
 		return e.applyFunction(ctx, s, moduleFunc, args)
 	}
 	if attr, found := obj.GetAttr(method); found {
 		return e.applyFunction(ctx, s, attr, args)
 	}
-	result := obj.InvokeMethod(method, args...)
-	if result != nil {
-		return result
-	}
-	return newError("failed to invoke method: %s", method)
+	return newError("attribute error: %s has no attribute \"%s\"", obj.Type(), method)
 }
 
 func (e *Evaluator) execListMap(

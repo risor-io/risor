@@ -82,13 +82,6 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (rv *Result) InvokeMethod(method string, args ...Object) Object {
-	if rv.Ok != nil {
-		return rv.Ok.InvokeMethod(method, args...)
-	}
-	return NewError(fmt.Sprintf("result error: %v", rv.Err))
-}
-
 func (rv *Result) ToInterface() interface{} {
 	if rv.Ok != nil {
 		return rv.Ok.ToInterface()

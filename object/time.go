@@ -21,10 +21,6 @@ func (t *Time) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (t *Time) InvokeMethod(method string, args ...Object) Object {
-	return nil
-}
-
 func (t *Time) ToInterface() interface{} {
 	return t.Value
 }
