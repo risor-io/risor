@@ -24,6 +24,11 @@ func (e *Evaluator) evalPostfixExpression(
 				return newError(err.Error())
 			}
 			return arg
+		case *object.Float:
+			if err := s.Update(node.Token.Literal, &object.Float{Value: arg.Value + 1}); err != nil {
+				return newError(err.Error())
+			}
+			return arg
 		default:
 			return newError("type error: cannot increment %s (type %s)", node.Token.Literal, arg)
 		}
@@ -35,6 +40,11 @@ func (e *Evaluator) evalPostfixExpression(
 		switch arg := val.(type) {
 		case *object.Int:
 			if err := s.Update(node.Token.Literal, &object.Int{Value: arg.Value - 1}); err != nil {
+				return newError(err.Error())
+			}
+			return arg
+		case *object.Float:
+			if err := s.Update(node.Token.Literal, &object.Float{Value: arg.Value - 1}); err != nil {
 				return newError(err.Error())
 			}
 			return arg
