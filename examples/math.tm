@@ -1,7 +1,5 @@
 #!/usr/bin/env tamarin
 
-// Simple function definition. Note that the `return` keyword is optional
-// and if it's not present the last expression in the body is the return value.
 func square(n) { n * n }
 
 ints := [0, 1, 2, 3, 4]
