@@ -120,11 +120,11 @@ func AutoImport(s *scope.Scope, allowList, denyList []string) error {
 func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// }()
 
 	// Create the top-level scope if one was not provided
 	s := opts.Scope

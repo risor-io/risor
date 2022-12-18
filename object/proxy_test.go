@@ -27,7 +27,7 @@ func (e ProxyServiceEmbedded) Flub(opts ProxyTestOpts) string {
 	return fmt.Sprintf("flubbed:%d.%s.%v", opts.A, opts.B, opts.C)
 }
 
-func (e ProxyServiceEmbedded) Increment(i int64) int64 {
+func (e ProxyServiceEmbedded) Increment(ctx context.Context, i int64) int64 {
 	return i + 1
 }
 
@@ -49,31 +49,29 @@ func TestProxy(t *testing.T) {
 
 	ctx := context.Background()
 
-	mgr, err := object.NewProxyManager(
-		object.ProxyManagerOpts{
-			Types: []any{
-				&ProxyService{},
-				ProxyTestOpts{},
-			},
-		})
+	reg, err := object.NewTypeRegistry()
 	require.Nil(t, err)
 
-	proxyType, found := mgr.GetType(&ProxyService{})
+	_, err = reg.Register(&ProxyService{})
+	require.Nil(t, err)
+
+	proxyType, found := reg.GetType(&ProxyService{})
 	require.True(t, found)
-	methods := proxyType.Methods
+	methods := proxyType.Methods()
 	require.Len(t, methods, 4)
 
 	sort.Slice(methods, func(i, j int) bool {
-		return methods[i].Name < methods[j].Name
+		return methods[i].Name() < methods[j].Name()
 	})
 
-	require.Equal(t, "Flub", methods[0].Name)
-	require.Equal(t, "Increment", methods[1].Name)
-	require.Equal(t, "ParseInt", methods[2].Name)
-	require.Equal(t, "ToUpper", methods[3].Name)
+	require.Equal(t, "Flub", methods[0].Name())
+	require.Equal(t, "Increment", methods[1].Name())
+	require.Equal(t, "ParseInt", methods[2].Name())
+	require.Equal(t, "ToUpper", methods[3].Name())
 
 	// Create a proxy around an instance of ProxyService
-	proxy := object.NewProxy(mgr, &ProxyService{})
+	proxy, err := object.NewProxy(reg, &ProxyService{})
+	require.Nil(t, err)
 
 	getMethod := func(name string) *object.Builtin {
 		method, ok := proxy.GetAttr(name)
