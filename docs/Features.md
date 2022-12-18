@@ -216,24 +216,32 @@ list = list.map(func(x) { x \* x })
 ## Builtins
 
 ```
-type(x)           // returns the string type name of x
-len(s)            // returns the size of the string, array, hash, or set
-any(arr)          // true if any item in arr is truthy
-all(arr)          // true if all items in arr are truthy
-sprintf(msg, ...) // equivalent to fmt.Sprintf
-keys(hash)        // returns an array of keys in the given hash
-delete(hash, key) // delete an item from the hash
-string(obj)       // convert an object to its string representation
-bool(obj)         // evaluates an object's truthiness
-ok(result)        // create a Result object containing the given object
-err(message)      // create a Result error object
-unwrap(result)    // unwraps the ok value from the Result if allowed
-unwrap_or(obj)    // unwraps but returns the provided obj if the Result is an Error
-sorted(obj)       // works with arrays, hashes, and sets
-reversed(arr)     // returns a reversed version of the given array
-assert(obj, msg)  // raises an error if obj is falsy
-print(...)        // equivalent to fmt.Println
-printf(...)       // equivalent to fmt.Printf
+type(x)            // returns the string type name of x
+len(s)             // returns the size of the string, list, map, or set
+any(arr)           // true if any item in arr is truthy
+all(arr)           // true if all items in arr are truthy
+sprintf(msg, ...)  // equivalent to fmt.Sprintf
+keys(map)          // returns an array of keys in the given map
+delete(map, key)   // delete an item from the map
+string(obj)        // convert an object to its string representation
+bool(obj)          // evaluates an object's truthiness
+ok(result)         // create a Result object containing the given object
+err(message)       // create a Result error object
+unwrap(result)     // unwraps the ok value from the Result if allowed
+unwrap_or(obj)     // unwraps but returns the provided obj if the Result is an Error
+sorted(obj)        // works with lists, maps, and sets
+reversed(arr)      // returns a reversed version of the given array
+assert(obj, msg)   // raises an error if obj is falsy
+print(...)         // equivalent to fmt.Println
+printf(...)        // equivalent to fmt.Printf
+set(obj)           // create a new set populated with items from the given iterable
+list(obj)          // create a new list populated with items from the given iterable
+int(s)             // convert a string to an int
+float(s)           // convert a string to a float
+call(fn, ...)      // call the given function (can be useful in pipe expressions)
+getattr(obj, name) // get the object's attribute with the given name
+ord()              // convert a unicode character to its integer value
+chr()              // convert an integer to its corresponding unicode rune
 ```
 
 ## Types
