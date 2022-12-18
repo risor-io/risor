@@ -122,3 +122,8 @@ func LookupIdentifier(identifier string) Type {
 	}
 	return IDENT
 }
+
+func IsKeyword(s string) bool {
+	_, found := keywords[s]
+	return found
+}
