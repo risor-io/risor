@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -199,6 +200,7 @@ var (
 	timeType        = reflect.TypeOf(time.Time{})
 	mapStrIfaceType = reflect.TypeOf(map[string]interface{}{})
 	errType         = reflect.TypeOf(errors.New(""))
+	contextType     = reflect.TypeOf(context.Background())
 )
 
 // Int64Converter converts between int64 and Integer.
@@ -365,6 +367,7 @@ func (c *MapStringIfaceConverter) Type() reflect.Type {
 // StructConverter converts between a struct and a Hash via JSON marshaling.
 type StructConverter struct {
 	Prototype interface{}
+	AsPointer bool
 }
 
 func (c *StructConverter) To(obj Object) (interface{}, error) {
@@ -381,6 +384,9 @@ func (c *StructConverter) To(obj Object) (interface{}, error) {
 	instValue := inst.Interface()
 	if err := json.Unmarshal(jsonBytes, &instValue); err != nil {
 		return nil, err
+	}
+	if c.AsPointer {
+		return inst.Interface(), nil
 	}
 	return inst.Elem().Interface(), nil
 }
@@ -422,4 +428,19 @@ func (c *ErrorConverter) From(obj interface{}) (Object, error) {
 
 func (c *ErrorConverter) Type() reflect.Type {
 	return errType
+}
+
+// ContextConverter converts between context.Context and Context.
+type ContextConverter struct{}
+
+func (c *ContextConverter) To(obj Object) (interface{}, error) {
+	return nil, errors.New("fail")
+}
+
+func (c *ContextConverter) From(obj interface{}) (Object, error) {
+	return nil, errors.New("fail")
+}
+
+func (c *ContextConverter) Type() reflect.Type {
+	return contextType
 }
