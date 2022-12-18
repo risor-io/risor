@@ -147,8 +147,17 @@ func (e *Evaluator) evalPipeExpression(
 	pe *ast.PipeExpression,
 	s *scope.Scope,
 ) object.Object {
-	var nextArg object.Object
-	for i, expr := range pe.Arguments {
+	if len(pe.Arguments) < 2 {
+		return object.NewError("eval error: invalid pipe expression (got only %d arguments)",
+			len(pe.Arguments))
+	}
+	// Evaluate the expression preceding the first pipe operator
+	nextArg := e.Evaluate(ctx, pe.Arguments[0], s)
+	if isError(nextArg) {
+		return nextArg
+	}
+	// Evaluate the rest of the pipe expression
+	for i, expr := range pe.Arguments[1:] {
 		switch expression := expr.(type) {
 		case *ast.CallExpression:
 			// Can't use evalCallExpression because we need to customize argument handling

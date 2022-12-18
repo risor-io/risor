@@ -412,7 +412,6 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		inputs[i] = reflect.ValueOf(input)
 		argIndex++
 	}
-	// TODO: pass through context
 	outputs := m.method.Func.Call(inputs)
 	if len(outputs) == 0 {
 		return Nil
