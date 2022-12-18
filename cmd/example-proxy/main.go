@@ -81,7 +81,7 @@ func main() {
 	print("svc.Name:", svc.Name)
 	print("svc.Age:", svc.Age)
 	print("svc.IsAdult:", svc.IsAdult)
-	print("svc.Blergh:", svc.Blergh)
+	print("type(svc.RunCtx):", type(svc.RunCtx))
 
 	svc.Name
 	`
