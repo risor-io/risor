@@ -8,7 +8,7 @@ import (
 )
 
 type Set struct {
-	Items map[Key]Object
+	Items map[HashKey]Object
 }
 
 func (s *Set) Type() Type {
@@ -36,10 +36,7 @@ func (s *Set) GetAttr(name string) (Object, bool) {
 				if len(args) != 1 {
 					return NewArgsError("set.contains", 1, len(args))
 				}
-				if s.Contains(args[0]) {
-					return True
-				}
-				return False
+				return s.Contains(args[0])
 			},
 		}, true
 	case "add":
@@ -100,10 +97,10 @@ func (s *Set) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (s *Set) ToInterface() interface{} {
+func (s *Set) Interface() interface{} {
 	items := make([]interface{}, 0, len(s.Items))
 	for _, item := range s.SortedItems() {
-		items = append(items, item.ToInterface())
+		items = append(items, item.Interface())
 	}
 	return items
 }
@@ -143,18 +140,9 @@ func (s *Set) Remove(items ...Object) error {
 	return nil
 }
 
-func (s *Set) Contains(item Object) bool {
-	hashable, ok := item.(Hashable)
-	if !ok {
-		return false
-	}
-	_, ok = s.Items[hashable.HashKey()]
-	return ok
-}
-
 // Union returns a new set that is the union of the two sets.
 func (s *Set) Union(other *Set) *Set {
-	union := &Set{Items: map[Key]Object{}}
+	union := &Set{Items: map[HashKey]Object{}}
 	for k, v := range s.Items {
 		union.Items[k] = v
 	}
@@ -166,7 +154,7 @@ func (s *Set) Union(other *Set) *Set {
 
 // Intersection returns a new set that is the intersection of the two sets.
 func (s *Set) Intersection(other *Set) *Set {
-	intersection := &Set{Items: map[Key]Object{}}
+	intersection := &Set{Items: map[HashKey]Object{}}
 	for k, v := range s.Items {
 		if _, ok := other.Items[k]; ok {
 			intersection.Items[k] = v
@@ -177,7 +165,7 @@ func (s *Set) Intersection(other *Set) *Set {
 
 // Difference returns a new set that is the difference of the two sets.
 func (s *Set) Difference(other *Set) *Set {
-	difference := &Set{Items: map[Key]Object{}}
+	difference := &Set{Items: map[HashKey]Object{}}
 	for k, v := range s.Items {
 		if _, ok := other.Items[k]; !ok {
 			difference.Items[k] = v
@@ -210,6 +198,52 @@ func (s *Set) Equals(other Object) Object {
 	return True
 }
 
+func (s *Set) GetItem(key Object) (Object, *Error) {
+	hashable, ok := key.(Hashable)
+	if !ok {
+		return nil, NewError("type error: %s object is unhashable", key.Type())
+	}
+	if _, ok := s.Items[hashable.HashKey()]; ok {
+		return True, nil
+	}
+	return False, nil
+}
+
+// GetSlice implements the [start:stop] operator for a container type.
+func (s *Set) GetSlice(slice Slice) (Object, *Error) {
+	return nil, NewError("eval error: set does not support get slice")
+}
+
+// SetItem assigns a value to the given key in the map.
+func (s *Set) SetItem(key, value Object) *Error {
+	return NewError("eval error: set does not support set item")
+}
+
+// DelItem deletes the item with the given key from the map.
+func (s *Set) DelItem(key Object) *Error {
+	hashable, ok := key.(Hashable)
+	if !ok {
+		return NewError("type error: %s object is unhashable", key.Type())
+	}
+	delete(s.Items, hashable.HashKey())
+	return nil
+}
+
+// Contains returns true if the given item is found in this container.
+func (s *Set) Contains(key Object) *Bool {
+	hashable, ok := key.(Hashable)
+	if !ok {
+		return False
+	}
+	_, ok = s.Items[hashable.HashKey()]
+	return NewBool(ok)
+}
+
+// Len returns the number of items in this container.
+func (s *Set) Len() *Int {
+	return NewInt(int64(len(s.Items)))
+}
+
 func NewSetWithSize(size int) *Set {
-	return &Set{Items: make(map[Key]Object, size)}
+	return &Set{Items: make(map[HashKey]Object, size)}
 }

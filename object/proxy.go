@@ -379,7 +379,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (p *Proxy) ToInterface() interface{} {
+func (p *Proxy) Interface() interface{} {
 	return p.obj
 }
 

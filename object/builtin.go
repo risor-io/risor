@@ -45,11 +45,11 @@ func (b *Builtin) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-// ToInterface converts this object to a go-interface, which will allow
+// Interface converts this object to a go-interface, which will allow
 // it to be used naturally in our sprintf/printf primitives.
 //
 // It might also be helpful for embedded users.
-func (b *Builtin) ToInterface() interface{} {
+func (b *Builtin) Interface() interface{} {
 	return b.Fn
 }
 

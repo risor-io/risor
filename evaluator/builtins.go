@@ -80,7 +80,7 @@ func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 	}
 	fmtArgs := make([]interface{}, len(args)-1)
 	for i, v := range args[1:] {
-		fmtArgs[i] = v.ToInterface()
+		fmtArgs[i] = v.Interface()
 	}
 	return object.NewString(fmt.Sprintf(fs, fmtArgs...))
 }

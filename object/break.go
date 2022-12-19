@@ -11,7 +11,7 @@ func (rv *BreakValue) Inspect() string {
 	return "BREAK"
 }
 
-func (rv *BreakValue) ToInterface() interface{} {
+func (rv *BreakValue) Interface() interface{} {
 	return "<BREAK_VALUE>"
 }
 

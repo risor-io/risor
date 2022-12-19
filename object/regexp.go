@@ -23,7 +23,7 @@ func (r *Regexp) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (r *Regexp) ToInterface() interface{} {
+func (r *Regexp) Interface() interface{} {
 	return "<REGEXP>"
 }
 

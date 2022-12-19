@@ -57,7 +57,7 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (r *HttpResponse) ToInterface() interface{} {
+func (r *HttpResponse) Interface() interface{} {
 	return r.Response
 }
 

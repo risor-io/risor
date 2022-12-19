@@ -18,7 +18,7 @@ func (rv *ReturnValue) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (rv *ReturnValue) ToInterface() interface{} {
+func (rv *ReturnValue) Interface() interface{} {
 	return nil
 }
 

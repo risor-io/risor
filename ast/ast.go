@@ -807,6 +807,12 @@ type IndexExpression struct {
 
 	// Index is the value we're indexing
 	Index Expression
+
+	// Optional "from" index for [from:to] style expressions
+	FromIndex Expression
+
+	// Optional "to" index for [from:to] style expressions
+	ToIndex Expression
 }
 
 func (ie *IndexExpression) expressionNode() {}
@@ -820,7 +826,18 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("(")
 	out.WriteString(ie.Left.String())
 	out.WriteString("[")
-	out.WriteString(ie.Index.String())
+	if ie.Index != nil {
+		out.WriteString(ie.Index.String())
+		out.WriteString("])")
+		return out.String()
+	}
+	if ie.FromIndex != nil {
+		out.WriteString(ie.FromIndex.String())
+	}
+	if ie.ToIndex != nil {
+		out.WriteString(":")
+		out.WriteString(ie.ToIndex.String())
+	}
 	out.WriteString("])")
 	return out.String()
 }
@@ -835,6 +852,7 @@ func (ie *IndexExpression) String() string {
 type AssignStatement struct {
 	Token    token.Token
 	Name     *Identifier
+	Index    *IndexExpression
 	Operator string
 	Value    Expression
 }
@@ -847,7 +865,11 @@ func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 // String returns this object as a string.
 func (as *AssignStatement) String() string {
 	var out bytes.Buffer
-	out.WriteString(as.Name.String())
+	if as.Index != nil {
+		out.WriteString(as.Index.String())
+	} else {
+		out.WriteString(as.Name.String())
+	}
 	out.WriteString(" " + as.Operator + " ")
 	out.WriteString(as.Value.String())
 	return out.String()

@@ -19,15 +19,15 @@ func (f *Float) Type() Type {
 	return FLOAT
 }
 
-func (f *Float) HashKey() Key {
-	return Key{Type: f.Type(), FltValue: f.Value}
+func (f *Float) HashKey() HashKey {
+	return HashKey{Type: f.Type(), FltValue: f.Value}
 }
 
 func (f *Float) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (f *Float) ToInterface() interface{} {
+func (f *Float) Interface() interface{} {
 	return f.Value
 }
 

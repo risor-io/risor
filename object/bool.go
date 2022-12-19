@@ -18,21 +18,21 @@ func (b *Bool) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
 }
 
-func (b *Bool) HashKey() Key {
+func (b *Bool) HashKey() HashKey {
 	var value int64
 	if b.Value {
 		value = 1
 	} else {
 		value = 0
 	}
-	return Key{Type: b.Type(), IntValue: value}
+	return HashKey{Type: b.Type(), IntValue: value}
 }
 
 func (b *Bool) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (b *Bool) ToInterface() interface{} {
+func (b *Bool) Interface() interface{} {
 	return b.Value
 }
 

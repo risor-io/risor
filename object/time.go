@@ -21,7 +21,7 @@ func (t *Time) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (t *Time) ToInterface() interface{} {
+func (t *Time) Interface() interface{} {
 	return t.Value
 }
 

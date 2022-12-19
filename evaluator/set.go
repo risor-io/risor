@@ -22,6 +22,8 @@ func (e *Evaluator) evalSetLiteral(
 		}
 		items = append(items, item)
 	}
-	set.Add(items...)
+	if err := set.Add(items...); err != nil {
+		return object.NewError(err.Error())
+	}
 	return set
 }

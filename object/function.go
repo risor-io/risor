@@ -38,7 +38,7 @@ func (f *Function) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (f *Function) ToInterface() interface{} {
+func (f *Function) Interface() interface{} {
 	return "Function()"
 }
 

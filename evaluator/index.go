@@ -8,82 +8,44 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalIndexExpression(
-	ctx context.Context,
-	node *ast.IndexExpression,
-	s *scope.Scope,
-) object.Object {
+func (e *Evaluator) evalIndexExpression(ctx context.Context, node *ast.IndexExpression, s *scope.Scope) object.Object {
 	left := e.Evaluate(ctx, node.Left, s)
 	if isError(left) {
 		return left
 	}
-	index := e.Evaluate(ctx, node.Index, s)
-	if isError(index) {
-		return index
-	}
-	switch {
-	case left.Type() == object.LIST && index.Type() == object.INT:
-		return e.evalArrayIndexExpression(left, index)
-	case left.Type() == object.MAP:
-		return e.evalMapIndexExpression(left, index)
-	case left.Type() == object.STRING:
-		return e.evalStringIndexExpression(left, index)
-	default:
+	container, ok := left.(object.Container)
+	if !ok {
 		return newError("type error: %s object is not scriptable", left.Type())
 	}
-}
-
-func (e *Evaluator) evalArrayIndexExpression(list, index object.Object) object.Object {
-	listObject := list.(*object.List)
-	idx := index.(*object.Int).Value
-	len := int64(len(listObject.Items))
-	max := len - 1
-	if idx > max {
-		return newError("index error: array index out of range: %d", idx)
+	// Retrieve an item with a single index
+	if node.Index != nil {
+		index := e.Evaluate(ctx, node.Index, s)
+		if isError(index) {
+			return index
+		}
+		item, err := container.GetItem(index)
+		if err != nil {
+			return err
+		}
+		return item
 	}
-	if idx >= 0 {
-		return listObject.Items[idx]
+	// Retrieve a slice of items with a range of indices
+	var startIndex, stopIndex object.Object
+	if node.FromIndex != nil {
+		startIndex = e.Evaluate(ctx, node.FromIndex, s)
+		if isError(startIndex) {
+			return startIndex
+		}
 	}
-	// Handle negative indices, where -1 is the last item in the array
-	reversed := idx + len
-	if reversed < 0 || reversed > max {
-		return newError("index error: array index out of range: %d", idx)
+	if node.ToIndex != nil {
+		stopIndex = e.Evaluate(ctx, node.ToIndex, s)
+		if isError(stopIndex) {
+			return stopIndex
+		}
 	}
-	return listObject.Items[reversed]
-}
-
-func (e *Evaluator) evalMapIndexExpression(mapObj, index object.Object) object.Object {
-	m := mapObj.(*object.Map)
-	key, err := object.AsString(index)
+	items, err := container.GetSlice(object.Slice{Start: startIndex, Stop: stopIndex})
 	if err != nil {
 		return err
 	}
-	value, ok := m.Items[key]
-	if !ok {
-		return newError("key error: %v", index.Inspect())
-	}
-	return value
-}
-
-func (e *Evaluator) evalStringIndexExpression(input, index object.Object) object.Object {
-	str := input.(*object.String).Value
-	idx := index.(*object.Int).Value
-	len := int64(len(str))
-	max := len - 1
-	if idx > max {
-		return newError("index error: string index out of range: %d", idx)
-	}
-	if idx >= 0 {
-		chars := []rune(str)
-		ret := chars[idx]
-		return &object.String{Value: string(ret)}
-	}
-	// Handle negative indices, where -1 is the last rune in the string
-	reversed := idx + len
-	if reversed < 0 || reversed > max {
-		return newError("index error: string index out of range: %d", idx)
-	}
-	chars := []rune(str)
-	ret := chars[reversed]
-	return &object.String{Value: string(ret)}
+	return items
 }

@@ -31,15 +31,15 @@ func (s *String) String() string {
 	return fmt.Sprintf("string(%s)", s.Value)
 }
 
-func (s *String) HashKey() Key {
-	return Key{Type: s.Type(), StrValue: s.Value}
+func (s *String) HashKey() HashKey {
+	return HashKey{Type: s.Type(), StrValue: s.Value}
 }
 
 func (s *String) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (s *String) ToInterface() interface{} {
+func (s *String) Interface() interface{} {
 	return s.Value
 }
 
@@ -71,6 +71,49 @@ func (s *String) Reversed() *String {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return NewString(string(runes))
+}
+
+func (s *String) GetItem(key Object) (Object, *Error) {
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return nil, NewError("index error: string index must be an int (got %s)", key.Type())
+	}
+	runes := []rune(s.Value)
+	index, err := ResolveIndex(indexObj.Value, int64(len(runes)))
+	if err != nil {
+		return nil, NewError(err.Error())
+	}
+	return NewString(string(runes[index])), nil
+}
+
+func (s *String) GetSlice(slice Slice) (Object, *Error) {
+	runes := []rune(s.Value)
+	start, stop, err := ResolveIntSlice(slice, int64(len(runes)))
+	if err != nil {
+		return nil, NewError(err.Error())
+	}
+	resultRunes := runes[start:stop]
+	return NewString(string(resultRunes)), nil
+}
+
+func (s *String) SetItem(key, value Object) *Error {
+	return NewError("eval error: string does not support set item")
+}
+
+func (s *String) DelItem(key Object) *Error {
+	return NewError("eval error: string does not support del item")
+}
+
+func (s *String) Contains(key Object) *Bool {
+	strObj, ok := key.(*String)
+	if !ok {
+		return False
+	}
+	return NewBool(strings.Contains(s.Value, strObj.Value))
+}
+
+func (s *String) Len() *Int {
+	return NewInt(int64(len(s.Value)))
 }
 
 func NewString(s string) *String {

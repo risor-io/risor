@@ -1015,8 +1015,24 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 // parseIndexExpression parses an array index expression.
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
-	p.nextToken()
-	exp.Index = p.parseExpression(LOWEST)
+	var firstIndex ast.Expression
+	if !p.peekTokenIs(token.COLON) {
+		p.nextToken()
+		firstIndex = p.parseExpression(LOWEST)
+	}
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // moves to the colon
+		if p.peekTokenIs(token.RBRACKET) {
+			exp.FromIndex = firstIndex
+			p.nextToken() // moves to the closing bracket
+			return exp
+		}
+		p.nextToken()
+		exp.FromIndex = firstIndex
+		exp.ToIndex = p.parseExpression(LOWEST)
+	} else {
+		exp.Index = firstIndex
+	}
 	if !p.expectPeek("an index expression", token.RBRACKET) {
 		return nil
 	}
@@ -1026,9 +1042,12 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 // parseAssignExpression parses a bare assignment, without a `var`.
 func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	stmt := &ast.AssignStatement{Token: p.curToken}
-	if n, ok := name.(*ast.Identifier); ok {
-		stmt.Name = n
-	} else {
+	switch node := name.(type) {
+	case *ast.Identifier:
+		stmt.Name = node
+	case *ast.IndexExpression:
+		stmt.Index = node
+	default:
 		p.setTokenError(p.curToken, "unexpected token for assignment: %s", name.TokenLiteral())
 		return nil
 	}

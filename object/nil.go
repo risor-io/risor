@@ -14,7 +14,7 @@ func (n *NilType) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (n *NilType) ToInterface() interface{} {
+func (n *NilType) Interface() interface{} {
 	return nil
 }
 

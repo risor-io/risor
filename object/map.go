@@ -104,7 +104,8 @@ func (m *Map) GetAttr(name string) (Object, bool) {
 				if err != nil {
 					return err
 				}
-				return m.Contains(key)
+				_, found := m.Items[key]
+				return NewBool(found)
 			},
 		}, true
 	case "items":
@@ -191,11 +192,6 @@ func (m *Map) Copy() *Map {
 	return &Map{Items: items}
 }
 
-func (m *Map) Contains(key string) Object {
-	_, found := m.Items[key]
-	return NewBool(found)
-}
-
 func (m *Map) Pop(key string, def Object) Object {
 	value, found := m.Items[key]
 	if found {
@@ -275,10 +271,10 @@ func (m *Map) Size() int {
 	return len(m.Items)
 }
 
-func (m *Map) ToInterface() interface{} {
+func (m *Map) Interface() interface{} {
 	result := make(map[string]any, len(m.Items))
 	for k, v := range m.Items {
-		result[k] = v.ToInterface()
+		result[k] = v.Interface()
 	}
 	return result
 }
@@ -301,6 +297,58 @@ func (m *Map) Equals(other Object) Object {
 		}
 	}
 	return True
+}
+
+func (m *Map) GetItem(key Object) (Object, *Error) {
+	strObj, ok := key.(*String)
+	if !ok {
+		return nil, NewError("key error: map key must be a string (got %s)", key.Type())
+	}
+	value, found := m.Items[strObj.Value]
+	if !found {
+		return nil, NewError("key error: %q", strObj.Value)
+	}
+	return value, nil
+}
+
+// GetSlice implements the [start:stop] operator for a container type.
+func (m *Map) GetSlice(s Slice) (Object, *Error) {
+	return nil, NewError("map does not support slice operations")
+}
+
+// SetItem assigns a value to the given key in the map.
+func (m *Map) SetItem(key, value Object) *Error {
+	strObj, ok := key.(*String)
+	if !ok {
+		return NewError("key error: map key must be a string (got %s)", key.Type())
+	}
+	m.Items[strObj.Value] = value
+	return nil
+}
+
+// DelItem deletes the item with the given key from the map.
+func (m *Map) DelItem(key Object) *Error {
+	strObj, ok := key.(*String)
+	if !ok {
+		return NewError("key error: map key must be a string (got %s)", key.Type())
+	}
+	delete(m.Items, strObj.Value)
+	return nil
+}
+
+// Contains returns true if the given item is found in this container.
+func (m *Map) Contains(key Object) *Bool {
+	strObj, ok := key.(*String)
+	if !ok {
+		return False
+	}
+	_, found := m.Items[strObj.Value]
+	return NewBool(found)
+}
+
+// Len returns the number of items in this container.
+func (m *Map) Len() *Int {
+	return NewInt(int64(len(m.Items)))
 }
 
 func NewMap(m map[string]interface{}) *Map {

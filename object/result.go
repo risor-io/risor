@@ -82,11 +82,11 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (rv *Result) ToInterface() interface{} {
+func (rv *Result) Interface() interface{} {
 	if rv.Ok != nil {
-		return rv.Ok.ToInterface()
+		return rv.Ok.Interface()
 	}
-	return rv.Err.ToInterface()
+	return rv.Err.Interface()
 }
 
 func (rv *Result) String() string {

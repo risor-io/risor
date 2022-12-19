@@ -21,7 +21,7 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	return m.Scope.Get(name)
 }
 
-func (m *Module) ToInterface() interface{} {
+func (m *Module) Interface() interface{} {
 	return nil
 }
 

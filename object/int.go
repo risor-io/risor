@@ -18,15 +18,15 @@ func (i *Int) Type() Type {
 	return INT
 }
 
-func (i *Int) HashKey() Key {
-	return Key{Type: i.Type(), IntValue: i.Value}
+func (i *Int) HashKey() HashKey {
+	return HashKey{Type: i.Type(), IntValue: i.Value}
 }
 
 func (i *Int) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (i *Int) ToInterface() interface{} {
+func (i *Int) Interface() interface{} {
 	return i.Value
 }
 

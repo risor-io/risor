@@ -12,7 +12,7 @@ func (c *DatabaseConnection) Inspect() string {
 	return "<DB_CONNECTION>"
 }
 
-func (c *DatabaseConnection) ToInterface() interface{} {
+func (c *DatabaseConnection) Interface() interface{} {
 	return c.Conn
 }
 

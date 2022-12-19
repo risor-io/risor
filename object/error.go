@@ -19,7 +19,7 @@ func (e *Error) Inspect() string {
 	return fmt.Sprintf("Error(%s)", e.Message)
 }
 
-func (e *Error) ToInterface() interface{} {
+func (e *Error) Interface() interface{} {
 	return errors.New(e.Message)
 }
 

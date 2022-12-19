@@ -47,6 +47,9 @@ func (e *Evaluator) evalAssignStatement(
 	if isError(evaluated) {
 		return evaluated
 	}
+	if a.Index != nil {
+		return e.evalSetItemStatement(ctx, a, evaluated, s)
+	}
 	switch a.Operator {
 	case "+=":
 		current, ok := s.Get(a.Name.String())
@@ -115,4 +118,33 @@ func (e *Evaluator) evalAssignStatement(
 		}
 	}
 	return evaluated
+}
+
+func (e *Evaluator) evalSetItemStatement(
+	ctx context.Context,
+	a *ast.AssignStatement,
+	value object.Object,
+	s *scope.Scope,
+) (val object.Object) {
+	obj := e.Evaluate(ctx, a.Index.Left, s)
+	if isError(obj) {
+		return obj
+	}
+	container, ok := obj.(object.Container)
+	if !ok {
+		return newError("type error: %s is not a container", obj.Type())
+	}
+	index := e.Evaluate(ctx, a.Index.Index, s)
+	if isError(index) {
+		return index
+	}
+	switch a.Operator {
+	case "=":
+		if err := container.SetItem(index, value); err != nil {
+			return err
+		}
+	default:
+		return newError("eval error: invalid set item operator: %q", a.Operator)
+	}
+	return object.Nil
 }

@@ -53,16 +53,14 @@ var (
 // Object is the interface that all object types in Tamarin must implement.
 type Object interface {
 
-	// Type of this object.
+	// Type of the object.
 	Type() Type
 
-	// Inspect returns a string-representation of the given object.
+	// Inspect returns a string representation of the given object.
 	Inspect() string
 
-	// ToInterface converts the given object to a "native" golang value,
-	// which is required to ensure that we can use the object in our
-	// `sprintf` or `printf` primitives.
-	ToInterface() interface{}
+	// Interface converts the given object to a native Go value.
+	Interface() interface{}
 
 	// Returns True if the given object is equal to this object.
 	Equals(other Object) Object
@@ -71,11 +69,38 @@ type Object interface {
 	GetAttr(name string) (Object, bool)
 }
 
+// Slice is used to specify a range or slice of items in a container.
+type Slice struct {
+	Start Object
+	Stop  Object
+}
+
+type Container interface {
+
+	// GetItem implements the [key] operator for a container type.
+	GetItem(key Object) (Object, *Error)
+
+	// GetSlice implements the [start:stop] operator for a container type.
+	GetSlice(s Slice) (Object, *Error)
+
+	// SetItem implements the [key] = value operator for a container type.
+	SetItem(key, value Object) *Error
+
+	// DelItem implements the del [key] operator for a container type.
+	DelItem(key Object) *Error
+
+	// Contains returns true if the given item is found in this container.
+	Contains(item Object) *Bool
+
+	// Len returns the number of items in this container.
+	Len() *Int
+}
+
 // Hashable types can be hashed and consequently used in a set.
 type Hashable interface {
 
-	// HashKey returns a hash key for the given object.
-	HashKey() Key
+	// Hash returns a hash key for the given object.
+	HashKey() HashKey
 }
 
 // Comparable is an interface used to compare two objects.
@@ -97,4 +122,16 @@ func CompareTypes(a, b Object) int {
 		return 1
 	}
 	return 0
+}
+
+// HashKey is used to identify unique values in a set.
+type HashKey struct {
+	// Type of the object being referenced.
+	Type Type
+	// FltValue is used as the key for floats.
+	FltValue float64
+	// IntValue is used as the key for integers.
+	IntValue int64
+	// StrValue is used as the key for strings.
+	StrValue string
 }

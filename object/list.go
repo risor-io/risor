@@ -349,11 +349,12 @@ func (ls *List) Insert(index int64, obj Object) {
 
 // Pop removes the item at the specified position.
 func (ls *List) Pop(index int64) Object {
-	if index < 0 || index >= int64(len(ls.Items)) {
-		return NewError("index out of range")
+	idx, err := ResolveIndex(index, int64(len(ls.Items)))
+	if err != nil {
+		return NewError(err.Error())
 	}
-	result := ls.Items[index]
-	ls.Items = append(ls.Items[:index], ls.Items[index+1:]...)
+	result := ls.Items[idx]
+	ls.Items = append(ls.Items[:idx], ls.Items[idx+1:]...)
 	return result
 }
 
@@ -373,10 +374,10 @@ func (ls *List) Reverse() {
 	}
 }
 
-func (ls *List) ToInterface() interface{} {
+func (ls *List) Interface() interface{} {
 	items := make([]interface{}, 0, len(ls.Items))
 	for _, item := range ls.Items {
-		items = append(items, item.ToInterface())
+		items = append(items, item.Interface())
 	}
 	return items
 }
@@ -451,6 +452,64 @@ func (ls *List) Keys() Object {
 	return NewList(items)
 }
 
+func (ls *List) GetItem(key Object) (Object, *Error) {
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return nil, NewError("type error: list index must be an int (got %s)", key.Type())
+	}
+	idx, err := ResolveIndex(indexObj.Value, int64(len(ls.Items)))
+	if err != nil {
+		return nil, NewError(err.Error())
+	}
+	return ls.Items[idx], nil
+}
+
+// GetSlice implements the [start:stop] operator for a container type.
+func (ls *List) GetSlice(s Slice) (Object, *Error) {
+	start, stop, err := ResolveIntSlice(s, int64(len(ls.Items)))
+	if err != nil {
+		return nil, NewError(err.Error())
+	}
+	items := ls.Items[start:stop]
+	itemsCopy := make([]Object, len(items))
+	copy(itemsCopy, items)
+	return NewList(itemsCopy), nil
+}
+
+// SetItem implements the [key] = value operator for a container type.
+func (ls *List) SetItem(key, value Object) *Error {
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return NewError("type error: list index must be an int (got %s)", key.Type())
+	}
+	idx, err := ResolveIndex(indexObj.Value, int64(len(ls.Items)))
+	if err != nil {
+		return NewError(err.Error())
+	}
+	ls.Items[idx] = value
+	return nil
+}
+
+// DelItem implements the del [key] operator for a container type.
+func (ls *List) DelItem(key Object) *Error {
+	return NewError("list does not support del operator")
+}
+
+// Contains returns true if the given item is found in this container.
+func (ls *List) Contains(item Object) *Bool {
+	for _, v := range ls.Items {
+		if Equals(v, item) {
+			return True
+		}
+	}
+	return False
+}
+
+// Len returns the number of items in this container.
+func (ls *List) Len() *Int {
+	return NewInt(int64(len(ls.Items)))
+}
+
 func NewList(items []Object) *List {
 	return &List{Items: items}
 }
@@ -461,4 +520,61 @@ func NewStringList(s []string) *List {
 		array.Items = append(array.Items, &String{Value: item})
 	}
 	return array
+}
+
+// ResolveIndex checks that the index is inbounds and transforms a negative
+// index into the corresponding positive index. If the index is out of bounds,
+// an error is returned.
+func ResolveIndex(idx int64, size int64) (int64, error) {
+	max := size - 1
+	if idx > max {
+		return 0, fmt.Errorf("index error: index out of range: %d", idx)
+	}
+	if idx >= 0 {
+		return idx, nil
+	}
+	// Handle negative indices, where -1 is the last item in the array
+	reversed := idx + size
+	if reversed < 0 || reversed > max {
+		return 0, fmt.Errorf("index error: index out of range: %d", idx)
+	}
+	return reversed, nil
+}
+
+// ResolveIntSlice checks that the slice start and stop indices are inbounds and
+// transforms negative indices into the corresponding positive indices. If the
+// slice is out of bounds, an error is returned.
+func ResolveIntSlice(slice Slice, size int64) (start int64, stop int64, err error) {
+	var startIndex, stopIndex int64
+	if slice.Start != nil {
+		startObj, ok := slice.Start.(*Int)
+		if !ok {
+			err = fmt.Errorf("type error: slice start index must be an int (got %s)", slice.Start.Type())
+			return
+		}
+		startIndex = startObj.Value
+	}
+	if slice.Stop != nil {
+		stopObj, ok := slice.Stop.(*Int)
+		if !ok {
+			err = fmt.Errorf("type error: slice stop index must be an int (got %s)", slice.Stop.Type())
+			return
+		}
+		stopIndex = stopObj.Value
+	} else {
+		stopIndex = size
+	}
+	start, err = ResolveIndex(startIndex, size+1)
+	if err != nil {
+		return
+	}
+	stop, err = ResolveIndex(stopIndex, size+1)
+	if err != nil {
+		return
+	}
+	if start > stop {
+		err = fmt.Errorf("slice error: start index is greater than stop index")
+		return
+	}
+	return start, stop, nil
 }

@@ -443,7 +443,7 @@ func TestArrayIndexExpression(t *testing.T) {
 		},
 		{
 			"[1,2,3][3]",
-			"index error: array index out of range: 3",
+			"index error: index out of range: 3",
 		},
 		{
 			"[1,2,3][-1]",
@@ -459,7 +459,7 @@ func TestArrayIndexExpression(t *testing.T) {
 		},
 		{
 			"[1,2,3][-4]",
-			"index error: array index out of range: -4",
+			"index error: index out of range: -4",
 		},
 	}
 	for _, tt := range tests {
@@ -717,9 +717,9 @@ func TestIndexErrors(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"[1,2,3][99]", "index error: array index out of range: 99"},
+		{"[1,2,3][99]", "index error: index out of range: 99"},
 		{`{"foo":1}["bar"]`, "key error: \"bar\""},
-		{`"foo"[4]`, "index error: string index out of range: 4"},
+		{`"foo"[4]`, "index error: index out of range: 4"},
 	}
 	for _, tt := range tests {
 		resultErr, ok := testEval(tt.input).(*object.Error)
