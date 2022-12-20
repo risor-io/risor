@@ -11,6 +11,10 @@ import (
 type List struct {
 	// Items holds the list of objects
 	Items []Object
+
+	// Used to avoid the possibility of infinite recursion when inspecting.
+	// Similar to the usage of Py_ReprEnter in CPython.
+	inspectActive bool
 }
 
 func (ls *List) Type() Type {
@@ -18,6 +22,14 @@ func (ls *List) Type() Type {
 }
 
 func (ls *List) Inspect() string {
+	// A list can contain itself. Detect if we're already inspecting the list
+	// and return a placeholder if so.
+	if ls.inspectActive {
+		return "[...]"
+	}
+	ls.inspectActive = true
+	defer func() { ls.inspectActive = false }()
+
 	var out bytes.Buffer
 	items := make([]string, 0)
 	for _, e := range ls.Items {

@@ -37,7 +37,7 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("json.marshal", 1, args); err != nil {
 		return err
 	}
-	obj := object.ToGoType(args[0])
+	obj := args[0].Interface()
 	if err, ok := obj.(error); ok {
 		return object.NewErrorResult(err.Error())
 	}
@@ -63,11 +63,11 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("json.diff", 2, args); err != nil {
 		return err
 	}
-	a := object.ToGoType(args[0])
+	a := args[0].Interface()
 	if err, ok := a.(error); ok {
 		return object.NewErrorResult(err.Error())
 	}
-	b := object.ToGoType(args[1])
+	b := args[1].Interface()
 	if err, ok := b.(error); ok {
 		return object.NewErrorResult(err.Error())
 	}

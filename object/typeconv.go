@@ -130,48 +130,6 @@ func FromGoType(obj interface{}) Object {
 }
 
 // *****************************************************************************
-// Converting types Tamarin to Go
-// *****************************************************************************
-
-func ToGoType(obj Object) interface{} {
-	switch obj := obj.(type) {
-	case *NilType:
-		return nil
-	case *Int:
-		return obj.Value
-	case *Float:
-		return obj.Value
-	case *String:
-		return obj.Value
-	case *Bool:
-		return obj.Value
-	case *Time:
-		return obj.Value
-	case *List:
-		ls := make([]interface{}, 0, len(obj.Items))
-		for _, item := range obj.Items {
-			ls = append(ls, ToGoType(item))
-		}
-		return ls
-	case *Set:
-		array := make([]interface{}, 0, len(obj.Items))
-		for _, item := range obj.Items {
-			array = append(array, ToGoType(item))
-		}
-		return array
-	case *Map:
-		m := make(map[string]interface{}, len(obj.Items))
-		for k, v := range obj.Items {
-			m[k] = ToGoType(v)
-		}
-		return m
-	default:
-		return NewError("type error: marshaling %v (%v)",
-			obj, reflect.TypeOf(obj))
-	}
-}
-
-// *****************************************************************************
 // TypeConverter interface and implementations
 //   - These are applicable when the Go type(s) are known in advance
 // *****************************************************************************
@@ -344,11 +302,7 @@ func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
 	}
-	m := make(map[string]interface{}, len(mapObj.Items))
-	for k, v := range mapObj.Items {
-		m[k] = ToGoType(v)
-	}
-	return m, nil
+	return mapObj.Interface(), nil
 }
 
 func (c *MapStringIfaceConverter) From(obj interface{}) (Object, error) {
@@ -375,8 +329,7 @@ func (c *StructConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
 	}
-	goMap := ToGoType(m)
-	jsonBytes, err := json.Marshal(goMap)
+	jsonBytes, err := json.Marshal(m.Interface())
 	if err != nil {
 		return nil, err
 	}

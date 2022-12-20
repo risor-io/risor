@@ -25,3 +25,23 @@ func TestListInsert(t *testing.T) {
 	list.Insert(0, two)
 	require.Equal(t, []Object{two, thr, two, one, two}, list.Items)
 }
+
+func TestListPop(t *testing.T) {
+	zero := NewString("0")
+	one := NewString("1")
+	two := NewString("2")
+
+	list := &List{Items: []Object{zero, one, two}}
+
+	val, ok := list.Pop(1).(*String)
+	require.True(t, ok)
+	require.Equal(t, "1", val.Value)
+
+	val, ok = list.Pop(1).(*String)
+	require.True(t, ok)
+	require.Equal(t, "2", val.Value)
+
+	err, ok := list.Pop(1).(*Error)
+	require.True(t, ok)
+	require.Equal(t, "index error: index out of range: 1", err.Message)
+}

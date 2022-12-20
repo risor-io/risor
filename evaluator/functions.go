@@ -73,6 +73,7 @@ func (e *Evaluator) newFunctionScope(
 	fn *object.Function,
 	args []object.Object,
 ) (*scope.Scope, error) {
+	declared := map[string]bool{}
 	nestedScope := s.NewChild(scope.Opts{Name: "function"})
 	for key, val := range fn.Defaults {
 		evaluatedValue := e.Evaluate(ctx, val, s)
@@ -82,6 +83,7 @@ func (e *Evaluator) newFunctionScope(
 		if err := nestedScope.Declare(key, evaluatedValue, false); err != nil {
 			return nil, err
 		}
+		declared[key] = true
 	}
 	if len(fn.Defaults) == 0 && len(args) != len(fn.Parameters) {
 		return nil, fmt.Errorf("type error: function expected %d arguments (%d given)",
@@ -89,8 +91,14 @@ func (e *Evaluator) newFunctionScope(
 	}
 	for paramIdx, param := range fn.Parameters {
 		if paramIdx < len(args) {
-			if err := nestedScope.Declare(param.Value, args[paramIdx], false); err != nil {
-				return nil, err
+			if declared[param.Value] {
+				if err := nestedScope.Update(param.Value, args[paramIdx]); err != nil {
+					return nil, err
+				}
+			} else {
+				if err := nestedScope.Declare(param.Value, args[paramIdx], false); err != nil {
+					return nil, err
+				}
 			}
 		} else {
 			break

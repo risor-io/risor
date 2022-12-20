@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -580,7 +579,7 @@ func TestForLoopSimple(t *testing.T) {
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
-		value := object.ToGoType(evaluated)
+		value := evaluated.Interface()
 		require.Equal(t, tt.expected, value)
 	}
 }
@@ -768,12 +767,21 @@ func TestMethodCallOnError(t *testing.T) {
 	input := `flub(1).whatever()`
 	program, err := parser.Parse(input)
 	require.Nil(t, err)
-	s := scope.New(scope.Opts{})
-	e := &Evaluator{}
-	obj := e.Evaluate(ctx, program, s)
-	fmt.Println(obj)
+	obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
 	errObj, ok := obj.(*object.Error)
 	require.True(t, ok)
-	fmt.Println(errObj)
 	require.Equal(t, "name error: \"flub\" is not defined", errObj.Message)
+}
+
+func TestPipeExpression(t *testing.T) {
+	ctx := context.Background()
+	input := `
+	func pad(s, chr="_") { chr + s + chr }
+	["a","b","c"] | len | string | pad("#")`
+	program, err := parser.Parse(input)
+	require.Nil(t, err)
+	obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
+	str, ok := obj.(*object.String)
+	require.True(t, ok, obj)
+	require.Equal(t, "#3#", str.Value)
 }

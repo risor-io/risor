@@ -7,3 +7,4 @@ tamarin*.vsix
 tamarin-language-server.log
 cmd/tamarin-lsp/tamarin-lsp
 cmd/simple-example/simple-example
+cover.out

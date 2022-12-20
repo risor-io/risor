@@ -55,7 +55,7 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var queryArgs []interface{}
 	for _, queryArg := range args[2:] {
-		queryArgs = append(queryArgs, object.ToGoType(queryArg))
+		queryArgs = append(queryArgs, queryArg.Interface())
 	}
 	rows, err := pgxConn.Query(ctx, queryString.Value, queryArgs...)
 	if err != nil {

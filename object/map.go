@@ -10,6 +10,10 @@ import (
 
 type Map struct {
 	Items map[string]Object
+
+	// Used to avoid the possibility of infinite recursion when inspecting.
+	// Similar to the usage of Py_ReprEnter in CPython.
+	inspectActive bool
 }
 
 func (m *Map) Type() Type {
@@ -17,6 +21,14 @@ func (m *Map) Type() Type {
 }
 
 func (m *Map) Inspect() string {
+	// A map can contain itself. Detect if we're already inspecting the map
+	// and return a placeholder if so.
+	if m.inspectActive {
+		return "{...}"
+	}
+	m.inspectActive = true
+	defer func() { m.inspectActive = false }()
+
 	var out bytes.Buffer
 	pairs := make([]string, 0)
 	for _, k := range m.SortedKeys() {

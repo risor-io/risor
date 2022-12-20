@@ -21,3 +21,8 @@ extension:
 .PHONY: postgres
 postgres:
 	docker run --name some-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+
+.PHONY: test
+test:
+	go test -coverprofile cover.out ./...
+	go tool cover -html=cover.out
