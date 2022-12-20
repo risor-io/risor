@@ -89,14 +89,8 @@ func (e *Evaluator) newFunctionScope(
 	}
 	for paramIdx, param := range fn.Parameters {
 		if paramIdx < len(args) {
-			if _, ok := nestedScope.Get(param.Value); ok {
-				if err := nestedScope.Update(param.Value, args[paramIdx]); err != nil {
-					return nil, err
-				}
-			} else {
-				if err := nestedScope.Declare(param.Value, args[paramIdx], false); err != nil {
-					return nil, err
-				}
+			if err := nestedScope.Declare(param.Value, args[paramIdx], false); err != nil {
+				return nil, err
 			}
 		} else {
 			break
