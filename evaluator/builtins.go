@@ -537,8 +537,6 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 	if nArgs < 1 || nArgs > 2 {
 		return object.NewArgsRangeError("try", 1, 2, len(args))
 	}
-	// If args[1] is a function, call that with the error as the first argument
-	// and return the result from this call.
 	switch obj := args[0].(type) {
 	case *object.Error:
 		if nArgs == 2 {

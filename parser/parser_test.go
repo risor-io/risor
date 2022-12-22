@@ -388,21 +388,21 @@ func TestParsingIndexExpression(t *testing.T) {
 	testInfixExpression(t, indexExp.Index, 1, "+", 1)
 }
 
-func TestParsingHashLiteral(t *testing.T) {
+func TestParsingMap(t *testing.T) {
 	input := `{"one":1, "two":2, "three":3}`
 	program, err := Parse(input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements, 1)
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	m, ok := stmt.Expression.(*ast.MapLiteral)
 	require.True(t, ok)
-	require.Len(t, hash.Pairs, 3)
+	require.Len(t, m.Pairs, 3)
 	expected := map[string]int64{
 		"one":   1,
 		"two":   2,
 		"three": 3,
 	}
-	for key, value := range hash.Pairs {
+	for key, value := range m.Pairs {
 		literal, ok := key.(*ast.StringLiteral)
 		require.True(t, ok)
 		expectedValue := expected[literal.TokenLiteral()]
@@ -410,26 +410,26 @@ func TestParsingHashLiteral(t *testing.T) {
 	}
 }
 
-func TestParsingEmptyHashLiteral(t *testing.T) {
+func TestParsingEmptyMap(t *testing.T) {
 	input := "{}"
 	program, err := Parse(input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements, 1)
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	m, ok := stmt.Expression.(*ast.MapLiteral)
 	require.True(t, ok)
-	require.Len(t, hash.Pairs, 0)
+	require.Len(t, m.Pairs, 0)
 }
 
-func TestParsingHashLiteralWithExpression(t *testing.T) {
+func TestParsingMapLiteralWithExpression(t *testing.T) {
 	input := `{"one":0+1, "two":10 - 8, "three": 15/5}`
 	program, err := Parse(input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements, 1)
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	m, ok := stmt.Expression.(*ast.MapLiteral)
 	require.True(t, ok)
-	require.Len(t, hash.Pairs, 3)
+	require.Len(t, m.Pairs, 3)
 	tests := map[string]func(ast.Expression){
 		"one": func(e ast.Expression) {
 			testInfixExpression(t, e, 0, "+", 1)
@@ -441,7 +441,7 @@ func TestParsingHashLiteralWithExpression(t *testing.T) {
 			testInfixExpression(t, e, 15, "/", 5)
 		},
 	}
-	for key, value := range hash.Pairs {
+	for key, value := range m.Pairs {
 		literal, ok := key.(*ast.StringLiteral)
 		require.True(t, ok)
 		testFunc, ok := tests[literal.TokenLiteral()]
@@ -583,7 +583,7 @@ func TestPipeExpression(t *testing.T) {
 	}
 }
 
-func TestHashExpression(t *testing.T) {
+func TestMapExpression(t *testing.T) {
 	input := `{
 		"a": "b",
 
@@ -597,9 +597,9 @@ func TestHashExpression(t *testing.T) {
 	stmt := program.Statements[0]
 	expr, ok := stmt.(*ast.ExpressionStatement)
 	require.True(t, ok)
-	hash, ok := expr.Expression.(*ast.HashLiteral)
+	m, ok := expr.Expression.(*ast.MapLiteral)
 	require.True(t, ok)
-	require.Len(t, hash.Pairs, 2)
+	require.Len(t, m.Pairs, 2)
 }
 
 func TestSetExpression(t *testing.T) {
@@ -785,4 +785,20 @@ x := "a`
 		File:       "main.tm",
 		SourceCode: "x := \"a",
 	}), syntaxErr)
+}
+
+func TestMapIdentifierKey(t *testing.T) {
+	input := "{ one: 1 }"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements, 1)
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	m, ok := stmt.Expression.(*ast.MapLiteral)
+	require.True(t, ok)
+	require.Len(t, m.Pairs, 1)
+	for key := range m.Pairs {
+		ident, ok := key.(*ast.Identifier)
+		require.True(t, ok, fmt.Sprintf("%T", key))
+		require.Equal(t, "one", ident.TokenLiteral())
+	}
 }

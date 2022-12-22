@@ -107,7 +107,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
-	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
+	p.registerPrefix(token.LBRACE, p.parseMapOrSetLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseListLiteral)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
@@ -1086,25 +1086,25 @@ func (p *Parser) parsePipeExpression(first ast.Expression) ast.Expression {
 	return exp
 }
 
-// parseHashLiteral parses a hash literal
-func (p *Parser) parseHashLiteral() ast.Expression {
+// parseMapOrSetLiteral parses a map or a set literal
+func (p *Parser) parseMapOrSetLiteral() ast.Expression {
 	for p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextTokenWithError(); err != nil {
 			return nil
 		}
 	}
-	// Empty {} turns into an empty hash (not a set)
+	// Empty {} turns into an empty map (not a set)
 	if p.peekTokenIs(token.RBRACE) {
 		p.nextToken()
-		return &ast.HashLiteral{Token: p.curToken}
+		return &ast.MapLiteral{Token: p.curToken}
 	}
 	p.nextToken()
 	firstKey := p.parseExpression(LOWEST)
-	if p.peekTokenIs(token.COLON) { // This is a hash
+	if p.peekTokenIs(token.COLON) { // This is a map
 		p.nextToken() // advance to colon
 		p.nextToken() // advance to first key
 		firstValue := p.parseExpression(LOWEST)
-		hash := &ast.HashLiteral{
+		hash := &ast.MapLiteral{
 			Token: p.curToken,
 			Pairs: map[ast.Expression]ast.Expression{
 				firstKey: firstValue,

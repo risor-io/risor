@@ -520,8 +520,8 @@ func TestStringIndexExpression(t *testing.T) {
 	}
 }
 
-func TestHashLiterals(t *testing.T) {
-	input := `var two="two";
+func TestMapLiterals(t *testing.T) {
+	input := `var two="ignored";
 	{
 		"one":10-9,
 		two:1+1,
@@ -548,7 +548,7 @@ func TestHashLiterals(t *testing.T) {
 	require.Equal(t, int64(3), thr.Value())
 }
 
-func TestHashIndexExpression(t *testing.T) {
+func TestMapIndexExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected interface{}
@@ -558,8 +558,12 @@ func TestHashIndexExpression(t *testing.T) {
 			5,
 		},
 		{
-			`var key = "foo"; {"foo":5}[key]`,
-			5,
+			`var key = "foo"; {"foo":10}[key]`,
+			10,
+		},
+		{
+			`{foo:42}["foo"]`,
+			42,
 		},
 	}
 	for _, tt := range tests {
