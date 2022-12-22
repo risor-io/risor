@@ -81,7 +81,6 @@ const (
 	QUESTION        = "?"
 	RBRACE          = "}"
 	RBRACKET        = "]"
-	REGEXP          = "REGEXP"
 	RETURN          = "RETURN"
 	RPAREN          = ")"
 	SEMICOLON       = ";"

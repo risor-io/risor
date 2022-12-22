@@ -405,7 +405,7 @@ func TestParsingHashLiteral(t *testing.T) {
 	for key, value := range hash.Pairs {
 		literal, ok := key.(*ast.StringLiteral)
 		require.True(t, ok)
-		expectedValue := expected[literal.String()]
+		expectedValue := expected[literal.TokenLiteral()]
 		testIntegerLiteral(t, value, expectedValue)
 	}
 }
@@ -444,7 +444,7 @@ func TestParsingHashLiteralWithExpression(t *testing.T) {
 	for key, value := range hash.Pairs {
 		literal, ok := key.(*ast.StringLiteral)
 		require.True(t, ok)
-		testFunc, ok := tests[literal.String()]
+		testFunc, ok := tests[literal.TokenLiteral()]
 		require.True(t, ok)
 		testFunc(value)
 	}
@@ -618,7 +618,7 @@ func TestSetExpression(t *testing.T) {
 	set, ok := expr.Expression.(*ast.SetLiteral)
 	require.True(t, ok)
 	require.Len(t, set.Items, 4)
-	require.Equal(t, `{a, 1, 2, c}`, set.String())
+	require.Equal(t, `{"a", 1, 2, "c"}`, set.String())
 }
 
 func TestCallExpression(t *testing.T) {

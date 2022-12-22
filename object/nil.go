@@ -10,12 +10,20 @@ func (n *NilType) Inspect() string {
 	return "nil"
 }
 
+func (n *NilType) String() string {
+	return "nil()"
+}
+
 func (n *NilType) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
 func (n *NilType) Interface() interface{} {
 	return nil
+}
+
+func (n *NilType) HashKey() HashKey {
+	return HashKey{Type: n.Type()}
 }
 
 func (n *NilType) Compare(other Object) (int, error) {

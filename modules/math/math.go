@@ -19,19 +19,19 @@ func Abs(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Int:
-		v := arg.Value
+		v := arg.Value()
 		if v < 0 {
 			v = v * -1
 		}
-		return &object.Int{Value: v}
+		return object.NewInt(v)
 	case *object.Float:
-		v := arg.Value
+		v := arg.Value()
 		if v < 0 {
 			v = v * -1
 		}
 		return object.NewFloat(v)
 	default:
-		return object.NewError("type error: argument to math.abs not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.abs not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -41,13 +41,13 @@ func Sqrt(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Int:
-		v := arg.Value
-		return &object.Float{Value: math.Sqrt(float64(v))}
+		v := arg.Value()
+		return object.NewFloat(math.Sqrt(float64(v)))
 	case *object.Float:
-		v := arg.Value
-		return &object.Float{Value: math.Sqrt(v)}
+		v := arg.Value()
+		return object.NewFloat(math.Sqrt(v))
 	default:
-		return object.NewError("type error: argument to math.sqrt not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.sqrt not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -59,14 +59,14 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 	var array []object.Object
 	switch arg := arg.(type) {
 	case *object.List:
-		array = arg.Items
+		array = arg.Value()
 	case *object.Set:
-		array = arg.List().Items
+		array = arg.List().Value()
 	default:
-		return object.NewError("type error: %s object is not iterable", args[0].Type())
+		return object.Errorf("type error: %s object is not iterable", args[0].Type())
 	}
 	if len(array) == 0 {
-		return object.NewError("value error: math.max argument is an empty sequence")
+		return object.Errorf("value error: math.max argument is an empty sequence")
 	}
 	var maxFlt float64
 	var maxInt int64
@@ -74,17 +74,19 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 	for _, value := range array {
 		switch val := value.(type) {
 		case *object.Int:
-			if !hasInt || maxInt < val.Value {
-				maxInt = val.Value
+			v := val.Value()
+			if !hasInt || maxInt < v {
+				maxInt = v
 				hasInt = true
 			}
 		case *object.Float:
-			if !hasFlt || maxFlt < val.Value {
-				maxFlt = val.Value
+			v := val.Value()
+			if !hasFlt || maxFlt < v {
+				maxFlt = v
 				hasFlt = true
 			}
 		default:
-			return object.NewError("invalid array item for math.max: %s", val.Type())
+			return object.Errorf("invalid array item for math.max: %s", val.Type())
 		}
 	}
 	if hasFlt {
@@ -104,14 +106,14 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	var array []object.Object
 	switch arg := arg.(type) {
 	case *object.List:
-		array = arg.Items
+		array = arg.Value()
 	case *object.Set:
-		array = arg.List().Items
+		array = arg.List().Value()
 	default:
-		return object.NewError("type error: %s object is not iterable", args[0].Type())
+		return object.Errorf("type error: %s object is not iterable", args[0].Type())
 	}
 	if len(array) == 0 {
-		return object.NewError("value error: math.min argument is an empty sequence")
+		return object.Errorf("value error: math.min argument is an empty sequence")
 	}
 	var minFlt float64
 	var minInt int64
@@ -119,17 +121,19 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 	for _, value := range array {
 		switch val := value.(type) {
 		case *object.Int:
-			if !hasInt || minInt > val.Value {
-				minInt = val.Value
+			v := val.Value()
+			if !hasInt || minInt > v {
+				minInt = v
 				hasInt = true
 			}
 		case *object.Float:
-			if !hasFlt || minFlt > val.Value {
-				minFlt = val.Value
+			v := val.Value()
+			if !hasFlt || minFlt > v {
+				minFlt = v
 				hasFlt = true
 			}
 		default:
-			return object.NewError("type error: invalid array item for math.min: %s", val.Type())
+			return object.Errorf("type error: invalid array item for math.min: %s", val.Type())
 		}
 	}
 	if hasFlt {
@@ -149,11 +153,11 @@ func Sum(ctx context.Context, args ...object.Object) object.Object {
 	var array []object.Object
 	switch arg := arg.(type) {
 	case *object.List:
-		array = arg.Items
+		array = arg.Value()
 	case *object.Set:
-		array = arg.List().Items
+		array = arg.List().Value()
 	default:
-		return object.NewError("type error: %s object is not iterable", arg.Type())
+		return object.Errorf("type error: %s object is not iterable", arg.Type())
 	}
 	if len(array) == 0 {
 		return object.NewFloat(0)
@@ -162,11 +166,11 @@ func Sum(ctx context.Context, args ...object.Object) object.Object {
 	for _, value := range array {
 		switch val := value.(type) {
 		case *object.Int:
-			sum += float64(val.Value)
+			sum += float64(val.Value())
 		case *object.Float:
-			sum += val.Value
+			sum += val.Value()
 		default:
-			return object.NewError("value error: invalid input for math.sum: %s", val.Type())
+			return object.Errorf("value error: invalid input for math.sum: %s", val.Type())
 		}
 	}
 	return object.NewFloat(sum)
@@ -180,9 +184,9 @@ func Ceil(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Int:
 		return arg
 	case *object.Float:
-		return object.NewFloat(math.Ceil(arg.Value))
+		return object.NewFloat(math.Ceil(arg.Value()))
 	default:
-		return object.NewError("type error: argument to math.ceil not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.ceil not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -194,9 +198,9 @@ func Floor(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Int:
 		return arg
 	case *object.Float:
-		return object.NewFloat(math.Floor(arg.Value))
+		return object.NewFloat(math.Floor(arg.Value()))
 	default:
-		return object.NewError("type error: argument to math.floor not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.floor not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -206,11 +210,11 @@ func Sin(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Int:
-		return object.NewFloat(math.Sin(float64(arg.Value)))
+		return object.NewFloat(math.Sin(float64(arg.Value())))
 	case *object.Float:
-		return object.NewFloat(math.Sin(arg.Value))
+		return object.NewFloat(math.Sin(arg.Value()))
 	default:
-		return object.NewError("type error: argument to math.sin not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.sin not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -220,11 +224,11 @@ func Cos(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Int:
-		return object.NewFloat(math.Cos(float64(arg.Value)))
+		return object.NewFloat(math.Cos(float64(arg.Value())))
 	case *object.Float:
-		return object.NewFloat(math.Cos(arg.Value))
+		return object.NewFloat(math.Cos(arg.Value()))
 	default:
-		return object.NewError("type error: argument to math.cos not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: argument to math.cos not supported, got=%s", args[0].Type())
 	}
 }
 
@@ -341,31 +345,31 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "abs", Fn: Abs},
-		{Module: m, Name: "sqrt", Fn: Sqrt},
-		{Module: m, Name: "min", Fn: Min},
-		{Module: m, Name: "max", Fn: Max},
-		{Module: m, Name: "floor", Fn: Floor},
-		{Module: m, Name: "ceil", Fn: Ceil},
-		{Module: m, Name: "sin", Fn: Sin},
-		{Module: m, Name: "cos", Fn: Cos},
-		{Module: m, Name: "tan", Fn: Tan},
-		{Module: m, Name: "mod", Fn: Mod},
-		{Module: m, Name: "log", Fn: Log},
-		{Module: m, Name: "log10", Fn: Log10},
-		{Module: m, Name: "log2", Fn: Log2},
-		{Module: m, Name: "pow", Fn: Pow},
-		{Module: m, Name: "pow10", Fn: Pow10},
-		{Module: m, Name: "is_inf", Fn: IsInf},
-		{Module: m, Name: "round", Fn: Round},
-		{Module: m, Name: "sum", Fn: Sum},
+		object.NewBuiltin("abs", Abs, m),
+		object.NewBuiltin("sqrt", Sqrt, m),
+		object.NewBuiltin("min", Min, m),
+		object.NewBuiltin("max", Max, m),
+		object.NewBuiltin("floor", Floor, m),
+		object.NewBuiltin("ceil", Ceil, m),
+		object.NewBuiltin("sin", Sin, m),
+		object.NewBuiltin("cos", Cos, m),
+		object.NewBuiltin("tan", Tan, m),
+		object.NewBuiltin("mod", Mod, m),
+		object.NewBuiltin("log", Log, m),
+		object.NewBuiltin("log10", Log10, m),
+		object.NewBuiltin("log2", Log2, m),
+		object.NewBuiltin("pow", Pow, m),
+		object.NewBuiltin("pow10", Pow10, m),
+		object.NewBuiltin("is_inf", IsInf, m),
+		object.NewBuiltin("round", Round, m),
+		object.NewBuiltin("sum", Sum, m),
 	}); err != nil {
 		return nil, err
 	}
-	s.Declare("PI", &object.Float{Value: math.Pi}, true)
-	s.Declare("E", &object.Float{Value: math.E}, true)
+	s.Declare("PI", object.NewFloat(math.Pi), true)
+	s.Declare("E", object.NewFloat(math.E), true)
 	return m, nil
 }

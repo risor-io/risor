@@ -13,5 +13,5 @@ func (e *Evaluator) evalIdentifier(node *ast.Identifier, s *scope.Scope) object.
 	if builtin, ok := e.builtins[node.Value]; ok {
 		return builtin
 	}
-	return newError("name error: %q is not defined", node.Value)
+	return object.Errorf("name error: %q is not defined", node.Value)
 }

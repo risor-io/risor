@@ -14,7 +14,7 @@ func (e *Evaluator) evalPrefixExpression(
 	s *scope.Scope,
 ) object.Object {
 	right := e.Evaluate(ctx, node.Right, s)
-	if isError(right) {
+	if object.IsError(right) {
 		return right
 	}
 	operator := node.Operator
@@ -24,7 +24,7 @@ func (e *Evaluator) evalPrefixExpression(
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
 	default:
-		return newError("syntax error: unknown operator: %s", operator)
+		return object.Errorf("syntax error: unknown operator: %s", operator)
 	}
 }
 
@@ -35,17 +35,17 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 	case object.False:
 		return object.True
 	default:
-		return newError("type error: expected boolean to follow ! operator (got %s)", right.Type())
+		return object.Errorf("type error: expected boolean to follow ! operator (got %s)", right.Type())
 	}
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	switch obj := right.(type) {
 	case *object.Int:
-		return &object.Int{Value: -obj.Value}
+		return object.NewInt(-obj.Value())
 	case *object.Float:
-		return &object.Float{Value: -obj.Value}
+		return object.NewFloat(-obj.Value())
 	default:
-		return newError("type error: expected int or float to follow - operator (got %s)", right.Type())
+		return object.Errorf("type error: expected int or float to follow - operator (got %s)", right.Type())
 	}
 }

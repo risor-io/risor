@@ -102,7 +102,7 @@ func (s *Scope) Children() []*Scope {
 }
 
 func (s *Scope) AddBuiltin(b *object.Builtin) error {
-	if err := s.Declare(b.Name, b, true); err != nil {
+	if err := s.Declare(b.Name(), b, true); err != nil {
 		return fmt.Errorf("failed to define %s: %w", b.Key(), err)
 	}
 	return nil

@@ -1,7 +1,7 @@
 package object
 
 type DatabaseConnection struct {
-	Conn interface{}
+	conn interface{}
 }
 
 func (c *DatabaseConnection) Type() Type {
@@ -9,18 +9,22 @@ func (c *DatabaseConnection) Type() Type {
 }
 
 func (c *DatabaseConnection) Inspect() string {
-	return "<DB_CONNECTION>"
+	return "db_connection()"
 }
 
 func (c *DatabaseConnection) Interface() interface{} {
-	return c.Conn
+	return c.conn
 }
 
 func (c *DatabaseConnection) Equals(other Object) Object {
-	value := other.Type() == DB_CONNECTION && c.Conn == other.(*DatabaseConnection).Conn
+	value := other.Type() == DB_CONNECTION && c.conn == other.(*DatabaseConnection).conn
 	return NewBool(value)
 }
 
 func (c *DatabaseConnection) GetAttr(name string) (Object, bool) {
 	return nil, false
+}
+
+func NewDatabaseConnection(conn interface{}) *DatabaseConnection {
+	return &DatabaseConnection{conn: conn}
 }

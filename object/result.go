@@ -7,8 +7,8 @@ import (
 
 // Result contains one of: an "ok" value or an "err" value
 type Result struct {
-	Ok  Object
-	Err Object
+	ok  Object
+	err *Error
 }
 
 func (rv *Result) Type() Type {
@@ -16,18 +16,18 @@ func (rv *Result) Type() Type {
 }
 
 func (rv *Result) Inspect() string {
-	if rv.Ok != nil {
-		return rv.Ok.Inspect()
+	if rv.ok != nil {
+		return fmt.Sprintf("ok(%s)", rv.ok.Inspect())
 	}
-	return rv.Err.Inspect()
+	return fmt.Sprintf("err(%q)", rv.err.Value())
 }
 
 func (rv *Result) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "is_err":
 		return &Builtin{
-			Name: "result.is_err",
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: "result.is_err",
+			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("is_err", 0, len(args))
 				}
@@ -36,8 +36,8 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 		}, true
 	case "is_ok":
 		return &Builtin{
-			Name: "result.is_ok",
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: "result.is_ok",
+			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("is_ok", 0, len(args))
 				}
@@ -46,18 +46,28 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 		}, true
 	case "unwrap":
 		return &Builtin{
-			Name: "result.unwrap",
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: "result.unwrap",
+			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("unwrap", 0, len(args))
 				}
 				return rv.Unwrap()
 			},
 		}, true
+	case "unwrap_err":
+		return &Builtin{
+			name: "result.unwrap_err",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("unwrap_err", 0, len(args))
+				}
+				return rv.UnwrapErr()
+			},
+		}, true
 	case "unwrap_or":
 		return &Builtin{
-			Name: "result.unwrap_or",
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: "result.unwrap_or",
+			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 1 {
 					return NewArgsError("unwrap_or", 1, len(args))
 				}
@@ -66,8 +76,8 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 		}, true
 	case "expect":
 		return &Builtin{
-			Name: "result.expect",
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: "result.expect",
+			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 1 {
 					return NewArgsError("expect", 1, len(args))
 				}
@@ -75,57 +85,66 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 			},
 		}, true
 	default:
-		if rv.Ok != nil {
-			return rv.Ok.GetAttr(name)
+		if rv.ok != nil {
+			return rv.ok.GetAttr(name)
+		} else if rv.err != nil {
+			return Errorf("result error: attempted to unwrap an error: %s", rv.err), true
 		}
 	}
 	return nil, false
 }
 
 func (rv *Result) Interface() interface{} {
-	if rv.Ok != nil {
-		return rv.Ok.Interface()
+	if rv.ok != nil {
+		return rv.ok.Interface()
 	}
-	return rv.Err.Interface()
+	return rv.err.Interface()
 }
 
 func (rv *Result) String() string {
-	if rv.Ok != nil {
-		return fmt.Sprintf("result(Ok: %s)", rv.Ok)
-	} else if rv.Err != nil {
-		return fmt.Sprintf("result(Err: %s)", rv.Err)
+	if rv.ok != nil {
+		return fmt.Sprintf("result(ok: %s)", rv.ok)
+	} else if rv.err != nil {
+		return fmt.Sprintf("result(err: %s)", rv.err)
 	}
 	return "result()"
 }
 
 func (rv *Result) IsOk() bool {
-	return rv.Ok != nil
+	return rv.ok != nil
 }
 
 func (rv *Result) IsErr() bool {
-	return rv.Err != nil
+	return rv.err != nil
 }
 
 func (rv *Result) Unwrap() Object {
-	if rv.Ok != nil {
-		return rv.Ok
+	if rv.ok != nil {
+		return rv.ok
 	}
-	return &Error{Message: fmt.Sprintf("result error: attempted to unwrap an error: %s", rv.Err)}
+	return Errorf("result error: unwrap() called on an error: %s", rv.err.Inspect())
+}
+
+func (rv *Result) UnwrapErr() *Error {
+	if rv.err != nil {
+		return rv.err
+	}
+	return Errorf("result error: unwrap_err() called on an ok: %s", rv.ok.Inspect())
 }
 
 func (rv *Result) UnwrapOr(other Object) Object {
-	if rv.Ok != nil {
-		return rv.Ok
+	if rv.ok != nil {
+		return rv.ok
 	}
 	return other
 }
 
 func (rv *Result) Expect(other Object) Object {
 	if _, ok := other.(*String); !ok {
-		return NewError(fmt.Sprintf("type error: expect() argument should be a string (%s given)", other.Type()))
+		return Errorf("type error: expect() argument should be a string (%s given)", other.Type())
 	}
-	if rv.Ok != nil {
-		return rv.Ok
+	if rv.ok != nil {
+		return rv.ok
 	}
 	return other
 }
@@ -135,13 +154,21 @@ func (rv *Result) Equals(other Object) Object {
 		return False
 	}
 	otherResult := other.(*Result)
-	if rv.Ok != nil {
-		return NewBool(otherResult.Ok != nil && rv.Ok.Equals(otherResult.Ok).(*Bool).Value)
-	} else if rv.Err != nil {
-		return NewBool(otherResult.Err != nil && rv.Err.Equals(otherResult.Err).(*Bool).Value)
+	if rv.ok != nil {
+		return NewBool(otherResult.ok != nil && rv.ok.Equals(otherResult.ok).(*Bool).value)
+	} else if rv.err != nil {
+		return NewBool(otherResult.err != nil && rv.err.Equals(otherResult.err).(*Bool).value)
 	}
-	if otherResult.Ok == nil && otherResult.Err == nil {
+	if otherResult.ok == nil && otherResult.err == nil {
 		return True
 	}
 	return False
+}
+
+func NewErrResult(err *Error) *Result {
+	return &Result{err: err}
+}
+
+func NewOkResult(ok Object) *Result {
+	return &Result{ok: ok}
 }

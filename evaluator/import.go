@@ -38,7 +38,7 @@ func (si *SimpleImporter) Import(
 	if result != nil && result.Type() == "ERROR" {
 		return nil, errors.New(result.Inspect())
 	}
-	return &object.Module{Name: name, Scope: s}, nil
+	return object.NewModule(name, s), nil
 }
 
 func (e *Evaluator) evalImportStatement(
@@ -47,17 +47,17 @@ func (e *Evaluator) evalImportStatement(
 	s *scope.Scope,
 ) object.Object {
 	if e.importer == nil {
-		return newError("import error: importing is disabled")
+		return object.Errorf("import error: importing is disabled")
 	}
 	moduleName := node.Name.String()
 	name := fmt.Sprintf("%s.tm", moduleName)
 	module, err := e.importer.Import(ctx, e, name)
 	if err != nil {
-		return newError(err.Error())
+		return object.Errorf(err.Error())
 	}
 	// TODO: overrides
 	if err := s.Declare(moduleName, module, true); err != nil {
-		return newError(fmt.Sprintf("import error: %s", err.Error()))
+		return object.Errorf(fmt.Sprintf("import error: %s", err.Error()))
 	}
 	return module
 }

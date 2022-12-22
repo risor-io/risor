@@ -112,8 +112,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.NIL, p.parseNil)
-	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
-	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.BACKTICK, p.parseStringLiteral)
 	p.registerPrefix(token.FSTRING, p.parseStringLiteral)
@@ -359,9 +357,11 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 		return nil
 	}
 	switch p.peekToken.Type {
-	// Assignment statements can be followed by a newline, semicolon, or EOF.
+	// Assignment statements can be followed by a newline, semicolon, EOF, or }
 	case token.NEWLINE, token.SEMICOLON, token.EOF:
 		p.nextToken()
+		return result
+	case token.RBRACE:
 		return result
 	default:
 		p.setError(NewParserError(ErrorOpts{
@@ -385,6 +385,8 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		switch p.peekToken.Type {
 		case token.SEMICOLON, token.NEWLINE, token.EOF:
 			p.nextToken()
+			return stmt
+		case token.RBRACE:
 			return stmt
 		default:
 			p.setError(NewParserError(ErrorOpts{
@@ -946,26 +948,6 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	}
 }
 
-// parseRegexpLiteral parses a regular-expression.
-func (p *Parser) parseRegexpLiteral() ast.Expression {
-	flags := ""
-	val := p.curToken.Literal
-	if strings.HasPrefix(val, "(?") {
-		val = strings.TrimPrefix(val, "(?")
-		i := 0
-		for i < len(val) {
-			if val[i] == ')' {
-				val = val[i+1:]
-				break
-			} else {
-				flags += string(val[i])
-			}
-			i++
-		}
-	}
-	return &ast.RegexpLiteral{Token: p.curToken, Value: val, Flags: flags}
-}
-
 func (p *Parser) parseListLiteral() ast.Expression {
 	ll := &ast.ListLiteral{Token: p.curToken}
 	ll.Items = p.parseExpressionList(token.RBRACKET)
@@ -1157,17 +1139,23 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		}
 		return hash
 	} else { // This is a set
-		if !p.expectPeek("set", token.COMMA) {
+		set := &ast.SetLiteral{
+			Token: p.curToken,
+			Items: []ast.Expression{firstKey},
+		}
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+		} else if p.peekTokenIs(token.RBRACE) {
+			p.nextToken()
+			return set
+		} else {
+			p.setTokenError(p.peekToken, "expected , or } after set element")
 			return nil
 		}
 		for p.peekTokenIs(token.NEWLINE) {
 			if err := p.nextTokenWithError(); err != nil {
 				return nil
 			}
-		}
-		set := &ast.SetLiteral{
-			Token: p.curToken,
-			Items: []ast.Expression{firstKey},
 		}
 		for !p.peekTokenIs(token.RBRACE) {
 			if err := p.nextTokenWithError(); err != nil {

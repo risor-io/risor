@@ -11,7 +11,7 @@ import (
 
 func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpression, s *scope.Scope) object.Object {
 	left := e.Evaluate(ctx, node.Left, s)
-	if isError(left) {
+	if object.IsError(left) {
 		return left
 	}
 	if node.Operator == "&&" && !object.IsTruthy(left) {
@@ -20,7 +20,7 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpr
 		return left // Short circuit
 	}
 	right := e.Evaluate(ctx, node.Right, s)
-	if isError(right) {
+	if object.IsError(right) {
 		return right
 	}
 	return e.evalInfix(node.Operator, left, right, s)
@@ -61,17 +61,17 @@ func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *sco
 	case leftType == object.BOOL && rightType == object.BOOL:
 		return evalBooleanInfixExpression(operator, left, right)
 	case leftType != rightType:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, leftType, rightType)
 	default:
-		return newError("syntax error: invalid operation %s for types: %s and %s",
+		return object.Errorf("syntax error: invalid operation %s for types: %s and %s",
 			operator, leftType, rightType)
 	}
 }
 
 func evalBooleanInfixExpression(operator string, left, right object.Object) object.Object {
-	l := &object.String{Value: string(left.Inspect())}
-	r := &object.String{Value: string(right.Inspect())}
+	l := object.NewString(string(left.Inspect()))
+	r := object.NewString(string(right.Inspect()))
 	switch operator {
 	case "<":
 		return evalStringInfixExpression(operator, l, r)
@@ -82,38 +82,38 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 	case ">=":
 		return evalStringInfixExpression(operator, l, r)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Int).Value
-	rightVal := right.(*object.Int).Value
+	leftVal := left.(*object.Int).Value()
+	rightVal := right.(*object.Int).Value()
 	switch operator {
 	case "+":
-		return &object.Int{Value: leftVal + rightVal}
+		return object.NewInt(leftVal + rightVal)
 	case "+=":
-		return &object.Int{Value: leftVal + rightVal}
+		return object.NewInt(leftVal + rightVal)
 	case "%":
-		return &object.Int{Value: leftVal % rightVal}
+		return object.NewInt(leftVal % rightVal)
 	case "**":
-		return &object.Int{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		return object.NewInt(int64(math.Pow(float64(leftVal), float64(rightVal))))
 	case "-":
-		return &object.Int{Value: leftVal - rightVal}
+		return object.NewInt(leftVal - rightVal)
 	case "-=":
-		return &object.Int{Value: leftVal - rightVal}
+		return object.NewInt(leftVal - rightVal)
 	case "*":
-		return &object.Int{Value: leftVal * rightVal}
+		return object.NewInt(leftVal * rightVal)
 	case "*=":
-		return &object.Int{Value: leftVal * rightVal}
+		return object.NewInt(leftVal * rightVal)
 	case "/":
 		if rightVal == 0 {
-			return newError("zero division error")
+			return object.Errorf("zero division error")
 		}
-		return &object.Int{Value: leftVal / rightVal}
+		return object.NewInt(leftVal / rightVal)
 	case "/=":
-		return &object.Int{Value: leftVal / rightVal}
+		return object.NewInt(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -123,33 +123,33 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }
 
 func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := right.(*object.Float).Value
+	leftVal := left.(*object.Float).Value()
+	rightVal := right.(*object.Float).Value()
 	switch operator {
 	case "+":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "+=":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "-":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "-=":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "*":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "*=":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "/=":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -159,33 +159,33 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }
 
 func evalFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := float64(right.(*object.Int).Value)
+	leftVal := left.(*object.Float).Value()
+	rightVal := float64(right.(*object.Int).Value())
 	switch operator {
 	case "+":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "+=":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "-":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "-=":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "*":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "*=":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "/=":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -195,33 +195,33 @@ func evalFloatIntegerInfixExpression(operator string, left, right object.Object)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }
 
 func evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := float64(left.(*object.Int).Value)
-	rightVal := right.(*object.Float).Value
+	leftVal := float64(left.(*object.Int).Value())
+	rightVal := right.(*object.Float).Value()
 	switch operator {
 	case "+":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "+=":
-		return &object.Float{Value: leftVal + rightVal}
+		return object.NewFloat(leftVal + rightVal)
 	case "-":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "-=":
-		return &object.Float{Value: leftVal - rightVal}
+		return object.NewFloat(leftVal - rightVal)
 	case "*":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "*=":
-		return &object.Float{Value: leftVal * rightVal}
+		return object.NewFloat(leftVal * rightVal)
 	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "/=":
-		return &object.Float{Value: leftVal / rightVal}
+		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -231,29 +231,29 @@ func evalIntegerFloatInfixExpression(operator string, left, right object.Object)
 	case ">=":
 		return nativeBoolToBooleanObject(leftVal >= rightVal)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }
 
 func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
-	l := left.(*object.String)
-	r := right.(*object.String)
+	l := left.(*object.String).Value()
+	r := right.(*object.String).Value()
 	switch operator {
 	case ">=":
-		return nativeBoolToBooleanObject(l.Value >= r.Value)
+		return nativeBoolToBooleanObject(l >= r)
 	case ">":
-		return nativeBoolToBooleanObject(l.Value > r.Value)
+		return nativeBoolToBooleanObject(l > r)
 	case "<=":
-		return nativeBoolToBooleanObject(l.Value <= r.Value)
+		return nativeBoolToBooleanObject(l <= r)
 	case "<":
-		return nativeBoolToBooleanObject(l.Value < r.Value)
+		return nativeBoolToBooleanObject(l < r)
 	case "+":
-		return &object.String{Value: l.Value + r.Value}
+		return object.NewString(l + r)
 	case "+=":
-		return &object.String{Value: l.Value + r.Value}
+		return object.NewString(l + r)
 	default:
-		return newError("type error: unsupported operand types for %s: %s and %s",
+		return object.Errorf("type error: unsupported operand types for %s: %s and %s",
 			operator, left.Type(), right.Type())
 	}
 }

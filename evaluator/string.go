@@ -14,7 +14,7 @@ func (e *Evaluator) evalStringLiteral(ctx context.Context,
 	s *scope.Scope,
 ) object.Object {
 	if node.Template == nil {
-		return &object.String{Value: node.Value}
+		return object.NewString(node.Value)
 	}
 	var exprIndex int
 	var parts []string
@@ -33,7 +33,7 @@ func (e *Evaluator) evalStringLiteral(ctx context.Context,
 			case *object.Error:
 				return obj
 			case *object.String:
-				parts = append(parts, obj.Value)
+				parts = append(parts, obj.Value())
 			default:
 				parts = append(parts, obj.Inspect())
 			}
@@ -41,5 +41,5 @@ func (e *Evaluator) evalStringLiteral(ctx context.Context,
 			parts = append(parts, f.Value)
 		}
 	}
-	return &object.String{Value: strings.Join(parts, "")}
+	return object.NewString(strings.Join(parts, ""))
 }

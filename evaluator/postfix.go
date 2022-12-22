@@ -11,47 +11,46 @@ func (e *Evaluator) evalPostfixExpression(
 	operator string,
 	node *ast.PostfixExpression,
 ) object.Object {
-	// TODO: Handle ints and floats
 	switch operator {
 	case "++":
 		val, ok := s.Get(node.Token.Literal)
 		if !ok {
-			return newError("name error: %q is not defined", node.Token.Literal)
+			return object.Errorf("name error: %q is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
 		case *object.Int:
-			if err := s.Update(node.Token.Literal, &object.Int{Value: arg.Value + 1}); err != nil {
-				return newError(err.Error())
+			if err := s.Update(node.Token.Literal, object.NewInt(arg.Value()+1)); err != nil {
+				return object.Errorf(err.Error())
 			}
 			return arg
 		case *object.Float:
-			if err := s.Update(node.Token.Literal, &object.Float{Value: arg.Value + 1}); err != nil {
-				return newError(err.Error())
+			if err := s.Update(node.Token.Literal, object.NewFloat(arg.Value()+1)); err != nil {
+				return object.Errorf(err.Error())
 			}
 			return arg
 		default:
-			return newError("type error: cannot increment %s (type %s)", node.Token.Literal, arg)
+			return object.Errorf("type error: cannot increment %s (type %s)", node.Token.Literal, arg)
 		}
 	case "--":
 		val, ok := s.Get(node.Token.Literal)
 		if !ok {
-			return newError("name error: %q is not defined", node.Token.Literal)
+			return object.Errorf("name error: %q is not defined", node.Token.Literal)
 		}
 		switch arg := val.(type) {
 		case *object.Int:
-			if err := s.Update(node.Token.Literal, &object.Int{Value: arg.Value - 1}); err != nil {
-				return newError(err.Error())
+			if err := s.Update(node.Token.Literal, object.NewInt(arg.Value()-1)); err != nil {
+				return object.Errorf(err.Error())
 			}
 			return arg
 		case *object.Float:
-			if err := s.Update(node.Token.Literal, &object.Float{Value: arg.Value - 1}); err != nil {
-				return newError(err.Error())
+			if err := s.Update(node.Token.Literal, object.NewFloat(arg.Value()-1)); err != nil {
+				return object.Errorf(err.Error())
 			}
 			return arg
 		default:
-			return newError("type error: cannot decrement %s (type %s)", node.Token.Literal, arg)
+			return object.Errorf("type error: cannot decrement %s (type %s)", node.Token.Literal, arg)
 		}
 	default:
-		return newError("syntax error: unknown operator: %s", operator)
+		return object.Errorf("syntax error: unknown operator: %s", operator)
 	}
 }

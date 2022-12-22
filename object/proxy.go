@@ -365,13 +365,13 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 		v := reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
 		obj, err := attr.converter.From(v)
 		if err != nil {
-			return NewError(err.Error()), true
+			return Errorf(err.Error()), true
 		}
 		return obj, true
 	case *GoMethod:
 		return &Builtin{
-			Name: fmt.Sprintf("%s.%s", p.typ.Name(), name),
-			Fn: func(ctx context.Context, args ...Object) Object {
+			name: fmt.Sprintf("%s.%s", p.typ.Name(), name),
+			fn: func(ctx context.Context, args ...Object) Object {
 				return p.call(ctx, attr, args...)
 			},
 		}, true
@@ -407,7 +407,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 		input, err := m.inputConverters[i-1].To(args[argIndex])
 		if err != nil {
-			return NewError("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
+			return Errorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
 		}
 		inputs[i] = reflect.ValueOf(input)
 		argIndex++
@@ -419,26 +419,26 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		if m.outputHasErr {
 			errObj := outputs[0].Interface()
 			if errObj != nil {
-				return NewErrorResult(errObj.(error).Error())
+				return NewErrResult(NewError(errObj.(error)))
 			}
 			return NewOkResult(Nil)
 		}
 		obj, err := m.outputConverters[0].From(outputs[0].Interface())
 		if err != nil {
-			return NewError("call error: failed to convert output from %s() call: %s", methodName, err)
+			return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 		}
 		return obj
 	} else if len(outputs) == 2 {
 		if !m.outputHasErr {
-			return NewError("call error: too many outputs from %s() call", methodName)
+			return Errorf("call error: too many outputs from %s() call", methodName)
 		}
 		obj0, err := m.outputConverters[0].From(outputs[0].Interface())
 		if err != nil {
-			return NewError("call error: failed to convert output from %s() call: %s", methodName, err)
+			return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 		}
 		obj1, err := m.outputConverters[1].From(outputs[1].Interface())
 		if err != nil {
-			return NewError("call error: failed to convert output from %s() call: %s", methodName, err)
+			return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 		}
 		var resObj, errObj Object
 		if m.outputErrIndex == 0 {
@@ -449,11 +449,11 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 			resObj = obj0
 		}
 		if errObj != nil {
-			return NewErrorResult(errObj.(*Error).Message)
+			return NewErrResult(errObj.(*Error))
 		}
 		return NewOkResult(resObj)
 	}
-	return NewError("call error: method %s has too many outputs", methodName)
+	return Errorf("call error: method %s has too many outputs", methodName)
 }
 
 // NewProxy returns a new Tamarin proxy object that wraps the given Go object.

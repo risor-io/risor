@@ -17,7 +17,7 @@ func Now(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("time.now", 0, args); err != nil {
 		return err
 	}
-	return &object.Time{Value: time.Now()}
+	return object.NewTime(time.Now())
 }
 
 func Parse(ctx context.Context, args ...object.Object) object.Object {
@@ -34,9 +34,9 @@ func Parse(ctx context.Context, args ...object.Object) object.Object {
 	}
 	t, parseErr := time.Parse(layout, value)
 	if parseErr != nil {
-		return object.NewErrorResult(parseErr.Error())
+		return object.NewErrResult(object.NewError(parseErr))
 	}
-	return &object.Result{Ok: &object.Time{Value: t}}
+	return object.NewOkResult(object.NewTime(t))
 }
 
 func After(ctx context.Context, args ...object.Object) object.Object {
@@ -81,7 +81,7 @@ func Format(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.String{Value: t.Format(layout)}
+	return object.NewString(t.Format(layout))
 }
 
 func UTC(ctx context.Context, args ...object.Object) object.Object {
@@ -92,7 +92,7 @@ func UTC(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Time{Value: t.UTC()}
+	return object.NewTime(t.UTC())
 }
 
 func Unix(ctx context.Context, args ...object.Object) object.Object {
@@ -103,7 +103,7 @@ func Unix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Int{Value: t.Unix()}
+	return object.NewInt(t.Unix())
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {
@@ -112,16 +112,16 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "now", Fn: Now},
-		{Module: m, Name: "parse", Fn: Parse},
-		{Module: m, Name: "after", Fn: After},
-		{Module: m, Name: "before", Fn: Before},
-		{Module: m, Name: "format", Fn: Format},
-		{Module: m, Name: "utc", Fn: UTC},
-		{Module: m, Name: "unix", Fn: Unix},
+		object.NewBuiltin("now", Now, m),
+		object.NewBuiltin("parse", Parse, m),
+		object.NewBuiltin("after", After, m),
+		object.NewBuiltin("before", Before, m),
+		object.NewBuiltin("format", Format, m),
+		object.NewBuiltin("utc", UTC, m),
+		object.NewBuiltin("unix", Unix, m),
 	}); err != nil {
 		return nil, err
 	}

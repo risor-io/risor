@@ -25,7 +25,7 @@ func Atoi(ctx context.Context, args ...object.Object) object.Object {
 	if err == nil {
 		return object.NewOkResult(object.NewInt(int64(i)))
 	}
-	return object.NewErrorResult("strconv.atoi: %s", err)
+	return object.NewErrResult(object.NewError(err))
 }
 
 func ParseBool(ctx context.Context, args ...object.Object) object.Object {
@@ -40,7 +40,7 @@ func ParseBool(ctx context.Context, args ...object.Object) object.Object {
 	if err == nil {
 		return object.NewOkResult(object.NewBool(b))
 	}
-	return object.NewErrorResult("strconv.parse_bool: %s", err)
+	return object.NewErrResult(object.NewError(err))
 }
 
 func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
@@ -55,7 +55,7 @@ func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
 	if err == nil {
 		return object.NewOkResult(object.NewFloat(f))
 	}
-	return object.NewErrorResult("strconv.parse_float: %s", err)
+	return object.NewErrResult(object.NewError(err))
 }
 
 func ParseInt(ctx context.Context, args ...object.Object) object.Object {
@@ -66,11 +66,11 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	if typeErr != nil {
 		return typeErr
 	}
-	base, typeErr := object.AsInteger(args[1])
+	base, typeErr := object.AsInt(args[1])
 	if typeErr != nil {
 		return typeErr
 	}
-	bitSize, typeErr := object.AsInteger(args[2])
+	bitSize, typeErr := object.AsInt(args[2])
 	if typeErr != nil {
 		return typeErr
 	}
@@ -78,7 +78,7 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	if err == nil {
 		return object.NewOkResult(object.NewInt(i))
 	}
-	return object.NewErrorResult("strconv.parse_int: %s", err)
+	return object.NewErrResult(object.NewError(err))
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {
@@ -87,13 +87,13 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "atoi", Fn: Atoi},
-		{Module: m, Name: "parse_bool", Fn: ParseBool},
-		{Module: m, Name: "parse_float", Fn: ParseFloat},
-		{Module: m, Name: "parse_int", Fn: ParseInt},
+		object.NewBuiltin("atoi", Atoi, m),
+		object.NewBuiltin("parse_bool", ParseBool, m),
+		object.NewBuiltin("parse_float", ParseFloat, m),
+		object.NewBuiltin("parse_int", ParseInt, m),
 	}); err != nil {
 		return nil, err
 	}

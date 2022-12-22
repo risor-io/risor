@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -71,6 +72,7 @@ func testDecimalObject(t *testing.T, obj object.Object, expected interface{}) bo
 		return false
 	}
 }
+
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	t.Helper()
 	result, ok := obj.(*object.Int)
@@ -78,13 +80,13 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 		t.Errorf("obj is not Integer. got=%T(%+v)", obj, obj)
 		return false
 	}
-	if result.Value != expected {
-		t.Errorf("object has wrong value. got=%d, want=%d",
-			result.Value, expected)
+	if result.Value() != expected {
+		t.Errorf("object has wrong value. got=%d, want=%d", result.Value(), expected)
 		return false
 	}
 	return true
 }
+
 func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 	t.Helper()
 	result, ok := obj.(*object.Float)
@@ -92,13 +94,13 @@ func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
 		t.Errorf("obj is not Float. got=%T(%+v)", obj, obj)
 		return false
 	}
-	if math.Abs(result.Value-expected) > 0.00001 {
-		t.Errorf("object has wrong value. got=%f, want=%f",
-			result.Value, expected)
+	if math.Abs(result.Value()-expected) > 0.00001 {
+		t.Errorf("object has wrong value. got=%f, want=%f", result.Value(), expected)
 		return false
 	}
 	return true
 }
+
 func testStringObject(t *testing.T, obj object.Object, expected string) bool {
 	t.Helper()
 	result, ok := obj.(*object.String)
@@ -106,9 +108,8 @@ func testStringObject(t *testing.T, obj object.Object, expected string) bool {
 		t.Errorf("obj is not String. got=%T(%+v)", obj, obj)
 		return false
 	}
-	if result.Value != expected {
-		t.Errorf("object has wrong value. got=%s, want=%s",
-			result.Value, expected)
+	if result.Value() != expected {
+		t.Errorf("object has wrong value. got=%s, want=%s", result.Value(), expected)
 		return false
 	}
 	return true
@@ -151,7 +152,6 @@ func TestEvalBooleanExpression(t *testing.T) {
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		testBooleanObject(t, evaluated, tt.expected)
-
 	}
 }
 
@@ -162,9 +162,8 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
 		t.Errorf("object is not bool. got=%T(%+v)", obj, obj)
 		return false
 	}
-	if result.Value != expected {
-		t.Errorf("object has wrong value. got=%t, want=%t",
-			result.Value, expected)
+	if result.Value() != expected {
+		t.Errorf("object has wrong value. got=%t, want=%t", result.Value(), expected)
 	}
 	return true
 }
@@ -178,6 +177,8 @@ func TestBangOperator(t *testing.T) {
 		{"!false", true},
 		{"!!true", true},
 		{"!!false", false},
+		{"!!!true", false},
+		{"!!!false", true},
 	}
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
@@ -186,7 +187,8 @@ func TestBangOperator(t *testing.T) {
 	result := testEval("!5")
 	resultErr, ok := result.(*object.Error)
 	require.True(t, ok)
-	require.Equal(t, "type error: expected boolean to follow ! operator (got int)", resultErr.Message)
+	require.Equal(t, "type error: expected boolean to follow ! operator (got int)",
+		resultErr.Message().Value())
 }
 
 func TestIfElseExpression(t *testing.T) {
@@ -235,8 +237,7 @@ func TestReturnStatements(t *testing.T) {
 		{`if (10>1) { if (10>1) { return 10;} return 1;}`, 10},
 	}
 	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		testDecimalObject(t, evaluated, tt.expected)
+		require.Equal(t, tt.expected, testEval(tt.input).Interface())
 	}
 }
 
@@ -262,21 +263,13 @@ func TestErrorHandling(t *testing.T) {
 		{`"Hello" - "World"`, "type error: unsupported operand types for -: string and string"},
 	}
 	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		errObj, ok := evaluated.(*object.Error)
-		if !ok {
-			t.Errorf("no error object returned. got=%T(%+v)",
-				evaluated, evaluated)
-			continue
-		}
-		if errObj.Message != tt.expectedMessage {
-			t.Errorf("wrong error message. expected=%q, got=%q",
-				tt.expectedMessage, errObj.Message)
-		}
+		evaluated, ok := testEval(tt.input).Interface().(error)
+		require.True(t, ok)
+		require.Equal(t, errors.New(tt.expectedMessage), evaluated)
 	}
 }
 
-func TestLetStatements(t *testing.T) {
+func TestVarStatements(t *testing.T) {
 	tests := []struct {
 		input  string
 		expect int64
@@ -301,16 +294,16 @@ func TestFunctionObject(t *testing.T) {
 		t.Fatalf("object is not Function. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	if len(fn.Parameters) != 1 {
-		t.Fatalf("function has wrong parameters. Parameters=%+v",
-			fn.Parameters)
+	params := fn.Parameters()
+	if len(params) != 1 {
+		t.Fatalf("function has wrong parameters. Parameters=%+v", fn.Parameters())
 	}
-	if fn.Parameters[0].String() != "x" {
-		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
+	if params[0].String() != "x" {
+		t.Fatalf("parameter is not 'x'. got=%q", params[0])
 	}
 	expectedBody := `(x + 2)`
-	if fn.Body.String() != expectedBody {
-		t.Fatalf("body is not %q. got=%q", expectedBody, fn.Body)
+	if fn.Body().String() != expectedBody {
+		t.Fatalf("body is not %q. got=%q", expectedBody, fn.Body())
 	}
 }
 
@@ -350,64 +343,80 @@ func TestStringLiteral(t *testing.T) {
 		t.Fatalf("object is not String. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	if str.Value != "Hello World!" {
-		t.Errorf("String has wrong value. got=%q", str.Value)
+	if str.Value() != "Hello World!" {
+		t.Errorf("String has wrong value. got=%q", str.Value())
 	}
 }
 
-func TestBuiltinFunction(t *testing.T) {
+func TestBuiltins(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected interface{}
 	}{
-		{`len("")`, 0},
-		{`len("four")`, 4},
-		{`len("狐犬")`, 2},
-		{`len("hello world")`, 11},
-		{`len(1)`, "type error: len() argument is unsupported (int given)"},
-		{`len("one", "two")`, "type error: len() takes exactly 1 argument (2 given)"},
+		{`len("")`, int64(0)},
+		{`len("four")`, int64(4)},
+		{`len("狐犬")`, int64(2)},
+		{`len("hello world")`, int64(11)},
+		{`len(1)`, errors.New("type error: len() argument is unsupported (int given)")},
+		{`len("one", "two")`, errors.New("type error: len() takes exactly 1 argument (2 given)")},
+		{`float("1.3")`, float64(1.3)},
+		{`float(-11)`, float64(-11.0)},
+		{`int(float(2.0))`, int64(2)},
+		{`call(keys, {"one": 1, "two": 2})`, []any{"one", "two"}},
+		{`reversed(sorted([3, 99, 1, 2]))`, []any{int64(99), int64(3), int64(2), int64(1)}},
+		{`bool()`, false},
+		{`bool([])`, false},
+		{`bool([1])`, true},
+		{`all(list())`, true},
+		{`all([1, 2, 3])`, true},
+		{`all([0, 2, 3])`, false},
+		{`all(set())`, true},
+		{`all({1})`, true},
+		{`all({1,0})`, false},
+		{`any([1, 2, 3])`, true},
+		{`any([0, 2, 3])`, true},
+		{`any([0])`, false},
+		{`any(set())`, false},
+		{`any({1})`, true},
+		{`any({1,0})`, true},
+		{`any({false,0})`, false},
+		{`assert(false)`, errors.New("assertion failed")},
+		{`assert(false, "sadface")`, errors.New("sadface")},
+		{`assert(true)`, nil},
+		{`type(ok("yay"))`, "result"},
+		{`type(err("sadface"))`, "result"},
+		{`string(3.3)`, "3.3"},
+		{`sprintf("a%sc", "b")`, "abc"},
+		{`sprintf("%02d%t %s!?", 3, false, 'what')`, "03false what!?"},
+		{`sprintf("m")`, "m"},
+		{`m := {"one": 1, "two": 2}; delete(m, "two")`, map[string]any{"one": int64(1)}},
+		{`type(getattr([1], "append"))`, "builtin"},
+		{`func x(){}; type(x)`, "function"},
 	}
 	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		switch expected := tt.expected.(type) {
-		case int:
-			testDecimalObject(t, evaluated, int64(expected))
-		case string:
-			if evaluated == object.Nil {
-				t.Errorf("Got nil output on input of '%s'\n", tt.input)
-			} else {
-				errObj, ok := evaluated.(*object.Error)
-				if !ok {
-					t.Errorf("object is not Error, got=%T(%+v)",
-						evaluated, evaluated)
-				}
-				if errObj.Message != expected {
-					t.Errorf("wrong err messsage. expected=%q, got=%q",
-						expected, errObj.Message)
-				}
-			}
-		}
+		require.Equal(t, tt.expected, testEval(tt.input).Interface())
 	}
 }
 
-func TestArrayLiterals(t *testing.T) {
-	input := `[1, 2*2, 3+3]`
-	evaluated := testEval(input)
-	result, ok := evaluated.(*object.List)
-	if !ok {
-		t.Fatalf("object is not Array, got=%T(%v)",
-			evaluated, evaluated)
+func TestList(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`[1, 2*2, 3+3]`, "[1, 4, 6]"},
+		{`len([])`, "0"},
+		{`len([1, 2])`, "2"},
+		{`[1].append(2).append(3)`, "[1, 2, 3]"},
+		{`[1].append(2).append(3)[1]`, "2"},
+		{`l := [1,2]; append := l.append; call(append, 3)`, "[1, 2, 3]"},
+		{`l := [1,2]; l`, "[1, 2]"},
 	}
-	if len(result.Items) != 3 {
-		t.Fatalf("array has wrong num of elements. got=%d",
-			len(result.Items))
+	for _, tt := range tests {
+		require.Equal(t, tt.expected, testEval(tt.input).Inspect())
 	}
-	testDecimalObject(t, result.Items[0], 1)
-	testDecimalObject(t, result.Items[1], 4)
-	testDecimalObject(t, result.Items[2], 6)
 }
 
-func TestArrayIndexExpression(t *testing.T) {
+func TestListIndex(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected interface{}
@@ -429,15 +438,15 @@ func TestArrayIndexExpression(t *testing.T) {
 			1,
 		},
 		{
-			"var myArray=[1,2,3];myArray[2];",
+			"var myList=[1,2,3];myList[2];",
 			3,
 		},
 		{
-			"var myArray=[1,2,3];myArray[0]+myArray[1]+myArray[2]",
+			"var myList=[1,2,3];myList[0]+myList[1]+myList[2]",
 			6,
 		},
 		{
-			"var myArray=[1,2,3];var i = myArray[0]; myArray[i]",
+			"var myList=[1,2,3];var i = myList[0]; myList[i]",
 			2,
 		},
 		{
@@ -469,7 +478,7 @@ func TestArrayIndexExpression(t *testing.T) {
 		} else {
 			err, ok := evaluated.(*object.Error)
 			require.True(t, ok)
-			require.Equal(t, tt.expected.(string), err.Message)
+			require.Equal(t, tt.expected.(string), err.Message().Value())
 		}
 	}
 }
@@ -524,19 +533,19 @@ func TestHashLiterals(t *testing.T) {
 		t.Fatalf("Eval did't return Hash. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	require.Len(t, result.Items, 3)
+	require.Len(t, result.Value(), 3)
 
 	one, ok := result.Get("one").(*object.Int)
 	require.True(t, ok)
-	require.Equal(t, int64(1), one.Value)
+	require.Equal(t, int64(1), one.Value())
 
 	two, ok := result.Get("two").(*object.Int)
 	require.True(t, ok)
-	require.Equal(t, int64(2), two.Value)
+	require.Equal(t, int64(2), two.Value())
 
 	thr, ok := result.Get("three").(*object.Int)
 	require.True(t, ok)
-	require.Equal(t, int64(3), thr.Value)
+	require.Equal(t, int64(3), thr.Value())
 }
 
 func TestHashIndexExpression(t *testing.T) {
@@ -682,8 +691,9 @@ func TestTimeout(t *testing.T) {
 		t.Errorf("no error object returned. got=%T(%+v)",
 			evaluated, evaluated)
 	}
-	if !strings.Contains(errObj.Message, "deadline") {
-		t.Errorf("got error, but wasn't timeout: %s", errObj.Message)
+	msg := errObj.Message().Value()
+	if !strings.Contains(msg, "deadline") {
+		t.Errorf("got error, but wasn't timeout: %s", msg)
 	}
 }
 
@@ -700,15 +710,16 @@ func TestSet(t *testing.T) {
 
 	set, ok := evaluated.(*object.Set)
 	require.True(t, ok)
-	require.Len(t, set.Items, 3)
+	require.Len(t, set.Value(), 3)
 
-	hk1 := (&object.Int{Value: 1}).HashKey()
-	hk2 := (&object.Int{Value: 2}).HashKey()
-	hk3 := (&object.Int{Value: 3}).HashKey()
+	hk1 := (object.NewInt(1)).HashKey()
+	hk2 := (object.NewInt(2)).HashKey()
+	hk3 := (object.NewInt(3)).HashKey()
 
-	require.Equal(t, int64(1), set.Items[hk1].(*object.Int).Value)
-	require.Equal(t, int64(2), set.Items[hk2].(*object.Int).Value)
-	require.Equal(t, int64(3), set.Items[hk3].(*object.Int).Value)
+	items := set.Value()
+	require.Equal(t, int64(1), items[hk1].(*object.Int).Value())
+	require.Equal(t, int64(2), items[hk2].(*object.Int).Value())
+	require.Equal(t, int64(3), items[hk3].(*object.Int).Value())
 }
 
 func TestIndexErrors(t *testing.T) {
@@ -723,7 +734,7 @@ func TestIndexErrors(t *testing.T) {
 	for _, tt := range tests {
 		resultErr, ok := testEval(tt.input).(*object.Error)
 		require.True(t, ok)
-		require.Equal(t, tt.expected, resultErr.Message)
+		require.Equal(t, tt.expected, resultErr.Message().Value())
 	}
 }
 
@@ -752,13 +763,13 @@ func TestStringInterpolation(t *testing.T) {
 		s := scope.New(scope.Opts{})
 		mod, err := modStrings.Module(s)
 		require.Nil(t, err)
-		s.Declare("name", &object.String{Value: "Joe"}, true)
+		s.Declare("name", object.NewString("Joe"), true)
 		s.Declare("strings", mod, true)
 		e := &Evaluator{}
 		obj := e.Evaluate(ctx, program, s)
 		str, ok := obj.(*object.String)
 		require.True(t, ok)
-		require.Equal(t, tt.expected, str.Value)
+		require.Equal(t, tt.expected, str.Value())
 	}
 }
 
@@ -770,7 +781,7 @@ func TestMethodCallOnError(t *testing.T) {
 	obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
 	errObj, ok := obj.(*object.Error)
 	require.True(t, ok)
-	require.Equal(t, "name error: \"flub\" is not defined", errObj.Message)
+	require.Equal(t, "name error: \"flub\" is not defined", errObj.Message().Value())
 }
 
 func TestPipeExpression(t *testing.T) {
@@ -783,5 +794,28 @@ func TestPipeExpression(t *testing.T) {
 	obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
 	str, ok := obj.(*object.String)
 	require.True(t, ok, obj)
-	require.Equal(t, "#3#", str.Value)
+	require.Equal(t, "#3#", str.Value())
+}
+
+func TestTry(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`try(1)`, "1"},
+		{`try(1 + 2)`, "3"},
+		{`try("ok")`, `"ok"`},
+		{`try("ok", "fallback")`, `"ok"`},
+		{`try(ok("yay"), "fallback")`, `"yay"`},
+		{`try(err("kaboom"), "fallback")`, `"fallback"`},
+		{`try(error("kaboom"), "fallback")`, `"fallback"`},
+		{`try(error("kaboom"), error("ouch"))`, `error("ouch")`},
+	}
+	for _, tt := range tests {
+		program, err := parser.Parse(tt.input)
+		require.Nil(t, err)
+		obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
+		require.Equal(t, tt.expected, obj.Inspect())
+	}
 }

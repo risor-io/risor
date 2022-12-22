@@ -70,7 +70,7 @@ func Count(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Int{Value: int64(strings.Count(s, substr))}
+	return object.NewInt(int64(strings.Count(s, substr)))
 }
 
 func Compare(ctx context.Context, args ...object.Object) object.Object {
@@ -85,7 +85,7 @@ func Compare(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Int{Value: int64(strings.Compare(s1, s2))}
+	return object.NewInt(int64(strings.Compare(s1, s2)))
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
@@ -101,7 +101,7 @@ func Join(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	var strs []string
-	for _, item := range ls.Items {
+	for _, item := range ls.Value() {
 		itemStr, err := object.AsString(item)
 		if err != nil {
 			return err
@@ -149,7 +149,7 @@ func Index(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Int{Value: int64(strings.Index(s, substr))}
+	return object.NewInt(int64(strings.Index(s, substr)))
 }
 
 func LastIndex(ctx context.Context, args ...object.Object) object.Object {
@@ -164,7 +164,7 @@ func LastIndex(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.Int{Value: int64(strings.LastIndex(s, substr))}
+	return object.NewInt(int64(strings.LastIndex(s, substr)))
 }
 
 func Replace(ctx context.Context, args ...object.Object) object.Object {
@@ -183,7 +183,7 @@ func Replace(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return &object.String{Value: strings.ReplaceAll(s, old, new)}
+	return object.NewString(strings.ReplaceAll(s, old, new))
 }
 
 func ToLower(ctx context.Context, args ...object.Object) object.Object {
@@ -270,26 +270,26 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "contains", Fn: Contains},
-		{Module: m, Name: "count", Fn: Count},
-		{Module: m, Name: "has_prefix", Fn: HasPrefix},
-		{Module: m, Name: "has_suffix", Fn: HasSuffix},
-		{Module: m, Name: "compare", Fn: Compare},
-		{Module: m, Name: "join", Fn: Join},
-		{Module: m, Name: "split", Fn: Split},
-		{Module: m, Name: "fields", Fn: Fields},
-		{Module: m, Name: "index", Fn: Index},
-		{Module: m, Name: "last_index", Fn: LastIndex},
-		{Module: m, Name: "replace", Fn: Replace},
-		{Module: m, Name: "to_lower", Fn: ToLower},
-		{Module: m, Name: "to_upper", Fn: ToUpper},
-		{Module: m, Name: "trim", Fn: Trim},
-		{Module: m, Name: "trim_prefix", Fn: TrimPrefix},
-		{Module: m, Name: "trim_suffix", Fn: TrimSuffix},
-		{Module: m, Name: "trim_space", Fn: TrimSpace},
+		object.NewBuiltin("contains", Contains, m),
+		object.NewBuiltin("count", Count, m),
+		object.NewBuiltin("has_prefix", HasPrefix, m),
+		object.NewBuiltin("has_suffix", HasSuffix, m),
+		object.NewBuiltin("compare", Compare, m),
+		object.NewBuiltin("join", Join, m),
+		object.NewBuiltin("split", Split, m),
+		object.NewBuiltin("fields", Fields, m),
+		object.NewBuiltin("index", Index, m),
+		object.NewBuiltin("last_index", LastIndex, m),
+		object.NewBuiltin("replace", Replace, m),
+		object.NewBuiltin("to_lower", ToLower, m),
+		object.NewBuiltin("to_upper", ToUpper, m),
+		object.NewBuiltin("trim", Trim, m),
+		object.NewBuiltin("trim_prefix", TrimPrefix, m),
+		object.NewBuiltin("trim_suffix", TrimSuffix, m),
+		object.NewBuiltin("trim_space", TrimSpace, m),
 	}); err != nil {
 		return nil, err
 	}

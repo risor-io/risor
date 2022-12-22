@@ -55,6 +55,10 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 		}
 	}
 
+	getLineText := func() string {
+		return clearLine + ">>> " + accumulate
+	}
+
 	// This could certainly use a refactor! But it works for now.
 	return keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
@@ -65,17 +69,17 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 			history = append(history, accumulate)
 			historyIndex = len(history)
 			accumulate = ""
-			fmt.Print(">>> ")
+			fmt.Print(getLineText())
 			column = 0
 		case keys.RuneKey, keys.Space, keys.Tab:
 			if column < len(accumulate) {
 				rest := accumulate[column:]
 				restLen := len(rest)
 				accumulate = accumulate[:column] + string(key.Runes) + rest
-				fmt.Printf(clearLine + ">>> " + accumulate + fmt.Sprintf(moveBack, restLen))
+				fmt.Print(getLineText() + fmt.Sprintf(moveBack, restLen))
 			} else {
 				accumulate += string(key.Runes)
-				fmt.Print(string(key.Runes))
+				fmt.Print(getLineText())
 			}
 			column += len(key.Runes)
 		case keys.Backspace:
@@ -86,10 +90,10 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 					if column > 0 {
 						accumulate = accumulate[:column-1] + rest
 					}
-					fmt.Printf(clearLine + ">>> " + accumulate + fmt.Sprintf(moveBack, restLen))
+					fmt.Print(getLineText() + fmt.Sprintf(moveBack, restLen))
 				} else {
 					accumulate = accumulate[:len(accumulate)-1]
-					fmt.Printf("\b \b")
+					fmt.Print(getLineText())
 				}
 				if column > 0 {
 					column--
@@ -102,10 +106,10 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 					restLen := len(rest)
 					if restLen > 0 {
 						accumulate = accumulate[:column] + rest
-						fmt.Printf(clearLine + ">>> " + accumulate + fmt.Sprintf(moveBack, restLen))
+						fmt.Print(getLineText() + fmt.Sprintf(moveBack, restLen))
 					} else {
 						accumulate = accumulate[:column]
-						fmt.Printf(clearLine + ">>> " + accumulate)
+						fmt.Print(getLineText())
 					}
 				}
 			}
@@ -116,7 +120,7 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 			if historyIndex < len(history) {
 				accumulate = history[historyIndex]
 				column = len(accumulate)
-				fmt.Printf(clearLine + ">>> " + accumulate)
+				fmt.Print(getLineText())
 			}
 		case keys.Down:
 			if historyIndex < len(history)-1 {
@@ -125,11 +129,11 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 			if historyIndex < len(history) {
 				accumulate = history[historyIndex]
 				column = len(accumulate)
-				fmt.Printf(clearLine + ">>> " + accumulate)
+				fmt.Print(getLineText())
 			} else {
-				fmt.Printf(clearLine + ">>> ")
 				column = 0
 				accumulate = ""
+				fmt.Print(getLineText())
 			}
 		case keys.Left:
 			if column > 0 {
@@ -142,14 +146,14 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 				column++
 			}
 		case keys.CtrlA:
-			fmt.Printf(clearLine + ">>> " + accumulate + strings.Repeat("\b", len(accumulate)))
+			fmt.Print(getLineText() + strings.Repeat("\b", len(accumulate)))
 			column = 0
 		case keys.CtrlE:
 			fmt.Printf(moveForward, len(accumulate)-column)
 			column = len(accumulate)
 		case keys.CtrlC, keys.CtrlD:
 			fmt.Println()
-			os.Exit(0)
+			return true, nil
 		}
 		return false, nil
 	})

@@ -14,12 +14,7 @@ func (e *Evaluator) evalFunctionLiteral(
 	node *ast.FunctionLiteral,
 	s *scope.Scope,
 ) object.Object {
-	return &object.Function{
-		Parameters: node.Parameters,
-		Body:       node.Body,
-		Defaults:   node.Defaults,
-		Scope:      s,
-	}
+	return object.NewFunction("", node.Parameters, node.Body, node.Defaults, s)
 }
 
 func (e *Evaluator) evalFunctionDefinition(
@@ -27,14 +22,10 @@ func (e *Evaluator) evalFunctionDefinition(
 	node *ast.FunctionDefineLiteral,
 	s *scope.Scope,
 ) object.Object {
-	fn := &object.Function{
-		Parameters: node.Parameters,
-		Body:       node.Body,
-		Defaults:   node.Defaults,
-		Scope:      s,
-	}
-	if err := s.Declare(node.TokenLiteral(), fn, true); err != nil {
-		return newError(err.Error())
+	name := node.TokenLiteral()
+	fn := object.NewFunction(name, node.Parameters, node.Body, node.Defaults, s)
+	if err := s.Declare(name, fn, true); err != nil {
+		return object.Errorf(err.Error())
 	}
 	return object.Nil
 }
@@ -49,21 +40,21 @@ func (e *Evaluator) applyFunction(
 	case *object.Function:
 		// Use the function's scope, not the current execution scope! This is
 		// what enables closures to work as expected!
-		nestedScope, err := e.newFunctionScope(ctx, fn.Scope.(*scope.Scope), fn, args)
+		nestedScope, err := e.newFunctionScope(ctx, fn.Scope().(*scope.Scope), fn, args)
 		if err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
-		return e.upwrapReturnValue(e.Evaluate(ctx, fn.Body, nestedScope))
+		return e.upwrapReturnValue(e.Evaluate(ctx, fn.Body(), nestedScope))
 	case *object.Builtin:
 		if priorityBuiltin, found := e.builtins[fn.Key()]; found {
 			// This is a priority builtin, possibly an override, so
 			// we should use this one
-			return priorityBuiltin.Fn(ctx, args...)
+			return priorityBuiltin.Call(ctx, args...)
 		}
 		// This is a non-priority builtin
-		return fn.Fn(ctx, args...)
+		return fn.Call(ctx, args...)
 	default:
-		return newError("type error: %s is not callable", fn.Type())
+		return object.Errorf("type error: %s is not callable", fn.Type())
 	}
 }
 
@@ -75,9 +66,9 @@ func (e *Evaluator) newFunctionScope(
 ) (*scope.Scope, error) {
 	declared := map[string]bool{}
 	nestedScope := s.NewChild(scope.Opts{Name: "function"})
-	for key, val := range fn.Defaults {
+	for key, val := range fn.Defaults() {
 		evaluatedValue := e.Evaluate(ctx, val, s)
-		if isError(evaluatedValue) {
+		if object.IsError(evaluatedValue) {
 			return nil, fmt.Errorf("failed to evaluate parameter: %s", key)
 		}
 		if err := nestedScope.Declare(key, evaluatedValue, false); err != nil {
@@ -85,11 +76,11 @@ func (e *Evaluator) newFunctionScope(
 		}
 		declared[key] = true
 	}
-	if len(fn.Defaults) == 0 && len(args) != len(fn.Parameters) {
+	if len(fn.Defaults()) == 0 && len(args) != len(fn.Parameters()) {
 		return nil, fmt.Errorf("type error: function expected %d arguments (%d given)",
-			len(fn.Parameters), len(args))
+			len(fn.Parameters()), len(args))
 	}
-	for paramIdx, param := range fn.Parameters {
+	for paramIdx, param := range fn.Parameters() {
 		if paramIdx < len(args) {
 			if declared[param.Value] {
 				if err := nestedScope.Update(param.Value, args[paramIdx]); err != nil {

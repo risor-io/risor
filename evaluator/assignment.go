@@ -14,11 +14,11 @@ func (e *Evaluator) evalVarStatement(
 	s *scope.Scope,
 ) object.Object {
 	value := e.Evaluate(ctx, node.Value, s)
-	if isError(value) {
+	if object.IsError(value) {
 		return value
 	}
 	if err := s.Declare(node.Name.Value, value, false); err != nil {
-		return newError(err.Error())
+		return object.Errorf(err.Error())
 	}
 	return value
 }
@@ -29,11 +29,11 @@ func (e *Evaluator) evalConstStatement(
 	s *scope.Scope,
 ) object.Object {
 	value := e.Evaluate(ctx, node.Value, s)
-	if isError(value) {
+	if object.IsError(value) {
 		return value
 	}
 	if err := s.Declare(node.Name.Value, value, true); err != nil {
-		return newError(err.Error())
+		return object.Errorf(err.Error())
 	}
 	return value
 }
@@ -44,7 +44,7 @@ func (e *Evaluator) evalAssignStatement(
 	s *scope.Scope,
 ) (val object.Object) {
 	evaluated := e.Evaluate(ctx, a.Value, s)
-	if isError(evaluated) {
+	if object.IsError(evaluated) {
 		return evaluated
 	}
 	if a.Index != nil {
@@ -54,67 +54,67 @@ func (e *Evaluator) evalAssignStatement(
 	case "+=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("+=", current, evaluated, s)
-		if isError(res) {
+		if object.IsError(res) {
 			return res
 		}
 		if err := s.Update(a.Name.String(), res); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 		return res
 
 	case "-=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("-=", current, evaluated, s)
-		if isError(res) {
+		if object.IsError(res) {
 			return res
 		}
 		if err := s.Update(a.Name.String(), res); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 		return res
 
 	case "*=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("*=", current, evaluated, s)
-		if isError(res) {
+		if object.IsError(res) {
 			return res
 		}
 		if err := s.Update(a.Name.String(), res); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 		return res
 
 	case "/=":
 		current, ok := s.Get(a.Name.String())
 		if !ok {
-			return newError("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", a.Name.String())
 		}
 		res := e.evalInfix("/=", current, evaluated, s)
-		if isError(res) {
+		if object.IsError(res) {
 			return res
 		}
 		if err := s.Update(a.Name.String(), res); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 		return res
 
 	case ":=":
 		if err := s.Declare(a.Name.String(), evaluated, false); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 
 	case "=":
 		if err := s.Update(a.Name.String(), evaluated); err != nil {
-			return newError(err.Error())
+			return object.Errorf(err.Error())
 		}
 	}
 	return evaluated
@@ -127,15 +127,15 @@ func (e *Evaluator) evalSetItemStatement(
 	s *scope.Scope,
 ) (val object.Object) {
 	obj := e.Evaluate(ctx, a.Index.Left, s)
-	if isError(obj) {
+	if object.IsError(obj) {
 		return obj
 	}
 	container, ok := obj.(object.Container)
 	if !ok {
-		return newError("type error: %s is not a container", obj.Type())
+		return object.Errorf("type error: %s is not a container", obj.Type())
 	}
 	index := e.Evaluate(ctx, a.Index.Index, s)
-	if isError(index) {
+	if object.IsError(index) {
 		return index
 	}
 	switch a.Operator {
@@ -144,7 +144,7 @@ func (e *Evaluator) evalSetItemStatement(
 			return err
 		}
 	default:
-		return newError("eval error: invalid set item operator: %q", a.Operator)
+		return object.Errorf("eval error: invalid set item operator: %q", a.Operator)
 	}
 	return object.Nil
 }

@@ -18,7 +18,7 @@ func (e *Evaluator) evalProgram(
 		result = e.Evaluate(ctx, statement, s)
 		switch result := result.(type) {
 		case *object.ReturnValue:
-			return result.Value
+			return result.Value()
 		case *object.Error:
 			return result
 		}

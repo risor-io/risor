@@ -6,15 +6,19 @@ import (
 )
 
 type Time struct {
-	Value time.Time
+	value time.Time
 }
 
 func (t *Time) Type() Type {
 	return TIME
 }
 
+func (t *Time) Value() time.Time {
+	return t.value
+}
+
 func (t *Time) Inspect() string {
-	return t.Value.Format(time.RFC3339)
+	return t.value.Format(time.RFC3339)
 }
 
 func (t *Time) GetAttr(name string) (Object, bool) {
@@ -22,7 +26,7 @@ func (t *Time) GetAttr(name string) (Object, bool) {
 }
 
 func (t *Time) Interface() interface{} {
-	return t.Value
+	return t.value
 }
 
 func (t *Time) String() string {
@@ -35,22 +39,22 @@ func (t *Time) Compare(other Object) (int, error) {
 		return typeComp, nil
 	}
 	otherStr := other.(*Time)
-	if t.Value == otherStr.Value {
+	if t.value == otherStr.value {
 		return 0, nil
 	}
-	if t.Value.After(otherStr.Value) {
+	if t.value.After(otherStr.value) {
 		return 1, nil
 	}
 	return -1, nil
 }
 
 func (t *Time) Equals(other Object) Object {
-	if other.Type() == TIME && t.Value == other.(*Time).Value {
+	if other.Type() == TIME && t.value == other.(*Time).value {
 		return True
 	}
 	return False
 }
 
 func NewTime(t time.Time) *Time {
-	return &Time{Value: t}
+	return &Time{value: t}
 }

@@ -52,7 +52,7 @@ func TestIntEquals(t *testing.T) {
 	for _, tc := range tests {
 		result, ok := tc.first.Equals(tc.second).(*Bool)
 		require.True(t, ok)
-		require.Equal(t, tc.expected, result.Value,
+		require.Equal(t, tc.expected, result.Value(),
 			"first: %v, second: %v", tc.first, tc.second)
 	}
 }
@@ -60,7 +60,7 @@ func TestIntEquals(t *testing.T) {
 func TestIntBasics(t *testing.T) {
 	value := NewInt(-3)
 	require.Equal(t, INT, value.Type())
-	require.Equal(t, int64(-3), value.Value)
+	require.Equal(t, int64(-3), value.Value())
 	require.Equal(t, "int(-3)", value.String())
 	require.Equal(t, "-3", value.Inspect())
 	require.Equal(t, int64(-3), value.Interface())

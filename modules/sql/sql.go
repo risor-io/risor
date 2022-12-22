@@ -15,22 +15,22 @@ const Name = "sql"
 
 func Connect(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
-		return object.NewError("type error: sql.connect() takes exactly one argument (%d given)", len(args))
+		return object.Errorf("type error: sql.connect() takes exactly one argument (%d given)", len(args))
 	}
 	url, ok := args[0].(*object.String)
 	if !ok {
-		return object.NewError("type error: argument to sql.connect not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: sql.connect() expected a string argument (got %s)", args[0].Type())
 	}
-	conn, err := pgx.Connect(ctx, url.Value)
+	conn, err := pgx.Connect(ctx, url.Value())
 	if err != nil {
-		return &object.Result{Err: &object.Error{Message: err.Error()}}
+		return object.NewErrResult(object.NewError(err))
 	}
-	return &object.Result{Ok: &object.DatabaseConnection{Conn: conn}}
+	return object.NewOkResult(object.NewDatabaseConnection(conn))
 }
 
 func Query(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 2 {
-		return object.NewError("type error: sql.query() takes at least two arguments (%d given)", len(args))
+		return object.Errorf("type error: sql.query() takes at least two arguments (%d given)", len(args))
 	}
 	var conn *object.DatabaseConnection
 	switch arg := args[0].(type) {
@@ -41,25 +41,26 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 			return arg
 		}
 		var ok bool
-		conn, ok = arg.Ok.(*object.DatabaseConnection)
+		obj := arg.Unwrap()
+		conn, ok = obj.(*object.DatabaseConnection)
 		if !ok {
-			return object.NewError("type error: argument to sql.query not supported, got=%s", arg.Ok.Type())
+			return object.Errorf("type error: sql.query() argument not supported (got %s)", obj.Type())
 		}
 	default:
-		return object.NewError("type error: argument to sql.query not supported, got=%s", args[0].Type())
+		return object.Errorf("type error: sql.query() argument not supported (got %s)", args[0].Type())
 	}
-	pgxConn := conn.Conn.(*pgx.Conn)
+	pgxConn := conn.Interface().(*pgx.Conn)
 	queryString, ok := args[1].(*object.String)
 	if !ok {
-		return object.NewError("type error: expected query string, got=%s", args[1].Type())
+		return object.Errorf("type error: sql.query() expected query string (got %s)", args[1].Type())
 	}
 	var queryArgs []interface{}
 	for _, queryArg := range args[2:] {
 		queryArgs = append(queryArgs, queryArg.Interface())
 	}
-	rows, err := pgxConn.Query(ctx, queryString.Value, queryArgs...)
+	rows, err := pgxConn.Query(ctx, queryString.Value(), queryArgs...)
 	if err != nil {
-		return object.NewErrorResult(err.Error())
+		return object.NewErrResult(object.NewError(err))
 	}
 	defer rows.Close()
 	fields := rows.FieldDescriptions()
@@ -67,9 +68,9 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			return object.NewErrorResult(err.Error())
+			return object.NewErrResult(object.NewError(err))
 		}
-		row := object.NewMap(nil)
+		row := object.NewMapFromGo(nil)
 		for colIndex, val := range values {
 			key := fields[colIndex].Name
 			var hashVal object.Object
@@ -80,17 +81,17 @@ func Query(ctx context.Context, args ...object.Object) object.Object {
 				hashVal = object.FromGoType(val)
 			}
 			if hashVal == nil {
-				return object.NewErrorResult("type error: unsupported type in sql results: %T", val)
+				return object.NewErrResult(object.Errorf("type error: unsupported type in sql results: %T", val))
 			}
 			if !object.IsError(hashVal) {
-				row.Items[key] = hashVal
+				row.SetItem(object.NewString(key), hashVal)
 			} else {
-				row.Items[key] = object.Nil
+				row.SetItem(object.NewString(key), object.Nil)
 			}
 		}
 		results = append(results, row)
 	}
-	return &object.Result{Ok: &object.List{Items: results}}
+	return object.NewOkResult(object.NewList(results))
 }
 
 // Module returns the `sql` module object
@@ -100,11 +101,11 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "connect", Fn: Connect},
-		{Module: m, Name: "query", Fn: Query},
+		object.NewBuiltin("connect", Connect, m),
+		object.NewBuiltin("query", Query, m),
 	}); err != nil {
 		return nil, err
 	}

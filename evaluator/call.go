@@ -14,11 +14,17 @@ func (e *Evaluator) evalCallExpression(
 	s *scope.Scope,
 ) object.Object {
 	function := e.Evaluate(ctx, node.Function, s)
-	if isError(function) {
+	if object.IsError(function) {
 		return function
 	}
+	if builtin, ok := function.(*object.Builtin); ok {
+		if builtin.IsErrorHandler() {
+			return e.applyFunction(ctx, s, function,
+				e.evalExpressionsIgnoreErrors(ctx, node.Arguments, s))
+		}
+	}
 	args := e.evalExpressions(ctx, node.Arguments, s)
-	if len(args) == 1 && isError(args[0]) {
+	if len(args) == 1 && object.IsError(args[0]) {
 		return args[0]
 	}
 	return e.applyFunction(ctx, s, function, args)
@@ -30,18 +36,18 @@ func (e *Evaluator) evalObjectCallExpression(
 	s *scope.Scope,
 ) object.Object {
 	obj := e.Evaluate(ctx, call.Object, s)
-	if isError(obj) {
+	if object.IsError(obj) {
 		return obj
 	}
 	if method, ok := call.Call.(*ast.CallExpression); ok {
 		args := e.evalExpressions(ctx, call.Call.(*ast.CallExpression).Arguments, s)
-		if len(args) == 1 && isError(args[0]) {
+		if len(args) == 1 && object.IsError(args[0]) {
 			return args[0]
 		}
 		funcName := method.Function.String()
 		return e.evalObjectCall(ctx, s, obj, funcName, args)
 	}
-	return newError("Failed to invoke method: %s",
+	return object.Errorf("Failed to invoke method: %s",
 		call.Call.(*ast.CallExpression).Function.String())
 }
 
@@ -53,9 +59,12 @@ func (e *Evaluator) evalObjectCall(
 	args []object.Object,
 ) object.Object {
 	if attr, found := obj.GetAttr(method); found {
+		if object.IsError(attr) {
+			return attr
+		}
 		return e.applyFunction(ctx, s, attr, args)
 	}
-	return newError("attribute error: %s has no attribute \"%s\"", obj.Type(), method)
+	return object.Errorf("attribute error: %s has no attribute \"%s\"", obj.Type(), method)
 }
 
 func (e *Evaluator) evalGetAttributeExpression(
@@ -64,13 +73,16 @@ func (e *Evaluator) evalGetAttributeExpression(
 	s *scope.Scope,
 ) object.Object {
 	obj := e.Evaluate(ctx, node.Object, s)
-	if isError(obj) {
+	if object.IsError(obj) {
 		return obj
 	}
 	attrName := node.Attribute.Token.Literal
 	if attr, found := obj.GetAttr(attrName); found {
+		if object.IsError(attr) {
+			return attr
+		}
 		return attr
 	}
-	return newError("attribute error: %s object has no attribute \"%s\"",
+	return object.Errorf("attribute error: %s object has no attribute \"%s\"",
 		obj.Type(), attrName)
 }

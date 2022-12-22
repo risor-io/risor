@@ -85,35 +85,33 @@ func TestProxy(t *testing.T) {
 	parseInt := getMethod("ParseInt")
 
 	// Call Flub and check the result
-	res := flub.Fn(ctx, &object.Map{
-		Items: map[string]object.Object{
-			"A": object.NewInt(99),
-			"B": object.NewString("B"),
-			"C": object.NewBool(true),
-		},
-	})
-	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value)
+	res := flub.Call(ctx, object.NewMap(map[string]object.Object{
+		"A": object.NewInt(99),
+		"B": object.NewString("B"),
+		"C": object.NewBool(true),
+	}))
+	require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value())
 
 	// Try calling Increment
-	res = inc.Fn(ctx, object.NewInt(123))
-	require.Equal(t, int64(124), res.(*object.Int).Value)
+	res = inc.Call(ctx, object.NewInt(123))
+	require.Equal(t, int64(124), res.(*object.Int).Value())
 
 	// Try calling ToUpper
-	res = toUpper.Fn(ctx, object.NewString("hello"))
-	require.Equal(t, "HELLO", res.(*object.String).Value)
+	res = toUpper.Call(ctx, object.NewString("hello"))
+	require.Equal(t, "HELLO", res.(*object.String).Value())
 
 	// Call ParseInt and check that an Ok result is returned
-	res = parseInt.Fn(ctx, object.NewString("234"))
+	res = parseInt.Call(ctx, object.NewString("234"))
 	result, ok := res.(*object.Result)
 	require.True(t, ok)
 	require.True(t, result.IsOk())
-	require.Equal(t, int64(234), result.Ok.(*object.Int).Value)
+	require.Equal(t, int64(234), result.Unwrap().(*object.Int).Value())
 
 	// Call ParseInt with an invalid input and check that an Err result is returned
-	res = parseInt.Fn(ctx, object.NewString("not-an-int"))
+	res = parseInt.Call(ctx, object.NewString("not-an-int"))
 	result, ok = res.(*object.Result)
 	require.True(t, ok)
 	require.True(t, result.IsErr())
 	require.Equal(t, "strconv.Atoi: parsing \"not-an-int\": invalid syntax",
-		result.Err.(*object.Error).Message)
+		result.UnwrapErr().Message().Value())
 }

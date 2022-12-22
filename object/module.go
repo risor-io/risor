@@ -5,8 +5,8 @@ import (
 )
 
 type Module struct {
-	Name  string
-	Scope Scope
+	name  string
+	scope Scope
 }
 
 func (m *Module) Type() Type {
@@ -18,7 +18,7 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) GetAttr(name string) (Object, bool) {
-	return m.Scope.Get(name)
+	return m.scope.Get(name)
 }
 
 func (m *Module) Interface() interface{} {
@@ -26,7 +26,11 @@ func (m *Module) Interface() interface{} {
 }
 
 func (m *Module) String() string {
-	return fmt.Sprintf("module(%s)", m.Name)
+	return fmt.Sprintf("module(%s)", m.name)
+}
+
+func (m *Module) Name() *String {
+	return NewString(m.name)
 }
 
 func (m *Module) Compare(other Object) (int, error) {
@@ -35,15 +39,19 @@ func (m *Module) Compare(other Object) (int, error) {
 		return typeComp, nil
 	}
 	otherStr := other.(*Module)
-	if m.Name == otherStr.Name {
+	if m.name == otherStr.name {
 		return 0, nil
 	}
-	if m.Name > otherStr.Name {
+	if m.name > otherStr.name {
 		return 1, nil
 	}
 	return -1, nil
 }
 
 func (m *Module) Equals(other Object) Object {
-	return NewBool(other.Type() == MODULE && m.Name == other.(*Module).Name)
+	return NewBool(other.Type() == MODULE && m.name == other.(*Module).name)
+}
+
+func NewModule(name string, scope Scope) *Module {
+	return &Module{name, scope}
 }

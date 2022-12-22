@@ -1,14 +1,13 @@
 package object
 
 import (
-	"errors"
 	"fmt"
 )
 
-// Error wraps string and implements Object interface.
+// Error wraps a Go error interface and implements Object.
 type Error struct {
-	// Message contains the error-message we're wrapping
-	Message string
+	// err is the Go error being wrapped.
+	err error
 }
 
 func (e *Error) Type() Type {
@@ -16,11 +15,19 @@ func (e *Error) Type() Type {
 }
 
 func (e *Error) Inspect() string {
-	return fmt.Sprintf("Error(%s)", e.Message)
+	return fmt.Sprintf("error(%q)", e.err.Error())
+}
+
+func (e *Error) String() string {
+	return fmt.Sprintf("error(%s)", e.err.Error())
+}
+
+func (e *Error) Value() error {
+	return e.err
 }
 
 func (e *Error) Interface() interface{} {
-	return errors.New(e.Message)
+	return e.err
 }
 
 func (e *Error) Compare(other Object) (int, error) {
@@ -29,10 +36,12 @@ func (e *Error) Compare(other Object) (int, error) {
 		return typeComp, nil
 	}
 	otherStr := other.(*Error)
-	if e.Message == otherStr.Message {
+	thisMsg := e.Message().Value()
+	otherMsg := otherStr.Message().Value()
+	if thisMsg == otherMsg {
 		return 0, nil
 	}
-	if e.Message > otherStr.Message {
+	if thisMsg > otherMsg {
 		return 1, nil
 	}
 	return -1, nil
@@ -42,12 +51,39 @@ func (e *Error) Equals(other Object) Object {
 	if other.Type() != ERROR {
 		return False
 	}
-	if e.Message == other.(*Error).Message {
+	if e.Message() == other.(*Error).Message() {
 		return True
 	}
 	return False
 }
 
+func (e *Error) Message() *String {
+	return NewString(e.err.Error())
+}
+
 func (e *Error) GetAttr(name string) (Object, bool) {
 	return nil, false
+}
+
+func Errorf(format string, a ...interface{}) *Error {
+	var args []interface{}
+	for _, arg := range a {
+		if obj, ok := arg.(Object); ok {
+			args = append(args, obj.Interface())
+		} else {
+			args = append(args, arg)
+		}
+	}
+	return &Error{err: fmt.Errorf(format, args...)}
+}
+
+func NewError(err error) *Error {
+	return &Error{err: err}
+}
+
+func IsError(obj Object) bool {
+	if obj != nil {
+		return obj.Type() == ERROR
+	}
+	return false
 }

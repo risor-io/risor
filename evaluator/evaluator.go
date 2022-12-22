@@ -72,7 +72,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	// Check for context timeout
 	select {
 	case <-ctx.Done():
-		return &object.Error{Message: ctx.Err().Error()}
+		return object.NewError(ctx.Err())
 	default:
 	}
 
@@ -147,13 +147,11 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	case *ast.NilLiteral:
 		return object.Nil
 	case *ast.IntegerLiteral:
-		return &object.Int{Value: node.Value}
+		return object.NewInt(node.Value)
 	case *ast.FloatLiteral:
-		return &object.Float{Value: node.Value}
+		return object.NewFloat(node.Value)
 	case *ast.StringLiteral:
 		return e.evalStringLiteral(ctx, node, s)
-	case *ast.RegexpLiteral:
-		return &object.Regexp{Value: node.Value, Flags: node.Flags}
 	case *ast.ListLiteral:
 		return e.evalListLiteral(ctx, node, s)
 	case *ast.HashLiteral:

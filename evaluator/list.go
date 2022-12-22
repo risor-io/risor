@@ -14,8 +14,8 @@ func (e *Evaluator) evalListLiteral(
 	s *scope.Scope,
 ) object.Object {
 	elements := e.evalExpressions(ctx, node.Items, s)
-	if len(elements) == 1 && isError(elements[0]) {
+	if len(elements) == 1 && object.IsError(elements[0]) {
 		return elements[0]
 	}
-	return &object.List{Items: elements}
+	return object.NewList(elements)
 }

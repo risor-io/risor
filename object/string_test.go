@@ -10,11 +10,11 @@ import (
 func TestStringBasics(t *testing.T) {
 	value := NewString("abcd")
 	require.Equal(t, STRING, value.Type())
-	require.Equal(t, "abcd", value.Value)
+	require.Equal(t, "abcd", value.Value())
 	require.Equal(t, "string(abcd)", value.String())
 	require.Equal(t, `"abcd"`, value.Inspect())
 	require.Equal(t, "abcd", value.Interface())
-	require.True(t, value.Equals(NewString("abcd")).(*Bool).Value)
+	require.True(t, value.Equals(NewString("abcd")).(*Bool).value)
 }
 
 func TestStringCompare(t *testing.T) {
@@ -51,7 +51,7 @@ func TestStringReverse(t *testing.T) {
 		{"abc", "cba"},
 	}
 	for _, tc := range tests {
-		result := NewString(tc.s).Reversed().Value
+		result := NewString(tc.s).Reversed().Value()
 		require.Equal(t, tc.expected, result, "s: %v", tc.s)
 	}
 }
@@ -76,11 +76,11 @@ func TestStringGetItem(t *testing.T) {
 		result, err := NewString(tc.s).GetItem(NewInt(tc.index))
 		if tc.expectedErr != "" {
 			require.NotNil(t, err, msg)
-			require.Equal(t, tc.expectedErr, err.Message, msg)
+			require.Equal(t, tc.expectedErr, err.Message().value, msg)
 		} else {
 			resultStr, ok := result.(*String)
 			require.True(t, ok, msg)
-			require.Equal(t, tc.expected, resultStr.Value, msg)
+			require.Equal(t, tc.expected, resultStr.Value(), msg)
 		}
 	}
 }

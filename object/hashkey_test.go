@@ -7,10 +7,10 @@ import (
 )
 
 func TestStringHashKey(t *testing.T) {
-	a := &String{Value: "hello"}
-	b := &String{Value: "hello"}
-	c := &String{Value: "goodbye"}
-	d := &String{Value: "goodbye"}
+	a := NewString("hello")
+	b := NewString("hello")
+	c := NewString("goodbye")
+	d := NewString("goodbye")
 
 	require.Equal(t, a.HashKey(), b.HashKey())
 	require.Equal(t, c.HashKey(), d.HashKey())

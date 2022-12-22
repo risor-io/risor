@@ -6,21 +6,25 @@ import (
 
 // Bool wraps bool and implements Object and Hashable interface.
 type Bool struct {
-	// Value holds the boolean value we wrap.
-	Value bool
+	// value holds the boolean value we wrap.
+	value bool
 }
 
 func (b *Bool) Type() Type {
 	return BOOL
 }
 
+func (b *Bool) Value() bool {
+	return b.value
+}
+
 func (b *Bool) Inspect() string {
-	return fmt.Sprintf("%t", b.Value)
+	return fmt.Sprintf("%t", b.value)
 }
 
 func (b *Bool) HashKey() HashKey {
 	var value int64
-	if b.Value {
+	if b.value {
 		value = 1
 	} else {
 		value = 0
@@ -33,11 +37,11 @@ func (b *Bool) GetAttr(name string) (Object, bool) {
 }
 
 func (b *Bool) Interface() interface{} {
-	return b.Value
+	return b.value
 }
 
 func (b *Bool) String() string {
-	return fmt.Sprintf("Bool(%v)", b.Value)
+	return fmt.Sprintf("bool(%t)", b.value)
 }
 
 func (b *Bool) Compare(other Object) (int, error) {
@@ -46,17 +50,17 @@ func (b *Bool) Compare(other Object) (int, error) {
 		return typeComp, nil
 	}
 	otherBool := other.(*Bool)
-	if b.Value == otherBool.Value {
+	if b.value == otherBool.value {
 		return 0, nil
 	}
-	if b.Value {
+	if b.value {
 		return 1, nil
 	}
 	return -1, nil
 }
 
 func (b *Bool) Equals(other Object) Object {
-	if other.Type() == BOOL && b.Value == other.(*Bool).Value {
+	if other.Type() == BOOL && b.value == other.(*Bool).value {
 		return True
 	}
 	return False
@@ -70,14 +74,14 @@ func NewBool(value bool) *Bool {
 }
 
 func Not(b *Bool) *Bool {
-	if b.Value {
+	if b.value {
 		return False
 	}
 	return True
 }
 
 func Equals(a, b Object) bool {
-	return a.Equals(b).(*Bool).Value
+	return a.Equals(b).(*Bool).value
 }
 
 func IsTruthy(obj Object) bool {
@@ -91,19 +95,19 @@ func IsTruthy(obj Object) bool {
 	default:
 		switch obj := obj.(type) {
 		case *Int:
-			return obj.Value != 0
+			return obj.value != 0
 		case *Float:
-			return obj.Value != 0.0
+			return obj.value != 0.0
 		case *String:
-			return obj.Value != ""
+			return obj.value != ""
 		case *List:
-			return len(obj.Items) > 0
+			return len(obj.items) > 0
 		case *Map:
-			return len(obj.Items) > 0
+			return len(obj.items) > 0
 		case *Set:
-			return len(obj.Items) > 0
+			return len(obj.items) > 0
 		case *Bool:
-			return obj.Value
+			return obj.value
 		}
 		return true
 	}

@@ -17,7 +17,7 @@ func (e *Evaluator) evalIfExpression(
 	s *scope.Scope,
 ) object.Object {
 	condition := e.Evaluate(ctx, ie.Condition, s)
-	if isError(condition) {
+	if object.IsError(condition) {
 		return condition
 	}
 	if object.IsTruthy(condition) {
@@ -38,7 +38,7 @@ func (e *Evaluator) evalForLoopExpression(
 
 	// Evaluate the initialization statement if there is one
 	if fle.InitStatement != nil {
-		if res := e.Evaluate(ctx, fle.InitStatement, nestedScope); isError(res) {
+		if res := e.Evaluate(ctx, fle.InitStatement, nestedScope); object.IsError(res) {
 			return res
 		}
 	}
@@ -71,7 +71,7 @@ loop:
 	for {
 		// Evaluate the condition
 		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
-		if isError(condition) {
+		if object.IsError(condition) {
 			return condition
 		}
 		if object.IsTruthy(condition) {
@@ -91,7 +91,7 @@ loop:
 		}
 		// Evaluate the post statement (usually used to increment a counter)
 		if fle.PostStatement != nil {
-			if res := e.Evaluate(ctx, fle.PostStatement, nestedScope); isError(res) {
+			if res := e.Evaluate(ctx, fle.PostStatement, nestedScope); object.IsError(res) {
 				return res
 			}
 		}
@@ -148,12 +148,12 @@ func (e *Evaluator) evalPipeExpression(
 	s *scope.Scope,
 ) object.Object {
 	if len(pe.Arguments) < 2 {
-		return object.NewError("eval error: invalid pipe expression (got only %d arguments)",
+		return object.Errorf("eval error: invalid pipe expression (got only %d arguments)",
 			len(pe.Arguments))
 	}
 	// Evaluate the expression preceding the first pipe operator
 	nextArg := e.Evaluate(ctx, pe.Arguments[0], s)
-	if isError(nextArg) {
+	if object.IsError(nextArg) {
 		return nextArg
 	}
 	// Evaluate the rest of the pipe expression
@@ -162,14 +162,14 @@ func (e *Evaluator) evalPipeExpression(
 		case *ast.CallExpression:
 			// Can't use evalCallExpression because we need to customize argument handling
 			function := e.Evaluate(ctx, expression.Function, s)
-			if isError(function) {
+			if object.IsError(function) {
 				return function
 			}
 			// Resolve the call arguments
 			var args []object.Object
 			if len(expression.Arguments) > 0 {
 				args = e.evalExpressions(ctx, expression.Arguments, s)
-				if len(args) == 1 && isError(args[0]) {
+				if len(args) == 1 && object.IsError(args[0]) {
 					return args[0]
 				}
 			}
@@ -178,7 +178,7 @@ func (e *Evaluator) evalPipeExpression(
 				args = prependObject(args, nextArg)
 			}
 			res := e.applyFunction(ctx, s, function, args)
-			if isError(res) {
+			if object.IsError(res) {
 				return res
 			}
 			// Save the output as arguments for the next stage
@@ -186,7 +186,7 @@ func (e *Evaluator) evalPipeExpression(
 		case *ast.ObjectCallExpression:
 			// Resolve the object
 			obj := e.Evaluate(ctx, expression.Object, s)
-			if isError(obj) {
+			if object.IsError(obj) {
 				return obj
 			}
 			// Resolve the call arguments
@@ -194,7 +194,7 @@ func (e *Evaluator) evalPipeExpression(
 			var args []object.Object
 			if len(callExpr.Arguments) > 0 {
 				args = e.evalExpressions(ctx, callExpr.Arguments, s)
-				if len(args) == 1 && isError(args[0]) {
+				if len(args) == 1 && object.IsError(args[0]) {
 					return args[0]
 				}
 			}
@@ -204,10 +204,10 @@ func (e *Evaluator) evalPipeExpression(
 			}
 			method, ok := callExpr.Function.(*ast.Identifier)
 			if !ok {
-				return newError("invalid function in pipe expression: %v", callExpr.Function)
+				return object.Errorf("invalid function in pipe expression: %v", callExpr.Function)
 			}
 			res := e.evalObjectCall(ctx, s, obj, method.Value, args)
-			if isError(res) {
+			if object.IsError(res) {
 				return res
 			}
 			// Save the output as arguments for the next stage
@@ -216,7 +216,7 @@ func (e *Evaluator) evalPipeExpression(
 			// Evaluate the expression. We expect it to evaluate to a function, or, if its the
 			// first stage in the pipeline, to the first argument to be passed to the next stage.
 			obj := e.Evaluate(ctx, expression, s)
-			if isError(obj) {
+			if object.IsError(obj) {
 				return obj
 			}
 			switch obj := obj.(type) {
@@ -226,7 +226,7 @@ func (e *Evaluator) evalPipeExpression(
 					args = []object.Object{nextArg}
 				}
 				res := e.applyFunction(ctx, s, obj, args)
-				if isError(res) {
+				if object.IsError(res) {
 					return res
 				}
 				// Save the output as arguments for the next stage
@@ -236,7 +236,7 @@ func (e *Evaluator) evalPipeExpression(
 					// Save the output as arguments for the next stage
 					nextArg = obj
 				} else {
-					return newError("type error: unexpected %s object in pipe expression", obj.Type())
+					return object.Errorf("type error: unexpected %s object in pipe expression", obj.Type())
 				}
 			}
 		}
@@ -253,15 +253,15 @@ func (e *Evaluator) evalReturnStatement(
 	s *scope.Scope,
 ) object.Object {
 	value := e.Evaluate(ctx, node.ReturnValue, s)
-	if isError(value) {
+	if object.IsError(value) {
 		return value
 	}
-	return &object.ReturnValue{Value: value}
+	return object.NewReturnValue(value)
 }
 
 func (e *Evaluator) upwrapReturnValue(obj object.Object) object.Object {
 	if returnValue, ok := obj.(*object.ReturnValue); ok {
-		return returnValue.Value
+		return returnValue.Value()
 	}
 	return obj
 }

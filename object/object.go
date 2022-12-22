@@ -46,8 +46,8 @@ const (
 
 var (
 	Nil   = &NilType{}
-	True  = &Bool{Value: true}
-	False = &Bool{Value: false}
+	True  = &Bool{value: true}
+	False = &Bool{value: false}
 )
 
 // Object is the interface that all object types in Tamarin must implement.

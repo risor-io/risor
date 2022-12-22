@@ -16,10 +16,22 @@ func (e *Evaluator) evalExpressions(
 	values := make([]object.Object, len(exps))
 	for i, exp := range exps {
 		value := e.Evaluate(ctx, exp, s)
-		if isError(value) {
+		if object.IsError(value) {
 			return []object.Object{value}
 		}
 		values[i] = value
+	}
+	return values
+}
+
+func (e *Evaluator) evalExpressionsIgnoreErrors(
+	ctx context.Context,
+	exps []ast.Expression,
+	s *scope.Scope,
+) []object.Object {
+	values := make([]object.Object, len(exps))
+	for i, exp := range exps {
+		values[i] = e.Evaluate(ctx, exp, s)
 	}
 	return values
 }

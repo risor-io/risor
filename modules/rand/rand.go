@@ -31,7 +31,7 @@ func IntN(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("rand.intn", 1, args); err != nil {
 		return err
 	}
-	n, err := object.AsInteger(args[0])
+	n, err := object.AsInt(args[0])
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	items := ls.Items
+	items := ls.Value()
 	rand.Shuffle(len(items), func(i, j int) {
 		items[i], items[j] = items[j], items[i]
 	})
@@ -73,15 +73,15 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "float", Fn: Float},
-		{Module: m, Name: "int", Fn: Int},
-		{Module: m, Name: "intn", Fn: IntN},
-		{Module: m, Name: "norm_float", Fn: NormFloat},
-		{Module: m, Name: "exp_float", Fn: ExpFloat},
-		{Module: m, Name: "shuffle", Fn: Shuffle},
+		object.NewBuiltin("float", Float, m),
+		object.NewBuiltin("int", Int, m),
+		object.NewBuiltin("intn", IntN, m),
+		object.NewBuiltin("norm_float", NormFloat, m),
+		object.NewBuiltin("exp_float", ExpFloat, m),
+		object.NewBuiltin("shuffle", Shuffle, m),
 	}); err != nil {
 		return nil, err
 	}

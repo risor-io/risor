@@ -17,13 +17,13 @@ func (e *Evaluator) evalSetLiteral(
 	items := make([]object.Object, 0, len(node.Items))
 	for _, itemNode := range node.Items {
 		item := e.Evaluate(ctx, itemNode, s)
-		if isError(item) {
+		if object.IsError(item) {
 			return item
 		}
 		items = append(items, item)
 	}
-	if err := set.Add(items...); err != nil {
-		return object.NewError(err.Error())
+	if err := set.Add(items...); err != object.Nil {
+		return err
 	}
 	return set
 }

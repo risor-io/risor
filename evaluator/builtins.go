@@ -1,18 +1,16 @@
 package evaluator
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/cloudcmds/tamarin/arg"
+	"github.com/cloudcmds/tamarin/internal/httputil"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -23,56 +21,21 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.String:
-		return object.NewInt(int64(utf8.RuneCountInString(arg.Value)))
+		return object.NewInt(int64(utf8.RuneCountInString(arg.Value())))
 	case *object.List:
-		return object.NewInt(int64(len(arg.Items)))
+		return object.NewInt(int64(len(arg.Value())))
 	case *object.Set:
-		return object.NewInt(int64(len(arg.Items)))
+		return object.NewInt(int64(len(arg.Value())))
 	case *object.Map:
-		return object.NewInt(int64(len(arg.Items)))
+		return object.NewInt(int64(len(arg.Value())))
 	default:
-		return newError("type error: len() argument is unsupported (%s given)", args[0].Type())
+		return object.Errorf("type error: len() argument is unsupported (%s given)", args[0].Type())
 	}
-}
-
-// regular expression match
-func Match(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("match", 2, args); err != nil {
-		return err
-	}
-	arg0, argErr := object.AsString(args[0])
-	if argErr != nil {
-		return argErr
-	}
-	arg1, argErr := object.AsString(args[1])
-	if argErr != nil {
-		return argErr
-	}
-	reg := regexp.MustCompile(arg0)
-	res := reg.FindStringSubmatch(arg1)
-	newMap := object.NewMap(nil)
-	if len(res) > 0 {
-		//
-		// If we get a match then the output is an array
-		// First entry is the match, any additional parts
-		// are the capture-groups.
-		//
-		if len(res) > 1 {
-			for i := 1; i < len(res); i++ {
-				// Capture groups start at index 0.
-				k := fmt.Sprintf("%d", int64(i-1))
-				v := object.NewString(res[i])
-				newMap.Items[k] = v
-			}
-		}
-		return newMap
-	}
-	return newMap
 }
 
 func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return newError("type error: sprintf() takes 1 or more arguments (%d given)", len(args))
+		return object.Errorf("type error: sprintf() takes 1 or more arguments (%d given)", len(args))
 	}
 	fs, err := object.AsString(args[0])
 	if err != nil {
@@ -102,48 +65,56 @@ func Delete(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Set(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("set", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: set() expected at most 1 argument (%d given)", nArgs)
 	}
 	set := object.NewSetWithSize(0)
+	if nArgs == 0 {
+		return set
+	}
 	arg := args[0]
 	switch arg := arg.(type) {
 	case *object.String:
-		for _, v := range arg.Value {
+		for _, v := range arg.Value() {
 			set.Add(object.NewString(string(v)))
 		}
 	case *object.List:
-		for _, obj := range arg.Items {
-			if err := set.Add(obj); err != nil {
-				return newError(err.Error())
+		for _, obj := range arg.Value() {
+			if err := set.Add(obj); err != object.Nil {
+				return err
 			}
 		}
 	case *object.Set:
-		for _, obj := range arg.Items {
-			if err := set.Add(obj); err != nil {
-				return newError(err.Error())
+		for _, obj := range arg.Value() {
+			if err := set.Add(obj); err != object.Nil {
+				return err
 			}
 		}
 	case *object.Map:
-		for k := range arg.Items {
-			if err := set.Add(object.NewString(k)); err != nil {
-				return newError(err.Error())
+		for k := range arg.Value() {
+			if err := set.Add(object.NewString(k)); err != object.Nil {
+				return err
 			}
 		}
 	default:
-		return newError("type error: set() argument is unsupported (%s given)", args[0].Type())
+		return object.Errorf("type error: set() argument is unsupported (%s given)", args[0].Type())
 	}
 	return set
 }
 
 func List(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("list", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: list() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewList(nil)
 	}
 	switch obj := args[0].(type) {
 	case *object.String:
 		var items []object.Object
-		for _, v := range obj.Value {
+		for _, v := range obj.Value() {
 			items = append(items, object.NewString(string(v)))
 		}
 		return object.NewList(items)
@@ -154,17 +125,21 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Map:
 		return obj.Keys()
 	default:
-		return newError("type error: list() argument is unsupported (%s given)", args[0].Type())
+		return object.Errorf("type error: list() argument is unsupported (%s given)", args[0].Type())
 	}
 }
 
 func String(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("string", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: string() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewString("")
 	}
 	switch arg := args[0].(type) {
 	case *object.String:
-		return object.NewString(arg.Value)
+		return object.NewString(arg.Value())
 	default:
 		return object.NewString(args[0].Inspect())
 	}
@@ -180,31 +155,48 @@ func Type(ctx context.Context, args ...object.Object) object.Object {
 func Ok(ctx context.Context, args ...object.Object) object.Object {
 	switch len(args) {
 	case 0:
-		return &object.Result{Ok: object.Nil}
+		return object.NewOkResult(object.Nil)
 	case 1:
-		return &object.Result{Ok: args[0]}
+		return object.NewOkResult(args[0])
 	default:
-		return newError("type error: ok() takes 0 or 1 arguments (%d given)", len(args))
+		return object.Errorf("type error: ok() takes 0 or 1 arguments (%d given)", len(args))
 	}
 }
 
 func Err(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("err", 1, args); err != nil {
-		return err
+	numArgs := len(args)
+	if numArgs < 1 || numArgs > 20 {
+		return object.NewArgsRangeError("err", 1, 20, len(args))
 	}
-	return &object.Result{Err: args[0]}
+	switch obj := args[0].(type) {
+	case *object.Error:
+		return object.NewErrResult(obj)
+	case *object.String:
+		var extraArgs []interface{}
+		for _, arg := range args[1:] {
+			extraArgs = append(extraArgs, arg.Interface())
+		}
+		return object.NewErrResult(object.Errorf(obj.Value(), extraArgs...))
+	default:
+		return object.Errorf("type error: err() argument is unsupported (%s given)", args[0].Type())
+	}
 }
 
 func Assert(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
-		return newError("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
+		return object.Errorf("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
 	}
 	if !object.IsTruthy(args[0]) {
 		if numArgs == 2 {
-			return newError(args[1].Inspect())
+			switch arg := args[1].(type) {
+			case *object.String:
+				return object.Errorf(arg.Value())
+			default:
+				return object.Errorf(args[1].Inspect())
+			}
 		}
-		return newError("assertion failed")
+		return object.Errorf("assertion failed")
 	}
 	return object.Nil
 }
@@ -215,19 +207,19 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.List:
-		for _, obj := range arg.Items {
+		for _, obj := range arg.Value() {
 			if object.IsTruthy(obj) {
 				return object.True
 			}
 		}
 	case *object.Set:
-		for _, obj := range arg.Items {
+		for _, obj := range arg.Value() {
 			if object.IsTruthy(obj) {
 				return object.True
 			}
 		}
 	default:
-		return newError("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
+		return object.Errorf("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
 	return object.False
 }
@@ -238,26 +230,30 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.List:
-		for _, obj := range arg.Items {
+		for _, obj := range arg.Value() {
 			if !object.IsTruthy(obj) {
 				return object.False
 			}
 		}
 	case *object.Set:
-		for _, obj := range arg.Items {
+		for _, obj := range arg.Value() {
 			if !object.IsTruthy(obj) {
 				return object.False
 			}
 		}
 	default:
-		return newError("type error: all() argument must be an array, hash, or set (%s given)", args[0].Type())
+		return object.Errorf("type error: all() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
 	return object.True
 }
 
 func Bool(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("bool", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: bool() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.False
 	}
 	if object.IsTruthy(args[0]) {
 		return object.True
@@ -268,75 +264,33 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 func Fetch(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
-		return newError("type error: fetch() takes 1 or 2 arguments (%d given)", len(args))
+		return object.NewArgsRangeError("fetch", 1, 2, len(args))
 	}
 	urlArg, argErr := object.AsString(args[0])
 	if argErr != nil {
 		return argErr
 	}
+	var errObj *object.Error
 	var params *object.Map
 	if numArgs == 2 {
-		objParams, ok := args[1].(*object.Map)
-		if !ok {
-			return newError("type error: expected a hash argument; got %v", args[1].Type())
-		}
-		params = objParams
-	}
-	client := &http.Client{Timeout: 10 * time.Second}
-	method := "GET"
-	var body io.Reader
-	hdr := http.Header{}
-	if params != nil {
-		if value, ok := params.Get("method").(*object.String); ok {
-			method = value.Value
-		}
-		timeout := params.Get("timeout")
-		if timeout != object.Nil {
-			switch value := timeout.(type) {
-			case *object.Float:
-				client.Timeout = time.Millisecond * time.Duration(value.Value*1000.0)
-			case *object.Int:
-				client.Timeout = time.Second * time.Duration(value.Value)
-			default:
-				return newError("type error: timeout value should be an integer or float")
-			}
-		}
-		if bodyObj := params.Get("body"); bodyObj != object.Nil {
-			switch bodyObj := bodyObj.(type) {
-			case *object.String:
-				body = bytes.NewBufferString(bodyObj.Value)
-			}
-			// TODO: support more buffer and/or stream options
-		}
-		if headersObj := params.Get("headers"); headersObj != object.Nil {
-			switch headersObj := headersObj.(type) {
-			case *object.Map:
-				for k, v := range headersObj.Items {
-					switch v := v.(type) {
-					case *object.String:
-						hdr.Add(k, v.Value)
-					default:
-						hdr.Add(k, v.Inspect())
-					}
-				}
-			}
+		params, errObj = object.AsMap(args[1])
+		if errObj != nil {
+			return errObj
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, method, urlArg, body)
-	if err != nil {
-		return &object.Result{Err: &object.Error{Message: err.Error()}}
+	client := &http.Client{Timeout: 3 * time.Second}
+	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
+	if errObj != nil {
+		return object.NewErrResult(errObj)
 	}
-	for k, values := range hdr {
-		for _, value := range values {
-			req.Header.Add(k, value)
-		}
+	if timeout != 0 {
+		client.Timeout = timeout
 	}
-	// req.Header = hdr
 	resp, err := client.Do(req)
 	if err != nil {
-		return &object.Result{Err: &object.Error{Message: err.Error()}}
+		return object.NewErrResult(object.NewError(err))
 	}
-	return &object.Result{Ok: &object.HttpResponse{Response: resp}}
+	return object.NewOkResult(object.NewHttpResponse(resp))
 }
 
 // output a string to stdout
@@ -360,7 +314,7 @@ func Printf(ctx context.Context, args ...object.Object) object.Object {
 	out := Sprintf(ctx, args...)
 	// If that returned a string then we can print it
 	if out.Type() == object.STRING {
-		fmt.Print(out.(*object.String).Value)
+		fmt.Print(out.(*object.String).Value())
 	}
 	return object.Nil
 }
@@ -373,11 +327,11 @@ func Unwrap(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Result:
 		fn, ok := arg.GetAttr("unwrap")
 		if !ok {
-			return newError("type error: unwrap() method not found")
+			return object.Errorf("type error: unwrap() method not found")
 		}
-		return fn.(*object.Builtin).Fn(ctx, args...)
+		return fn.(*object.Builtin).Call(ctx, args...)
 	default:
-		return newError("type error: unwrap() argument must be a result (%s given)", arg.Type())
+		return object.Errorf("type error: unwrap() argument must be a result (%s given)", arg.Type())
 	}
 }
 
@@ -389,11 +343,11 @@ func UnwrapOr(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Result:
 		fn, ok := arg.GetAttr("unwrap_or")
 		if !ok {
-			return newError("type error: unwrap_or() method not found")
+			return object.Errorf("type error: unwrap_or() method not found")
 		}
-		return fn.(*object.Builtin).Fn(ctx, args...)
+		return fn.(*object.Builtin).Call(ctx, args...)
 	default:
-		return newError("type error: unwrap_or() argument must be a result (%s given)", arg.Type())
+		return object.Errorf("type error: unwrap_or() argument must be a result (%s given)", arg.Type())
 	}
 }
 
@@ -404,20 +358,20 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	var items []object.Object
 	switch arg := args[0].(type) {
 	case *object.List:
-		items = arg.Items
+		items = arg.Value()
 	case *object.Map:
-		items = arg.Keys().Items
+		items = arg.Keys().Value()
 	case *object.Set:
-		items = arg.List().Items
+		items = arg.List().Value()
 	default:
-		return newError("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
+		return object.Errorf("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
 	}
-	result := &object.List{Items: make([]object.Object, len(items))}
-	copy(result.Items, items)
-	if err := object.Sort(result.Items); err != nil {
+	resultItems := make([]object.Object, len(items))
+	copy(resultItems, items)
+	if err := object.Sort(resultItems); err != nil {
 		return err
 	}
-	return result
+	return object.NewList(resultItems)
 }
 
 func Reversed(ctx context.Context, args ...object.Object) object.Object {
@@ -430,14 +384,14 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 	case *object.String:
 		return arg.Reversed()
 	default:
-		return newError("type error: reversed() argument must be an array or string (%s given)", arg.Type())
+		return object.Errorf("type error: reversed() argument must be an array or string (%s given)", arg.Type())
 	}
 }
 
 func GetAttr(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 2 || numArgs > 3 {
-		return newError("type error: getattr() takes 2 or 3 arguments (%d given)", len(args))
+		return object.Errorf("type error: getattr() takes 2 or 3 arguments (%d given)", len(args))
 	}
 	attrName, err := object.AsString(args[1])
 	if err != nil {
@@ -449,26 +403,26 @@ func GetAttr(ctx context.Context, args ...object.Object) object.Object {
 	if numArgs == 3 {
 		return args[2]
 	}
-	return newError("attribute error: %s object has no attribute %q", args[0].Type(), attrName)
+	return object.Errorf("attribute error: %s object has no attribute %q", args[0].Type(), attrName)
 }
 
 // Call the given function with the provided arguments
 func Call(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return newError("type error: call() takes 1 or more arguments (%d given)", len(args))
+		return object.Errorf("type error: call() takes 1 or more arguments (%d given)", len(args))
 	}
 	switch fn := args[0].(type) {
 	case *object.Builtin:
-		return fn.Fn(ctx, args[1:]...)
+		return fn.Call(ctx, args[1:]...)
 	case *object.Function:
 		callFunc, found := object.GetCallFunc(ctx)
 		if !found {
-			return newError("eval error: context did not contain a call function")
+			return object.Errorf("eval error: context did not contain a call function")
 		}
 		return callFunc(ctx, fn.Scope, fn, args[1:])
 	}
-	return newError("type error: unable to call object (%s given)", args[0].Type())
+	return object.Errorf("type error: unable to call object (%s given)", args[0].Type())
 }
 
 func Keys(ctx context.Context, args ...object.Object) object.Object {
@@ -481,44 +435,52 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		return arg.Keys()
 	default:
-		return newError("type error: keys() argument must be a map or list (%s given)", arg.Type())
+		return object.Errorf("type error: keys() argument must be a map or list (%s given)", arg.Type())
 	}
 }
 
 func Int(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("int", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: int() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewInt(0)
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
 		return obj
 	case *object.Float:
-		return object.NewInt(int64(obj.Value))
+		return object.NewInt(int64(obj.Value()))
 	case *object.String:
-		if i, err := strconv.ParseInt(obj.Value, 0, 64); err == nil {
+		if i, err := strconv.ParseInt(obj.Value(), 0, 64); err == nil {
 			return object.NewInt(i)
 		}
-		return newError("value error: invalid literal for int(): %q", obj.Value)
+		return object.Errorf("value error: invalid literal for int(): %q", obj.Value())
 	}
-	return newError("type error: int() argument must be a string, float, or int (%s given)", args[0].Type())
+	return object.Errorf("type error: int() argument must be a string, float, or int (%s given)", args[0].Type())
 }
 
 func Float(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("float", 1, args); err != nil {
-		return err
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: float() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewFloat(0)
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
-		return object.NewFloat(float64(obj.Value))
+		return object.NewFloat(float64(obj.Value()))
 	case *object.Float:
 		return obj
 	case *object.String:
-		if f, err := strconv.ParseFloat(obj.Value, 64); err == nil {
+		if f, err := strconv.ParseFloat(obj.Value(), 64); err == nil {
 			return object.NewFloat(f)
 		}
-		return newError("value error: invalid literal for float(): %q", obj.Value)
+		return object.Errorf("value error: invalid literal for float(): %q", obj.Value())
 	}
-	return newError("type error: float() argument must be a string, float, or int (%s given)", args[0].Type())
+	return object.Errorf("type error: float() argument must be a string, float, or int (%s given)", args[0].Type())
 }
 
 func Ord(ctx context.Context, args ...object.Object) object.Object {
@@ -527,13 +489,13 @@ func Ord(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch obj := args[0].(type) {
 	case *object.String:
-		runes := []rune(obj.Value)
+		runes := []rune(obj.Value())
 		if len(runes) != 1 {
-			return newError("value error: ord() expected a character, but string of length %d found", len(obj.Value))
+			return object.Errorf("value error: ord() expected a character, but string of length %d found", len(obj.Value()))
 		}
 		return object.NewInt(int64(runes[0]))
 	}
-	return newError("type error: ord() expected a string of length 1 (%s given)", args[0].Type())
+	return object.Errorf("type error: ord() expected a string of length 1 (%s given)", args[0].Type())
 }
 
 func Chr(ctx context.Context, args ...object.Object) object.Object {
@@ -542,46 +504,99 @@ func Chr(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
-		if obj.Value < 0 {
-			return newError("value error: chr() argument out of range (%d given)", obj.Value)
+		v := obj.Value()
+		if v < 0 {
+			return object.Errorf("value error: chr() argument out of range (%d given)", v)
 		}
-		if obj.Value > unicode.MaxRune {
-			return newError("value error: chr() argument out of range (%d given)", obj.Value)
+		if v > unicode.MaxRune {
+			return object.Errorf("value error: chr() argument out of range (%d given)", v)
 		}
-		return object.NewString(string(rune(obj.Value)))
+		return object.NewString(string(rune(v)))
 	}
-	return newError("type error: chr() expected an int (%s given)", args[0].Type())
+	return object.Errorf("type error: chr() expected an int (%s given)", args[0].Type())
+}
+
+func Error(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs < 1 || nArgs > 20 {
+		return object.NewArgsRangeError("error", 1, 20, len(args))
+	}
+	msg, ok := args[0].(*object.String)
+	if !ok {
+		return object.Errorf("type error: error() expected a string (%s given)", args[0].Type())
+	}
+	var goArgs []interface{}
+	for _, arg := range args[1:] {
+		goArgs = append(goArgs, arg.Interface())
+	}
+	return object.Errorf(msg.Value(), goArgs...)
+}
+
+func Try(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs < 1 || nArgs > 2 {
+		return object.NewArgsRangeError("try", 1, 2, len(args))
+	}
+	// If args[1] is a function, call that with the error as the first argument
+	// and return the result from this call.
+	switch obj := args[0].(type) {
+	case *object.Error:
+		if nArgs == 2 {
+			return args[1]
+		}
+		return object.Nil
+	case *object.Result:
+		if obj.IsErr() {
+			if nArgs == 2 {
+				return args[1]
+			}
+			return object.Nil
+		}
+		return obj.Unwrap()
+	default:
+		return obj
+	}
 }
 
 func GlobalBuiltins() []*object.Builtin {
-	return []*object.Builtin{
-		{Name: "delete", Fn: Delete},
-		{Name: "keys", Fn: Keys},
-		{Name: "len", Fn: Len},
-		{Name: "match", Fn: Match},
-		{Name: "set", Fn: Set},
-		{Name: "sprintf", Fn: Sprintf},
-		{Name: "string", Fn: String},
-		{Name: "type", Fn: Type},
-		{Name: "ok", Fn: Ok},
-		{Name: "err", Fn: Err},
-		{Name: "assert", Fn: Assert},
-		{Name: "any", Fn: Any},
-		{Name: "all", Fn: All},
-		{Name: "bool", Fn: Bool},
-		{Name: "print", Fn: Print},
-		{Name: "printf", Fn: Printf},
-		{Name: "unwrap", Fn: Unwrap},
-		{Name: "unwrap_or", Fn: UnwrapOr},
-		{Name: "sorted", Fn: Sorted},
-		{Name: "reversed", Fn: Reversed},
-		{Name: "getattr", Fn: GetAttr},
-		{Name: "call", Fn: Call},
-		{Name: "list", Fn: List},
-		{Name: "int", Fn: Int},
-		{Name: "float", Fn: Float},
-		{Name: "ord", Fn: Ord},
-		{Name: "chr", Fn: Chr},
-		{Name: "fetch", Fn: Fetch},
+	type builtin struct {
+		name string
+		fn   object.BuiltinFunction
 	}
+	builtins := []builtin{
+		{"delete", Delete},
+		{"keys", Keys},
+		{"len", Len},
+		{"set", Set},
+		{"sprintf", Sprintf},
+		{"string", String},
+		{"type", Type},
+		{"ok", Ok},
+		{"err", Err},
+		{"assert", Assert},
+		{"any", Any},
+		{"all", All},
+		{"bool", Bool},
+		{"print", Print},
+		{"printf", Printf},
+		{"unwrap", Unwrap},
+		{"unwrap_or", UnwrapOr},
+		{"sorted", Sorted},
+		{"reversed", Reversed},
+		{"getattr", GetAttr},
+		{"call", Call},
+		{"list", List},
+		{"int", Int},
+		{"float", Float},
+		{"ord", Ord},
+		{"chr", Chr},
+		{"fetch", Fetch},
+		{"error", Error},
+	}
+	var ret []*object.Builtin
+	for _, b := range builtins {
+		ret = append(ret, object.NewBuiltin(b.name, b.fn))
+	}
+	ret = append(ret, object.NewErrorHandler("try", Try))
+	return ret
 }

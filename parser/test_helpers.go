@@ -9,8 +9,8 @@ import (
 )
 
 func printMultiError(err error) {
-	if err, ok := err.(*multierror.Error); ok {
-		for _, e := range err.Errors {
+	if mErr, ok := err.(*multierror.Error); ok {
+		for _, e := range mErr.Errors {
 			fmt.Println(e)
 		}
 	} else {
@@ -41,6 +41,7 @@ func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func testConstStatement(t *testing.T, s ast.Statement, name string) bool {
+	t.Helper()
 	if s.TokenLiteral() != "const" {
 		t.Errorf("s.TokenLiteral not 'const'. got %q", s.TokenLiteral())
 		return false
@@ -62,6 +63,7 @@ func testConstStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
+	t.Helper()
 	integ, ok := il.(*ast.IntegerLiteral)
 	if !ok {
 		t.Errorf("il not *ast.IntegerLiteral. got=%T", il)
@@ -72,8 +74,7 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		return false
 	}
 	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
-		t.Errorf("integ.TokenLiteral not %d. got=%s", value,
-			integ.TokenLiteral())
+		t.Errorf("integ.TokenLiteral not %d. got=%s", value, integ.TokenLiteral())
 		return false
 	}
 	return true
@@ -81,6 +82,7 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 
 // skip float literal test
 func testFloatLiteral(t *testing.T, exp ast.Expression, v float64) bool {
+	t.Helper()
 	float, ok := exp.(*ast.FloatLiteral)
 	if !ok {
 		t.Errorf("exp not *ast.FloatLiteral. got=%T", exp)
@@ -94,6 +96,7 @@ func testFloatLiteral(t *testing.T, exp ast.Expression, v float64) bool {
 }
 
 func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
+	t.Helper()
 	ident, ok := exp.(*ast.Identifier)
 	if !ok {
 		t.Errorf("exp not *ast.Identifier. got=%T", exp)
@@ -111,6 +114,7 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 }
 
 func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
+	t.Helper()
 	bo, ok := exp.(*ast.Bool)
 	if !ok {
 		t.Errorf("exp not *ast.Bool. got=%T", exp)
@@ -129,6 +133,7 @@ func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
 }
 
 func testLiteralExpression(t *testing.T, exp ast.Expression, expected interface{}) bool {
+	t.Helper()
 	switch v := expected.(type) {
 	case int:
 		return testIntegerLiteral(t, exp, int64(v))

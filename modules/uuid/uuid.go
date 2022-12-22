@@ -18,7 +18,7 @@ func V4(ctx context.Context, args ...object.Object) object.Object {
 	}
 	value, err := uuid.NewV4()
 	if err != nil {
-		return object.NewError(err.Error())
+		return object.Errorf(err.Error())
 	}
 	return object.NewString(value.String())
 }
@@ -37,7 +37,7 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 	}
 	nsID, nsErr := uuid.FromString(namespace)
 	if err != nil {
-		return object.NewError(nsErr.Error())
+		return object.Errorf(nsErr.Error())
 	}
 	return object.NewString(uuid.NewV5(nsID, name).String())
 }
@@ -48,11 +48,11 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		Parent: parentScope,
 	})
 
-	m := &object.Module{Name: Name, Scope: s}
+	m := object.NewModule(Name, s)
 
 	if err := s.AddBuiltins([]*object.Builtin{
-		{Module: m, Name: "v4", Fn: V4},
-		{Module: m, Name: "v5", Fn: V5},
+		object.NewBuiltin("v4", V4, m),
+		object.NewBuiltin("v5", V5, m),
 	}); err != nil {
 		return nil, err
 	}

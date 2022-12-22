@@ -18,34 +18,34 @@ import (
 func AsString(obj Object) (result string, err *Error) {
 	s, ok := obj.(*String)
 	if !ok {
-		return "", NewError("type error: expected a string (got %v)", obj.Type())
+		return "", Errorf("type error: expected a string (got %v)", obj.Type())
 	}
-	return s.Value, nil
+	return s.value, nil
 }
 
-func AsInteger(obj Object) (int64, *Error) {
+func AsInt(obj Object) (int64, *Error) {
 	i, ok := obj.(*Int)
 	if !ok {
-		return 0, NewError("type error: expected an integer (got %v)", obj.Type())
+		return 0, Errorf("type error: expected an integer (got %v)", obj.Type())
 	}
-	return i.Value, nil
+	return i.value, nil
 }
 
 func AsFloat(obj Object) (float64, *Error) {
 	switch obj := obj.(type) {
 	case *Int:
-		return float64(obj.Value), nil
+		return float64(obj.value), nil
 	case *Float:
-		return obj.Value, nil
+		return obj.value, nil
 	default:
-		return 0.0, NewError("type error: expected a number (got %v)", obj.Type())
+		return 0.0, Errorf("type error: expected a number (got %v)", obj.Type())
 	}
 }
 
 func AsList(obj Object) (*List, *Error) {
 	list, ok := obj.(*List)
 	if !ok {
-		return nil, NewError("type error: expected a list (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a list (got %v)", obj.Type())
 	}
 	return list, nil
 }
@@ -53,7 +53,7 @@ func AsList(obj Object) (*List, *Error) {
 func AsMap(obj Object) (*Map, *Error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, NewError("type error: expected a map (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a map (got %v)", obj.Type())
 	}
 	return m, nil
 }
@@ -61,15 +61,15 @@ func AsMap(obj Object) (*Map, *Error) {
 func AsTime(obj Object) (result time.Time, err *Error) {
 	s, ok := obj.(*Time)
 	if !ok {
-		return time.Time{}, NewError("type error: expected a time (got %v)", obj.Type())
+		return time.Time{}, Errorf("type error: expected a time (got %v)", obj.Type())
 	}
-	return s.Value, nil
+	return s.value, nil
 }
 
 func AsSet(obj Object) (*Set, *Error) {
 	set, ok := obj.(*Set)
 	if !ok {
-		return nil, NewError("type error: expected a set (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a set (got %v)", obj.Type())
 	}
 	return set, nil
 }
@@ -83,48 +83,48 @@ func FromGoType(obj interface{}) Object {
 	case nil:
 		return Nil
 	case int:
-		return &Int{Value: int64(obj)}
+		return NewInt(int64(obj))
 	case int32:
-		return &Int{Value: int64(obj)}
+		return NewInt(int64(obj))
 	case int64:
-		return &Int{Value: obj}
+		return NewInt(obj)
 	case float32:
-		return &Float{Value: float64(obj)}
+		return NewFloat(float64(obj))
 	case float64:
-		return &Float{Value: obj}
+		return NewFloat(obj)
 	case string:
-		return &String{Value: obj}
+		return NewString(obj)
 	case bool:
 		if obj {
 			return True
 		}
 		return False
 	case [16]uint8:
-		return &String{Value: uuid.UUID(obj).String()}
+		return NewString(uuid.UUID(obj).String())
 	case time.Time:
-		return &Time{Value: obj}
+		return NewTime(obj)
 	case []interface{}:
-		ls := &List{Items: make([]Object, 0, len(obj))}
+		items := make([]Object, 0, len(obj))
 		for _, item := range obj {
 			listItem := FromGoType(item)
-			if listItem == nil {
-				return nil
+			if IsError(listItem) {
+				return listItem
 			}
-			ls.Items = append(ls.Items, listItem)
+			items = append(items, listItem)
 		}
-		return ls
+		return NewList(items)
 	case map[string]interface{}:
-		m := &Map{Items: make(map[string]Object, len(obj))}
+		m := make(map[string]Object, len(obj))
 		for k, v := range obj {
 			valueObj := FromGoType(v)
-			if valueObj == nil {
-				return nil
+			if IsError(valueObj) {
+				return valueObj
 			}
-			m.Items[k] = valueObj
+			m[k] = valueObj
 		}
-		return m
+		return NewMap(m)
 	default:
-		return NewError("type error: unmarshaling %v (%v)",
+		return Errorf("type error: unmarshaling %v (%v)",
 			obj, reflect.TypeOf(obj))
 	}
 }
@@ -169,7 +169,7 @@ func (c *Int64Converter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
 	}
-	return integer.Value, nil
+	return integer.value, nil
 }
 
 func (c *Int64Converter) From(obj interface{}) (Object, error) {
@@ -188,7 +188,7 @@ func (c *IntConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
 	}
-	return int(integer.Value), nil
+	return int(integer.value), nil
 }
 
 func (c *IntConverter) From(obj interface{}) (Object, error) {
@@ -207,7 +207,7 @@ func (c *StringConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
 	}
-	return s.Value, nil
+	return s.value, nil
 }
 
 func (c *StringConverter) From(obj interface{}) (Object, error) {
@@ -226,7 +226,7 @@ func (c *Float64Converter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
 	}
-	return f.Value, nil
+	return f.value, nil
 }
 
 func (c *Float64Converter) From(obj interface{}) (Object, error) {
@@ -245,7 +245,7 @@ func (c *Float32Converter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
 	}
-	return float32(f.Value), nil
+	return float32(f.value), nil
 }
 
 func (c *Float32Converter) From(obj interface{}) (Object, error) {
@@ -264,7 +264,7 @@ func (c *BooleanConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a boolean (got %v)", obj.Type())
 	}
-	return b.Value, nil
+	return b.value, nil
 }
 
 func (c *BooleanConverter) From(obj interface{}) (Object, error) {
@@ -283,7 +283,7 @@ func (c *TimeConverter) To(obj Object) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a time (got %v)", obj.Type())
 	}
-	return t.Value, nil
+	return t.value, nil
 }
 
 func (c *TimeConverter) From(obj interface{}) (Object, error) {
@@ -307,11 +307,11 @@ func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
 
 func (c *MapStringIfaceConverter) From(obj interface{}) (Object, error) {
 	m := obj.(map[string]interface{})
-	newMap := NewMap(make(map[string]interface{}, len(m)))
+	objMap := make(map[string]Object, len(m))
 	for k, v := range m {
-		newMap.Items[k] = FromGoType(v)
+		objMap[k] = FromGoType(v)
 	}
-	return newMap, nil
+	return NewMap(objMap), nil
 }
 
 func (c *MapStringIfaceConverter) Type() reflect.Type {
@@ -361,7 +361,6 @@ func (c *StructConverter) Type() reflect.Type {
 }
 
 // ErrorConverter converts between error and Error.
-
 type ErrorConverter struct{}
 
 func (c *ErrorConverter) To(obj Object) (interface{}, error) {
@@ -376,7 +375,7 @@ func (c *ErrorConverter) From(obj interface{}) (Object, error) {
 	if obj == nil {
 		return nil, nil
 	}
-	return NewError(obj.(error).Error()), nil
+	return NewError(obj.(error)), nil
 }
 
 func (c *ErrorConverter) Type() reflect.Type {
@@ -387,11 +386,13 @@ func (c *ErrorConverter) Type() reflect.Type {
 type ContextConverter struct{}
 
 func (c *ContextConverter) To(obj Object) (interface{}, error) {
-	return nil, errors.New("fail")
+	// Not actually called, but needed to satisfy the Converter interface.
+	return nil, errors.New("not implemented")
 }
 
 func (c *ContextConverter) From(obj interface{}) (Object, error) {
-	return nil, errors.New("fail")
+	// Not actually called, but needed to satisfy the Converter interface.
+	return nil, errors.New("not implemented")
 }
 
 func (c *ContextConverter) Type() reflect.Type {

@@ -17,7 +17,7 @@ func (e *Evaluator) evalTernaryExpression(
 	s *scope.Scope,
 ) object.Object {
 	condition := e.Evaluate(ctx, te.Condition, s)
-	if isError(condition) {
+	if object.IsError(condition) {
 		return condition
 	}
 	if object.IsTruthy(condition) {
