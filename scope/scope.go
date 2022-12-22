@@ -59,7 +59,7 @@ func (s *Scope) Get(name string) (object.Object, bool) {
 
 func (s *Scope) Declare(name string, obj object.Object, readOnly bool) error {
 	if _, exists := s.store[name]; exists {
-		return fmt.Errorf("variable already exists: %s", name)
+		return fmt.Errorf("assignment error: %q is already set", name)
 	}
 	s.store[name] = obj
 	if readOnly {
@@ -71,7 +71,7 @@ func (s *Scope) Declare(name string, obj object.Object, readOnly bool) error {
 func (s *Scope) Update(name string, obj object.Object) error {
 	if _, ok := s.store[name]; ok {
 		if s.IsReadOnly(name) {
-			return fmt.Errorf("cannot update %s since it is read-only", name)
+			return fmt.Errorf("assignment error: %q is read-only", name)
 		}
 		s.store[name] = obj
 		return nil
@@ -79,7 +79,7 @@ func (s *Scope) Update(name string, obj object.Object) error {
 	if s.parent != nil {
 		return s.parent.Update(name, obj)
 	}
-	return fmt.Errorf("unknown variable: %s", name)
+	return fmt.Errorf("name error: %q is not defined", name)
 }
 
 func (s *Scope) Contents() map[string]object.Object {

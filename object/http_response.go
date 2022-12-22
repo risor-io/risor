@@ -3,12 +3,18 @@ package object
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
+const TenMB = 1024 * 1024 * 10
+
 type HttpResponse struct {
-	resp *http.Response
+	resp    *http.Response
+	body    []byte
+	bodyErr error
 }
 
 func (r *HttpResponse) Type() Type {
@@ -16,7 +22,8 @@ func (r *HttpResponse) Type() Type {
 }
 
 func (r *HttpResponse) Inspect() string {
-	return "http_response()"
+	return fmt.Sprintf("http_response(status: %q, content_length: %d)",
+		r.resp.Status, r.resp.ContentLength)
 }
 
 func (r *HttpResponse) GetAttr(name string) (Object, bool) {
@@ -60,10 +67,23 @@ func (r *HttpResponse) Interface() interface{} {
 	return r.resp
 }
 
-func (r *HttpResponse) JSON() *Result {
+func (r *HttpResponse) readBody(limit int64) error {
 	defer r.resp.Body.Close()
+	body, err := ioutil.ReadAll(io.LimitReader(r.resp.Body, limit))
+	if err != nil {
+		r.bodyErr = err
+		return err
+	}
+	r.body = body
+	return nil
+}
+
+func (r *HttpResponse) JSON() *Result {
+	if r.bodyErr != nil {
+		return NewErrResult(NewError(r.bodyErr))
+	}
 	var target interface{}
-	if err := json.NewDecoder(r.resp.Body).Decode(&target); err != nil {
+	if err := json.Unmarshal(r.body, &target); err != nil {
 		return NewErrResult(NewError(err))
 	}
 	scriptObj := FromGoType(target)
@@ -74,15 +94,10 @@ func (r *HttpResponse) JSON() *Result {
 }
 
 func (r *HttpResponse) Text() *Result {
-	defer r.resp.Body.Close()
-	bytes, err := io.ReadAll(r.resp.Body)
-	if err != nil {
-		return NewErrResult(NewError(err))
+	if r.bodyErr != nil {
+		return NewErrResult(NewError(r.bodyErr))
 	}
-	if err != nil {
-		return NewErrResult(NewError(err))
-	}
-	return NewOkResult(NewString(string(bytes)))
+	return NewOkResult(NewString(string(r.body)))
 }
 
 func (r *HttpResponse) Status() *String {
@@ -118,5 +133,10 @@ func (r *HttpResponse) Equals(other Object) Object {
 }
 
 func NewHttpResponse(resp *http.Response) *HttpResponse {
-	return &HttpResponse{resp: resp}
+	obj := &HttpResponse{resp: resp}
+	// We have to guarantee that we read and close the HTTP response body
+	// in order to not leak memory. When/if we need to support different body
+	// size limits or streaming, we can add a new function to help with that.
+	obj.readBody(TenMB)
+	return obj
 }

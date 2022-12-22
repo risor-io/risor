@@ -569,14 +569,13 @@ func ResolveIndex(idx int64, size int64) (int64, error) {
 // transforms negative indices into the corresponding positive indices. If the
 // slice is out of bounds, an error is returned.
 func ResolveIntSlice(slice Slice, size int64) (start int64, stop int64, err error) {
-	var startIndex, stopIndex int64
 	if slice.Start != nil {
 		startObj, ok := slice.Start.(*Int)
 		if !ok {
 			err = fmt.Errorf("type error: slice start index must be an int (got %s)", slice.Start.Type())
 			return
 		}
-		startIndex = startObj.value
+		start = startObj.value
 	}
 	if slice.Stop != nil {
 		stopObj, ok := slice.Stop.(*Int)
@@ -584,20 +583,34 @@ func ResolveIntSlice(slice Slice, size int64) (start int64, stop int64, err erro
 			err = fmt.Errorf("type error: slice stop index must be an int (got %s)", slice.Stop.Type())
 			return
 		}
-		stopIndex = stopObj.value
+		stop = stopObj.value
 	} else {
-		stopIndex = size
+		stop = size
 	}
-	start, err = ResolveIndex(startIndex, size+1)
-	if err != nil {
-		return
+	if start < 0 {
+		start = size + start
+		if start < 0 {
+			err = fmt.Errorf("slice error: start index is out of range")
+			return
+		}
 	}
-	stop, err = ResolveIndex(stopIndex, size+1)
-	if err != nil {
-		return
+	if stop < 0 {
+		stop = size + stop
+		if stop < 0 {
+			err = fmt.Errorf("slice error: stop index is out of range")
+			return
+		}
 	}
 	if start > stop {
 		err = fmt.Errorf("slice error: start index is greater than stop index")
+		return
+	}
+	if start > size-1 {
+		err = fmt.Errorf("slice error: start index is out of range")
+		return
+	}
+	if stop > size {
+		err = fmt.Errorf("slice error: stop index is out of range")
 		return
 	}
 	return start, stop, nil

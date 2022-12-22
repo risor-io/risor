@@ -54,7 +54,10 @@ func TestEvalArithmeticExpression(t *testing.T) {
 }
 
 func testEval(input string) object.Object {
-	program, _ := parser.Parse(input)
+	program, err := parser.Parse(input)
+	if err != nil {
+		panic(err)
+	}
 	e := New(Opts{})
 	return e.Evaluate(context.Background(), program, scope.New(scope.Opts{}))
 }
@@ -359,8 +362,13 @@ func TestBuiltins(t *testing.T) {
 		{`len("hello world")`, int64(11)},
 		{`len(1)`, errors.New("type error: len() argument is unsupported (int given)")},
 		{`len("one", "two")`, errors.New("type error: len() takes exactly 1 argument (2 given)")},
+		{`len({1,2})`, int64(2)},
+		{`len({one: 1})`, int64(1)},
 		{`float("1.3")`, float64(1.3)},
 		{`float(-11)`, float64(-11.0)},
+		{`float("oops")`, errors.New("value error: invalid literal for float(): \"oops\"")},
+		{`int(3)`, int64(3)},
+		{`int("oops")`, errors.New("value error: invalid literal for int(): \"oops\"")},
 		{`int(float(2.0))`, int64(2)},
 		{`call(keys, {"one": 1, "two": 2})`, []any{"one", "two"}},
 		{`reversed(sorted([3, 99, 1, 2]))`, []any{int64(99), int64(3), int64(2), int64(1)}},
@@ -389,9 +397,16 @@ func TestBuiltins(t *testing.T) {
 		{`sprintf("a%sc", "b")`, "abc"},
 		{`sprintf("%02d%t %s!?", 3, false, 'what')`, "03false what!?"},
 		{`sprintf("m")`, "m"},
-		{`m := {"one": 1, "two": 2}; delete(m, "two")`, map[string]any{"one": int64(1)}},
+		{`sprintf()`, errors.New("type error: sprintf() takes 1 or more arguments (0 given)")},
+		{`m := {"one": 1, two: 2}; delete(m, "two")`, map[string]any{"one": int64(1)}},
 		{`type(getattr([1], "append"))`, "builtin"},
 		{`func x(){}; type(x)`, "function"},
+		{`set([1,2]) | len`, int64(2)},
+		{`set("abc") | len`, int64(3)},
+		{`set({one:1}) | list`, []any{"one"}},
+		{`set(1)`, errors.New("type error: set() argument is unsupported (int given)")},
+		{`ord(chr(12345))`, int64(12345)},
+		{`keys([9,8,7])`, []any{int64(0), int64(1), int64(2)}},
 	}
 	for _, tt := range tests {
 		require.Equal(t, tt.expected, testEval(tt.input).Interface())
@@ -815,11 +830,61 @@ func TestTry(t *testing.T) {
 		{`try(err("kaboom"), "fallback")`, `"fallback"`},
 		{`try(error("kaboom"), "fallback")`, `"fallback"`},
 		{`try(error("kaboom"), error("ouch"))`, `error("ouch")`},
+		{`try(error("kaboom"), func(msg) { msg })`, `"kaboom"`},
+		{`try(error("kaboom"), func(msg) { 42 })`, `42`},
 	}
 	for _, tt := range tests {
 		program, err := parser.Parse(tt.input)
 		require.Nil(t, err)
 		obj := New(Opts{}).Evaluate(ctx, program, scope.New(scope.Opts{}))
 		require.Equal(t, tt.expected, obj.Inspect())
+	}
+}
+
+func TestMisc(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		{`const x = "ok"`, "ok"},
+		{`const x = whut`, errors.New("name error: \"whut\" is not defined")},
+		{`const x = 1; const x = 2`, errors.New("assignment error: \"x\" is already set")},
+		{`const x = 1; x = 2`, errors.New("assignment error: \"x\" is read-only")},
+		{`var x = 1; var x = 2`, errors.New("assignment error: \"x\" is already set")},
+		{`var x = huh`, errors.New("name error: \"huh\" is not defined")},
+		{`var x = 1; x = huh`, errors.New("name error: \"huh\" is not defined")},
+		{`var x = [0]; x[0] = 42; x`, []any{int64(42)}},
+		{`var x = 1; x += 42`, int64(43)},
+		{`var x = 1; x += y`, errors.New("name error: \"y\" is not defined")},
+		{`var x = 1; x += error("kaboom")`, errors.New("kaboom")},
+		{`var x = 1; x -= 42`, int64(-41)},
+		{`var x = 1; x *= 42`, int64(42)},
+		{`var x = 42; x /= 2`, int64(21)},
+		{`x := {1}; x[1]`, true},
+		{`x := 1; x[1]`, errors.New("type error: int object is not scriptable")},
+		{`x := 1; x[1]=2`, errors.New("type error: int is not a container")},
+		{`x := [9,8,7]; x[1:]`, []any{int64(8), int64(7)}},
+		{`x := [9,8,7]; x[:1]`, []any{int64(9)}},
+		{`x := [9,8,7]; x[1:1]`, []any{}},
+		{`x := [9,8,7]; x[1:3]`, []any{int64(8), int64(7)}},
+		{`x := [9,8,7]; x[-2]`, int64(8)},
+		{`x := [9,8,7]; x[-2:]`, []any{int64(8), int64(7)}},
+		{`x := [9,8,7]; x[-2:-1]`, []any{int64(8)}},
+		{`x := [9,8,7]; x[-7:-1]`, errors.New("slice error: start index is out of range")},
+		{`x := [9,8,7]; x[1:-7]`, errors.New("slice error: stop index is out of range")},
+		{`1 == 1.0`, true},
+		{`1.0 == 1`, true},
+		{`1 != 1.0`, false},
+		{`1.0 != 1`, false},
+		{`1 < 2.0`, true},
+		{`1 < 0.1`, false},
+		{`[1, 1.0, 2] == [1, 1.0, 2]`, true},
+		{`[1, 1.0, 2] == [1, 1, 2.0]`, true},
+		{`[1, 1.0, 2] == [1, "1.0", 2]`, false},
+		{`[1, 1.0, 2] == [1, 1.1, 2]`, false},
+		{`error("foo %s", "bar")`, errors.New("foo bar")},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.expected, testEval(tt.input).Interface(), tt.input)
 	}
 }

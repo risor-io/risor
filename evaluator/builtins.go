@@ -420,7 +420,7 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 		if !found {
 			return object.Errorf("eval error: context did not contain a call function")
 		}
-		return callFunc(ctx, fn.Scope, fn, args[1:])
+		return callFunc(ctx, fn.Scope(), fn, args[1:])
 	}
 	return object.Errorf("type error: unable to call object (%s given)", args[0].Type())
 }
@@ -537,16 +537,28 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 	if nArgs < 1 || nArgs > 2 {
 		return object.NewArgsRangeError("try", 1, 2, len(args))
 	}
+	handleErr := func(arg object.Object, err *object.Error) object.Object {
+		switch obj := arg.(type) {
+		case *object.Function:
+			callFunc, found := object.GetCallFunc(ctx)
+			if !found {
+				return object.Errorf("eval error: context did not contain a call function")
+			}
+			return callFunc(ctx, obj.Scope(), obj, []object.Object{err.Message()})
+		default:
+			return obj
+		}
+	}
 	switch obj := args[0].(type) {
 	case *object.Error:
 		if nArgs == 2 {
-			return args[1]
+			return handleErr(args[1], obj)
 		}
 		return object.Nil
 	case *object.Result:
 		if obj.IsErr() {
 			if nArgs == 2 {
-				return args[1]
+				return handleErr(args[1], obj.UnwrapErr())
 			}
 			return object.Nil
 		}
