@@ -136,9 +136,9 @@ func (l *Lexer) GetTokenLineText(t token.Token) string {
 	// Guard against programming errors. Raise panics to catch mistakes early.
 	// Note that for the EOF token, the char offset will be equal to the number
 	// of chars in the input, hence the ">" and not ">=".
-	if tokenStart.Char < 0 || tokenStart.Char > len(l.characters) {
-		panic(fmt.Errorf("invalid token start position: %d (input length: %d)",
-			tokenStart.Char, len(l.characters)))
+	if tokenStart.Char < 0 || tokenStart.Char > len(l.characters)+1 {
+		panic(fmt.Errorf("invalid token start position: %d token: %q input length: %d",
+			tokenStart.Char, t.Type, len(l.characters)))
 	}
 	if tokenStart.Line < 0 {
 		panic(fmt.Errorf("invalid token start line: %d", tokenStart.Line))
@@ -154,6 +154,9 @@ func (l *Lexer) GetTokenLineText(t token.Token) string {
 	}
 	// Find the end of that line
 	end := tokenStart.Char
+	if t.Type == token.EOF {
+		end--
+	}
 	for end < len(l.characters) && l.characters[end] != rune('\n') {
 		end++
 	}
@@ -187,6 +190,11 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	// multi-line comments
 	if l.ch == rune('/') && l.peekChar() == rune('*') {
 		l.skipMultiLineComment()
+	}
+
+	if l.prevToken.Type == token.EOF {
+		// Once we encounter one null byte, stop reading the input
+		return l.newToken(token.EOF, string(rune(0))), nil
 	}
 
 	switch l.ch {
@@ -494,8 +502,7 @@ func (l *Lexer) readBacktick() (string, error) {
 	for {
 		peekChar := l.peekChar()
 		if peekChar == rune(0) {
-			err = fmt.Errorf("unterminated string literal")
-			break
+			return "", fmt.Errorf("unterminated string literal")
 		}
 		l.readChar()
 		if l.ch == '`' {

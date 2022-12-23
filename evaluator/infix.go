@@ -96,6 +96,9 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "+=":
 		return object.NewInt(leftVal + rightVal)
 	case "%":
+		if rightVal == 0 {
+			return object.Errorf("eval error: int modulo by zero")
+		}
 		return object.NewInt(leftVal % rightVal)
 	case "**":
 		return object.NewInt(int64(math.Pow(float64(leftVal), float64(rightVal))))
@@ -109,10 +112,13 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return object.NewInt(leftVal * rightVal)
 	case "/":
 		if rightVal == 0 {
-			return object.Errorf("zero division error")
+			return object.Errorf("eval error: int divided by zero")
 		}
 		return object.NewInt(leftVal / rightVal)
 	case "/=":
+		if rightVal == 0 {
+			return object.Errorf("eval error: int divided by zero")
+		}
 		return object.NewInt(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
@@ -147,8 +153,14 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	case "**":
 		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
+		if rightVal == 0 {
+			return object.Errorf("eval error: float divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "/=":
+		if rightVal == 0 {
+			return object.Errorf("eval error: float divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
@@ -183,8 +195,14 @@ func evalFloatIntegerInfixExpression(operator string, left, right object.Object)
 	case "**":
 		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
+		if rightVal == 0 {
+			return object.Errorf("eval error: float divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "/=":
+		if rightVal == 0 {
+			return object.Errorf("eval error: float divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
@@ -219,8 +237,14 @@ func evalIntegerFloatInfixExpression(operator string, left, right object.Object)
 	case "**":
 		return object.NewFloat(math.Pow(leftVal, rightVal))
 	case "/":
+		if rightVal == 0 {
+			return object.Errorf("eval error: int divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "/=":
+		if rightVal == 0 {
+			return object.Errorf("eval error: int divided by zero")
+		}
 		return object.NewFloat(leftVal / rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)

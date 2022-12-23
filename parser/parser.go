@@ -235,7 +235,7 @@ func (p *Parser) noPrefixParseFnError(t token.Token) {
 	}
 	p.err = NewParserError(ErrorOpts{
 		ErrType:       "parse error",
-		Message:       fmt.Sprintf("unexpected token %s", t.Literal),
+		Message:       fmt.Sprintf("invalid syntax (unexpected %q)", t.Literal),
 		File:          p.l.File(),
 		StartPosition: t.StartPosition,
 		EndPosition:   t.EndPosition,
@@ -416,7 +416,11 @@ func (p *Parser) parseBreakStatement() *ast.BreakStatement {
 // parse Expression Statement
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
-	stmt.Expression = p.parseExpression(LOWEST)
+	expr := p.parseExpression(LOWEST)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid syntax")
+	}
+	stmt.Expression = expr
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextTokenWithError(); err != nil {
 			return nil
@@ -426,7 +430,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
-	if p.curToken.Type == token.EOF {
+	if p.curToken.Type == token.EOF || p.err != nil {
 		return nil
 	}
 	postfix := p.postfixParseFns[p.curToken.Type]
@@ -439,7 +443,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
-	if p.err != nil {
+	if p.err != nil || leftExp == nil {
 		return nil
 	}
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
@@ -643,6 +647,10 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	}
 	p.nextToken()
 	expression.Right = p.parseExpression(PREFIX)
+	if expression.Right == nil {
+		p.setTokenError(p.curToken, "invalid prefix expression")
+		return nil
+	}
 	return expression
 }
 
@@ -668,10 +676,13 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		Operator: p.curToken.Literal,
 		Left:     left,
 	}
-
 	precedence := p.curPrecedence()
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
+	if expression.Right == nil {
+		p.setTokenError(p.curToken, "invalid expression")
+		return nil
+	}
 	return expression
 }
 
@@ -688,18 +699,21 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 		Token:     p.curToken,
 		Condition: condition,
 	}
-	p.nextToken() //skip the '?'
+	p.nextToken() // skip the '?'
 	precedence := p.curPrecedence()
 	expression.IfTrue = p.parseExpression(precedence)
-
-	if !p.expectPeek("ternary expression", token.COLON) { //skip the ":"
+	if expression.IfTrue == nil {
+		p.setTokenError(p.curToken, "invalid syntax in ternary if true expression")
+	}
+	if !p.expectPeek("ternary expression", token.COLON) { // skip the ":"
 		return nil
 	}
-
 	// Get to next token, then parse the else part
 	p.nextToken()
 	expression.IfFalse = p.parseExpression(precedence)
-
+	if expression.IfFalse == nil {
+		p.setTokenError(p.curToken, "invalid syntax in ternary if false expression")
+	}
 	p.tern = false
 	return expression
 }
@@ -891,7 +905,11 @@ func (p *Parser) parseFunctionParameters() (map[string]ast.Expression, []*ast.Id
 		// If there is "=x" after the name then that is a default parameter value
 		if p.curTokenIs(token.ASSIGN) {
 			p.nextToken()
-			m[ident.Value] = p.parseExpressionStatement().Expression
+			paramExpr := p.parseExpressionStatement()
+			if paramExpr == nil {
+				return nil, nil
+			}
+			m[ident.Value] = paramExpr.Expression
 			p.nextToken()
 		}
 		if p.curTokenIs(token.COMMA) {
@@ -966,7 +984,12 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		}
 	}
 	p.nextToken()
-	list = append(list, p.parseExpression(LOWEST))
+	expr := p.parseExpression(LOWEST)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid syntax in list expression")
+		return nil
+	}
+	list = append(list, expr)
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
 		if err := p.nextTokenWithError(); err != nil {
@@ -1050,6 +1073,10 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 		stmt.Operator = "="
 	}
 	stmt.Value = p.parseExpression(LOWEST)
+	if stmt.Value == nil {
+		p.setTokenError(p.curToken, "invalid assignment statement value")
+		return nil
+	}
 	return stmt
 }
 

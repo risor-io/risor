@@ -888,3 +888,44 @@ func TestMisc(t *testing.T) {
 		require.Equal(t, tt.expected, testEval(tt.input).Interface(), tt.input)
 	}
 }
+
+// Test "0A"
+func FuzzEval(f *testing.F) {
+	testcases := []string{
+		"1/2+4+=5-[1,2,{}]",
+		" ",
+		"!12345",
+		"var x = [1,2,3];",
+		`; const z = {"foo"}`,
+		`"foo_" + 1.34 /= 2.0`,
+		`{hey: {there: 1}}`,
+		`'foo {x[1:3] + 1}'`,
+		`x.func(x=1, y=2).bar`,
+		`0A=`,
+		`return (('hi'+"there"))`,
+		`break`,
+		`for i := 0; i < 100; i++ { if i == 42 { continue } }`,
+		`return`,
+		`func x() { return 42 }; x()`,
+		`false ? 3.3 : obj.call([1,var,case])`,
+		`select { case <-chan: 1; default: 2; continue == (true) || false }`,
+		`var x = 99; x /= 99; import "fmt"; fmt/(x)}**%'3'`,
+		string("[\x00]"),
+		`func(){}()()`,
+	}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+	f.Fuzz(func(t *testing.T, input string) {
+		prog, err := parser.Parse(input) // Confirms no panics
+		if err == nil {
+			if prog == nil {
+				t.Error("nil program")
+			} else {
+				New(Opts{}).Evaluate(ctx, prog, scope.New(scope.Opts{})) // Confirms no panics
+			}
+		}
+	})
+}

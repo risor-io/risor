@@ -252,6 +252,9 @@ func (e *Evaluator) evalReturnStatement(
 	node *ast.ReturnStatement,
 	s *scope.Scope,
 ) object.Object {
+	if node.ReturnValue == nil {
+		return object.Nil // Should we adjust the parser output in this case?
+	}
 	value := e.Evaluate(ctx, node.ReturnValue, s)
 	if object.IsError(value) {
 		return value

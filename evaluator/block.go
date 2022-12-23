@@ -13,7 +13,7 @@ func (e *Evaluator) evalBlockStatement(
 	block *ast.BlockStatement,
 	s *scope.Scope,
 ) object.Object {
-	var result object.Object
+	var result object.Object = object.Nil
 	for _, statement := range block.Statements {
 		result = e.Evaluate(ctx, statement, s)
 		if result != nil {

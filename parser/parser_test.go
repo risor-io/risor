@@ -802,3 +802,45 @@ func TestMapIdentifierKey(t *testing.T) {
 		require.Equal(t, "one", ident.TokenLiteral())
 	}
 }
+
+func FuzzParse(f *testing.F) {
+	testcases := []string{
+		"1/2+4+=5-[1,2,{}]",
+		" ",
+		"!12345",
+		"var x = [1,2,3];",
+		`; const z = {"foo"}`,
+		`"foo_" + 1.34 /= 2.0`,
+		`{hey: {there: 1}}`,
+		`'foo {x + 1}'`,
+		`x.func(x=1, y=2).bar`,
+		`0A=`,
+	}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+	f.Fuzz(func(t *testing.T, input string) {
+		Parse(input) // Confirms no panics
+	})
+}
+
+func TestBadInputs(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"if", `parse error: invalid syntax`},
+		{"else", `parse error: invalid syntax (unexpected "else")`},
+		{"&&", `parse error: invalid syntax (unexpected "&&")`},
+		{"[", `parse error: invalid syntax in list expression`},
+		{"[1,", `parse error: unexpected end of file while parsing an expression list (expected ])`},
+		{"0?if", `parse error: invalid syntax in ternary if true expression`},
+		{"0?0:", `parse error: invalid syntax in ternary if false expression`},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		fmt.Println(program)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expected, err.Error())
+	}
+}
