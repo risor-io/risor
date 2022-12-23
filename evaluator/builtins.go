@@ -299,7 +299,7 @@ func Print(ctx context.Context, args ...object.Object) object.Object {
 	for i, arg := range args {
 		switch arg := arg.(type) {
 		case *object.String:
-			values[i] = arg.Value
+			values[i] = arg.Value()
 		default:
 			values[i] = arg.Inspect()
 		}
