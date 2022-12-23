@@ -37,11 +37,11 @@ func NewRequestFromParams(
 	}
 
 	if timeoutObj := params.GetWithDefault("timeout", nil); timeoutObj != nil {
-		timeoutInt, errObj := object.AsInt(timeoutObj)
+		timeoutFlt, errObj := object.AsFloat(timeoutObj)
 		if errObj != nil {
 			return nil, 0, errObj
 		}
-		timeout = time.Duration(timeoutInt) * time.Millisecond
+		timeout = time.Duration(timeoutFlt*1000) * time.Millisecond
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)

@@ -79,10 +79,10 @@ print('b is {b}')
 assert(true)
 
 resp := fetch("https://httpbin.org/post", {
-    "method": "POST",
-    "timeout": 1.0,
-    "body": "42",
-    "headers": {
+    method: "POST",
+    timeout: 0.8,
+    body: "42",
+    headers: {
         "Content-Type": "application/json",
     },
 }).json().unwrap()
