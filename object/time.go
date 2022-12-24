@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -22,7 +23,20 @@ func (t *Time) Inspect() string {
 }
 
 func (t *Time) GetAttr(name string) (Object, bool) {
-	return nil, false
+	switch name {
+	case "before":
+		return NewBuiltin("time.before", t.Before), true
+	case "after":
+		return NewBuiltin("time.after", t.After), true
+	case "format":
+		return NewBuiltin("time.format", t.Format), true
+	case "utc":
+		return NewBuiltin("time.utc", t.UTC), true
+	case "unix":
+		return NewBuiltin("time.unix", t.Unix), true
+	default:
+		return nil, false
+	}
 }
 
 func (t *Time) Interface() interface{} {
@@ -57,4 +71,51 @@ func (t *Time) Equals(other Object) Object {
 
 func NewTime(t time.Time) *Time {
 	return &Time{value: t}
+}
+
+func (t *Time) After(ctx context.Context, args ...Object) Object {
+	if len(args) != 1 {
+		return NewArgsError("time.after", 1, len(args))
+	}
+	other, err := AsTime(args[0])
+	if err != nil {
+		return err
+	}
+	return NewBool(t.value.After(other))
+}
+
+func (t *Time) Before(ctx context.Context, args ...Object) Object {
+	if len(args) != 1 {
+		return NewArgsError("time.before", 1, len(args))
+	}
+	other, err := AsTime(args[0])
+	if err != nil {
+		return err
+	}
+	return NewBool(t.value.Before(other))
+}
+
+func (t *Time) Format(ctx context.Context, args ...Object) Object {
+	if len(args) != 1 {
+		return NewArgsError("time.format", 1, len(args))
+	}
+	layout, err := AsString(args[0])
+	if err != nil {
+		return err
+	}
+	return NewString(t.value.Format(layout))
+}
+
+func (t *Time) UTC(ctx context.Context, args ...Object) Object {
+	if len(args) != 0 {
+		return NewArgsError("time.utc", 0, len(args))
+	}
+	return NewTime(t.value.UTC())
+}
+
+func (t *Time) Unix(ctx context.Context, args ...Object) Object {
+	if len(args) != 0 {
+		return NewArgsError("time.unix", 0, len(args))
+	}
+	return NewInt(t.value.Unix())
 }

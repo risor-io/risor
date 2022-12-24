@@ -10,8 +10,8 @@ import (
 	"github.com/cloudcmds/tamarin/evaluator"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
 	modMath "github.com/cloudcmds/tamarin/modules/math"
+	modPgx "github.com/cloudcmds/tamarin/modules/pgx"
 	modRand "github.com/cloudcmds/tamarin/modules/rand"
-	modSql "github.com/cloudcmds/tamarin/modules/sql"
 	modStrconv "github.com/cloudcmds/tamarin/modules/strconv"
 	modStrings "github.com/cloudcmds/tamarin/modules/strings"
 	modTime "github.com/cloudcmds/tamarin/modules/time"
@@ -39,7 +39,7 @@ func init() {
 	moduleFuncs["uuid"] = modUuid.Module
 	moduleFuncs["rand"] = modRand.Module
 	moduleFuncs["strconv"] = modStrconv.Module
-	moduleFuncs["sql"] = modSql.Module
+	moduleFuncs["pgx"] = modPgx.Module
 }
 
 // Opts is used configure the execution of a Tamarin program.

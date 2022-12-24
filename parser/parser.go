@@ -1220,7 +1220,15 @@ func (p *Parser) parseHashKeyValue() (ast.Expression, ast.Expression) {
 
 // parseMethodCallExpression parses an object-based method-call.
 func (p *Parser) parseMethodCallExpression(obj ast.Expression) ast.Expression {
-	p.nextToken() // move to the attribute/method identifier
+	// At this point, curToken is the period. Eat any newlines between it and
+	// the identifier which should follow.
+	p.nextToken()
+	p.eatNewlines()
+	if !p.curTokenIs(token.IDENT) {
+		p.setTokenError(p.curToken, "expected an identifier after %q", ".")
+		return nil
+	}
+	// Here curToken is a token.IDENT
 	name := p.parseIdentifier().(*ast.Identifier)
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()

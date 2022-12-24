@@ -69,7 +69,7 @@ you should probably be using sandboxed V8/Javascript or Lua.
 - Familiar syntax inspired by Go, Typescript, and Python
 - Growing standard library which generally wraps the Go stdlib
 - Includes higher level libraries that are beyond the Go stdlib
-- Currently libraries include: `json`, `math`, `rand`, `strings`, `time`, `uuid`, `strconv`, `sql`
+- Currently libraries include: `json`, `math`, `rand`, `strings`, `time`, `uuid`, `strconv`, `pgx`
 - Built-in types include: `set`, `map`, `list`, `result`, and more
 - Functions are values; closures are supported
 - Cancel evaluation using Go contexts

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -69,7 +68,7 @@ func (r *HttpResponse) Interface() interface{} {
 
 func (r *HttpResponse) readBody(limit int64) error {
 	defer r.resp.Body.Close()
-	body, err := ioutil.ReadAll(io.LimitReader(r.resp.Body, limit))
+	body, err := io.ReadAll(io.LimitReader(r.resp.Body, limit))
 	if err != nil {
 		r.bodyErr = err
 		return err
