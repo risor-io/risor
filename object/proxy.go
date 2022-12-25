@@ -396,21 +396,33 @@ func (p *Proxy) Equals(other Object) Object {
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	methodName := fmt.Sprintf("%s.%s", p.typ.Name(), m.name)
+	isVariadic := m.method.Type.IsVariadic()
 	var argIndex int
-	inputs := make([]reflect.Value, m.numIn)
+	inputs := make([]reflect.Value, 1, m.numIn)
 	inputs[0] = reflect.ValueOf(p.obj)
+	minArgs := m.numIn
+	if isVariadic {
+		minArgs--
+	}
 	for i := 1; i < m.numIn; i++ {
 		converter := m.inputConverters[i-1]
 		if _, ok := converter.(*ContextConverter); ok {
-			inputs[i] = reflect.ValueOf(ctx)
+			inputs = append(inputs, reflect.ValueOf(ctx))
 			continue
+		}
+		if argIndex >= len(args) {
+			break
 		}
 		input, err := m.inputConverters[i-1].To(args[argIndex])
 		if err != nil {
 			return Errorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
 		}
-		inputs[i] = reflect.ValueOf(input)
+		inputs = append(inputs, reflect.ValueOf(input))
 		argIndex++
+	}
+	if len(inputs) < minArgs {
+		return Errorf("type error: %s() requires %d arguments, but %d were given",
+			methodName, minArgs, len(inputs))
 	}
 	outputs := m.method.Func.Call(inputs)
 	if len(outputs) == 0 {
