@@ -121,6 +121,7 @@ func (l *Lexer) CurrentPosition() token.Position {
 		LineStart: l.lineStart,
 		Line:      l.line,
 		Column:    l.column,
+		File:      l.file,
 	}
 }
 

@@ -313,7 +313,7 @@ func (p *Parser) parseDeclarationStatement() *ast.VarStatement {
 	if !p.expectPeek("declaration statement", token.DECLARE) {
 		return nil
 	}
-	stmt := &ast.VarStatement{Token: p.curToken, Name: name}
+	stmt := &ast.VarStatement{Token: name.Token, Name: name, IsWalrus: true}
 	p.nextToken()
 	stmt.Value = p.parseAssignmentValue()
 	if stmt.Value == nil {

@@ -31,10 +31,11 @@ import (
 
 func main() {
 	var noColor bool
-	var profilerOutputPath, code string
+	var profilerOutputPath, code, breakpoints string
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
 	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
+	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
 	flag.Parse()
 
 	if noColor {
@@ -89,6 +90,15 @@ func main() {
 		input = string(bytes)
 	}
 
+	var breaks []evaluator.Breakpoint
+	if len(breakpoints) > 0 {
+		breaks, err = evaluator.ParseBreakpoints(breakpoints)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+			os.Exit(1)
+		}
+	}
+
 	// Execute the script
 	result, err := exec.Execute(ctx, exec.Opts{
 		Input:             string(input),
@@ -96,6 +106,7 @@ func main() {
 		DisableAutoImport: true,
 		File:              filename,
 		Importer:          &evaluator.SimpleImporter{},
+		Breakpoints:       breaks,
 	})
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)

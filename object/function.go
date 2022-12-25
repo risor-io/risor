@@ -20,6 +20,13 @@ func (f *Function) Type() Type {
 	return FUNCTION
 }
 
+func (f *Function) Name() string {
+	if f.name == "" {
+		return "anonymous"
+	}
+	return f.name
+}
+
 func (f *Function) Inspect() string {
 	var out bytes.Buffer
 	parameters := make([]string, 0)

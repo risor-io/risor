@@ -2,6 +2,7 @@ package scope
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/cloudcmds/tamarin/object"
 )
@@ -90,6 +91,13 @@ func (s *Scope) Contents() map[string]object.Object {
 	return contents
 }
 
+func (s *Scope) Clear() {
+	for k := range s.store {
+		delete(s.store, k)
+		delete(s.readOnly, k)
+	}
+}
+
 func (s *Scope) NewChild(opts Opts) *Scope {
 	opts.Parent = s
 	child := New(opts)
@@ -99,6 +107,15 @@ func (s *Scope) NewChild(opts Opts) *Scope {
 
 func (s *Scope) Children() []*Scope {
 	return s.children
+}
+
+func (s *Scope) Keys() []string {
+	var keys []string
+	for k := range s.store {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func (s *Scope) AddBuiltin(b *object.Builtin) error {

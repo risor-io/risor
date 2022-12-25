@@ -34,14 +34,14 @@ func (e *Evaluator) evalForLoopExpression(
 	fle *ast.ForLoopExpression,
 	s *scope.Scope,
 ) object.Object {
-	nestedScope := s.NewChild(scope.Opts{Name: "for"})
 
 	// Evaluate the initialization statement if there is one
 	if fle.InitStatement != nil {
-		if res := e.Evaluate(ctx, fle.InitStatement, nestedScope); object.IsError(res) {
+		if res := e.Evaluate(ctx, fle.InitStatement, s); object.IsError(res) {
 			return res
 		}
 	}
+	nestedScope := s.NewChild(scope.Opts{Name: "for"})
 
 	// The for loop evaluates to this value. It is set to the last value
 	// evaluated in the for loop block.
@@ -50,8 +50,10 @@ func (e *Evaluator) evalForLoopExpression(
 	// This is a simple for loop, like "for { ... }". It will run until
 	// an error occurs or a break or return statement is encountered.
 	if fle.IsSimpleLoop() {
+
 	simpleLoop:
 		for {
+			nestedScope.Clear()
 			result := e.Evaluate(ctx, fle.Consequence, nestedScope)
 			switch result := result.(type) {
 			case *object.Error:
@@ -69,6 +71,7 @@ func (e *Evaluator) evalForLoopExpression(
 	// This is a standard for loop that runs until a specified condition is met
 loop:
 	for {
+		nestedScope.Clear()
 		// Evaluate the condition
 		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
 		if object.IsError(condition) {

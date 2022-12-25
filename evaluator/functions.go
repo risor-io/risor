@@ -7,6 +7,7 @@ import (
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/stack"
 )
 
 func (e *Evaluator) evalFunctionLiteral(
@@ -44,8 +45,20 @@ func (e *Evaluator) applyFunction(
 		if err != nil {
 			return object.Errorf(err.Error())
 		}
-		return e.upwrapReturnValue(e.Evaluate(ctx, fn.Body(), nestedScope))
+		funcBody := fn.Body()
+		e.stack.Push(stack.NewFrame(stack.FrameOpts{
+			Name:  fn.Name(),
+			Scope: nestedScope,
+		}))
+		defer e.stack.Pop()
+		result := e.Evaluate(ctx, funcBody, nestedScope)
+		return e.upwrapReturnValue(result)
 	case *object.Builtin:
+		e.stack.Push(stack.NewFrame(stack.FrameOpts{
+			Name:  fn.Key(),
+			Scope: s,
+		}))
+		defer e.stack.Pop()
 		if priorityBuiltin, found := e.builtins[fn.Key()]; found {
 			// This is a priority builtin, possibly an override, so
 			// we should use this one

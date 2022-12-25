@@ -73,6 +73,9 @@ type Opts struct {
 
 	// Supplies extra and/or override builtins for evaluation.
 	Builtins []*object.Builtin
+
+	// Breakpoints to set
+	Breakpoints []evaluator.Breakpoint
 }
 
 // AutoImport adds the default modules to the given scope.
@@ -158,6 +161,7 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 		Importer:               opts.Importer,
 		DisableDefaultBuiltins: opts.DisableDefaultBuiltins,
 		Builtins:               opts.Builtins,
+		Breakpoints:            opts.Breakpoints,
 	}).Evaluate(ctx, program, s)
 
 	// Let's guarantee that if there's no error we return a

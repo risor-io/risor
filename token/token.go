@@ -14,6 +14,7 @@ type Position struct {
 	LineStart int
 	Line      int
 	Column    int
+	File      string
 }
 
 func (p Position) LineNumber() int {

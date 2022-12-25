@@ -2,6 +2,8 @@ package rand
 
 import (
 	"context"
+	crand "crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"math/rand"
 
@@ -12,6 +14,14 @@ import (
 
 // Name of this module
 const Name = "rand"
+
+func init() {
+	var b [8]byte
+	if _, err := crand.Read(b[:]); err != nil {
+		panic("crypto/rand failed: " + err.Error())
+	}
+	rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+}
 
 func Float(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("rand.float", 0, args); err != nil {

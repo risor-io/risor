@@ -702,7 +702,7 @@ func TestTimeout(t *testing.T) {
 	require.Nil(t, err)
 
 	s := scope.New(scope.Opts{})
-	e := &Evaluator{}
+	e := New(Opts{})
 	evaluated := e.Evaluate(ctx, program, s)
 
 	errObj, ok := evaluated.(*object.Error)
@@ -717,7 +717,7 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	e := &Evaluator{}
+	e := New(Opts{})
 	input := `{1, 2, 3}`
 	ctx := context.Background()
 
@@ -784,7 +784,7 @@ func TestStringInterpolation(t *testing.T) {
 		require.Nil(t, err)
 		s.Declare("name", object.NewString("Joe"), true)
 		s.Declare("strings", mod, true)
-		e := &Evaluator{}
+		e := New(Opts{})
 		obj := e.Evaluate(ctx, program, s)
 		str, ok := obj.(*object.String)
 		require.True(t, ok)

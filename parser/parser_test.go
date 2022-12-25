@@ -774,6 +774,7 @@ x := "a`
 			Line:      1,
 			LineStart: 3,
 			Char:      8,
+			File:      "main.tm",
 		},
 		EndPosition: token.Position{
 			Value:     rune('a'),
@@ -781,6 +782,7 @@ x := "a`
 			Line:      1,
 			LineStart: 3,
 			Char:      9,
+			File:      "main.tm",
 		},
 		File:       "main.tm",
 		SourceCode: "x := \"a",

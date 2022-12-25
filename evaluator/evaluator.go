@@ -9,7 +9,23 @@ import (
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/stack"
+	"github.com/cloudcmds/tamarin/token"
 )
+
+type Breakpoint struct {
+	// File is the file name of the breakpoint
+	File string
+	// Line is the line number of the breakpoint
+	Line int
+	// Disabled is true if the breakpoint is disabled.
+	Disabled bool
+	// Trace is true if the breakpoint should print a trace of the stack when
+	// it is hit.
+	Trace bool
+	// Stop is true if the breakpoint should stop code execution when it is hit.
+	Stop bool
+}
 
 // Opts configures Tamarin code evaluation.
 type Opts struct {
@@ -23,19 +39,26 @@ type Opts struct {
 
 	// Supplies extra and/or override builtins for evaluation.
 	Builtins []*object.Builtin
+
+	// Breakpoints for debugging
+	Breakpoints []Breakpoint
 }
 
 // Evaluator is used to execute Tamarin AST nodes.
 type Evaluator struct {
-	importer Importer
-	builtins map[string]*object.Builtin
+	importer    Importer
+	builtins    map[string]*object.Builtin
+	stack       *stack.Stack
+	breakpoints map[string]*Breakpoint
 }
 
 // New returns a new Evaluator
 func New(opts Opts) *Evaluator {
 	e := &Evaluator{
-		importer: opts.Importer,
-		builtins: map[string]*object.Builtin{},
+		importer:    opts.Importer,
+		builtins:    map[string]*object.Builtin{},
+		stack:       stack.New(),
+		breakpoints: map[string]*Breakpoint{},
 	}
 	// Conditionally register default global builtins
 	if !opts.DisableDefaultBuiltins {
@@ -46,6 +69,10 @@ func New(opts Opts) *Evaluator {
 	// Add override builtins
 	for _, b := range opts.Builtins {
 		e.builtins[b.Key()] = b
+	}
+	// Index breakpoints by "file:line"
+	for _, b := range opts.Breakpoints {
+		e.breakpoints[fmt.Sprintf("%s:%d", b.File, b.Line)] = &b
 	}
 	return e
 }
@@ -61,6 +88,46 @@ func (e *Evaluator) getCallFunc() object.CallFunc {
 	}
 }
 
+func (e *Evaluator) GetBreakpoint(tok token.Token) (*Breakpoint, bool) {
+	if len(e.breakpoints) == 0 {
+		return nil, false
+	}
+	b, found := e.breakpoints[fmt.Sprintf("%s:%d",
+		tok.StartPosition.File,
+		tok.StartPosition.LineNumber())]
+	return b, found
+}
+
+func (e *Evaluator) trackExecution(statement ast.Statement, s *scope.Scope) object.Object {
+	e.stack.TrackStatement(statement, s)
+	tok := statement.StartToken()
+	if b, found := e.GetBreakpoint(tok); found && !b.Disabled {
+		location := fmt.Sprintf("%s:%d", tok.StartPosition.File, tok.StartPosition.LineNumber())
+		fmt.Println("----------------")
+		fmt.Printf("breakpoint @ %s\n\n", location)
+		if b.Trace {
+			fmt.Println("trace:")
+			fmt.Println(e.stack.String())
+			fmt.Println()
+		}
+		if b.Stop {
+			frame := e.stack.Top()
+			fmt.Println("locals:")
+			contents := frame.Scope().Contents()
+			for _, k := range frame.Scope().Keys() {
+				fmt.Printf("%s = %s\n", k, contents[k])
+			}
+			fmt.Println()
+			fmt.Println("enter to continue")
+			var resp string
+			fmt.Scanln(&resp)
+			fmt.Println("continuing...")
+			fmt.Println()
+		}
+	}
+	return nil
+}
+
 // Evaluate an AST node. The context can be used to cancel a running evaluation.
 // If evaluation encounters an error, a Tamarin error object is returned.
 func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope) object.Object {
@@ -74,6 +141,13 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	case <-ctx.Done():
 		return object.NewError(ctx.Err())
 	default:
+	}
+
+	// Track statement execution for tracing
+	if statement, ok := node.(ast.Statement); ok {
+		if result := e.trackExecution(statement, s); result != nil {
+			return result
+		}
 	}
 
 	// Evaluate the AST node based on its type
