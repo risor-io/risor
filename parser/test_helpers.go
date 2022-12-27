@@ -20,21 +20,18 @@ func printMultiError(err error) {
 
 func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
 	t.Helper()
-	if s.TokenLiteral() != "var" {
-		t.Errorf("s.TokenLiteral not 'var'. got %q", s.TokenLiteral())
+	if s.Literal() != "var" {
+		t.Errorf("s.Literal not 'var'. got %q", s.Literal())
 		return false
 	}
-	varStmt, ok := s.(*ast.VarStatement)
+	varStmt, ok := s.(*ast.Var)
 	if !ok {
-		t.Errorf("s not *ast.VarStatement. got=%T", s)
+		t.Errorf("s not *ast.Var. got=%T", s)
 		return false
 	}
-	if varStmt.Name.Value != name {
-		t.Errorf("s.Name not '%s'. got=%s", name, varStmt.Name.Value)
-		return false
-	}
-	if varStmt.Name.TokenLiteral() != name {
-		t.Errorf("s.Name not '%s'. got=%s", name, varStmt.Name.Value)
+	varName, _ := varStmt.Value()
+	if varName != name {
+		t.Errorf("s.Name not '%s'. got=%s", name, varName)
 		return false
 	}
 	return true
@@ -42,21 +39,18 @@ func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
 
 func testConstStatement(t *testing.T, s ast.Statement, name string) bool {
 	t.Helper()
-	if s.TokenLiteral() != "const" {
-		t.Errorf("s.TokenLiteral not 'const'. got %q", s.TokenLiteral())
+	if s.Literal() != "const" {
+		t.Errorf("s.Literal not 'const'. got %q", s.Literal())
 		return false
 	}
-	stmt, ok := s.(*ast.ConstStatement)
+	stmt, ok := s.(*ast.Const)
 	if !ok {
-		t.Errorf("s not *ast.VarStatement. got=%T", s)
+		t.Errorf("s not *ast.Var. got=%T", s)
 		return false
 	}
-	if stmt.Name.Value != name {
-		t.Errorf("s.Name not '%s'. got=%s", name, stmt.Name.Value)
-		return false
-	}
-	if stmt.Name.TokenLiteral() != name {
-		t.Errorf("s.Name not '%s'. got=%s", name, stmt.Name.Value)
+	constName, _ := stmt.Value()
+	if constName != name {
+		t.Errorf("s.Name not '%s'. got=%s", name, constName)
 		return false
 	}
 	return true
@@ -64,17 +58,17 @@ func testConstStatement(t *testing.T, s ast.Statement, name string) bool {
 
 func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	t.Helper()
-	integ, ok := il.(*ast.IntegerLiteral)
+	integ, ok := il.(*ast.Int)
 	if !ok {
-		t.Errorf("il not *ast.IntegerLiteral. got=%T", il)
+		t.Errorf("il not *ast.Int. got=%T", il)
 		return false
 	}
-	if integ.Value != value {
-		t.Errorf("integ.Value not %d. got=%d", value, integ.Value)
+	if integ.Value() != value {
+		t.Errorf("integ.Value not %d. got=%d", value, integ.Value())
 		return false
 	}
-	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
-		t.Errorf("integ.TokenLiteral not %d. got=%s", value, integ.TokenLiteral())
+	if integ.Literal() != fmt.Sprintf("%d", value) {
+		t.Errorf("integ.Literal not %d. got=%s", value, integ.Literal())
 		return false
 	}
 	return true
@@ -83,13 +77,13 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 // skip float literal test
 func testFloatLiteral(t *testing.T, exp ast.Expression, v float64) bool {
 	t.Helper()
-	float, ok := exp.(*ast.FloatLiteral)
+	float, ok := exp.(*ast.Float)
 	if !ok {
-		t.Errorf("exp not *ast.FloatLiteral. got=%T", exp)
+		t.Errorf("exp not *ast.Float. got=%T", exp)
 		return false
 	}
-	if float.Value != v {
-		t.Errorf("float.Value not %f. got=%f", v, float.Value)
+	if float.Value() != v {
+		t.Errorf("float.Value not %f. got=%f", v, float.Value())
 		return false
 	}
 	return true
@@ -97,17 +91,17 @@ func testFloatLiteral(t *testing.T, exp ast.Expression, v float64) bool {
 
 func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 	t.Helper()
-	ident, ok := exp.(*ast.Identifier)
+	ident, ok := exp.(*ast.Ident)
 	if !ok {
-		t.Errorf("exp not *ast.Identifier. got=%T", exp)
+		t.Errorf("exp not *ast.Ident. got=%T", exp)
 		return false
 	}
-	if ident.Value != value {
-		t.Errorf("ident.Value not %s. got=%s", value, ident.Value)
+	if ident.String() != value {
+		t.Errorf("ident.Value not %s. got=%s", value, ident.String())
 		return false
 	}
-	if ident.TokenLiteral() != value {
-		t.Errorf("ident.TokenLiteral not %s. got=%s", value, ident.TokenLiteral())
+	if ident.Literal() != value {
+		t.Errorf("ident.Literal not %s. got=%s", value, ident.Literal())
 		return false
 	}
 	return true
@@ -120,13 +114,13 @@ func testBooleanLiteral(t *testing.T, exp ast.Expression, value bool) bool {
 		t.Errorf("exp not *ast.Bool. got=%T", exp)
 		return false
 	}
-	if bo.Value != value {
-		t.Errorf("bo.Value not %t, got=%t", value, bo.Value)
+	if bo.Value() != value {
+		t.Errorf("bo.Value not %t, got=%t", value, bo.Value())
 		return false
 	}
-	if bo.TokenLiteral() != fmt.Sprintf("%t", value) {
-		t.Errorf("bo.TokenLiteral not %t, got=%s",
-			value, bo.TokenLiteral())
+	if bo.Literal() != fmt.Sprintf("%t", value) {
+		t.Errorf("bo.Literal not %t, got=%s",
+			value, bo.Literal())
 		return false
 	}
 	return true
@@ -155,19 +149,19 @@ func testLiteralExpression(t *testing.T, exp ast.Expression, expected interface{
 func testInfixExpression(t *testing.T, exp ast.Expression, left interface{},
 	operator string, right interface{}) bool {
 	t.Helper()
-	opExp, ok := exp.(*ast.InfixExpression)
+	opExp, ok := exp.(*ast.Infix)
 	if !ok {
-		t.Errorf("exp is not ast.InfixExpression. got=%T(%s)", exp, exp)
+		t.Errorf("exp is not ast.Infix. got=%T(%s)", exp, exp)
 		return false
 	}
-	if !testLiteralExpression(t, opExp.Left, left) {
+	if !testLiteralExpression(t, opExp.Left(), left) {
 		return false
 	}
-	if opExp.Operator != operator {
-		t.Errorf("exp.Operator is not '%s'. got=%q", operator, opExp.Operator)
+	if opExp.Operator() != operator {
+		t.Errorf("exp.Operator is not '%s'. got=%q", operator, opExp.Operator())
 		return false
 	}
-	if !testLiteralExpression(t, opExp.Right, right) {
+	if !testLiteralExpression(t, opExp.Right(), right) {
 		return false
 	}
 	return true

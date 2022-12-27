@@ -10,14 +10,14 @@ import (
 
 func (e *Evaluator) evalPrefixExpression(
 	ctx context.Context,
-	node *ast.PrefixExpression,
+	node *ast.Prefix,
 	s *scope.Scope,
 ) object.Object {
-	right := e.Evaluate(ctx, node.Right, s)
+	right := e.Evaluate(ctx, node.Right(), s)
 	if object.IsError(right) {
 		return right
 	}
-	operator := node.Operator
+	operator := node.Operator()
 	switch operator {
 	case "!":
 		return evalBangOperatorExpression(right)

@@ -1,5 +1,5 @@
-// Package ast contains the definitions of the abstract-syntax tree
-// that our parse produces, and our interpreter executes.
+// Package ast contains the definitions of the abstract syntax tree that our
+// parser produces and that our interpreter executes.
 package ast
 
 import (
@@ -14,400 +14,444 @@ import (
 // Node reresents a node.
 type Node interface {
 
-	// StartToken returns the token where this node begins.
-	StartToken() token.Token
+	// Token returns the token where this Node begins.
+	Token() token.Token
 
-	// TokenLiteral returns the literal of the token.
-	TokenLiteral() string
+	// Literal returns the string from the first token that defines the Node.
+	Literal() string
 
-	// String returns this object as a string.
+	// String returns a human friendly representation of the Node. This should
+	// be similar to the original source code, but not necessarily identical.
 	String() string
 }
 
-// Statement represents a single statement.
-type Statement interface {
-	// Node is the node holding the actual statement
-	Node
+// Statement represents a single element of execution in a Tamarin program.
+// Programs are made of a series of statements.
+// type Statement interface {
+// 	// Node is embedded here to indicate that all statements are AST nodes.
+// 	Node
+// 	StatementNode()
+// }
 
-	statementNode()
-}
+type Statement Node
 
-// Expression represents a single expression.
+// Expression represents a snippet of Tamarin code that evaluates to a value.
+// Expressions are used in statements, as well as in other expressions.
 type Expression interface {
-	// Node is the node holding the expression.
+	// Node is embedded here to indicate that all expressions are AST nodes.
 	Node
-	expressionNode()
+	ExpressionNode()
 }
 
 // Program represents a complete program.
 type Program struct {
-	// Statements is the set of statements which the program is comprised
-	// of.
-	Statements []Statement
+	// statements is the set of statements which comprise the program
+	statements []Node
 }
 
-func (p *Program) StartToken() token.Token {
-	if len(p.Statements) > 0 {
-		return p.Statements[0].StartToken()
+func NewProgram(statements []Node) *Program {
+	return &Program{statements: statements}
+}
+
+func (p *Program) Token() token.Token {
+	if len(p.statements) > 0 {
+		return p.statements[0].Token()
 	}
 	return token.Token{}
 }
 
-// TokenLiteral returns the literal token of our program.
-func (p *Program) TokenLiteral() string {
-	return p.StartToken().Literal
+func (p *Program) Literal() string { return p.Token().Literal }
+
+func (p *Program) Statements() []Node { return p.statements }
+
+func (p *Program) First() Node {
+	if len(p.statements) > 0 {
+		return p.statements[0]
+	}
+	return nil
 }
 
-// String returns this object as a string.
 func (p *Program) String() string {
 	var out bytes.Buffer
-	for _, stmt := range p.Statements {
+	for _, stmt := range p.statements {
 		out.WriteString(stmt.String())
 	}
 	return out.String()
 }
 
-// VarStatement holds a var-statemnt
-type VarStatement struct {
-	// Token holds the token
-	Token token.Token
+// Var holds a variable declaration statement.
+type Var struct {
+	token token.Token
 
-	// Name is the name of the variable to which we're assigning
-	Name *Identifier
+	// name is the name of the variable to which we're assigning
+	name *Ident
 
-	// Value is the thing we're storing in the variable.
-	Value Expression
+	// value is the thing we're storing in the variable.
+	value Expression
 
-	IsWalrus bool
+	// isWalrus is true if this is a ":=" statement.
+	isWalrus bool
 }
 
-func (s *VarStatement) statementNode() {}
-
-func (s *VarStatement) StartToken() token.Token {
-	return s.Token
+func NewVar(token token.Token, name *Ident, value Expression) *Var {
+	return &Var{token: token, name: name, value: value}
 }
 
-func (s *VarStatement) TokenLiteral() string {
-	return s.Token.Literal
+func NewDeclaration(token token.Token, name *Ident, value Expression) *Var {
+	return &Var{token: token, name: name, value: value, isWalrus: true}
 }
 
-// String returns this object as a string.
-func (s *VarStatement) String() string {
+func (s *Var) StatementNode() {}
+
+func (s *Var) Token() token.Token { return s.token }
+
+func (s *Var) Literal() string { return s.token.Literal }
+
+func (s *Var) Value() (string, Expression) { return s.name.value, s.value }
+
+func (s *Var) IsWalrus() bool { return s.isWalrus }
+
+func (s *Var) String() string {
 	var out bytes.Buffer
-	if s.IsWalrus {
-		out.WriteString(s.Name.TokenLiteral() + " := ")
-		// out.WriteString(s.TokenLiteral() + " ")
-		out.WriteString(s.Value.String())
+	if s.isWalrus {
+		out.WriteString(s.name.Literal() + " := ")
+		out.WriteString(s.value.String())
 		return out.String()
 	}
-	out.WriteString(s.TokenLiteral() + " ")
-	out.WriteString(s.Name.TokenLiteral())
+	out.WriteString(s.Literal() + " ")
+	out.WriteString(s.name.Literal())
 	out.WriteString(" = ")
-	if s.Value != nil {
-		out.WriteString(s.Value.String())
+	if s.value != nil {
+		out.WriteString(s.value.String())
 	}
 	return out.String()
 }
 
-// ConstStatement is the same as var-statement, but the value
-// can't be changed later.
-type ConstStatement struct {
-	// Token is the token
-	Token token.Token
-
-	// Name is the name of the variable we're setting
-	Name *Identifier
-
-	// Value contains the value which is to be set
-	Value Expression
+// Const defines a named constant containing a constant value.
+type Const struct {
+	token token.Token // the "const" token
+	name  *Ident      // name of the constant
+	value Expression  // value of the constant
 }
 
-func (cs *ConstStatement) statementNode() {}
-
-func (cs *ConstStatement) StartToken() token.Token {
-	return cs.Token
+func NewConst(token token.Token, name *Ident, value Expression) *Const {
+	return &Const{token: token, name: name, value: value}
 }
 
-func (cs *ConstStatement) TokenLiteral() string {
-	return cs.Token.Literal
-}
+func (c *Const) StatementNode() {}
 
-// String returns this object as a string.
-func (cs *ConstStatement) String() string {
+func (c *Const) Token() token.Token { return c.token }
+
+func (c *Const) Literal() string { return c.token.Literal }
+
+func (c *Const) Value() (string, Expression) { return c.name.value, c.value }
+
+func (c *Const) String() string {
 	var out bytes.Buffer
-	out.WriteString(cs.TokenLiteral() + " ")
-	out.WriteString(cs.Name.TokenLiteral())
+	out.WriteString(c.Literal() + " ")
+	out.WriteString(c.name.Literal())
 	out.WriteString(" = ")
-	if cs.Value != nil {
-		out.WriteString(cs.Value.String())
+	if c.value != nil {
+		out.WriteString(c.value.String())
 	}
 	return out.String()
 }
 
-// Identifier holds a single identifier.
-type Identifier struct {
-	// Token is the literal token
-	Token token.Token
-
-	// Value is the name of the identifier
-	Value string
+// Ident holds a single identifier.
+type Ident struct {
+	token token.Token
+	value string
 }
 
-func (i *Identifier) expressionNode() {}
-
-func (i *Identifier) StartToken() token.Token {
-	return i.Token
+func NewIdent(token token.Token) *Ident {
+	return &Ident{token: token, value: token.Literal}
 }
 
-// TokenLiteral returns the literal token.
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+func (i *Ident) ExpressionNode() {}
 
-// String returns this object as a string.
-func (i *Identifier) String() string {
-	return i.Value
+func (i *Ident) Token() token.Token { return i.token }
+
+func (i *Ident) Literal() string { return i.value }
+
+func (i *Ident) String() string { return i.value }
+
+// Return defines a function return statement.
+type Return struct {
+	token token.Token
+	value Expression
 }
 
-// ReturnStatement stores a return-statement
-type ReturnStatement struct {
-	// Token contains the literal token.
-	Token token.Token
-
-	// ReturnValue is the value whichis to be returned.
-	ReturnValue Expression
+func NewReturn(token token.Token, value Expression) *Return {
+	return &Return{token: token, value: value}
 }
 
-func (rs *ReturnStatement) statementNode() {}
+func (r *Return) StatementNode() {}
 
-func (rs *ReturnStatement) StartToken() token.Token { return rs.Token }
+func (r *Return) Token() token.Token { return r.token }
 
-// TokenLiteral returns the literal token.
-func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
+func (r *Return) Literal() string { return r.token.Literal }
 
-// String returns this object as a string.
-func (rs *ReturnStatement) String() string {
+func (r *Return) Value() Expression { return r.value }
+
+func (r *Return) String() string {
 	var out bytes.Buffer
-	out.WriteString(rs.TokenLiteral() + " ")
-	if rs.ReturnValue != nil {
-		out.WriteString(rs.ReturnValue.TokenLiteral())
+	out.WriteString(r.Literal() + " ")
+	if r.value != nil {
+		out.WriteString(r.value.Literal())
 	}
 	out.WriteString(";")
 	return out.String()
 }
 
-// BreakStatement stores a break statement
-type BreakStatement struct {
-	Token token.Token
+// Break defines a break statement.
+type Break struct {
+	token token.Token
 }
 
-func (s *BreakStatement) statementNode() {}
+func NewBreak(token token.Token) *Break {
+	return &Break{token: token}
+}
 
-func (s *BreakStatement) StartToken() token.Token { return s.Token }
+func (s *Break) StatementNode() {}
 
-func (s *BreakStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *Break) Token() token.Token { return s.token }
 
-func (s *BreakStatement) String() string {
+func (s *Break) Literal() string { return s.token.Literal }
+
+func (s *Break) String() string {
 	var out bytes.Buffer
-	out.WriteString(s.TokenLiteral())
+	out.WriteString(s.Literal())
 	return out.String()
 }
 
-// ExpressionStatement is an expression
-type ExpressionStatement struct {
-	// Token is the literal token
-	Token token.Token
+// // ExpressionStatement is an expression
+// type ExpressionStatement struct {
+// 	token token.Token
 
-	// Expression holds the expression
-	Expression Expression
+// 	// Expression holds the expression
+// 	expr Expression
+// }
+
+// func (e *ExpressionStatement) StatementNode() {}
+
+// func (e *ExpressionStatement) Token() token.Token { return e.token }
+
+// func (e *ExpressionStatement) Literal() string { return e.token.Literal }
+
+// func (e *ExpressionStatement) Value() Expression { return e.expr }
+
+// func (e *ExpressionStatement) String() string {
+// 	if e.expr != nil {
+// 		return e.expr.String()
+// 	}
+// 	return ""
+// }
+
+// Int holds an integer number
+type Int struct {
+	token token.Token // the token containing the number
+	value int64       // the value of the int
 }
 
-func (es *ExpressionStatement) statementNode() {}
-
-func (es *ExpressionStatement) StartToken() token.Token { return es.Token }
-
-// TokenLiteral returns the literal token.
-func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
-
-// String returns this object as a string.
-func (es *ExpressionStatement) String() string {
-	if es.Expression != nil {
-		return es.Expression.String()
-	}
-	return ""
+func NewInt(token token.Token, value int64) *Int {
+	return &Int{token: token, value: value}
 }
 
-// IntegerLiteral holds an integer
-type IntegerLiteral struct {
-	// Token is the literal token
-	Token token.Token
+func (i *Int) ExpressionNode() {}
 
-	// Value holds the integer.
-	Value int64
+func (i *Int) Token() token.Token { return i.token }
+
+func (i *Int) Literal() string { return i.token.Literal }
+
+func (i *Int) Value() int64 { return i.value }
+
+func (i *Int) String() string { return i.token.Literal }
+
+// Float holds a floating point number
+type Float struct {
+	token token.Token // the token containing the number
+	value float64     // the value of the float
 }
 
-func (il *IntegerLiteral) expressionNode() {}
-
-func (il *IntegerLiteral) StartToken() token.Token { return il.Token }
-
-// TokenLiteral returns the literal token.
-func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
-
-// String returns this object as a string.
-func (il *IntegerLiteral) String() string { return il.Token.Literal }
-
-// FloatLiteral holds a floating-point number
-type FloatLiteral struct {
-	// Token is the literal token
-	Token token.Token
-
-	// Value holds the floating-point number.
-	Value float64
+func NewFloat(token token.Token, value float64) *Float {
+	return &Float{token: token, value: value}
 }
 
-func (fl *FloatLiteral) expressionNode() {}
+func (f *Float) ExpressionNode() {}
 
-func (fl *FloatLiteral) StartToken() token.Token { return fl.Token }
+func (f *Float) Token() token.Token { return f.token }
 
-// TokenLiteral returns the literal token.
-func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (f *Float) Literal() string { return f.token.Literal }
 
-// String returns this object as a string.
-func (fl *FloatLiteral) String() string { return fl.Token.Literal }
+func (f *Float) Value() float64 { return f.value }
 
-// PrefixExpression holds a prefix-based expression
-type PrefixExpression struct {
-	// Token holds the token.  e.g. "!"
-	Token token.Token
+func (f *Float) String() string { return f.token.Literal }
 
-	// Operator holds the operator being invoked (e.g. "!" ).
-	Operator string
+// Prefix defines a prefix expression like "!false" or "-x".
+type Prefix struct {
+	token token.Token
 
-	// Right holds the thing to be operated upon
-	Right Expression
+	// operator holds the operator being invoked (e.g. "!" ).
+	operator string
+
+	// right holds the thing to be operated upon
+	right Expression
 }
 
-func (pe *PrefixExpression) expressionNode() {}
+func NewPrefix(token token.Token, right Expression) *Prefix {
+	return &Prefix{token: token, operator: token.Literal, right: right}
+}
 
-func (pe *PrefixExpression) StartToken() token.Token { return pe.Token }
+func (p *Prefix) ExpressionNode() {}
 
-// TokenLiteral returns the literal token.
-func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (p *Prefix) Token() token.Token { return p.token }
 
-// String returns this object as a string.
-func (pe *PrefixExpression) String() string {
+func (p *Prefix) Literal() string { return p.token.Literal }
+
+func (p *Prefix) Operator() string { return p.operator }
+
+func (p *Prefix) Right() Expression { return p.right }
+
+func (p *Prefix) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(pe.Operator)
-	out.WriteString(pe.Right.String())
+	out.WriteString(p.operator)
+	out.WriteString(p.right.String())
 	out.WriteString(")")
 	return out.String()
 }
 
-// InfixExpression stores an infix expression.
-type InfixExpression struct {
+// Infix defines an infix expression like "x + y" or "5 - 1".
+type Infix struct {
 	// Token holds the literal expression
-	Token token.Token
+	token token.Token
 
-	// Left holds the left-most argument
-	Left Expression
+	// left holds the left-most argument
+	left Expression
 
-	// Operator holds the operation to be carried out (e.g. "+", "-" )
-	Operator string
+	// operator holds the operation to be carried out (e.g. "+", "-" )
+	operator string
 
-	// Right holds the right-most argument
-	Right Expression
+	// right holds the right-most argument
+	right Expression
 }
 
-func (ie *InfixExpression) expressionNode() {}
+func NewInfix(token token.Token, left Expression, operator string, right Expression) *Infix {
+	return &Infix{token: token, left: left, operator: operator, right: right}
+}
 
-func (ie *InfixExpression) StartToken() token.Token { return ie.Token }
+func (i *Infix) ExpressionNode() {}
 
-// TokenLiteral returns the literal token.
-func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
+func (i *Infix) Token() token.Token { return i.token }
 
-// String returns this object as a string.
-func (ie *InfixExpression) String() string {
+func (i *Infix) Literal() string { return i.token.Literal }
+
+func (i *Infix) Left() Expression { return i.left }
+
+func (i *Infix) Operator() string { return i.operator }
+
+func (i *Infix) Right() Expression { return i.right }
+
+func (i *Infix) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(ie.Left.String())
-	out.WriteString(" " + ie.Operator + " ")
-	out.WriteString(ie.Right.String())
+	out.WriteString(i.left.String())
+	out.WriteString(" " + i.operator + " ")
+	out.WriteString(i.right.String())
 	out.WriteString(")")
 	return out.String()
 }
 
-// PostfixExpression holds a postfix-based expression
-type PostfixExpression struct {
-	// Token holds the token we're operating upon
-	Token token.Token
-	// Operator holds the postfix token, e.g. ++
-	Operator string
+// Postfix defines a postfix expression like "x++".
+type Postfix struct {
+	token token.Token
+	// operator holds the postfix token, e.g. ++
+	operator string
 }
 
-func (pe *PostfixExpression) expressionNode() {}
+func NewPostfix(token token.Token, operator string) *Postfix {
+	return &Postfix{token: token, operator: operator}
+}
 
-func (pe *PostfixExpression) StartToken() token.Token { return pe.Token }
+func (p *Postfix) ExpressionNode() {}
 
-func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (p *Postfix) Token() token.Token { return p.token }
 
-func (pe *PostfixExpression) String() string {
+func (p *Postfix) Literal() string { return p.token.Literal }
+
+func (p *Postfix) Operator() string { return p.operator }
+
+func (p *Postfix) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(pe.Token.Literal)
-	out.WriteString(pe.Operator)
+	out.WriteString(p.token.Literal)
+	out.WriteString(p.operator)
 	out.WriteString(")")
 	return out.String()
 }
 
-// NilLiteral represents a literal nil
-type NilLiteral struct {
-	// Token holds the actual token
-	Token token.Token
+// Nil represents a literal nil
+type Nil struct {
+	token token.Token // token containing "nil"
 }
 
-func (n *NilLiteral) expressionNode() {}
+func NewNil(token token.Token) *Nil {
+	return &Nil{token: token}
+}
 
-func (n *NilLiteral) StartToken() token.Token { return n.Token }
+func (n *Nil) ExpressionNode() {}
 
-func (n *NilLiteral) TokenLiteral() string { return n.Token.Literal }
+func (n *Nil) Token() token.Token { return n.token }
 
-func (n *NilLiteral) String() string { return n.Token.Literal }
+func (n *Nil) Literal() string { return n.token.Literal }
 
-// Bool holds a boolean type
+func (n *Nil) String() string { return n.token.Literal }
+
+// Bool holds the boolean "true" or "false"
 type Bool struct {
 	// Token holds the actual token
-	Token token.Token
+	token token.Token
 
-	// Value stores the bools' value: true, or false.
-	Value bool
+	// value stores the bools' value: true, or false.
+	value bool
 }
 
-func (b *Bool) expressionNode() {}
-
-func (b *Bool) StartToken() token.Token { return b.Token }
-
-func (b *Bool) TokenLiteral() string { return b.Token.Literal }
-
-func (b *Bool) String() string { return b.Token.Literal }
-
-// BlockStatement holds a group of statements, which are treated
-// as a block.  (For example the body of an `if` expression.)
-type BlockStatement struct {
-	// Token holds the actual token
-	Token token.Token
-
-	// Statements contain the set of statements within the block
-	Statements []Statement
+func NewBool(token token.Token, value bool) *Bool {
+	return &Bool{token: token, value: value}
 }
 
-func (bs *BlockStatement) statementNode() {}
+func (b *Bool) ExpressionNode() {}
 
-func (bs *BlockStatement) StartToken() token.Token { return bs.Token }
+func (b *Bool) Token() token.Token { return b.token }
 
-func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
+func (b *Bool) Literal() string { return b.token.Literal }
 
-func (bs *BlockStatement) String() string {
+func (b *Bool) Value() bool { return b.value }
+
+func (b *Bool) String() string { return b.token.Literal }
+
+// Block holds a sequence of statements, which are treated as a group.
+// This may represent the body of a function, loop, or a conditional block.
+type Block struct {
+	token      token.Token // the opening "{" token
+	statements []Node      // the statements in the block
+}
+
+func NewBlock(token token.Token, statements []Node) *Block {
+	return &Block{token: token, statements: statements}
+}
+
+func (b *Block) StatementNode() {}
+
+func (b *Block) Token() token.Token { return b.token }
+
+func (b *Block) Literal() string { return b.token.Literal }
+
+func (b *Block) Statements() []Node { return b.statements }
+
+func (b *Block) String() string {
 	var out bytes.Buffer
-	for i, s := range bs.Statements {
+	for i, s := range b.statements {
 		if i > 0 {
 			out.WriteString("\n")
 		}
@@ -416,318 +460,298 @@ func (bs *BlockStatement) String() string {
 	return out.String()
 }
 
-// IfExpression holds an if-statement
-type IfExpression struct {
-	// Token is the actual token
-	Token token.Token
-
-	// Condition is the thing that is evaluated to determine
-	// which block should be executed.
-	Condition Expression
-
-	// Consequence is the set of statements executed if the
-	// condition is true.
-	Consequence *BlockStatement
-
-	// Alternative is the set of statements executed if the
-	// condition is not true (optional).
-	Alternative *BlockStatement
+// If holds an if statement.
+type If struct {
+	token       token.Token // the "if" token
+	condition   Expression  // the condition to be evaluated
+	consequence *Block      // block to evaluate if the condition is true
+	alternative *Block      // block to evaluate if the condition is false
 }
 
-func (ie *IfExpression) expressionNode() {}
+func NewIf(token token.Token, condition Expression, consequence *Block, alternative *Block) *If {
+	return &If{token: token, condition: condition, consequence: consequence, alternative: alternative}
+}
 
-func (ie *IfExpression) StartToken() token.Token { return ie.Token }
+func (i *If) ExpressionNode() {}
 
-func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
+func (i *If) Token() token.Token { return i.token }
 
-func (ie *IfExpression) String() string {
+func (i *If) Literal() string { return i.token.Literal }
+
+func (i *If) Condition() Expression { return i.condition }
+
+func (i *If) Consequence() *Block { return i.consequence }
+
+func (i *If) Alternative() *Block { return i.alternative }
+
+func (i *If) String() string {
 	var out bytes.Buffer
 	out.WriteString("if ")
-	out.WriteString(ie.Condition.String())
+	out.WriteString(i.condition.String())
 	out.WriteString(" ")
-	out.WriteString(ie.Consequence.String())
-	if ie.Alternative != nil {
+	out.WriteString(i.consequence.String())
+	if i.alternative != nil {
 		out.WriteString(" else ")
-		out.WriteString(ie.Alternative.String())
+		out.WriteString(i.alternative.String())
 	}
 	return out.String()
 }
 
-// ForeachStatement holds a foreach-statement.
-type ForeachStatement struct {
-	// Token is the actual token
-	Token token.Token
+// Ternary holds a ternary expression.
+type Ternary struct {
+	token token.Token
 
-	// Index is the variable we'll set with the index, for the blocks' scope
-	//
-	// This is optional.
-	Index string
-
-	// Ident is the variable we'll set with each item, for the blocks' scope
-	Ident string
-
-	// Value is the thing we'll range over.
-	Value Expression
-
-	// Body is the block we'll execute.
-	Body *BlockStatement
-}
-
-func (fes *ForeachStatement) expressionNode() {}
-
-func (fes *ForeachStatement) StartToken() token.Token { return fes.Token }
-
-func (fes *ForeachStatement) TokenLiteral() string { return fes.Token.Literal }
-
-func (fes *ForeachStatement) String() string {
-	var out bytes.Buffer
-	out.WriteString("foreach ")
-	out.WriteString(fes.Ident)
-	out.WriteString(" ")
-	out.WriteString(fes.Value.String())
-	out.WriteString(fes.Body.String())
-	return out.String()
-}
-
-// TernaryExpression holds a ternary-expression.
-type TernaryExpression struct {
-	// Token is the actual token.
-	Token token.Token
-
-	// Condition is the thing that is evaluated to determine
+	// condition is the thing that is evaluated to determine
 	// which expression should be returned
-	Condition Expression
+	condition Expression
 
-	// IfTrue is the expression to return if the condition is true.
-	IfTrue Expression
+	// ifTrue is the expression to return if the condition is true.
+	ifTrue Expression
 
-	// IFFalse is the expression to return if the condition is not true.
-	IfFalse Expression
+	// ifFalse is the expression to return if the condition is not true.
+	ifFalse Expression
 }
 
-func (te *TernaryExpression) expressionNode() {}
+func NewTernary(token token.Token, condition Expression, ifTrue Expression, ifFalse Expression) *Ternary {
+	return &Ternary{token: token, condition: condition, ifTrue: ifTrue, ifFalse: ifFalse}
+}
 
-func (te *TernaryExpression) StartToken() token.Token { return te.Token }
+func (t *Ternary) ExpressionNode() {}
 
-func (te *TernaryExpression) TokenLiteral() string { return te.Token.Literal }
+func (t *Ternary) Token() token.Token { return t.token }
 
-func (te *TernaryExpression) String() string {
+func (t *Ternary) Literal() string { return t.token.Literal }
+
+func (t *Ternary) Condition() Expression { return t.condition }
+
+func (t *Ternary) IfTrue() Expression { return t.ifTrue }
+
+func (t *Ternary) IfFalse() Expression { return t.ifFalse }
+
+func (t *Ternary) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(te.Condition.String())
+	out.WriteString(t.condition.String())
 	out.WriteString(" ? ")
-	out.WriteString(te.IfTrue.String())
+	out.WriteString(t.ifTrue.String())
 	out.WriteString(" : ")
-	out.WriteString(te.IfFalse.String())
+	out.WriteString(t.ifFalse.String())
 	out.WriteString(")")
 	return out.String()
 }
 
-// ForLoopExpression holds a for-loop
-type ForLoopExpression struct {
-	// Token is the actual token
-	Token token.Token
+// For defines a for loop.
+type For struct {
+	token token.Token
 
-	// Condition is the expression used to determine if the loop
-	// is still running.
-	Condition Expression
+	// condition determines whether the loop should continue running.
+	condition Expression
 
-	// Consequence is the set of statements to be executed for the
-	// loop body.
-	Consequence *BlockStatement
+	// consequence contains the statements that make up the loop body.
+	consequence *Block
 
 	// Initialization statement which is executed once before evaluating the
-	// condition for the first iteration
-	InitStatement *VarStatement
+	// condition for the first iteration.
+	init *Var
 
 	// Statement which is executed after each execution of the block
-	// (and only if the block was executed)
-	PostStatement Expression
+	// (and only if the block was executed).
+	post Expression
 }
 
-func (fle *ForLoopExpression) expressionNode() {}
-
-func (fle *ForLoopExpression) StartToken() token.Token { return fle.Token }
-
-func (fle *ForLoopExpression) TokenLiteral() string { return fle.Token.Literal }
-
-func (fle *ForLoopExpression) IsSimpleLoop() bool {
-	return fle.Consequence != nil && fle.InitStatement == nil
+func NewSimpleFor(token token.Token, consequence *Block) *For {
+	return &For{token: token, consequence: consequence}
 }
 
-func (fle *ForLoopExpression) String() string {
+func NewFor(token token.Token, condition Expression, consequence *Block, init *Var, post Expression) *For {
+	return &For{token: token, condition: condition, consequence: consequence, init: init, post: post}
+}
+
+// Should be StatementNode only?
+func (f *For) ExpressionNode() {}
+
+func (f *For) Token() token.Token { return f.token }
+
+func (f *For) Literal() string { return f.token.Literal }
+
+func (f *For) IsSimpleLoop() bool { return f.consequence != nil && f.init == nil }
+
+func (f *For) Condition() Expression { return f.condition }
+
+func (f *For) Consequence() *Block { return f.consequence }
+
+func (f *For) Init() *Var { return f.init }
+
+func (f *For) Post() Expression { return f.post }
+
+func (f *For) String() string {
 	var out bytes.Buffer
 	// Simple for {} loop
-	if fle.IsSimpleLoop() {
+	if f.IsSimpleLoop() {
 		out.WriteString("for { ")
-		out.WriteString(fle.Consequence.String())
+		out.WriteString(f.consequence.String())
 		out.WriteString(" }")
 		return out.String()
 	}
 	// Full style for loop
 	out.WriteString("for ")
-	out.WriteString(fle.InitStatement.String() + "; ")
-	out.WriteString(fle.Condition.String() + "; ")
-	out.WriteString(fle.PostStatement.String())
+	out.WriteString(f.init.String() + "; ")
+	out.WriteString(f.condition.String() + "; ")
+	out.WriteString(f.post.String())
 	out.WriteString(" { ")
-	out.WriteString(fle.Consequence.String())
+	out.WriteString(f.consequence.String())
 	out.WriteString(" }")
 	return out.String()
 }
 
-// FunctionLiteral holds a function-definition
-//
-// See-also FunctionDefineLiteral.
-type FunctionLiteral struct {
-	// Token is the actual token
-	Token token.Token
+// Func holds a function definition.
+type Func struct {
+	token token.Token
 
-	// Parameters is the list of parameters the function receives.
-	Parameters []*Identifier
+	name *Ident
 
-	// Defaults holds any default values for arguments which aren't
-	// specified
-	Defaults map[string]Expression
+	// parameters is the list of parameters the function receives.
+	parameters []*Ident
 
-	// Body contains the set of statements within the function.
-	Body *BlockStatement
+	// defaults holds any default values for arguments which aren't specified.
+	defaults map[string]Expression
+
+	// body contains the set of statements within the function.
+	body *Block
 }
 
-func (fl *FunctionLiteral) expressionNode() {}
+func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[string]Expression, body *Block) *Func {
+	return &Func{
+		token:      token,
+		name:       name,
+		parameters: parameters,
+		defaults:   defaults,
+		body:       body,
+	}
+}
 
-func (fl *FunctionLiteral) StartToken() token.Token { return fl.Token }
+func (f *Func) ExpressionNode() {}
 
-func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (f *Func) Token() token.Token { return f.token }
 
-func (fl *FunctionLiteral) String() string {
+func (f *Func) Literal() string { return f.token.Literal }
+
+func (f *Func) Name() *Ident { return f.name }
+
+func (f *Func) Parameters() []*Ident { return f.parameters }
+
+func (f *Func) Defaults() map[string]Expression { return f.defaults }
+
+func (f *Func) Body() *Block { return f.body }
+
+func (f *Func) String() string {
 	var out bytes.Buffer
 	params := make([]string, 0)
-	for _, p := range fl.Parameters {
-		params = append(params, p.String())
+	for _, p := range f.parameters {
+		params = append(params, p.value)
 	}
-	out.WriteString(fl.TokenLiteral())
+	out.WriteString(f.Literal())
+	if f.name != nil {
+		out.WriteString(" " + f.name.value)
+	}
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") ")
-	out.WriteString(fl.Body.String())
+	out.WriteString(f.body.String())
 	return out.String()
-
 }
 
-// FunctionDefineLiteral holds a function-definition.
-//
-// See-also FunctionLiteral.
-type FunctionDefineLiteral struct {
-	// Token holds the token
-	Token token.Token
-
-	// Paremeters holds the function parameters.
-	Parameters []*Identifier
-
-	// Defaults holds any default-arguments.
-	Defaults map[string]Expression
-
-	// Body holds the set of statements in the functions' body.
-	Body *BlockStatement
+// Call holds the invocation of a method.
+type Call struct {
+	token     token.Token  // the '(' token
+	function  Expression   // the function being called
+	arguments []Expression // the arguments supplied to the call
 }
 
-func (fl *FunctionDefineLiteral) expressionNode() {}
-
-func (fl *FunctionDefineLiteral) StartToken() token.Token { return fl.Token }
-
-func (fl *FunctionDefineLiteral) TokenLiteral() string {
-	return fl.Token.Literal
+func NewCall(token token.Token, function Expression, arguments []Expression) *Call {
+	return &Call{token: token, function: function, arguments: arguments}
 }
 
-func (fl *FunctionDefineLiteral) String() string {
-	var out bytes.Buffer
-	params := make([]string, 0)
-	for _, p := range fl.Parameters {
-		params = append(params, p.String())
-	}
-	out.WriteString(fl.TokenLiteral())
-	out.WriteString("(")
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(") ")
-	out.WriteString(fl.Body.String())
-	return out.String()
+func (c *Call) ExpressionNode() {}
 
-}
+func (c *Call) Token() token.Token { return c.token }
 
-// CallExpression holds the invokation of a method-call.
-type CallExpression struct {
-	// Token stores the literal token
-	Token token.Token
+func (c *Call) Literal() string { return c.token.Literal }
 
-	// Function is the function to be invoked.
-	Function Expression
+func (c *Call) Function() Expression { return c.function }
 
-	// Arguments are the arguments to be applied
-	Arguments []Expression
-}
+func (c *Call) Arguments() []Expression { return c.arguments }
 
-func (ce *CallExpression) expressionNode() {}
-
-func (ce *CallExpression) StartToken() token.Token { return ce.Token }
-
-func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
-
-func (ce *CallExpression) String() string {
+func (c *Call) String() string {
 	var out bytes.Buffer
 	args := make([]string, 0)
-	for _, a := range ce.Arguments {
+	for _, a := range c.arguments {
 		args = append(args, a.String())
 	}
-	out.WriteString(ce.Function.String())
+	out.WriteString(c.function.String())
 	out.WriteString("(")
 	out.WriteString(strings.Join(args, ", "))
 	out.WriteString(")")
 	return out.String()
 }
 
-// GetAttributeExpression
-type GetAttributeExpression struct {
-	// Token stores the literal token
-	Token token.Token
-	// Object whose attribute is being accessed
-	Object Expression
+// GetAttr
+type GetAttr struct {
+	token token.Token
+
+	// object whose attribute is being accessed
+	object Expression
+
 	// The attribute itself
-	Attribute *Identifier
+	attribute *Ident
 }
 
-func (e *GetAttributeExpression) expressionNode() {}
+func NewGetAttr(token token.Token, object Expression, attribute *Ident) *GetAttr {
+	return &GetAttr{token: token, object: object, attribute: attribute}
+}
 
-func (e *GetAttributeExpression) StartToken() token.Token { return e.Token }
+func (e *GetAttr) ExpressionNode() {}
 
-func (e *GetAttributeExpression) TokenLiteral() string { return e.Token.Literal }
+func (e *GetAttr) Token() token.Token { return e.token }
 
-func (e *GetAttributeExpression) String() string {
+func (e *GetAttr) Literal() string { return e.token.Literal }
+
+func (e *GetAttr) Object() Expression { return e.object }
+
+func (e *GetAttr) Name() string { return e.attribute.value }
+
+func (e *GetAttr) String() string {
 	var out bytes.Buffer
-	out.WriteString(e.Object.String())
+	out.WriteString(e.object.String())
 	out.WriteString(".")
-	out.WriteString(e.Attribute.String())
+	out.WriteString(e.attribute.value)
 	return out.String()
 }
 
-// PipeExpression holds a series of calls
-type PipeExpression struct {
-	// Token stores the literal token
-	Token token.Token
+// Pipe holds a series of calls
+type Pipe struct {
+	token token.Token
 
-	// Arguments are the arguments to be applied
-	Arguments []Expression
+	// exprs contains the pipe separated expressions
+	exprs []Expression
 }
 
-func (pe *PipeExpression) expressionNode() {}
+func NewPipe(token token.Token, exprs []Expression) *Pipe {
+	return &Pipe{token: token, exprs: exprs}
+}
 
-func (pe *PipeExpression) StartToken() token.Token { return pe.Token }
+func (p *Pipe) ExpressionNode() {}
 
-func (pe *PipeExpression) TokenLiteral() string { return pe.Token.Literal }
+func (p *Pipe) Token() token.Token { return p.token }
 
-func (pe *PipeExpression) String() string {
+func (p *Pipe) Literal() string { return p.token.Literal }
+
+func (p *Pipe) Expressions() []Expression { return p.exprs }
+
+func (p *Pipe) String() string {
 	var out bytes.Buffer
 	args := make([]string, 0)
-	for _, a := range pe.Arguments {
+	for _, a := range p.exprs {
 		args = append(args, a.String())
 	}
 	out.WriteString("(")
@@ -736,75 +760,96 @@ func (pe *PipeExpression) String() string {
 	return out.String()
 }
 
-// ObjectCallExpression is used when calling a method on an object.
-type ObjectCallExpression struct {
-	// Token is the literal token
-	Token token.Token
-
-	// Object is the object against which the call is invoked.
-	Object Expression
-
-	// Call is the method-name.
-	Call Expression
+// ObjectCall is used when calling a method on an object.
+type ObjectCall struct {
+	token  token.Token
+	object Expression
+	call   Expression
 }
 
-func (oce *ObjectCallExpression) expressionNode() {}
-
-func (oce *ObjectCallExpression) StartToken() token.Token { return oce.Token }
-
-func (oce *ObjectCallExpression) TokenLiteral() string {
-	return oce.Token.Literal
+func NewObjectCall(token token.Token, object Expression, call Expression) *ObjectCall {
+	return &ObjectCall{token: token, object: object, call: call}
 }
 
-func (oce *ObjectCallExpression) String() string {
+func (c *ObjectCall) ExpressionNode() {}
+
+func (c *ObjectCall) Token() token.Token { return c.token }
+
+func (c *ObjectCall) Literal() string { return c.token.Literal }
+
+func (c *ObjectCall) Object() Expression { return c.object }
+
+func (c *ObjectCall) Call() Expression { return c.call }
+
+func (c *ObjectCall) String() string {
 	var out bytes.Buffer
-	out.WriteString(oce.Object.String())
+	out.WriteString(c.object.String())
 	out.WriteString(".")
-	out.WriteString(oce.Call.String())
+	out.WriteString(c.call.String())
 	return out.String()
 }
 
-// StringLiteral holds a string
-type StringLiteral struct {
+// String holds a string
+type String struct {
 	// Token is the token
-	Token token.Token
+	token token.Token
 
-	// Value is the value of the string.
-	Value string
+	// value is the value of the string.
+	value string
 
-	// Template is the templatized version of the string, if any
-	Template *tmpl.Template
+	// template is the templatized version of the string, if any
+	template *tmpl.Template
 
-	TemplateExpressions []*ExpressionStatement
+	exprs []Expression
 }
 
-func (sl *StringLiteral) expressionNode() {}
-
-func (sl *StringLiteral) StartToken() token.Token { return sl.Token }
-
-func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
-
-func (sl *StringLiteral) String() string { return fmt.Sprintf("%q", sl.Token.Literal) }
-
-// ListLiteral holds an inline list
-type ListLiteral struct {
-	// Token is the token
-	Token token.Token
-
-	// Items holds the members of the list.
-	Items []Expression
+func NewString(tok token.Token) *String {
+	return &String{token: tok, value: tok.Literal}
 }
 
-func (ll *ListLiteral) expressionNode() {}
+func NewTemplatedString(tok token.Token, template *tmpl.Template, exprs []Expression) *String {
+	return &String{token: tok, value: tok.Literal, template: template, exprs: exprs}
+}
 
-func (ll *ListLiteral) StartToken() token.Token { return ll.Token }
+func (s *String) ExpressionNode() {}
 
-func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
+func (s *String) Token() token.Token { return s.token }
 
-func (ll *ListLiteral) String() string {
+func (s *String) Literal() string { return s.token.Literal }
+
+func (s *String) Value() string { return s.value }
+
+func (s *String) Template() *tmpl.Template { return s.template }
+
+func (s *String) TemplateExpressions() []Expression { return s.exprs }
+
+func (s *String) String() string { return fmt.Sprintf("%q", s.token.Literal) }
+
+// List holds an inline list
+type List struct {
+	// Token is the token
+	token token.Token
+
+	// items holds the members of the list.
+	items []Expression
+}
+
+func NewList(tok token.Token, items []Expression) *List {
+	return &List{token: tok, items: items}
+}
+
+func (l *List) ExpressionNode() {}
+
+func (l *List) Token() token.Token { return l.token }
+
+func (l *List) Literal() string { return l.token.Literal }
+
+func (l *List) Items() []Expression { return l.items }
+
+func (l *List) String() string {
 	var out bytes.Buffer
 	elements := make([]string, 0)
-	for _, el := range ll.Items {
+	for _, el := range l.items {
 		elements = append(elements, el.String())
 	}
 	out.WriteString("[")
@@ -813,119 +858,179 @@ func (ll *ListLiteral) String() string {
 	return out.String()
 }
 
-// IndexExpression holds an index-expression
-type IndexExpression struct {
-	// Token is the actual token
-	Token token.Token
+// Index holds an index expression
+type Index struct {
+	token token.Token
 
-	// Left is the thing being indexed.
-	Left Expression
+	// left is the thing being indexed.
+	left Expression
 
-	// Index is the value we're indexing
-	Index Expression
-
-	// Optional "from" index for [from:to] style expressions
-	FromIndex Expression
-
-	// Optional "to" index for [from:to] style expressions
-	ToIndex Expression
+	// index is the value we're indexing
+	index Expression
 }
 
-func (ie *IndexExpression) expressionNode() {}
+func NewIndex(token token.Token, left Expression, index Expression) *Index {
+	return &Index{token: token, left: left, index: index}
+}
 
-func (ie *IndexExpression) StartToken() token.Token { return ie.Token }
+func (i *Index) ExpressionNode() {}
 
-func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+func (i *Index) Token() token.Token { return i.token }
 
-func (ie *IndexExpression) String() string {
+func (i *Index) Literal() string { return i.token.Literal }
+
+func (i *Index) Left() Expression { return i.left }
+
+func (i *Index) Index() Expression { return i.index }
+
+func (i *Index) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(ie.Left.String())
+	out.WriteString(i.left.String())
 	out.WriteString("[")
-	if ie.Index != nil {
-		out.WriteString(ie.Index.String())
-		out.WriteString("])")
-		return out.String()
+	out.WriteString(i.index.String())
+	out.WriteString("])")
+	return out.String()
+}
+
+// Index holds an index expression
+type Slice struct {
+	token token.Token
+
+	// left is the thing being indexed.
+	left Expression
+
+	// Optional "from" index for [from:to] style expressions
+	fromIndex Expression
+
+	// Optional "to" index for [from:to] style expressions
+	toIndex Expression
+}
+
+func NewSlice(token token.Token, left Expression, fromIndex Expression, toIndex Expression) *Slice {
+	return &Slice{token: token, left: left, fromIndex: fromIndex, toIndex: toIndex}
+}
+
+func (i *Slice) ExpressionNode() {}
+
+func (i *Slice) Token() token.Token { return i.token }
+
+func (i *Slice) Literal() string { return i.token.Literal }
+
+func (i *Slice) Left() Expression { return i.left }
+
+func (i *Slice) FromIndex() Expression { return i.fromIndex }
+
+func (i *Slice) ToIndex() Expression { return i.toIndex }
+
+func (i *Slice) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(i.left.String())
+	out.WriteString("[")
+	if i.fromIndex != nil {
+		out.WriteString(i.fromIndex.String())
 	}
-	if ie.FromIndex != nil {
-		out.WriteString(ie.FromIndex.String())
-	}
-	if ie.ToIndex != nil {
+	if i.toIndex != nil {
 		out.WriteString(":")
-		out.WriteString(ie.ToIndex.String())
+		out.WriteString(i.toIndex.String())
 	}
 	out.WriteString("])")
 	return out.String()
 }
 
-// AssignStatement is generally used for a (var-less) assignment,
-// such as "x = y", however we allow an operator to be stored ("=" in that
-// example), such that we can do self-operations.
-//
-// Specifically "x += y" is defined as an assignment-statement with
-// the operator set to "+=".  The same applies for "+=", "-=", "*=", and
-// "/=".
-type AssignStatement struct {
-	Token    token.Token
-	Name     *Identifier
-	Index    *IndexExpression
-	Operator string
-	Value    Expression
+// Assign is generally used for a simple assignment like "x = y". We also
+// support other operators like "+=", "-=", "*=", and "/=".
+type Assign struct {
+	token    token.Token
+	name     *Ident
+	index    *Index
+	operator string
+	value    Expression
 }
 
-func (as *AssignStatement) expressionNode() {}
+func NewAssign(operator token.Token, name *Ident, value Expression) *Assign {
+	return &Assign{token: operator, name: name, operator: operator.Literal, value: value}
+}
 
-func (as *AssignStatement) StartToken() token.Token { return as.Token }
+func NewAssignIndex(operator token.Token, index *Index, value Expression) *Assign {
+	return &Assign{token: operator, index: index, operator: operator.Literal, value: value}
+}
 
-func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
+func (a *Assign) ExpressionNode() {}
 
-func (as *AssignStatement) String() string {
+func (a *Assign) Token() token.Token { return a.token }
+
+func (a *Assign) Literal() string { return a.token.Literal }
+
+func (a *Assign) Name() string { return a.name.value }
+
+func (a *Assign) Index() *Index { return a.index }
+
+func (a *Assign) Operator() string { return a.operator }
+
+func (a *Assign) Value() Expression { return a.value }
+
+func (a *Assign) String() string {
 	var out bytes.Buffer
-	if as.Index != nil {
-		out.WriteString(as.Index.String())
+	if a.index != nil {
+		out.WriteString(a.index.String())
 	} else {
-		out.WriteString(as.Name.String())
+		out.WriteString(a.name.value)
 	}
-	out.WriteString(" " + as.Operator + " ")
-	out.WriteString(as.Value.String())
+	out.WriteString(" " + a.operator + " ")
+	out.WriteString(a.value.String())
 	return out.String()
 }
 
-// CaseExpression handles the case within a switch statement
-type CaseExpression struct {
-	// Token is the actual token
-	Token token.Token
+// Case handles the case within a switch statement
+type Case struct {
+	token token.Token
 
 	// Default branch?
-	Default bool
+	isDefault bool
 
 	// The thing we match
-	Expr []Expression
+	expr []Expression
 
 	// The code to execute if there is a match
-	Block *BlockStatement
+	block *Block
 }
 
-func (ce *CaseExpression) expressionNode() {}
+func NewCase(token token.Token, expressions []Expression, block *Block) *Case {
+	return &Case{token: token, expr: expressions, block: block}
+}
 
-func (ce *CaseExpression) StartToken() token.Token { return ce.Token }
+func NewDefaultCase(token token.Token, block *Block) *Case {
+	return &Case{token: token, isDefault: true, block: block}
+}
 
-func (ce *CaseExpression) TokenLiteral() string { return ce.Token.Literal }
+func (c *Case) ExpressionNode() {}
 
-func (ce *CaseExpression) String() string {
+func (c *Case) Token() token.Token { return c.token }
+
+func (c *Case) Literal() string { return c.token.Literal }
+
+func (c *Case) IsDefault() bool { return c.isDefault }
+
+func (c *Case) Expressions() []Expression { return c.expr }
+
+func (c *Case) Block() *Block { return c.block }
+
+func (c *Case) String() string {
 	var out bytes.Buffer
-	if ce.Default {
+	if c.isDefault {
 		out.WriteString("default")
 	} else {
 		out.WriteString("case ")
 		tmp := []string{}
-		for _, exp := range ce.Expr {
+		for _, exp := range c.expr {
 			tmp = append(tmp, exp.String())
 		}
 		out.WriteString(strings.Join(tmp, ","))
 	}
 	out.WriteString(":\n")
-	for i, exp := range ce.Block.Statements {
+	for i, exp := range c.block.statements {
 		if i > 0 {
 			out.WriteString("\n")
 		}
@@ -935,31 +1040,33 @@ func (ce *CaseExpression) String() string {
 	return out.String()
 }
 
-// SwitchExpression handles a switch statement
-type SwitchExpression struct {
-	// Token is the actual token
-	Token token.Token
-
-	// Value is the thing that is evaluated to determine
-	// which block should be executed.
-	Value Expression
-
-	// The branches we handle
-	Choices []*CaseExpression
+// Switch represents a switch statement and its cases
+type Switch struct {
+	token   token.Token // token containing "switch"
+	value   Expression  // the expression to switch on
+	choices []*Case     // switch cases
 }
 
-func (se *SwitchExpression) expressionNode() {}
+func NewSwitch(token token.Token, value Expression, choices []*Case) *Switch {
+	return &Switch{token: token, value: value, choices: choices}
+}
 
-func (se *SwitchExpression) StartToken() token.Token { return se.Token }
+func (s *Switch) ExpressionNode() {}
 
-func (se *SwitchExpression) TokenLiteral() string { return se.Token.Literal }
+func (s *Switch) Token() token.Token { return s.token }
 
-func (se *SwitchExpression) String() string {
+func (s *Switch) Literal() string { return s.token.Literal }
+
+func (s *Switch) Value() Expression { return s.value }
+
+func (s *Switch) Choices() []*Case { return s.choices }
+
+func (s *Switch) String() string {
 	var out bytes.Buffer
 	out.WriteString("\nswitch ")
-	out.WriteString(se.Value.String())
+	out.WriteString(s.value.String())
 	out.WriteString(" {\n")
-	for _, tmp := range se.Choices {
+	for _, tmp := range s.choices {
 		if tmp != nil {
 			out.WriteString(tmp.String())
 		}
@@ -968,47 +1075,54 @@ func (se *SwitchExpression) String() string {
 	return out.String()
 }
 
-// ImportStatement holds an import statement
-type ImportStatement struct {
-	// Token holds the token
-	Token token.Token
-
-	// Name of the module to import
-	Name *Identifier
+// Import holds an import statement
+type Import struct {
+	token token.Token // the "import" token
+	name  *Ident      // name of the module to import
 }
 
-func (i *ImportStatement) expressionNode() {}
+func NewImport(token token.Token, name *Ident) *Import {
+	return &Import{token: token, name: name}
+}
 
-func (i *ImportStatement) StartToken() token.Token { return i.Token }
+func (i *Import) ExpressionNode() {}
 
-func (i *ImportStatement) TokenLiteral() string { return i.Token.Literal }
+func (i *Import) Token() token.Token { return i.token }
 
-func (i *ImportStatement) String() string {
+func (i *Import) Literal() string { return i.token.Literal }
+
+func (i *Import) Module() *Ident { return i.name }
+
+func (i *Import) String() string {
 	var out bytes.Buffer
-	out.WriteString(i.TokenLiteral() + " ")
-	out.WriteString(i.Name.TokenLiteral())
+	out.WriteString(i.Literal() + " ")
+	out.WriteString(i.name.Literal())
 	out.WriteString(";")
 	return out.String()
 }
 
-// MapLiteral holds a map
-type MapLiteral struct {
-	// Token holds the token
-	Token token.Token // the '{' token
-	// Pairs stores the name/value sets of the hash-content
-	Pairs map[Expression]Expression
+// Map holds a map
+type Map struct {
+	token token.Token               // the '{' token
+	items map[Expression]Expression // items in the map
 }
 
-func (ml *MapLiteral) expressionNode() {}
+func NewMap(token token.Token, items map[Expression]Expression) *Map {
+	return &Map{token: token, items: items}
+}
 
-func (ml *MapLiteral) StartToken() token.Token { return ml.Token }
+func (m *Map) ExpressionNode() {}
 
-func (ml *MapLiteral) TokenLiteral() string { return ml.Token.Literal }
+func (m *Map) Token() token.Token { return m.token }
 
-func (ml *MapLiteral) String() string {
+func (m *Map) Literal() string { return m.token.Literal }
+
+func (m *Map) Items() map[Expression]Expression { return m.items }
+
+func (m *Map) String() string {
 	var out bytes.Buffer
 	pairs := make([]string, 0)
-	for key, value := range ml.Pairs {
+	for key, value := range m.items {
 		pairs = append(pairs, key.String()+":"+value.String())
 	}
 	out.WriteString("{")
@@ -1017,22 +1131,28 @@ func (ml *MapLiteral) String() string {
 	return out.String()
 }
 
-// SetLiteral holds a set definition
-type SetLiteral struct {
-	Token token.Token // the '{' token
-	Items []Expression
+// Set holds a set definition
+type Set struct {
+	token token.Token  // the '{' token
+	items []Expression // items in the set
 }
 
-func (sl *SetLiteral) expressionNode() {}
+func NewSet(token token.Token, items []Expression) *Set {
+	return &Set{token: token, items: items}
+}
 
-func (sl *SetLiteral) StartToken() token.Token { return sl.Token }
+func (s *Set) ExpressionNode() {}
 
-func (sl *SetLiteral) TokenLiteral() string { return sl.Token.Literal }
+func (s *Set) Token() token.Token { return s.token }
 
-func (sl *SetLiteral) String() string {
+func (s *Set) Literal() string { return s.token.Literal }
+
+func (s *Set) Items() []Expression { return s.items }
+
+func (s *Set) String() string {
 	var out bytes.Buffer
-	items := make([]string, 0, len(sl.Items))
-	for _, key := range sl.Items {
+	items := make([]string, 0, len(s.items))
+	for _, key := range s.items {
 		items = append(items, key.String())
 	}
 	out.WriteString("{")

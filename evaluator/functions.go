@@ -10,40 +10,35 @@ import (
 	"github.com/cloudcmds/tamarin/stack"
 )
 
-func (e *Evaluator) evalFunctionLiteral(
-	ctx context.Context,
-	node *ast.FunctionLiteral,
-	s *scope.Scope,
-) object.Object {
-	return object.NewFunction("", node.Parameters, node.Body, node.Defaults, s)
+func (e *Evaluator) evalFunctionLiteral(ctx context.Context, node *ast.Func, s *scope.Scope) object.Object {
+	if node.Name() != nil {
+		name := node.Name().String()
+		fn := object.NewFunction(name, node.Parameters(), node.Body(), node.Defaults(), s)
+		if err := s.Declare(name, fn, true); err != nil {
+			return object.NewError(err)
+		}
+		return object.Nil
+	}
+	return object.NewFunction("", node.Parameters(), node.Body(), node.Defaults(), s)
 }
 
-func (e *Evaluator) evalFunctionDefinition(
-	ctx context.Context,
-	node *ast.FunctionDefineLiteral,
-	s *scope.Scope,
-) object.Object {
-	name := node.TokenLiteral()
-	fn := object.NewFunction(name, node.Parameters, node.Body, node.Defaults, s)
+func (e *Evaluator) evalFunctionDefinition(ctx context.Context, node *ast.Func, s *scope.Scope) object.Object {
+	name := node.Literal()
+	fn := object.NewFunction(name, node.Parameters(), node.Body(), node.Defaults(), s)
 	if err := s.Declare(name, fn, true); err != nil {
-		return object.Errorf(err.Error())
+		return object.NewError(err)
 	}
 	return object.Nil
 }
 
-func (e *Evaluator) applyFunction(
-	ctx context.Context,
-	s *scope.Scope,
-	fn object.Object,
-	args []object.Object,
-) object.Object {
+func (e *Evaluator) applyFunction(ctx context.Context, s *scope.Scope, fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
 		// Use the function's scope, not the current execution scope! This is
 		// what enables closures to work as expected!
 		nestedScope, err := e.newFunctionScope(ctx, fn.Scope().(*scope.Scope), fn, args)
 		if err != nil {
-			return object.Errorf(err.Error())
+			return object.NewError(err)
 		}
 		funcBody := fn.Body()
 		e.stack.Push(stack.NewFrame(stack.FrameOpts{
@@ -71,12 +66,7 @@ func (e *Evaluator) applyFunction(
 	}
 }
 
-func (e *Evaluator) newFunctionScope(
-	ctx context.Context,
-	s *scope.Scope,
-	fn *object.Function,
-	args []object.Object,
-) (*scope.Scope, error) {
+func (e *Evaluator) newFunctionScope(ctx context.Context, s *scope.Scope, fn *object.Function, args []object.Object) (*scope.Scope, error) {
 	declared := map[string]bool{}
 	nestedScope := s.NewChild(scope.Opts{Name: "function"})
 	for key, val := range fn.Defaults() {
@@ -95,12 +85,13 @@ func (e *Evaluator) newFunctionScope(
 	}
 	for paramIdx, param := range fn.Parameters() {
 		if paramIdx < len(args) {
-			if declared[param.Value] {
-				if err := nestedScope.Update(param.Value, args[paramIdx]); err != nil {
+			name := param.String()
+			if declared[name] {
+				if err := nestedScope.Update(name, args[paramIdx]); err != nil {
 					return nil, err
 				}
 			} else {
-				if err := nestedScope.Declare(param.Value, args[paramIdx], false); err != nil {
+				if err := nestedScope.Declare(name, args[paramIdx], false); err != nil {
 					return nil, err
 				}
 			}

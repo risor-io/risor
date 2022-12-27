@@ -97,7 +97,7 @@ func (s *Stack) String() string {
 	for i, frame := range s.frames {
 		var s string
 		if frame.statement != nil {
-			tok := frame.statement.StartToken()
+			tok := frame.statement.Token()
 			loc := fmt.Sprintf("%s:%d", tok.StartPosition.File, tok.StartPosition.LineNumber())
 			s = fmt.Sprintf("%s - in %s | %s",
 				loc, frame.name, frame.statement.String())

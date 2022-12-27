@@ -6,12 +6,13 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalIdentifier(node *ast.Identifier, s *scope.Scope) object.Object {
-	if val, ok := s.Get(node.Value); ok {
+func (e *Evaluator) evalIdentifier(node *ast.Ident, s *scope.Scope) object.Object {
+	name := node.String()
+	if val, ok := s.Get(name); ok {
 		return val
 	}
-	if builtin, ok := e.builtins[node.Value]; ok {
+	if builtin, ok := e.builtins[name]; ok {
 		return builtin
 	}
-	return object.Errorf("name error: %q is not defined", node.Value)
+	return object.Errorf("name error: %q is not defined", name)
 }

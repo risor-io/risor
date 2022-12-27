@@ -20,11 +20,12 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 	}
 
 	var symbols []protocol.DocumentSymbol
-	for i, stmt := range doc.ast.Statements {
+	for i, stmt := range doc.ast.Statements() {
 		switch stmt := stmt.(type) {
-		case *ast.VarStatement:
+		case *ast.Var:
+			name, _ := stmt.Value()
 			symbols = append(symbols, protocol.DocumentSymbol{
-				Name: stmt.Name.Value,
+				Name: name,
 				Kind: protocol.Variable,
 				Range: protocol.Range{
 					Start: protocol.Position{

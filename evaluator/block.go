@@ -10,11 +10,11 @@ import (
 
 func (e *Evaluator) evalBlockStatement(
 	ctx context.Context,
-	block *ast.BlockStatement,
+	block *ast.Block,
 	s *scope.Scope,
 ) object.Object {
 	var result object.Object = object.Nil
-	for _, statement := range block.Statements {
+	for _, statement := range block.Statements() {
 		result = e.Evaluate(ctx, statement, s)
 		if result != nil {
 			switch result := result.(type) {

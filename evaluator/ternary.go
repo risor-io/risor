@@ -13,15 +13,15 @@ import (
 // the false-branch.
 func (e *Evaluator) evalTernaryExpression(
 	ctx context.Context,
-	te *ast.TernaryExpression,
+	te *ast.Ternary,
 	s *scope.Scope,
 ) object.Object {
-	condition := e.Evaluate(ctx, te.Condition, s)
+	condition := e.Evaluate(ctx, te.Condition(), s)
 	if object.IsError(condition) {
 		return condition
 	}
 	if object.IsTruthy(condition) {
-		return e.Evaluate(ctx, te.IfTrue, s)
+		return e.Evaluate(ctx, te.IfTrue(), s)
 	}
-	return e.Evaluate(ctx, te.IfFalse, s)
+	return e.Evaluate(ctx, te.IfFalse(), s)
 }

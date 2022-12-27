@@ -14,7 +14,7 @@ func (e *Evaluator) evalProgram(
 	s *scope.Scope,
 ) object.Object {
 	var result object.Object
-	for _, statement := range program.Statements {
+	for _, statement := range program.Statements() {
 		result = e.Evaluate(ctx, statement, s)
 		switch result := result.(type) {
 		case *object.ReturnValue:

@@ -10,8 +10,8 @@ import (
 // Function contains the AST for user defined function and implements Object interface.
 type Function struct {
 	name       string
-	parameters []*ast.Identifier
-	body       *ast.BlockStatement
+	parameters []*ast.Ident
+	body       *ast.Block
 	defaults   map[string]ast.Expression
 	scope      Scope
 }
@@ -58,11 +58,11 @@ func (f *Function) Inspect() string {
 	return out.String()
 }
 
-func (f *Function) Body() *ast.BlockStatement {
+func (f *Function) Body() *ast.Block {
 	return f.body
 }
 
-func (f *Function) Parameters() []*ast.Identifier {
+func (f *Function) Parameters() []*ast.Ident {
 	return f.parameters
 }
 
@@ -91,8 +91,8 @@ func (f *Function) Equals(other Object) Object {
 
 func NewFunction(
 	name string,
-	parameters []*ast.Identifier,
-	body *ast.BlockStatement,
+	parameters []*ast.Ident,
+	body *ast.Block,
 	defaults map[string]ast.Expression,
 	scope Scope,
 ) *Function {

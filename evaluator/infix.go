@@ -9,21 +9,21 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.InfixExpression, s *scope.Scope) object.Object {
-	left := e.Evaluate(ctx, node.Left, s)
+func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.Infix, s *scope.Scope) object.Object {
+	left := e.Evaluate(ctx, node.Left(), s)
 	if object.IsError(left) {
 		return left
 	}
-	if node.Operator == "&&" && !object.IsTruthy(left) {
+	if node.Operator() == "&&" && !object.IsTruthy(left) {
 		return left // Short circuit
-	} else if node.Operator == "||" && object.IsTruthy(left) {
+	} else if node.Operator() == "||" && object.IsTruthy(left) {
 		return left // Short circuit
 	}
-	right := e.Evaluate(ctx, node.Right, s)
+	right := e.Evaluate(ctx, node.Right(), s)
 	if object.IsError(right) {
 		return right
 	}
-	return e.evalInfix(node.Operator, left, right, s)
+	return e.evalInfix(node.Operator(), left, right, s)
 }
 
 func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *scope.Scope) object.Object {

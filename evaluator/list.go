@@ -10,10 +10,10 @@ import (
 
 func (e *Evaluator) evalListLiteral(
 	ctx context.Context,
-	node *ast.ListLiteral,
+	node *ast.List,
 	s *scope.Scope,
 ) object.Object {
-	elements := e.evalExpressions(ctx, node.Items, s)
+	elements := e.evalExpressions(ctx, node.Items(), s)
 	if len(elements) == 1 && object.IsError(elements[0]) {
 		return elements[0]
 	}

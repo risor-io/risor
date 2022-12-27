@@ -8,15 +8,15 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalMapLiteral(ctx context.Context, node *ast.MapLiteral, s *scope.Scope) object.Object {
-	items := make(map[string]object.Object, len(node.Pairs))
-	for keyNode, valueNode := range node.Pairs {
+func (e *Evaluator) evalMapLiteral(ctx context.Context, node *ast.Map, s *scope.Scope) object.Object {
+	items := make(map[string]object.Object, len(node.Items()))
+	for keyNode, valueNode := range node.Items() {
 		value := e.Evaluate(ctx, valueNode, s)
 		if object.IsError(value) {
 			return value
 		}
 		var key string
-		if keyIdent, ok := keyNode.(*ast.Identifier); ok {
+		if keyIdent, ok := keyNode.(*ast.Ident); ok {
 			// Key is an identifier (no quotes), e.g. { foo: 5 }
 			key = keyIdent.String()
 		} else {

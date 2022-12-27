@@ -25,11 +25,12 @@ func TestVarStatements(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt := program.Statements[0]
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First()
 		testVarStatement(t, stmt, tt.ident)
-		val := stmt.(*ast.VarStatement).Value
+		name, val := stmt.(*ast.Var).Value()
 		testLiteralExpression(t, val, tt.value)
+		require.Equal(t, tt.ident, name)
 	}
 }
 
@@ -41,14 +42,14 @@ func TestDeclareStatements(t *testing.T) {
 	program, err := Parse(input)
 	printMultiError(err)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 2)
-	stmt1, ok := program.Statements[0].(*ast.VarStatement)
+	statements := program.Statements()
+	require.Len(t, statements, 2)
+	stmt1, ok := statements[0].(*ast.Var)
 	require.True(t, ok)
-	stmt2, ok := program.Statements[1].(*ast.VarStatement)
+	stmt2, ok := statements[1].(*ast.Var)
 	require.True(t, ok)
 	fmt.Println(stmt1)
 	fmt.Println(stmt2)
-	// require.Equal(t, let.TokenLiteral(), "x")
 }
 
 func TestBadVarConstStatement(t *testing.T) {
@@ -69,7 +70,7 @@ func TestBadVarConstStatement(t *testing.T) {
 	}
 }
 
-func TestConstStatements(t *testing.T) {
+func TestConst(t *testing.T) {
 	tests := []struct {
 		input              string
 		expectedIdentifier string
@@ -83,19 +84,20 @@ func TestConstStatements(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt := program.Statements[0]
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First()
 		if !testConstStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
-		val := stmt.(*ast.ConstStatement).Value
+		name, val := stmt.(*ast.Const).Value()
+		require.Equal(t, tt.expectedIdentifier, name)
 		if !testLiteralExpression(t, val, tt.expectedValue) {
 			return
 		}
 	}
 }
 
-func TestReturnStatement(t *testing.T) {
+func TestReturn(t *testing.T) {
 	input := `
 return 0b11;
 return 0x15;
@@ -103,27 +105,25 @@ return 993322;
 `
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 3)
-	for _, stmt := range program.Statements {
-		returnStatement, ok := stmt.(*ast.ReturnStatement)
+	require.Len(t, program.Statements(), 3)
+	for _, stmt := range program.Statements() {
+		returnStatement, ok := stmt.(*ast.Return)
 		require.True(t, ok)
-		require.Equal(t, returnStatement.TokenLiteral(), "return")
+		require.Equal(t, returnStatement.Literal(), "return")
 	}
 }
 
-func TestIdentifierExpression(t *testing.T) {
+func TestIdent(t *testing.T) {
 	program, err := Parse("foobar;")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	ident, ok := program.First().(*ast.Ident)
 	require.True(t, ok)
-	ident, ok := stmt.Expression.(*ast.Identifier)
-	require.True(t, ok)
-	require.Equal(t, ident.Value, "foobar")
-	require.Equal(t, ident.TokenLiteral(), "foobar")
+	require.Equal(t, ident.String(), "foobar")
+	require.Equal(t, ident.Literal(), "foobar")
 }
 
-func TestIntegerLiteralExpression(t *testing.T) {
+func TestInt(t *testing.T) {
 	tests := []struct {
 		input string
 		value int64
@@ -136,17 +136,15 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
-		require.True(t, ok)
-		integer, ok := stmt.Expression.(*ast.IntegerLiteral)
-		require.True(t, ok, "got %T", stmt.Expression)
-		require.Equal(t, integer.Value, tt.value)
-		require.Equal(t, integer.TokenLiteral(), fmt.Sprintf("%d", tt.value))
+		require.Len(t, program.Statements(), 1)
+		integer, ok := program.First().(*ast.Int)
+		require.True(t, ok, "got %T", program.First())
+		require.Equal(t, integer.Value(), tt.value)
+		require.Equal(t, integer.Literal(), fmt.Sprintf("%d", tt.value))
 	}
 }
 
-func TestBooleanExpression(t *testing.T) {
+func TestBool(t *testing.T) {
 	tests := []struct {
 		input     string
 		boolValue bool
@@ -157,16 +155,14 @@ func TestBooleanExpression(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		require.Len(t, program.Statements(), 1)
+		exp, ok := program.First().(*ast.Bool)
 		require.True(t, ok)
-		exp, ok := stmt.Expression.(*ast.Bool)
-		require.True(t, ok)
-		require.Equal(t, exp.Value, tt.boolValue)
+		require.Equal(t, exp.Value(), tt.boolValue)
 	}
 }
 
-func TestParsingPrefixExpression(t *testing.T) {
+func TestPrefix(t *testing.T) {
 	prefixTests := []struct {
 		input        string
 		operator     string
@@ -180,13 +176,11 @@ func TestParsingPrefixExpression(t *testing.T) {
 	for _, tt := range prefixTests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		require.Len(t, program.Statements(), 1)
+		exp, ok := program.First().(*ast.Prefix)
 		require.True(t, ok)
-		exp, ok := stmt.Expression.(*ast.PrefixExpression)
-		require.True(t, ok)
-		require.Equal(t, exp.Operator, tt.operator)
-		testLiteralExpression(t, exp.Right, tt.integerValue)
+		require.Equal(t, exp.Operator(), tt.operator)
+		testLiteralExpression(t, exp.Right(), tt.integerValue)
 	}
 }
 
@@ -214,14 +208,14 @@ func TestParsingInfixExpression(t *testing.T) {
 	for _, tt := range infixTests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		require.Len(t, program.Statements(), 1)
+		expr, ok := program.First().(ast.Expression)
 		require.True(t, ok)
-		testInfixExpression(t, stmt.Expression, tt.leftValue, tt.operator, tt.rightValue)
+		testInfixExpression(t, expr, tt.leftValue, tt.operator, tt.rightValue)
 	}
 }
 
-func TestOperatorPrecedenceParsing(t *testing.T) {
+func TestOperatorPrecedence(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -260,64 +254,42 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 	}
 }
 
-func TestIfExpression(t *testing.T) {
+func TestIf(t *testing.T) {
 	program, err := Parse("if x < y { x }")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	exp, ok := program.First().(*ast.If)
 	require.True(t, ok)
-	exp, ok := stmt.Expression.(*ast.IfExpression)
-	require.True(t, ok)
-	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
+	if !testInfixExpression(t, exp.Condition(), "x", "<", "y") {
 		return
 	}
-	require.Len(t, exp.Consequence.Statements, 1)
-	consequence, ok := exp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, exp.Consequence().Statements(), 1)
+	consequence, ok := exp.Consequence().Statements()[0].(*ast.Ident)
 	require.True(t, ok)
-	if !testIdentifier(t, consequence.Expression, "x") {
-		return
-	}
-	require.Nil(t, exp.Alternative)
+	require.Equal(t, "x", consequence.String())
+	require.Nil(t, exp.Alternative())
 }
 
-func TestFunctionLiteralParsing(t *testing.T) {
-	program, err := Parse("func(x, y=3) { x + y }")
+func TestFunc(t *testing.T) {
+	program, err := Parse("func f(x, y=3) { x + y; }")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	function, ok := program.First().(*ast.Func)
 	require.True(t, ok)
-	function, ok := stmt.Expression.(*ast.FunctionLiteral)
+	params := function.Parameters()
+	require.Len(t, params, 2)
+	testLiteralExpression(t, params[0], "x")
+	testLiteralExpression(t, params[1], "y")
+	require.Len(t, function.Body().Statements(), 1)
+	bodyStmt, ok := function.Body().Statements()[0].(*ast.Infix)
 	require.True(t, ok)
-	require.Len(t, function.Parameters, 2)
-	testLiteralExpression(t, function.Parameters[0], "x")
-	testLiteralExpression(t, function.Parameters[1], "y")
-	require.Len(t, function.Body.Statements, 1)
-	bodyStmt, ok := function.Body.Statements[0].(*ast.ExpressionStatement)
-	require.True(t, ok)
-	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+	require.Equal(t, "(x + y)", bodyStmt.String())
 }
 
-func TestFunctionParsing(t *testing.T) {
-	program, err := Parse("func f(x, y) { x + y; }")
-	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
-	require.True(t, ok)
-	function, ok := stmt.Expression.(*ast.FunctionDefineLiteral)
-	require.True(t, ok)
-	require.Len(t, function.Parameters, 2)
-	testLiteralExpression(t, function.Parameters[0], "x")
-	testLiteralExpression(t, function.Parameters[1], "y")
-	require.Len(t, function.Body.Statements, 1)
-	bodyStmt, ok := function.Body.Statements[0].(*ast.ExpressionStatement)
-	require.True(t, ok)
-	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
-}
-
-func TestFunctionParameterParsing(t *testing.T) {
+func TestFuncParams(t *testing.T) {
 	tests := []struct {
-		input            string
-		expectedParameer []string
+		input         string
+		expectedParam []string
 	}{
 		{"func(){}", []string{}},
 		{"func(x){}", []string{"x"}},
@@ -326,86 +298,83 @@ func TestFunctionParameterParsing(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt := program.Statements[0].(*ast.ExpressionStatement)
-		function := stmt.Expression.(*ast.FunctionLiteral)
-		require.Len(t, function.Parameters, len(tt.expectedParameer))
-		for i, ident := range tt.expectedParameer {
-			testLiteralExpression(t, function.Parameters[i], ident)
+		require.Len(t, program.Statements(), 1)
+		function, ok := program.First().(*ast.Func)
+		require.True(t, ok)
+		params := function.Parameters()
+		require.Len(t, params, len(tt.expectedParam))
+		for i, ident := range tt.expectedParam {
+			testLiteralExpression(t, params[i], ident)
 		}
 	}
 }
 
-func TestCallExpressionParsing(t *testing.T) {
+func TestCall(t *testing.T) {
 	program, err := Parse("add(1, 2*3, 4+5)")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr, ok := program.First().(*ast.Call)
 	require.True(t, ok)
-	exp, ok := stmt.Expression.(*ast.CallExpression)
-	require.True(t, ok)
-	if !testIdentifier(t, exp.Function, "add") {
+	if !testIdentifier(t, expr.Function(), "add") {
 		return
 	}
-	require.Len(t, exp.Arguments, 3)
-	testLiteralExpression(t, exp.Arguments[0], 1)
-	testInfixExpression(t, exp.Arguments[1], 2, "*", 3)
-	testInfixExpression(t, exp.Arguments[2], 4, "+", 5)
+	args := expr.Arguments()
+	require.Len(t, args, 3)
+	testLiteralExpression(t, args[0], 1)
+	testInfixExpression(t, args[1], 2, "*", 3)
+	testInfixExpression(t, args[2], 4, "+", 5)
 }
 
-func TestStringLiteralExpression(t *testing.T) {
+func TestString(t *testing.T) {
 	program, err := Parse(`"hello world";`)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	literal, ok := stmt.Expression.(*ast.StringLiteral)
+	require.Len(t, program.Statements(), 1)
+	literal, ok := program.First().(*ast.String)
 	require.True(t, ok)
-	require.Equal(t, "hello world", literal.Value)
+	require.Equal(t, "hello world", literal.Value())
 }
 
-func TestParsingArrayLiteral(t *testing.T) {
+func TestList(t *testing.T) {
 	program, err := Parse("[1, 2*2, 3+3]")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, _ := program.Statements[0].(*ast.ExpressionStatement)
-	ll, ok := stmt.Expression.(*ast.ListLiteral)
+	require.Len(t, program.Statements(), 1)
+	ll, ok := program.First().(*ast.List)
 	require.True(t, ok)
-	require.Len(t, ll.Items, 3)
-	testIntegerLiteral(t, ll.Items[0], 1)
-	testInfixExpression(t, ll.Items[1], 2, "*", 2)
-	testInfixExpression(t, ll.Items[2], 3, "+", 3)
+	items := ll.Items()
+	require.Len(t, items, 3)
+	testIntegerLiteral(t, items[0], 1)
+	testInfixExpression(t, items[1], 2, "*", 2)
+	testInfixExpression(t, items[2], 3, "+", 3)
 }
 
-func TestParsingIndexExpression(t *testing.T) {
+func TestIndex(t *testing.T) {
 	input := "myArray[1+1]"
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, _ := program.Statements[0].(*ast.ExpressionStatement)
-	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+	require.Len(t, program.Statements(), 1)
+	indexExp, ok := program.First().(*ast.Index)
 	require.True(t, ok)
-	testIdentifier(t, indexExp.Left, "myArray")
-	testInfixExpression(t, indexExp.Index, 1, "+", 1)
+	testIdentifier(t, indexExp.Left(), "myArray")
+	testInfixExpression(t, indexExp.Index(), 1, "+", 1)
 }
 
 func TestParsingMap(t *testing.T) {
 	input := `{"one":1, "two":2, "three":3}`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	m, ok := stmt.Expression.(*ast.MapLiteral)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
 	require.True(t, ok)
-	require.Len(t, m.Pairs, 3)
+	require.Len(t, m.Items(), 3)
 	expected := map[string]int64{
 		"one":   1,
 		"two":   2,
 		"three": 3,
 	}
-	for key, value := range m.Pairs {
-		literal, ok := key.(*ast.StringLiteral)
+	for key, value := range m.Items() {
+		literal, ok := key.(*ast.String)
 		require.True(t, ok)
-		expectedValue := expected[literal.TokenLiteral()]
+		expectedValue := expected[literal.Value()]
 		testIntegerLiteral(t, value, expectedValue)
 	}
 }
@@ -414,22 +383,20 @@ func TestParsingEmptyMap(t *testing.T) {
 	input := "{}"
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	m, ok := stmt.Expression.(*ast.MapLiteral)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
 	require.True(t, ok)
-	require.Len(t, m.Pairs, 0)
+	require.Len(t, m.Items(), 0)
 }
 
 func TestParsingMapLiteralWithExpression(t *testing.T) {
 	input := `{"one":0+1, "two":10 - 8, "three": 15/5}`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	m, ok := stmt.Expression.(*ast.MapLiteral)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
 	require.True(t, ok)
-	require.Len(t, m.Pairs, 3)
+	require.Len(t, m.Items(), 3)
 	tests := map[string]func(ast.Expression){
 		"one": func(e ast.Expression) {
 			testInfixExpression(t, e, 0, "+", 1)
@@ -441,11 +408,11 @@ func TestParsingMapLiteralWithExpression(t *testing.T) {
 			testInfixExpression(t, e, 15, "/", 5)
 		},
 	}
-	for key, value := range m.Pairs {
-		literal, ok := key.(*ast.StringLiteral)
+	for key, value := range m.Items() {
+		literal, ok := key.(*ast.String)
 		require.True(t, ok)
-		testFunc, ok := tests[literal.TokenLiteral()]
-		require.True(t, ok)
+		testFunc, ok := tests[literal.Value()]
+		require.True(t, ok, literal.Value())
 		testFunc(value)
 	}
 }
@@ -512,18 +479,16 @@ func TestSwitch(t *testing.T) {
 }`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	expr, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	switchExpr, ok := program.First().(*ast.Switch)
 	require.True(t, ok)
-	switchExpr, ok := expr.Expression.(*ast.SwitchExpression)
-	require.True(t, ok)
-	require.Equal(t, "val", switchExpr.Value.String())
-	require.Len(t, switchExpr.Choices, 2)
-	choice1 := switchExpr.Choices[0]
-	require.Len(t, choice1.Expr, 1)
-	require.Equal(t, "1", choice1.Expr[0].String())
-	choice2 := switchExpr.Choices[1]
-	require.Len(t, choice2.Expr, 0)
+	require.Equal(t, "val", switchExpr.Value().String())
+	require.Len(t, switchExpr.Choices(), 2)
+	choice1 := switchExpr.Choices()[0]
+	require.Len(t, choice1.Expressions(), 1)
+	require.Equal(t, "1", choice1.Expressions()[0].String())
+	choice2 := switchExpr.Choices()[1]
+	require.Len(t, choice2.Expressions(), 0)
 }
 
 func TestMultiDefault(t *testing.T) {
@@ -549,7 +514,7 @@ default:
 	require.Equal(t, 8, parserErr.EndPosition().Line)
 }
 
-func TestPipeExpression(t *testing.T) {
+func TestPipe(t *testing.T) {
 	tests := []struct {
 		input          string
 		exprType       string
@@ -562,22 +527,25 @@ func TestPipeExpression(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		stmt := program.Statements[0].(*ast.VarStatement)
-		expr, ok := stmt.Value.(*ast.PipeExpression)
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First().(*ast.Var)
+		name, expr := stmt.Value()
+		require.Equal(t, "x", name)
+		pipe, ok := expr.(*ast.Pipe)
 		require.True(t, ok)
-		require.Len(t, expr.Arguments, len(tt.expectedIdents))
+		pipeExprs := pipe.Expressions()
+		require.Len(t, pipeExprs, len(tt.expectedIdents))
 		if tt.exprType == "ident" {
 			for i, ident := range tt.expectedIdents {
-				identExpr, ok := expr.Arguments[i].(*ast.Identifier)
+				identExpr, ok := pipeExprs[i].(*ast.Ident)
 				require.True(t, ok)
-				require.Equal(t, ident, identExpr.Value)
+				require.Equal(t, ident, identExpr.String())
 			}
 		} else if tt.exprType == "call" {
 			for i, ident := range tt.expectedIdents {
-				callExpr, ok := expr.Arguments[i].(*ast.CallExpression)
+				callExpr, ok := pipeExprs[i].(*ast.Call)
 				require.True(t, ok)
-				require.Equal(t, ident, callExpr.Function.String())
+				require.Equal(t, ident, callExpr.Function().String())
 			}
 		}
 	}
@@ -593,13 +561,11 @@ func TestMapExpression(t *testing.T) {
 	`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	m, ok := expr.(*ast.Map)
 	require.True(t, ok)
-	m, ok := expr.Expression.(*ast.MapLiteral)
-	require.True(t, ok)
-	require.Len(t, m.Pairs, 2)
+	require.Len(t, m.Items(), 2)
 }
 
 func TestSetExpression(t *testing.T) {
@@ -611,13 +577,11 @@ func TestSetExpression(t *testing.T) {
 	`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	set, ok := expr.(*ast.Set)
 	require.True(t, ok)
-	set, ok := expr.Expression.(*ast.SetLiteral)
-	require.True(t, ok)
-	require.Len(t, set.Items, 4)
+	require.Len(t, set.Items(), 4)
 	require.Equal(t, `{"a", 1, 2, "c"}`, set.String())
 }
 
@@ -629,32 +593,28 @@ func TestCallExpression(t *testing.T) {
 	`
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	call, ok := expr.(*ast.Call)
 	require.True(t, ok)
-	call, ok := expr.Expression.(*ast.CallExpression)
-	require.True(t, ok)
-	require.Equal(t, "foo", call.Function.String())
-	require.Len(t, call.Arguments, 2)
-	arg0 := call.Arguments[0].(*ast.AssignStatement)
+	require.Equal(t, "foo", call.Function().String())
+	args := call.Arguments()
+	require.Len(t, args, 2)
+	arg0 := args[0].(*ast.Assign)
 	require.Equal(t, "a = 1", arg0.String())
-	arg1 := call.Arguments[1].(*ast.AssignStatement)
+	arg1 := args[1].(*ast.Assign)
 	require.Equal(t, "b = 2", arg1.String())
 }
 
-func TestGetAttribute(t *testing.T) {
+func TestGetAttr(t *testing.T) {
 	program, err := Parse("foo.bar")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	expr, ok := stmt.(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	getAttr, ok := expr.(*ast.GetAttr)
 	require.True(t, ok)
-	getAttr, ok := expr.Expression.(*ast.GetAttributeExpression)
-	require.True(t, ok)
-	require.Equal(t, "bar", getAttr.Attribute.String())
-	getAttrStr := getAttr.String()
-	require.Equal(t, "foo.bar", getAttrStr)
+	require.Equal(t, "bar", getAttr.Name())
+	require.Equal(t, "foo.bar", getAttr.String())
 }
 
 func TestForLoop(t *testing.T) {
@@ -681,36 +641,32 @@ func TestForLoop(t *testing.T) {
 		program, err := Parse(tt.input)
 		printMultiError(err)
 		require.Nil(t, err)
-		require.Len(t, program.Statements, 1)
-		s := program.Statements[0]
-		exprStatement := s.(*ast.ExpressionStatement)
-		expr, ok := exprStatement.Expression.(*ast.ForLoopExpression)
+		require.Len(t, program.Statements(), 1)
+		expr, ok := program.First().(*ast.For)
 		require.True(t, ok)
-		require.Equal(t, tt.condStr, expr.Condition.String())
+		require.Equal(t, tt.condStr, expr.Condition().String())
 		if tt.initStr != "" {
-			require.Equal(t, tt.initStr, expr.InitStatement.String())
+			require.Equal(t, tt.initStr, expr.Init().String())
 		} else {
-			if expr.InitStatement != nil {
-				t.Fatalf("expected no init statement. got='%v'", expr.InitStatement.String())
+			if expr.Init() != nil {
+				t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
 			}
 		}
 		if tt.postStr != "" {
-			require.Equal(t, tt.postStr, expr.PostStatement.String())
+			require.Equal(t, tt.postStr, expr.Post().String())
 		} else {
-			if expr.PostStatement != nil {
-				t.Fatalf("expected no post statement. got='%v'", expr.PostStatement.String())
+			if expr.Post() != nil {
+				t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
 			}
 		}
 	}
 }
 
 func TestBreak(t *testing.T) {
-	input := "break"
-	program, err := Parse(input)
+	program, err := Parse("break")
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0]
-	_, ok := stmt.(*ast.BreakStatement)
+	require.Len(t, program.Statements(), 1)
+	_, ok := program.First().(*ast.Break)
 	require.True(t, ok)
 }
 
@@ -718,12 +674,10 @@ func TestBacktick(t *testing.T) {
 	input := "`" + `\\n\t foo bar /hey there/` + "`"
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	require.Len(t, program.Statements(), 1)
+	expr, ok := program.First().(*ast.String)
 	require.True(t, ok)
-	str, ok := stmt.Expression.(*ast.StringLiteral)
-	require.True(t, ok)
-	require.Equal(t, `\\n\t foo bar /hey there/`, str.Value)
+	require.Equal(t, `\\n\t foo bar /hey there/`, expr.Value())
 }
 
 func TestUnterminatedBacktickString(t *testing.T) {
@@ -793,15 +747,14 @@ func TestMapIdentifierKey(t *testing.T) {
 	input := "{ one: 1 }"
 	program, err := Parse(input)
 	require.Nil(t, err)
-	require.Len(t, program.Statements, 1)
-	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	m, ok := stmt.Expression.(*ast.MapLiteral)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
 	require.True(t, ok)
-	require.Len(t, m.Pairs, 1)
-	for key := range m.Pairs {
-		ident, ok := key.(*ast.Identifier)
+	require.Len(t, m.Items(), 1)
+	for key := range m.Items() {
+		ident, ok := key.(*ast.Ident)
 		require.True(t, ok, fmt.Sprintf("%T", key))
-		require.Equal(t, "one", ident.TokenLiteral())
+		require.Equal(t, "one", ident.String())
 	}
 }
 

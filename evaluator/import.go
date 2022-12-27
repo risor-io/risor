@@ -18,11 +18,7 @@ type Importer interface {
 
 type SimpleImporter struct{}
 
-func (si *SimpleImporter) Import(
-	ctx context.Context,
-	e *Evaluator,
-	name string,
-) (*object.Module, error) {
+func (si *SimpleImporter) Import(ctx context.Context, e *Evaluator, name string) (*object.Module, error) {
 	contents, err := os.ReadFile(name)
 	if err != nil {
 		return nil, err
@@ -41,15 +37,11 @@ func (si *SimpleImporter) Import(
 	return object.NewModule(name, s), nil
 }
 
-func (e *Evaluator) evalImportStatement(
-	ctx context.Context,
-	node *ast.ImportStatement,
-	s *scope.Scope,
-) object.Object {
+func (e *Evaluator) evalImportStatement(ctx context.Context, node *ast.Import, s *scope.Scope) object.Object {
 	if e.importer == nil {
 		return object.Errorf("import error: importing is disabled")
 	}
-	moduleName := node.Name.String()
+	moduleName := node.Module().String()
 	name := fmt.Sprintf("%s.tm", moduleName)
 	module, err := e.importer.Import(ctx, e, name)
 	if err != nil {

@@ -11,33 +11,25 @@ import (
 // evalIfExpression handles an `if` expression, running the block
 // if the condition matches, and running any optional else block
 // otherwise.
-func (e *Evaluator) evalIfExpression(
-	ctx context.Context,
-	ie *ast.IfExpression,
-	s *scope.Scope,
-) object.Object {
-	condition := e.Evaluate(ctx, ie.Condition, s)
+func (e *Evaluator) evalIfExpression(ctx context.Context, ie *ast.If, s *scope.Scope) object.Object {
+	condition := e.Evaluate(ctx, ie.Condition(), s)
 	if object.IsError(condition) {
 		return condition
 	}
 	if object.IsTruthy(condition) {
-		return e.Evaluate(ctx, ie.Consequence, s)
-	} else if ie.Alternative != nil {
-		return e.Evaluate(ctx, ie.Alternative, s)
-	} else {
-		return object.Nil
+		return e.Evaluate(ctx, ie.Consequence(), s)
+	} else if ie.Alternative() != nil {
+		return e.Evaluate(ctx, ie.Alternative(), s)
 	}
+	return object.Nil
 }
 
-func (e *Evaluator) evalForLoopExpression(
-	ctx context.Context,
-	fle *ast.ForLoopExpression,
-	s *scope.Scope,
-) object.Object {
+func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
 
 	// Evaluate the initialization statement if there is one
-	if fle.InitStatement != nil {
-		if res := e.Evaluate(ctx, fle.InitStatement, s); object.IsError(res) {
+	init := fle.Init()
+	if init != nil {
+		if res := e.Evaluate(ctx, init, s); object.IsError(res) {
 			return res
 		}
 	}
@@ -54,7 +46,7 @@ func (e *Evaluator) evalForLoopExpression(
 	simpleLoop:
 		for {
 			nestedScope.Clear()
-			result := e.Evaluate(ctx, fle.Consequence, nestedScope)
+			result := e.Evaluate(ctx, fle.Consequence(), nestedScope)
 			switch result := result.(type) {
 			case *object.Error:
 				return result
@@ -73,13 +65,13 @@ loop:
 	for {
 		nestedScope.Clear()
 		// Evaluate the condition
-		condition := e.Evaluate(ctx, fle.Condition, nestedScope)
+		condition := e.Evaluate(ctx, fle.Condition(), nestedScope)
 		if object.IsError(condition) {
 			return condition
 		}
 		if object.IsTruthy(condition) {
 			// Evaluate the block
-			rt := e.Evaluate(ctx, fle.Consequence, nestedScope)
+			rt := e.Evaluate(ctx, fle.Consequence(), nestedScope)
 			switch rt := rt.(type) {
 			case *object.Error:
 				return rt
@@ -93,8 +85,8 @@ loop:
 			break
 		}
 		// Evaluate the post statement (usually used to increment a counter)
-		if fle.PostStatement != nil {
-			if res := e.Evaluate(ctx, fle.PostStatement, nestedScope); object.IsError(res) {
+		if fle.Post() != nil {
+			if res := e.Evaluate(ctx, fle.Post(), nestedScope); object.IsError(res) {
 				return res
 			}
 		}
@@ -102,40 +94,32 @@ loop:
 	return latestValue
 }
 
-func (e *Evaluator) evalSwitchStatement(
-	ctx context.Context,
-	se *ast.SwitchExpression,
-	s *scope.Scope,
-) object.Object {
-	// Get the value
-	obj := e.Evaluate(ctx, se.Value, s)
-	// Try all the choices
-	for _, opt := range se.Choices {
-		// skipping the default-case, which we'll handle later
-		if opt.Default {
+func (e *Evaluator) evalSwitchStatement(ctx context.Context, se *ast.Switch, s *scope.Scope) object.Object {
+	value := e.Evaluate(ctx, se.Value(), s)
+	if object.IsError(value) {
+		return value
+	}
+	for _, opt := range se.Choices() {
+		if opt.IsDefault() {
 			continue
 		}
-		// Look at any expression we've got in this case.
-		for _, val := range opt.Expr {
-			// Get the value of the case
+		for _, val := range opt.Expressions() {
 			out := e.Evaluate(ctx, val, s)
-			// Is it a literal match?
-			if obj.Type() == out.Type() && (obj.Inspect() == out.Inspect()) {
-				// Evaluate the block and return the value
-				blockOut := e.evalBlockStatement(ctx, opt.Block, s)
-				return blockOut
+			if object.IsError(out) {
+				return out
+			}
+			if object.Equals(value, out) {
+				return e.evalBlockStatement(ctx, opt.Block(), s)
 			}
 		}
 	}
-	// No match? Handle default if present.
-	for _, opt := range se.Choices {
-		// skip default
-		if opt.Default {
-			out := e.evalBlockStatement(ctx, opt.Block, s)
-			return out
+	// No match found, so run the default block if there is one
+	for _, opt := range se.Choices() {
+		if opt.IsDefault() {
+			return e.evalBlockStatement(ctx, opt.Block(), s)
 		}
 	}
-	return nil
+	return object.Nil
 }
 
 func prependObject(slice []object.Object, obj object.Object) []object.Object {
@@ -145,33 +129,29 @@ func prependObject(slice []object.Object, obj object.Object) []object.Object {
 	return slice
 }
 
-func (e *Evaluator) evalPipeExpression(
-	ctx context.Context,
-	pe *ast.PipeExpression,
-	s *scope.Scope,
-) object.Object {
-	if len(pe.Arguments) < 2 {
-		return object.Errorf("eval error: invalid pipe expression (got only %d arguments)",
-			len(pe.Arguments))
+func (e *Evaluator) evalPipeExpression(ctx context.Context, pe *ast.Pipe, s *scope.Scope) object.Object {
+	exprs := pe.Expressions()
+	if len(exprs) < 2 {
+		return object.Errorf("eval error: invalid pipe expression (got only %d arguments)", len(exprs))
 	}
 	// Evaluate the expression preceding the first pipe operator
-	nextArg := e.Evaluate(ctx, pe.Arguments[0], s)
+	nextArg := e.Evaluate(ctx, exprs[0], s)
 	if object.IsError(nextArg) {
 		return nextArg
 	}
 	// Evaluate the rest of the pipe expression
-	for i, expr := range pe.Arguments[1:] {
+	for i, expr := range exprs[1:] {
 		switch expression := expr.(type) {
-		case *ast.CallExpression:
+		case *ast.Call:
 			// Can't use evalCallExpression because we need to customize argument handling
-			function := e.Evaluate(ctx, expression.Function, s)
+			function := e.Evaluate(ctx, expression.Function(), s)
 			if object.IsError(function) {
 				return function
 			}
 			// Resolve the call arguments
 			var args []object.Object
-			if len(expression.Arguments) > 0 {
-				args = e.evalExpressions(ctx, expression.Arguments, s)
+			if len(expression.Arguments()) > 0 {
+				args = e.evalExpressions(ctx, expression.Arguments(), s)
 				if len(args) == 1 && object.IsError(args[0]) {
 					return args[0]
 				}
@@ -186,17 +166,17 @@ func (e *Evaluator) evalPipeExpression(
 			}
 			// Save the output as arguments for the next stage
 			nextArg = res
-		case *ast.ObjectCallExpression:
+		case *ast.ObjectCall:
 			// Resolve the object
-			obj := e.Evaluate(ctx, expression.Object, s)
+			obj := e.Evaluate(ctx, expression.Object(), s)
 			if object.IsError(obj) {
 				return obj
 			}
 			// Resolve the call arguments
-			callExpr := expression.Call.(*ast.CallExpression)
+			callExpr := expression.Call().(*ast.Call)
 			var args []object.Object
-			if len(callExpr.Arguments) > 0 {
-				args = e.evalExpressions(ctx, callExpr.Arguments, s)
+			if len(callExpr.Arguments()) > 0 {
+				args = e.evalExpressions(ctx, callExpr.Arguments(), s)
 				if len(args) == 1 && object.IsError(args[0]) {
 					return args[0]
 				}
@@ -205,11 +185,11 @@ func (e *Evaluator) evalPipeExpression(
 			if nextArg != nil {
 				args = prependObject(args, nextArg)
 			}
-			method, ok := callExpr.Function.(*ast.Identifier)
+			method, ok := callExpr.Function().(*ast.Ident)
 			if !ok {
 				return object.Errorf("invalid function in pipe expression: %v", callExpr.Function)
 			}
-			res := e.evalObjectCall(ctx, s, obj, method.Value, args)
+			res := e.evalObjectCall(ctx, s, obj, method.Literal(), args)
 			if object.IsError(res) {
 				return res
 			}
@@ -250,15 +230,11 @@ func (e *Evaluator) evalPipeExpression(
 	return object.Nil
 }
 
-func (e *Evaluator) evalReturnStatement(
-	ctx context.Context,
-	node *ast.ReturnStatement,
-	s *scope.Scope,
-) object.Object {
-	if node.ReturnValue == nil {
+func (e *Evaluator) evalReturnStatement(ctx context.Context, node *ast.Return, s *scope.Scope) object.Object {
+	if node.Value() == nil {
 		return object.Nil // Should we adjust the parser output in this case?
 	}
-	value := e.Evaluate(ctx, node.ReturnValue, s)
+	value := e.Evaluate(ctx, node.Value(), s)
 	if object.IsError(value) {
 		return value
 	}
@@ -266,8 +242,8 @@ func (e *Evaluator) evalReturnStatement(
 }
 
 func (e *Evaluator) upwrapReturnValue(obj object.Object) object.Object {
-	if returnValue, ok := obj.(*object.ReturnValue); ok {
-		return returnValue.Value()
+	if rv, ok := obj.(*object.ReturnValue); ok {
+		return rv.Value()
 	}
 	return obj
 }

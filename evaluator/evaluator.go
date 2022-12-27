@@ -100,7 +100,7 @@ func (e *Evaluator) GetBreakpoint(tok token.Token) (*Breakpoint, bool) {
 
 func (e *Evaluator) trackExecution(statement ast.Statement, s *scope.Scope) object.Object {
 	e.stack.TrackStatement(statement, s)
-	tok := statement.StartToken()
+	tok := statement.Token()
 	if b, found := e.GetBreakpoint(tok); found && !b.Disabled {
 		location := fmt.Sprintf("%s:%d", tok.StartPosition.File, tok.StartPosition.LineNumber())
 		fmt.Println("----------------")
@@ -156,81 +156,79 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	// High level types
 	case *ast.Program:
 		return e.evalProgram(ctx, node, s)
-	case *ast.ExpressionStatement:
-		return e.Evaluate(ctx, node.Expression, s)
-	case *ast.BlockStatement:
+	case *ast.Block:
 		return e.evalBlockStatement(ctx, node, s)
 
 	// Operator expressions
-	case *ast.PrefixExpression:
+	case *ast.Prefix:
 		return e.evalPrefixExpression(ctx, node, s)
-	case *ast.PostfixExpression:
-		return e.evalPostfixExpression(s, node.Operator, node)
-	case *ast.InfixExpression:
+	case *ast.Postfix:
+		return e.evalPostfixExpression(s, node.Operator(), node)
+	case *ast.Infix:
 		return e.evalInfixExpression(ctx, node, s)
-	case *ast.TernaryExpression:
+	case *ast.Ternary:
 		return e.evalTernaryExpression(ctx, node, s)
 
 	// Miscellaneous
-	case *ast.Identifier:
+	case *ast.Ident:
 		return e.evalIdentifier(node, s)
-	case *ast.IndexExpression:
+	case *ast.Index:
 		return e.evalIndexExpression(ctx, node, s)
+	case *ast.Slice:
+		return e.evalSliceExpression(ctx, node, s)
 	case *ast.Bool:
-		return nativeBoolToBooleanObject(node.Value)
-	case *ast.ImportStatement:
+		return nativeBoolToBooleanObject(node.Value())
+	case *ast.Import:
 		return e.evalImportStatement(ctx, node, s)
 
 	// Assignment
-	case *ast.VarStatement:
+	case *ast.Var:
 		return e.evalVarStatement(ctx, node, s)
-	case *ast.ConstStatement:
+	case *ast.Const:
 		return e.evalConstStatement(ctx, node, s)
-	case *ast.AssignStatement:
+	case *ast.Assign:
 		return e.evalAssignStatement(ctx, node, s)
 
 	// Functions
-	case *ast.FunctionLiteral:
+	case *ast.Func:
 		return e.evalFunctionLiteral(ctx, node, s)
-	case *ast.FunctionDefineLiteral:
-		return e.evalFunctionDefinition(ctx, node, s)
 
 	// Calls
-	case *ast.ObjectCallExpression:
+	case *ast.ObjectCall:
 		return e.evalObjectCallExpression(ctx, node, s)
-	case *ast.CallExpression:
+	case *ast.Call:
 		return e.evalCallExpression(ctx, node, s)
-	case *ast.GetAttributeExpression:
+	case *ast.GetAttr:
 		return e.evalGetAttributeExpression(ctx, node, s)
 
 	// Control
-	case *ast.IfExpression:
+	case *ast.If:
 		return e.evalIfExpression(ctx, node, s)
-	case *ast.ForLoopExpression:
+	case *ast.For:
 		return e.evalForLoopExpression(ctx, node, s)
-	case *ast.SwitchExpression:
+	case *ast.Switch:
 		return e.evalSwitchStatement(ctx, node, s)
-	case *ast.PipeExpression:
+	case *ast.Pipe:
 		return e.evalPipeExpression(ctx, node, s)
-	case *ast.ReturnStatement:
+	case *ast.Return:
 		return e.evalReturnStatement(ctx, node, s)
-	case *ast.BreakStatement:
+	case *ast.Break:
 		return &object.BreakValue{}
 
 	// Literals
-	case *ast.NilLiteral:
+	case *ast.Nil:
 		return object.Nil
-	case *ast.IntegerLiteral:
-		return object.NewInt(node.Value)
-	case *ast.FloatLiteral:
-		return object.NewFloat(node.Value)
-	case *ast.StringLiteral:
+	case *ast.Int:
+		return object.NewInt(node.Value())
+	case *ast.Float:
+		return object.NewFloat(node.Value())
+	case *ast.String:
 		return e.evalStringLiteral(ctx, node, s)
-	case *ast.ListLiteral:
+	case *ast.List:
 		return e.evalListLiteral(ctx, node, s)
-	case *ast.MapLiteral:
+	case *ast.Map:
 		return e.evalMapLiteral(ctx, node, s)
-	case *ast.SetLiteral:
+	case *ast.Set:
 		return e.evalSetLiteral(ctx, node, s)
 	}
 

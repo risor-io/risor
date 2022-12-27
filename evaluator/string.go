@@ -10,18 +10,18 @@ import (
 )
 
 func (e *Evaluator) evalStringLiteral(ctx context.Context,
-	node *ast.StringLiteral,
+	node *ast.String,
 	s *scope.Scope,
 ) object.Object {
-	if node.Template == nil {
-		return object.NewString(node.Value)
+	if node.Template() == nil {
+		return object.NewString(node.Value())
 	}
 	var exprIndex int
 	var parts []string
-	for _, f := range node.Template.Fragments {
+	for _, f := range node.Template().Fragments {
 		switch f.IsVariable {
 		case true:
-			expr := node.TemplateExpressions[exprIndex]
+			expr := node.TemplateExpressions()[exprIndex]
 			exprIndex++
 			if expr == nil {
 				parts = append(parts, "")

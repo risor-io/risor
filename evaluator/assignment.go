@@ -8,125 +8,112 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-func (e *Evaluator) evalVarStatement(
-	ctx context.Context,
-	node *ast.VarStatement,
-	s *scope.Scope,
-) object.Object {
-	value := e.Evaluate(ctx, node.Value, s)
+func (e *Evaluator) evalVarStatement(ctx context.Context, node *ast.Var, s *scope.Scope) object.Object {
+	ident, expr := node.Value()
+	value := e.Evaluate(ctx, expr, s)
 	if object.IsError(value) {
 		return value
 	}
-	if err := s.Declare(node.Name.Value, value, false); err != nil {
-		return object.Errorf(err.Error())
+	if err := s.Declare(ident, value, false); err != nil {
+		return object.NewError(err)
 	}
 	return value
 }
 
-func (e *Evaluator) evalConstStatement(
-	ctx context.Context,
-	node *ast.ConstStatement,
-	s *scope.Scope,
-) object.Object {
-	value := e.Evaluate(ctx, node.Value, s)
+func (e *Evaluator) evalConstStatement(ctx context.Context, node *ast.Const, s *scope.Scope) object.Object {
+	ident, expr := node.Value()
+	value := e.Evaluate(ctx, expr, s)
 	if object.IsError(value) {
 		return value
 	}
-	if err := s.Declare(node.Name.Value, value, true); err != nil {
-		return object.Errorf(err.Error())
+	if err := s.Declare(ident, value, true); err != nil {
+		return object.NewError(err)
 	}
 	return value
 }
 
-func (e *Evaluator) evalAssignStatement(
-	ctx context.Context,
-	a *ast.AssignStatement,
-	s *scope.Scope,
-) (val object.Object) {
-	evaluated := e.Evaluate(ctx, a.Value, s)
-	if object.IsError(evaluated) {
-		return evaluated
+func (e *Evaluator) evalAssignStatement(ctx context.Context, a *ast.Assign, s *scope.Scope) object.Object {
+	value := e.Evaluate(ctx, a.Value(), s)
+	if object.IsError(value) {
+		return value
 	}
-	if a.Index != nil {
-		return e.evalSetItemStatement(ctx, a, evaluated, s)
+	if a.Index() != nil {
+		return e.evalSetItemStatement(ctx, a, value, s)
 	}
-	switch a.Operator {
+	name := a.Name()
+	switch a.Operator() {
 	case "+=":
-		current, ok := s.Get(a.Name.String())
+		current, ok := s.Get(name)
 		if !ok {
-			return object.Errorf("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", name)
 		}
-		res := e.evalInfix("+=", current, evaluated, s)
-		if object.IsError(res) {
-			return res
+		r := e.evalInfix("+=", current, value, s)
+		if object.IsError(r) {
+			return r
 		}
-		if err := s.Update(a.Name.String(), res); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Update(name, r); err != nil {
+			return object.NewError(err)
 		}
-		return res
+		return r
 
 	case "-=":
-		current, ok := s.Get(a.Name.String())
+		current, ok := s.Get(name)
 		if !ok {
-			return object.Errorf("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", name)
 		}
-		res := e.evalInfix("-=", current, evaluated, s)
-		if object.IsError(res) {
-			return res
+		r := e.evalInfix("-=", current, value, s)
+		if object.IsError(r) {
+			return r
 		}
-		if err := s.Update(a.Name.String(), res); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Update(name, r); err != nil {
+			return object.NewError(err)
 		}
-		return res
+		return r
 
 	case "*=":
-		current, ok := s.Get(a.Name.String())
+		current, ok := s.Get(name)
 		if !ok {
-			return object.Errorf("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", name)
 		}
-		res := e.evalInfix("*=", current, evaluated, s)
-		if object.IsError(res) {
-			return res
+		r := e.evalInfix("*=", current, value, s)
+		if object.IsError(r) {
+			return r
 		}
-		if err := s.Update(a.Name.String(), res); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Update(name, r); err != nil {
+			return object.NewError(err)
 		}
-		return res
+		return r
 
 	case "/=":
-		current, ok := s.Get(a.Name.String())
+		current, ok := s.Get(name)
 		if !ok {
-			return object.Errorf("name error: %q is not defined", a.Name.String())
+			return object.Errorf("name error: %q is not defined", name)
 		}
-		res := e.evalInfix("/=", current, evaluated, s)
-		if object.IsError(res) {
-			return res
+		r := e.evalInfix("/=", current, value, s)
+		if object.IsError(r) {
+			return r
 		}
-		if err := s.Update(a.Name.String(), res); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Update(name, r); err != nil {
+			return object.NewError(err)
 		}
-		return res
+		return r
 
 	case ":=":
-		if err := s.Declare(a.Name.String(), evaluated, false); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Declare(name, value, false); err != nil {
+			return object.NewError(err)
 		}
 
 	case "=":
-		if err := s.Update(a.Name.String(), evaluated); err != nil {
-			return object.Errorf(err.Error())
+		if err := s.Update(name, value); err != nil {
+			return object.NewError(err)
 		}
 	}
-	return evaluated
+	return value
 }
 
-func (e *Evaluator) evalSetItemStatement(
-	ctx context.Context,
-	a *ast.AssignStatement,
-	value object.Object,
-	s *scope.Scope,
-) (val object.Object) {
-	obj := e.Evaluate(ctx, a.Index.Left, s)
+func (e *Evaluator) evalSetItemStatement(ctx context.Context, a *ast.Assign, value object.Object, s *scope.Scope) (val object.Object) {
+	index := a.Index()
+	obj := e.Evaluate(ctx, index.Left(), s)
 	if object.IsError(obj) {
 		return obj
 	}
@@ -134,13 +121,13 @@ func (e *Evaluator) evalSetItemStatement(
 	if !ok {
 		return object.Errorf("type error: %s is not a container", obj.Type())
 	}
-	index := e.Evaluate(ctx, a.Index.Index, s)
-	if object.IsError(index) {
-		return index
+	indexObj := e.Evaluate(ctx, index.Index(), s)
+	if object.IsError(indexObj) {
+		return indexObj
 	}
-	switch a.Operator {
+	switch a.Operator() {
 	case "=":
-		if err := container.SetItem(index, value); err != nil {
+		if err := container.SetItem(indexObj, value); err != nil {
 			return err
 		}
 	default:

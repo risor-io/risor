@@ -8,16 +8,16 @@ import (
 
 func TestString(t *testing.T) {
 	program := &Program{
-		Statements: []Statement{
-			&VarStatement{
-				Token: token.Token{Type: token.VAR, Literal: "var"},
-				Name: &Identifier{
-					Token: token.Token{Type: token.IDENT, Literal: "myVar"},
-					Value: "myVar",
+		statements: []Node{
+			&Var{
+				token: token.Token{Type: token.VAR, Literal: "var"},
+				name: &Ident{
+					token: token.Token{Type: token.IDENT, Literal: "myVar"},
+					value: "myVar",
 				},
-				Value: &Identifier{
-					Token: token.Token{Type: token.IDENT, Literal: "anotherVar"},
-					Value: "anotherVar",
+				value: &Ident{
+					token: token.Token{Type: token.IDENT, Literal: "anotherVar"},
+					value: "anotherVar",
 				},
 			},
 		},
