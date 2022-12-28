@@ -545,14 +545,14 @@ type For struct {
 	token token.Token
 
 	// condition determines whether the loop should continue running.
-	condition Expression
+	condition Node
 
 	// consequence contains the statements that make up the loop body.
 	consequence *Block
 
 	// Initialization statement which is executed once before evaluating the
 	// condition for the first iteration.
-	init *Var
+	init Node
 
 	// Statement which is executed after each execution of the block
 	// (and only if the block was executed).
@@ -563,7 +563,7 @@ func NewSimpleFor(token token.Token, consequence *Block) *For {
 	return &For{token: token, consequence: consequence}
 }
 
-func NewFor(token token.Token, condition Expression, consequence *Block, init *Var, post Expression) *For {
+func NewFor(token token.Token, condition Node, consequence *Block, init Node, post Expression) *For {
 	return &For{token: token, condition: condition, consequence: consequence, init: init, post: post}
 }
 
@@ -574,13 +574,15 @@ func (f *For) Token() token.Token { return f.token }
 
 func (f *For) Literal() string { return f.token.Literal }
 
-func (f *For) IsSimpleLoop() bool { return f.consequence != nil && f.init == nil }
+func (f *For) IsSimpleLoop() bool {
+	return f.consequence != nil && f.init == nil && f.condition == nil
+}
 
-func (f *For) Condition() Expression { return f.condition }
+func (f *For) Condition() Node { return f.condition }
 
 func (f *For) Consequence() *Block { return f.consequence }
 
-func (f *For) Init() *Var { return f.init }
+func (f *For) Init() Node { return f.init }
 
 func (f *For) Post() Expression { return f.post }
 

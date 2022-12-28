@@ -164,18 +164,32 @@ default:
 
 ## Loops
 
-Two forms of for loops are accepted. The `break` keyword may be used to
-stop looping in either form.
+Three forms of for loops are accepted. The `break` keyword may be used to
+stop looping in all forms.
+
+This form includes init, condition, and post statements:
 
 ```
 for i := 0; i < 10; i++ {
     print(i)
 }
+```
 
+This simple form will loop until a `break` is executed:
+
+```
 for {
-    if condition {
+    if a > b {
         break
     }
+}
+```
+
+This form checks a condition before evaluating the loop body:
+
+```
+for a < b {
+
 }
 ```
 

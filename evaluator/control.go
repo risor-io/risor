@@ -26,14 +26,16 @@ func (e *Evaluator) evalIfExpression(ctx context.Context, ie *ast.If, s *scope.S
 
 func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
 
+	forScope := s.NewChild(scope.Opts{Name: "for"})
+	loopScope := forScope.NewChild(scope.Opts{Name: "for-loop"})
+
 	// Evaluate the initialization statement if there is one
 	init := fle.Init()
 	if init != nil {
-		if res := e.Evaluate(ctx, init, s); object.IsError(res) {
+		if res := e.Evaluate(ctx, init, forScope); object.IsError(res) {
 			return res
 		}
 	}
-	nestedScope := s.NewChild(scope.Opts{Name: "for"})
 
 	// The for loop evaluates to this value. It is set to the last value
 	// evaluated in the for loop block.
@@ -45,8 +47,8 @@ func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *
 
 	simpleLoop:
 		for {
-			nestedScope.Clear()
-			result := e.Evaluate(ctx, fle.Consequence(), nestedScope)
+			loopScope.Clear()
+			result := e.Evaluate(ctx, fle.Consequence(), loopScope)
 			switch result := result.(type) {
 			case *object.Error:
 				return result
@@ -63,15 +65,15 @@ func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *
 	// This is a standard for loop that runs until a specified condition is met
 loop:
 	for {
-		nestedScope.Clear()
+		loopScope.Clear()
 		// Evaluate the condition
-		condition := e.Evaluate(ctx, fle.Condition(), nestedScope)
+		condition := e.Evaluate(ctx, fle.Condition(), forScope)
 		if object.IsError(condition) {
 			return condition
 		}
 		if object.IsTruthy(condition) {
 			// Evaluate the block
-			rt := e.Evaluate(ctx, fle.Consequence(), nestedScope)
+			rt := e.Evaluate(ctx, fle.Consequence(), loopScope)
 			switch rt := rt.(type) {
 			case *object.Error:
 				return rt
@@ -86,7 +88,7 @@ loop:
 		}
 		// Evaluate the post statement (usually used to increment a counter)
 		if fle.Post() != nil {
-			if res := e.Evaluate(ctx, fle.Post(), nestedScope); object.IsError(res) {
+			if res := e.Evaluate(ctx, fle.Post(), forScope); object.IsError(res) {
 				return res
 			}
 		}

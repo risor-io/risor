@@ -720,27 +720,31 @@ func (p *Parser) parseIf() ast.Expression {
 
 func (p *Parser) parseFor() ast.Expression {
 	forToken := p.curToken
-	peekToken := p.peekToken
-	var initExpr *ast.Var
-	switch peekToken.Type {
-	case token.VAR:
-		p.nextToken()
-		initExpr = p.parseVar()
-	case token.IDENT:
-		p.nextToken()
-		initExpr = p.parseDeclaration()
-	case token.LBRACE:
+	// Check for simple form: "for { ... }"
+	if p.peekTokenIs(token.LBRACE) {
 		p.nextToken()
 		consequence := p.parseBlock()
 		if consequence == nil {
 			return nil
 		}
 		return ast.NewSimpleFor(forToken, consequence)
-	default:
-		desc := tokenDescription(p.peekToken)
-		p.setTokenError(p.peekToken, "unexpected token in for loop: %s", desc)
+	}
+	p.nextToken()
+	forExprToken := p.curToken
+	firstExpr := p.parseStatement()
+	if firstExpr == nil {
+		p.setTokenError(forExprToken, "invalid for loop expression")
 		p.nextToken()
 		return nil
+	}
+	// Check for while loop form: "for condition { ... }"
+	if p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		consequence := p.parseBlock()
+		if consequence == nil {
+			return nil
+		}
+		return ast.NewFor(forToken, firstExpr, consequence, nil, nil)
 	}
 	if !p.curTokenIs(token.SEMICOLON) {
 		p.setTokenError(p.curToken, "expected a semicolon (got %s)", p.curToken.Literal)
@@ -771,7 +775,7 @@ func (p *Parser) parseFor() ast.Expression {
 	if consequence == nil {
 		return nil
 	}
-	return ast.NewFor(forToken, condition, consequence, initExpr, postExpr)
+	return ast.NewFor(forToken, condition, consequence, firstExpr, postExpr)
 }
 
 func (p *Parser) parseBlock() *ast.Block {

@@ -592,7 +592,7 @@ func TestMapIndexExpression(t *testing.T) {
 	}
 }
 
-func TestForLoopSimple(t *testing.T) {
+func TestForLoop(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected interface{}
@@ -606,10 +606,36 @@ func TestForLoopSimple(t *testing.T) {
 		{"for x := 0; x < 10; x += 2 { 999 }", int64(999)},
 	}
 	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		value := evaluated.Interface()
+		value := testEval(tt.input).Interface()
 		require.Equal(t, tt.expected, value)
 	}
+}
+
+func TestForLoopScope(t *testing.T) {
+	input := `
+sum := 0.0
+for x := 0; x < 10; x++ {
+	myvar := x
+	sum += myvar
+}
+myvar
+`
+	evaluated, ok := testEval(input).(*object.Error)
+	require.True(t, ok)
+	require.Equal(t, `name error: "myvar" is not defined`, evaluated.Message().Value())
+	// require.True(t, false)
+}
+
+func TestForLoopVariant(t *testing.T) {
+	input := `
+sum := 0
+for sum < 10 {
+	sum += 1
+}
+sum
+`
+	evaluated := testEval(input)
+	require.Equal(t, int64(10), evaluated.Interface())
 }
 
 func TestForLoopAdditional(t *testing.T) {
