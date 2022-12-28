@@ -22,15 +22,6 @@ func (e *Evaluator) evalFunctionLiteral(ctx context.Context, node *ast.Func, s *
 	return object.NewFunction("", node.Parameters(), node.Body(), node.Defaults(), s)
 }
 
-func (e *Evaluator) evalFunctionDefinition(ctx context.Context, node *ast.Func, s *scope.Scope) object.Object {
-	name := node.Literal()
-	fn := object.NewFunction(name, node.Parameters(), node.Body(), node.Defaults(), s)
-	if err := s.Declare(name, fn, true); err != nil {
-		return object.NewError(err)
-	}
-	return object.Nil
-}
-
 func (e *Evaluator) applyFunction(ctx context.Context, s *scope.Scope, fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:

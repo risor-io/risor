@@ -20,9 +20,6 @@ type Scope struct {
 
 	// optional parent environment
 	parent *Scope
-
-	// children environments
-	children []*Scope
 }
 
 type Opts struct {
@@ -101,12 +98,7 @@ func (s *Scope) Clear() {
 func (s *Scope) NewChild(opts Opts) *Scope {
 	opts.Parent = s
 	child := New(opts)
-	s.children = append(s.children, child)
 	return child
-}
-
-func (s *Scope) Children() []*Scope {
-	return s.children
 }
 
 func (s *Scope) Keys() []string {
