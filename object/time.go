@@ -119,3 +119,7 @@ func (t *Time) Unix(ctx context.Context, args ...Object) Object {
 	}
 	return NewInt(t.value.Unix())
 }
+
+func (t *Time) IsTruthy() bool {
+	return !t.value.IsZero()
+}

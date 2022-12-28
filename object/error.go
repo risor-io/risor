@@ -57,6 +57,10 @@ func (e *Error) Equals(other Object) Object {
 	return False
 }
 
+func (e *Error) IsTruthy() bool {
+	return true
+}
+
 func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }

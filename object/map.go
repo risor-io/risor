@@ -389,6 +389,10 @@ func (m *Map) Contains(key Object) *Bool {
 	return NewBool(found)
 }
 
+func (m *Map) IsTruthy() bool {
+	return len(m.items) > 0
+}
+
 // Len returns the number of items in this container.
 func (m *Map) Len() *Int {
 	return NewInt(int64(len(m.items)))

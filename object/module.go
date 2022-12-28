@@ -48,6 +48,10 @@ func (m *Module) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
+func (m *Module) IsTruthy() bool {
+	return true
+}
+
 func (m *Module) Equals(other Object) Object {
 	return NewBool(other.Type() == MODULE && m.name == other.(*Module).name)
 }

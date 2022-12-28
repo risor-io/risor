@@ -165,6 +165,10 @@ func (rv *Result) Equals(other Object) Object {
 	return False
 }
 
+func (rv *Result) IsTruthy() bool {
+	return rv.IsOk()
+}
+
 func NewErrResult(err *Error) *Result {
 	return &Result{err: err}
 }

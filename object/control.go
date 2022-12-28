@@ -52,6 +52,10 @@ func (c *Control) Equals(other Object) Object {
 	}
 }
 
+func (c *Control) IsTruthy() bool {
+	return true
+}
+
 func NewReturn(value Object) *Control {
 	if value == nil {
 		value = Nil

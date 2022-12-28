@@ -76,6 +76,10 @@ func (f *Float) Equals(other Object) Object {
 	return False
 }
 
+func (f *Float) IsTruthy() bool {
+	return f.value != 0.0
+}
+
 func NewFloat(value float64) *Float {
 	return &Float{value: value}
 }

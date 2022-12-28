@@ -63,6 +63,10 @@ func (r *Regexp) Equals(other Object) Object {
 	return False
 }
 
+func (r *Regexp) IsTruthy() bool {
+	return true
+}
+
 func NewRegexp(re *regexp.Regexp) *Regexp {
 	return &Regexp{value: re}
 }

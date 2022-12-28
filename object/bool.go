@@ -66,6 +66,10 @@ func (b *Bool) Equals(other Object) Object {
 	return False
 }
 
+func (b *Bool) IsTruthy() bool {
+	return b.value
+}
+
 func NewBool(value bool) *Bool {
 	if value {
 		return True
@@ -82,33 +86,4 @@ func Not(b *Bool) *Bool {
 
 func Equals(a, b Object) bool {
 	return a.Equals(b).(*Bool).value
-}
-
-func IsTruthy(obj Object) bool {
-	switch obj {
-	case Nil:
-		return false
-	case True:
-		return true
-	case False:
-		return false
-	default:
-		switch obj := obj.(type) {
-		case *Int:
-			return obj.value != 0
-		case *Float:
-			return obj.value != 0.0
-		case *String:
-			return obj.value != ""
-		case *List:
-			return len(obj.items) > 0
-		case *Map:
-			return len(obj.items) > 0
-		case *Set:
-			return len(obj.items) > 0
-		case *Bool:
-			return obj.value
-		}
-		return true
-	}
 }

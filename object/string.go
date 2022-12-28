@@ -68,6 +68,10 @@ func (s *String) Equals(other Object) Object {
 	return False
 }
 
+func (s *String) IsTruthy() bool {
+	return s.value != ""
+}
+
 func (s *String) Reversed() *String {
 	runes := []rune(s.value)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {

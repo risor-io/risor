@@ -75,6 +75,10 @@ func (i *Int) Equals(other Object) Object {
 	return False
 }
 
+func (i *Int) IsTruthy() bool {
+	return i.value != 0
+}
+
 func NewInt(value int64) *Int {
 	return &Int{value: value}
 }

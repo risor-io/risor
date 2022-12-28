@@ -249,6 +249,10 @@ func (s *Set) Contains(key Object) *Bool {
 	return NewBool(ok)
 }
 
+func (s *Set) IsTruthy() bool {
+	return len(s.items) > 0
+}
+
 // Len returns the number of items in this container.
 func (s *Set) Len() *Int {
 	return NewInt(int64(len(s.items)))

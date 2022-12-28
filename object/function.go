@@ -89,6 +89,10 @@ func (f *Function) Equals(other Object) Object {
 	return False
 }
 
+func (f *Function) IsTruthy() bool {
+	return true
+}
+
 func NewFunction(
 	name string,
 	parameters []*ast.Ident,

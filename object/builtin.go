@@ -94,6 +94,10 @@ func (b *Builtin) Equals(other Object) Object {
 	return NewBool(value)
 }
 
+func (b *Builtin) IsTruthy() bool {
+	return b.fn != nil
+}
+
 // NewNoopBuiltin creates a builtin function that has no effect.
 func NewNoopBuiltin(name string, module *Module) *Builtin {
 	b := &Builtin{

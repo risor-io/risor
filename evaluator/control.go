@@ -16,7 +16,7 @@ func (e *Evaluator) evalIfExpression(ctx context.Context, ie *ast.If, s *scope.S
 	if object.IsError(condition) {
 		return condition
 	}
-	if object.IsTruthy(condition) {
+	if condition.IsTruthy() {
 		return e.Evaluate(ctx, ie.Consequence(), s)
 	} else if ie.Alternative() != nil {
 		return e.Evaluate(ctx, ie.Alternative(), s)
@@ -76,7 +76,7 @@ loop:
 		if object.IsError(condition) {
 			return condition
 		}
-		if object.IsTruthy(condition) {
+		if condition.IsTruthy() {
 			// Evaluate the block
 			rt := e.Evaluate(ctx, fle.Consequence(), loopScope)
 			switch rt := rt.(type) {

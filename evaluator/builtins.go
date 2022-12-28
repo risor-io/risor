@@ -187,7 +187,7 @@ func Assert(ctx context.Context, args ...object.Object) object.Object {
 	if numArgs < 1 || numArgs > 2 {
 		return object.Errorf("type error: assert() takes 1 or 2 arguments (%d given)", len(args))
 	}
-	if !object.IsTruthy(args[0]) {
+	if !args[0].IsTruthy() {
 		if numArgs == 2 {
 			switch arg := args[1].(type) {
 			case *object.String:
@@ -208,13 +208,13 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.List:
 		for _, obj := range arg.Value() {
-			if object.IsTruthy(obj) {
+			if obj.IsTruthy() {
 				return object.True
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Value() {
-			if object.IsTruthy(obj) {
+			if obj.IsTruthy() {
 				return object.True
 			}
 		}
@@ -231,13 +231,13 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.List:
 		for _, obj := range arg.Value() {
-			if !object.IsTruthy(obj) {
+			if !obj.IsTruthy() {
 				return object.False
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Value() {
-			if !object.IsTruthy(obj) {
+			if !obj.IsTruthy() {
 				return object.False
 			}
 		}
@@ -255,7 +255,7 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 	if nArgs == 0 {
 		return object.False
 	}
-	if object.IsTruthy(args[0]) {
+	if args[0].IsTruthy() {
 		return object.True
 	}
 	return object.False

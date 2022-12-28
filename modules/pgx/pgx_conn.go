@@ -38,6 +38,10 @@ func (c *PgxConn) Equals(other object.Object) object.Object {
 	return object.NewBool(value)
 }
 
+func (c *PgxConn) IsTruthy() bool {
+	return true
+}
+
 func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "query":

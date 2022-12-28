@@ -394,6 +394,10 @@ func (p *Proxy) Equals(other Object) Object {
 	return False
 }
 
+func (p *Proxy) IsTruthy() bool {
+	return true
+}
+
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	methodName := fmt.Sprintf("%s.%s", p.typ.Name(), m.name)
 	isVariadic := m.method.Type.IsVariadic()

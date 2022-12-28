@@ -14,9 +14,9 @@ func (e *Evaluator) evalInfixExpression(ctx context.Context, node *ast.Infix, s 
 	if object.IsError(left) {
 		return left
 	}
-	if node.Operator() == "&&" && !object.IsTruthy(left) {
+	if node.Operator() == "&&" && !left.IsTruthy() {
 		return left // Short circuit
-	} else if node.Operator() == "||" && object.IsTruthy(left) {
+	} else if node.Operator() == "||" && left.IsTruthy() {
 		return left // Short circuit
 	}
 	right := e.Evaluate(ctx, node.Right(), s)
@@ -34,12 +34,12 @@ func (e *Evaluator) evalInfix(operator string, left, right object.Object, s *sco
 	case "!=":
 		return object.Not(left.Equals(right).(*object.Bool))
 	case "&&":
-		if object.IsTruthy(left) && object.IsTruthy(right) {
+		if left.IsTruthy() && right.IsTruthy() {
 			return right
 		}
 		return right
 	case "||":
-		if object.IsTruthy(left) {
+		if left.IsTruthy() {
 			return left
 		}
 		return right

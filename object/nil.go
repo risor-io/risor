@@ -36,3 +36,7 @@ func (n *NilType) Equals(other Object) Object {
 	}
 	return False
 }
+
+func (n *NilType) IsTruthy() bool {
+	return false
+}

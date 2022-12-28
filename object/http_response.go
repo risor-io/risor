@@ -131,6 +131,10 @@ func (r *HttpResponse) Equals(other Object) Object {
 	return NewBool(r.resp == other.(*HttpResponse).resp)
 }
 
+func (r *HttpResponse) IsTruthy() bool {
+	return true
+}
+
 func NewHttpResponse(resp *http.Response) *HttpResponse {
 	obj := &HttpResponse{resp: resp}
 	// We have to guarantee that we read and close the HTTP response body

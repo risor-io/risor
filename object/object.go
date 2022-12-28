@@ -66,6 +66,9 @@ type Object interface {
 
 	// GetAttr returns the attribute with the given name from this object.
 	GetAttr(name string) (Object, bool)
+
+	// IsTruthy returns true if the object is considered "truthy".
+	IsTruthy() bool
 }
 
 // Slice is used to specify a range or slice of items in a container.

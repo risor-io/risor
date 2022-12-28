@@ -269,7 +269,7 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 		if IsError(decision) {
 			return decision
 		}
-		if IsTruthy(decision) {
+		if decision.IsTruthy() {
 			result = append(result, value)
 		}
 	}
@@ -457,6 +457,10 @@ func (ls *List) Equals(other Object) Object {
 		}
 	}
 	return True
+}
+
+func (ls *List) IsTruthy() bool {
+	return len(ls.items) > 0
 }
 
 func (ls *List) Reversed() *List {
