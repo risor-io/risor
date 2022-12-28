@@ -52,10 +52,15 @@ func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *
 			switch result := result.(type) {
 			case *object.Error:
 				return result
-			case *object.ReturnValue:
-				return result
-			case *object.BreakValue:
-				break simpleLoop
+			case *object.Control:
+				switch result.Keyword() {
+				case "break":
+					break simpleLoop
+				case "continue":
+					continue simpleLoop
+				case "return":
+					return result
+				}
 			}
 			latestValue = result
 		}
@@ -77,12 +82,16 @@ loop:
 			switch rt := rt.(type) {
 			case *object.Error:
 				return rt
-			case *object.ReturnValue:
-				return rt
-			case *object.BreakValue:
-				break loop
+			case *object.Control:
+				switch rt.Keyword() {
+				case "break":
+					break loop
+				case "return":
+					return rt
+				}
+			default:
+				latestValue = rt
 			}
-			latestValue = rt
 		} else {
 			break
 		}
@@ -131,7 +140,7 @@ func prependObject(slice []object.Object, obj object.Object) []object.Object {
 	return slice
 }
 
-func (e *Evaluator) evalPipeExpression(ctx context.Context, pe *ast.Pipe, s *scope.Scope) object.Object {
+func (e *Evaluator) evalPipe(ctx context.Context, pe *ast.Pipe, s *scope.Scope) object.Object {
 	exprs := pe.Expressions()
 	if len(exprs) < 2 {
 		return object.Errorf("eval error: invalid pipe expression (got only %d arguments)", len(exprs))
@@ -232,19 +241,29 @@ func (e *Evaluator) evalPipeExpression(ctx context.Context, pe *ast.Pipe, s *sco
 	return object.Nil
 }
 
-func (e *Evaluator) evalReturnStatement(ctx context.Context, node *ast.Return, s *scope.Scope) object.Object {
-	if node.Value() == nil {
-		return object.Nil // Should we adjust the parser output in this case?
+func (e *Evaluator) evalControl(ctx context.Context, node *ast.Control, s *scope.Scope) object.Object {
+	switch node.Literal() {
+	case "break":
+		return object.NewBreak()
+	case "continue":
+		return object.NewContinue()
+	case "return":
+		nodeVal := node.Value()
+		if nodeVal == nil {
+			return object.NewReturn(object.Nil)
+		}
+		value := e.Evaluate(ctx, nodeVal, s)
+		if object.IsError(value) {
+			return value
+		}
+		return object.NewReturn(value)
+	default:
+		return object.Errorf("eval error: invalid control keyword: %s", node.Literal())
 	}
-	value := e.Evaluate(ctx, node.Value(), s)
-	if object.IsError(value) {
-		return value
-	}
-	return object.NewReturnValue(value)
 }
 
 func (e *Evaluator) upwrapReturnValue(obj object.Object) object.Object {
-	if rv, ok := obj.(*object.ReturnValue); ok {
+	if rv, ok := obj.(*object.Control); ok {
 		return rv.Value()
 	}
 	return obj

@@ -175,77 +175,33 @@ func (i *Ident) Literal() string { return i.value }
 
 func (i *Ident) String() string { return i.value }
 
-// Return defines a function return statement.
-type Return struct {
-	token token.Token
-	value Expression
+// Control defines a return, break, or continue statement.
+type Control struct {
+	token token.Token // "return", "break", or "continue"
+	value Expression  // optional value, for return statements
 }
 
-func NewReturn(token token.Token, value Expression) *Return {
-	return &Return{token: token, value: value}
+func NewControl(token token.Token, value Expression) *Control {
+	return &Control{token: token, value: value}
 }
 
-func (r *Return) StatementNode() {}
+func (c *Control) StatementNode() {}
 
-func (r *Return) Token() token.Token { return r.token }
+func (c *Control) Token() token.Token { return c.token }
 
-func (r *Return) Literal() string { return r.token.Literal }
+func (c *Control) Literal() string { return c.token.Literal }
 
-func (r *Return) Value() Expression { return r.value }
+func (c *Control) Value() Expression { return c.value }
 
-func (r *Return) String() string {
+func (c *Control) String() string {
 	var out bytes.Buffer
-	out.WriteString(r.Literal() + " ")
-	if r.value != nil {
-		out.WriteString(r.value.Literal())
+	out.WriteString(c.Literal() + " ")
+	if c.value != nil {
+		out.WriteString(c.value.Literal())
 	}
 	out.WriteString(";")
 	return out.String()
 }
-
-// Break defines a break statement.
-type Break struct {
-	token token.Token
-}
-
-func NewBreak(token token.Token) *Break {
-	return &Break{token: token}
-}
-
-func (s *Break) StatementNode() {}
-
-func (s *Break) Token() token.Token { return s.token }
-
-func (s *Break) Literal() string { return s.token.Literal }
-
-func (s *Break) String() string {
-	var out bytes.Buffer
-	out.WriteString(s.Literal())
-	return out.String()
-}
-
-// // ExpressionStatement is an expression
-// type ExpressionStatement struct {
-// 	token token.Token
-
-// 	// Expression holds the expression
-// 	expr Expression
-// }
-
-// func (e *ExpressionStatement) StatementNode() {}
-
-// func (e *ExpressionStatement) Token() token.Token { return e.token }
-
-// func (e *ExpressionStatement) Literal() string { return e.token.Literal }
-
-// func (e *ExpressionStatement) Value() Expression { return e.expr }
-
-// func (e *ExpressionStatement) String() string {
-// 	if e.expr != nil {
-// 		return e.expr.String()
-// 	}
-// 	return ""
-// }
 
 // Int holds an integer number
 type Int struct {

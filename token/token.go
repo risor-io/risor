@@ -93,26 +93,28 @@ const (
 	NEWLINE         = "EOL"
 	IMPORT          = "IMPORT"
 	BREAK           = "BREAK"
+	CONTINUE        = "CONTINUE"
 	VAR             = "VAR"
 )
 
 // reserved keywords
 var keywords = map[string]Type{
-	"case":    CASE,
-	"const":   CONST,
-	"default": DEFAULT,
-	"else":    ELSE,
-	"false":   FALSE,
-	"for":     FOR,
-	"func":    FUNC,
-	"if":      IF,
-	"var":     VAR,
-	"nil":     NIL,
-	"return":  RETURN,
-	"switch":  SWITCH,
-	"true":    TRUE,
-	"import":  IMPORT,
-	"break":   BREAK,
+	"case":     CASE,
+	"const":    CONST,
+	"default":  DEFAULT,
+	"else":     ELSE,
+	"false":    FALSE,
+	"for":      FOR,
+	"func":     FUNC,
+	"if":       IF,
+	"var":      VAR,
+	"nil":      NIL,
+	"return":   RETURN,
+	"switch":   SWITCH,
+	"true":     TRUE,
+	"import":   IMPORT,
+	"break":    BREAK,
+	"continue": CONTINUE,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

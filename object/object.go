@@ -40,8 +40,7 @@ const (
 	DB_CONNECTION Type = "db_connection"
 	TIME          Type = "time"
 	PROXY         Type = "proxy"
-	RETURN_VALUE  Type = "return_value"
-	BREAK_VALUE   Type = "break_value"
+	CONTROL       Type = "control"
 )
 
 var (

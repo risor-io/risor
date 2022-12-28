@@ -97,19 +97,24 @@ func TestConst(t *testing.T) {
 	}
 }
 
-func TestReturn(t *testing.T) {
-	input := `
-return 0b11;
-return 0x15;
-return 993322;
-`
-	program, err := Parse(input)
-	require.Nil(t, err)
-	require.Len(t, program.Statements(), 3)
-	for _, stmt := range program.Statements() {
-		returnStatement, ok := stmt.(*ast.Return)
+func TestControl(t *testing.T) {
+	tests := []struct {
+		input   string
+		keyword string
+	}{
+		{"return 0b11;", "return"},
+		{"return 0x15;", "return"},
+		{"return 993322;", "return"},
+		{"continue;", "continue"},
+		{"break;", "break"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		control, ok := program.First().(*ast.Control)
 		require.True(t, ok)
-		require.Equal(t, returnStatement.Literal(), "return")
+		require.Equal(t, tt.keyword, control.Literal())
 	}
 }
 
@@ -666,7 +671,7 @@ func TestBreak(t *testing.T) {
 	program, err := Parse("break")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
-	_, ok := program.First().(*ast.Break)
+	_, ok := program.First().(*ast.Control)
 	require.True(t, ok)
 }
 

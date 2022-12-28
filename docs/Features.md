@@ -164,8 +164,8 @@ default:
 
 ## Loops
 
-Three forms of for loops are accepted. The `break` keyword may be used to
-stop looping in all forms.
+Three forms of for loops are accepted. The `break` and `continue` keywords may
+be used to control looping as you'd expect from other languages.
 
 This form includes init, condition, and post statements:
 

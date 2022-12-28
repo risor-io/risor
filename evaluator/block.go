@@ -20,9 +20,7 @@ func (e *Evaluator) evalBlockStatement(
 			switch result := result.(type) {
 			case *object.Error:
 				return result
-			case *object.ReturnValue:
-				return result
-			case *object.BreakValue:
+			case *object.Control:
 				return result
 			}
 		}

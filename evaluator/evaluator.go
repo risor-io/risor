@@ -209,11 +209,9 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 	case *ast.Switch:
 		return e.evalSwitchStatement(ctx, node, s)
 	case *ast.Pipe:
-		return e.evalPipeExpression(ctx, node, s)
-	case *ast.Return:
-		return e.evalReturnStatement(ctx, node, s)
-	case *ast.Break:
-		return &object.BreakValue{}
+		return e.evalPipe(ctx, node, s)
+	case *ast.Control:
+		return e.evalControl(ctx, node, s)
 
 	// Literals
 	case *ast.Nil:

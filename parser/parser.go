@@ -278,6 +278,8 @@ func (p *Parser) parseStatement() ast.Node {
 		return p.parseReturn()
 	case token.BREAK:
 		return p.parseBreak()
+	case token.CONTINUE:
+		return p.parseContinue()
 	case token.NEWLINE:
 		return nil
 	default:
@@ -370,7 +372,7 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 	}
 }
 
-func (p *Parser) parseReturn() *ast.Return {
+func (p *Parser) parseReturn() *ast.Control {
 	returnToken := p.curToken
 	p.nextToken()
 	value := p.parseExpression(LOWEST)
@@ -378,9 +380,9 @@ func (p *Parser) parseReturn() *ast.Return {
 		switch p.peekToken.Type {
 		case token.SEMICOLON, token.NEWLINE, token.EOF:
 			p.nextToken()
-			return ast.NewReturn(returnToken, value)
+			return ast.NewControl(returnToken, value)
 		case token.RBRACE:
-			return ast.NewReturn(returnToken, value)
+			return ast.NewControl(returnToken, value)
 		default:
 			p.setError(NewParserError(ErrorOpts{
 				ErrType:       "parse error",
@@ -395,8 +397,18 @@ func (p *Parser) parseReturn() *ast.Return {
 	}
 }
 
-func (p *Parser) parseBreak() *ast.Break {
-	stmt := ast.NewBreak(p.curToken)
+func (p *Parser) parseBreak() *ast.Control {
+	stmt := ast.NewControl(p.curToken, nil)
+	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
+	}
+	return stmt
+}
+
+func (p *Parser) parseContinue() *ast.Control {
+	stmt := ast.NewControl(p.curToken, nil)
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextTokenWithError(); err != nil {
 			return nil
