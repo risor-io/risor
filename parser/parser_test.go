@@ -641,6 +641,18 @@ func TestForLoop(t *testing.T) {
 			"(x < i)",
 			"(x--)",
 		},
+		{
+			"for i := range mymap { }",
+			"",
+			"i := range mymap",
+			"",
+		},
+		{
+			"for k,v := range [1,2,3,4] { }",
+			"",
+			"k, v := range [1, 2, 3, 4]",
+			"",
+		},
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
@@ -665,6 +677,29 @@ func TestForLoop(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMultiVar(t *testing.T) {
+	program, err := Parse("x, y := [1, 2]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	mvar, ok := program.First().(*ast.MultiVar)
+	require.True(t, ok)
+	names, expr := mvar.Value()
+	require.Equal(t, []string{"x", "y"}, names)
+	require.Equal(t, "[1, 2]", expr.String())
+}
+
+func TestIn(t *testing.T) {
+	program, err := Parse("x in [1, 2]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	node, ok := program.First().(*ast.In)
+	require.True(t, ok)
+	require.Equal(t, "in", node.Literal())
+	require.Equal(t, "x", node.Left().String())
+	require.Equal(t, "[1, 2]", node.Right().String())
+	require.Equal(t, "x in [1, 2]", node.String())
 }
 
 func TestBreak(t *testing.T) {
@@ -796,6 +831,9 @@ func TestBadInputs(t *testing.T) {
 		{"[1,", `parse error: unexpected end of file while parsing an expression list (expected ])`},
 		{"0?if", `parse error: invalid syntax in ternary if true expression`},
 		{"0?0:", `parse error: invalid syntax in ternary if false expression`},
+		{"range", `parse error: invalid range expression`},
+		{"in", `parse error: invalid syntax (unexpected "in")`},
+		{"x in", `parse error: invalid in expression`},
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)

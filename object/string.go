@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// String wraps string and implements Object and Hashable interfaces.
 type String struct {
 	value string
 }
@@ -121,6 +120,10 @@ func (s *String) Contains(key Object) *Bool {
 
 func (s *String) Len() *Int {
 	return NewInt(int64(len(s.value)))
+}
+
+func (s *String) Iter() Iterator {
+	return NewStringIter(s)
 }
 
 func NewString(s string) *String {

@@ -258,6 +258,23 @@ func (s *Set) Len() *Int {
 	return NewInt(int64(len(s.items)))
 }
 
+func (s *Set) Iter() Iterator {
+	return NewSetIter(s)
+}
+
+func (s *Set) Keys() []HashKey {
+	items := s.SortedItems()
+	keys := make([]HashKey, 0, len(items))
+	for _, item := range items {
+		hashable, ok := item.(Hashable)
+		if !ok {
+			panic(fmt.Errorf("type error: %s object is unhashable", item.Type()))
+		}
+		keys = append(keys, hashable.HashKey())
+	}
+	return keys
+}
+
 func NewSet(items []Object) Object {
 	s := &Set{items: map[HashKey]Object{}}
 	for _, item := range items {

@@ -127,6 +127,50 @@ func (s *Var) String() string {
 	return out.String()
 }
 
+// MultiVar holds a variable assignment statement for >1 variables.
+type MultiVar struct {
+	token    token.Token
+	names    []*Ident   // names being assigned
+	value    Expression // value is the thing we're storing in the variable.
+	isWalrus bool       // isWalrus is true if this is a ":=" statement.
+}
+
+func NewMultiVar(token token.Token, names []*Ident, value Expression, isWalrus bool) *MultiVar {
+	return &MultiVar{token: token, names: names, value: value, isWalrus: isWalrus}
+}
+
+func (s *MultiVar) StatementNode() {}
+
+func (s *MultiVar) Token() token.Token { return s.token }
+
+func (s *MultiVar) Literal() string { return s.token.Literal }
+
+func (s *MultiVar) Value() ([]string, Expression) {
+	names := make([]string, 0, len(s.names))
+	for _, name := range s.names {
+		names = append(names, name.value)
+	}
+	return names, s.value
+}
+
+func (s *MultiVar) IsWalrus() bool { return s.isWalrus }
+
+func (s *MultiVar) String() string {
+	names, expr := s.Value()
+	namesStr := strings.Join(names, ", ")
+	var out bytes.Buffer
+	if s.isWalrus {
+		out.WriteString(namesStr + " := ")
+		out.WriteString(expr.String())
+		return out.String()
+	}
+	out.WriteString(s.Literal() + " ")
+	out.WriteString(namesStr)
+	out.WriteString(" = ")
+	out.WriteString(expr.String())
+	return out.String()
+}
+
 // Const defines a named constant containing a constant value.
 type Const struct {
 	token token.Token // the "const" token
@@ -532,6 +576,24 @@ func (f *For) Literal() string { return f.token.Literal }
 
 func (f *For) IsSimpleLoop() bool {
 	return f.consequence != nil && f.init == nil && f.condition == nil
+}
+
+func (f *For) IsIteratorLoop() bool {
+	if f.condition == nil {
+		return false
+	}
+	switch f.condition.(type) {
+	case *Var, *MultiVar:
+		// The only case where var and multi-var assignments are supported are
+		// when an iterator is being used to define the loop. The assignment AST
+		// node currently comes through as the loop "condition" in the AST. For
+		// loops that use iterators can look like these:
+		//   for i := range x {}
+		//   for i, j := range x {}
+		//   for i, j := myiterator {}
+		return true
+	}
+	return false
 }
 
 func (f *For) Condition() Node { return f.condition }
@@ -1116,5 +1178,60 @@ func (s *Set) String() string {
 	out.WriteString("{")
 	out.WriteString(strings.Join(items, ", "))
 	out.WriteString("}")
+	return out.String()
+}
+
+// In holds an "in" expression
+type In struct {
+	token token.Token
+	left  Expression
+	right Expression
+}
+
+func NewIn(token token.Token, left Expression, right Expression) *In {
+	return &In{token: token, left: left, right: right}
+}
+
+func (i *In) ExpressionNode() {}
+
+func (i *In) Token() token.Token { return i.token }
+
+func (i *In) Literal() string { return i.token.Literal }
+
+func (i *In) Left() Expression { return i.left }
+
+func (i *In) Right() Expression { return i.right }
+
+func (i *In) String() string {
+	var out bytes.Buffer
+	out.WriteString(i.left.String())
+	out.WriteString(" in ")
+	out.WriteString(i.right.String())
+	return out.String()
+}
+
+// Range is used to iterator over a container
+type Range struct {
+	token     token.Token // the "range" token
+	container Expression  // the container to iterate over
+}
+
+func NewRange(token token.Token, container Expression) *Range {
+	return &Range{token: token, container: container}
+}
+
+func (r *Range) ExpressionNode() {}
+
+func (r *Range) Token() token.Token { return r.token }
+
+func (r *Range) Literal() string { return r.token.Literal }
+
+func (r *Range) Container() Expression { return r.container }
+
+func (r *Range) String() string {
+	var out bytes.Buffer
+	out.WriteString(r.Literal())
+	out.WriteString(" ")
+	out.WriteString(r.container.String())
 	return out.String()
 }
