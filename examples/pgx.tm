@@ -1,7 +1,7 @@
 #!/usr/bin/env tamarin
 
 func connect(user="postgres", pass="", host="localhost", port=5432, db="postgres") {
-  return pgx.connect('postgres://{user}:{pass}@{host}:{port}/{db}')
+    return pgx.connect('postgres://{user}:{pass}@{host}:{port}/{db}')
 }
 
 conn := connect("postgres", "mysecretpassword")
