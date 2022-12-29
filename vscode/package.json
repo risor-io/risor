@@ -4,7 +4,7 @@
   "description": "Tamarin Language Support",
   "author": "Curtis Myzie",
   "license": "MIT",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "icon": "images/logo-256.png",
   "repository": {
     "type": "git",
