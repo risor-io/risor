@@ -1,7 +1,16 @@
 #!/usr/bin/env tamarin
 
-conn := pgx.connect("postgres://postgres:mysecretpassword@localhost:5432/postgres")
-result := conn.query("select * from users where age > $1", 18)
-result.each(func(row) { print("row:", row) })
+func connect(user="postgres", pass="", host="localhost", port=5432, db="postgres") {
+  return pgx.connect('postgres://{user}:{pass}@{host}:{port}/{db}')
+}
 
-conn.query("select COUNT(*), NOW() from users")
+conn := connect("postgres", "mysecretpassword")
+if conn.is_err() {
+    print(conn.err_msg())
+    exit(1)
+}
+
+conn.query("select * from users where age > $1", 18).
+    each(func(row) {
+        print("row:", row)
+    })

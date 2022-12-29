@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"unicode"
@@ -580,6 +581,23 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	return container.Iter()
 }
 
+func Exit(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: exit() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		os.Exit(0)
+	}
+	switch obj := args[0].(type) {
+	case *object.Int:
+		os.Exit(int(obj.Value()))
+	case *object.Error:
+		os.Exit(1)
+	}
+	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	type builtin struct {
 		name string
@@ -595,6 +613,7 @@ func GlobalBuiltins() []*object.Builtin {
 		{"delete", Delete},
 		{"err", Err},
 		{"error", Error},
+		{"exit", Exit},
 		{"fetch", Fetch},
 		{"float", Float},
 		{"getattr", GetAttr},

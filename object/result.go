@@ -64,6 +64,16 @@ func (rv *Result) GetAttr(name string) (Object, bool) {
 				return rv.UnwrapErr()
 			},
 		}, true
+	case "err_msg":
+		return &Builtin{
+			name: "result.err_msg",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("err_msg", 0, len(args))
+				}
+				return rv.ErrMsg()
+			},
+		}, true
 	case "unwrap_or":
 		return &Builtin{
 			name: "result.unwrap_or",
@@ -130,6 +140,13 @@ func (rv *Result) UnwrapErr() *Error {
 		return rv.err
 	}
 	return Errorf("result error: unwrap_err() called on an ok: %s", rv.ok.Inspect())
+}
+
+func (rv *Result) ErrMsg() *String {
+	if rv.err != nil {
+		return rv.err.Message()
+	}
+	return NewString("")
 }
 
 func (rv *Result) UnwrapOr(other Object) Object {
