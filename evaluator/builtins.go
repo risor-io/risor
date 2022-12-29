@@ -568,40 +568,53 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+func Iter(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs != 1 {
+		return object.NewArgsError("iter", 1, len(args))
+	}
+	container, ok := args[0].(object.Container)
+	if !ok {
+		return object.Errorf("type error: iter() expected a container (%s given)", args[0].Type())
+	}
+	return container.Iter()
+}
+
 func GlobalBuiltins() []*object.Builtin {
 	type builtin struct {
 		name string
 		fn   object.BuiltinFunction
 	}
 	builtins := []builtin{
+		{"all", All},
+		{"any", Any},
+		{"assert", Assert},
+		{"bool", Bool},
+		{"call", Call},
+		{"chr", Chr},
 		{"delete", Delete},
+		{"err", Err},
+		{"error", Error},
+		{"fetch", Fetch},
+		{"float", Float},
+		{"getattr", GetAttr},
+		{"int", Int},
+		{"iter", Iter},
 		{"keys", Keys},
 		{"len", Len},
+		{"list", List},
+		{"ok", Ok},
+		{"ord", Ord},
+		{"print", Print},
+		{"printf", Printf},
+		{"reversed", Reversed},
 		{"set", Set},
+		{"sorted", Sorted},
 		{"sprintf", Sprintf},
 		{"string", String},
 		{"type", Type},
-		{"ok", Ok},
-		{"err", Err},
-		{"assert", Assert},
-		{"any", Any},
-		{"all", All},
-		{"bool", Bool},
-		{"print", Print},
-		{"printf", Printf},
-		{"unwrap", Unwrap},
 		{"unwrap_or", UnwrapOr},
-		{"sorted", Sorted},
-		{"reversed", Reversed},
-		{"getattr", GetAttr},
-		{"call", Call},
-		{"list", List},
-		{"int", Int},
-		{"float", Float},
-		{"ord", Ord},
-		{"chr", Chr},
-		{"fetch", Fetch},
-		{"error", Error},
+		{"unwrap", Unwrap},
 	}
 	var ret []*object.Builtin
 	for _, b := range builtins {

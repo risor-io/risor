@@ -41,6 +41,11 @@ const (
 	TIME          Type = "time"
 	PROXY         Type = "proxy"
 	CONTROL       Type = "control"
+	STRING_ITER   Type = "string_iter"
+	LIST_ITER     Type = "list_iter"
+	MAP_ITER      Type = "map_iter"
+	SET_ITER      Type = "set_iter"
+	ITER_ENTRY    Type = "iter_entry"
 )
 
 var (
@@ -77,6 +82,23 @@ type Slice struct {
 	Stop  Object
 }
 
+// IteratorEntry is a single item returned by an iterator.
+type IteratorEntry interface {
+	Object
+	Key() Object
+	Value() Object
+}
+
+// Iterator is an interface used to iterate over a container.
+type Iterator interface {
+	Object
+
+	// Next returns the next item in the iterator and a bool indicating whether
+	// the returned item is valid. If the iteration is complete, (nil, false) is
+	// returned.
+	Next() (IteratorEntry, bool)
+}
+
 type Container interface {
 
 	// GetItem implements the [key] operator for a container type.
@@ -96,6 +118,9 @@ type Container interface {
 
 	// Len returns the number of items in this container.
 	Len() *Int
+
+	// Iter returns an iterator for this container.
+	Iter() Iterator
 }
 
 // Hashable types can be hashed and consequently used in a set.

@@ -398,6 +398,10 @@ func (m *Map) Len() *Int {
 	return NewInt(int64(len(m.items)))
 }
 
+func (m *Map) Iter() Iterator {
+	return NewMapIter(m)
+}
+
 func NewMap(m map[string]Object) *Map {
 	return &Map{items: m}
 }

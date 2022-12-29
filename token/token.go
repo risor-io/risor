@@ -95,6 +95,8 @@ const (
 	BREAK           = "BREAK"
 	CONTINUE        = "CONTINUE"
 	VAR             = "VAR"
+	IN              = "IN"
+	RANGE           = "RANGE"
 )
 
 // reserved keywords
@@ -115,6 +117,8 @@ var keywords = map[string]Type{
 	"import":   IMPORT,
 	"break":    BREAK,
 	"continue": CONTINUE,
+	"in":       IN,
+	"range":    RANGE,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

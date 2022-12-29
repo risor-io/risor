@@ -20,6 +20,30 @@ func (e *Evaluator) evalVarStatement(ctx context.Context, node *ast.Var, s *scop
 	return value
 }
 
+func (e *Evaluator) evalMultiVarStatement(ctx context.Context, node *ast.MultiVar, s *scope.Scope) object.Object {
+	idents, expr := node.Value()
+	value := e.Evaluate(ctx, expr, s)
+	if object.IsError(value) {
+		return value
+	}
+	switch value := value.(type) {
+	case *object.List:
+		items := value.Value()
+		if len(idents) != len(items) {
+			return object.Errorf("eval error: invalid multi variable assignment (list size: %d; identifiers: %d)",
+				len(items), len(idents))
+		}
+		for i, ident := range idents {
+			if err := s.Declare(ident, items[i], false); err != nil {
+				return object.NewError(err)
+			}
+		}
+	default:
+		return object.Errorf("eval error: invalid multi variable assignment")
+	}
+	return value
+}
+
 func (e *Evaluator) evalConstStatement(ctx context.Context, node *ast.Const, s *scope.Scope) object.Object {
 	ident, expr := node.Value()
 	value := e.Evaluate(ctx, expr, s)

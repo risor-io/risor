@@ -117,6 +117,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.NEWLINE, p.parseNewline)
 	p.registerPrefix(token.NIL, p.parseNil)
 	p.registerPrefix(token.PIPE, p.parsePrefixExpr)
+	p.registerPrefix(token.RANGE, p.parseRange)
 	p.registerPrefix(token.STRING, p.parseString)
 	p.registerPrefix(token.SWITCH, p.parseSwitch)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
@@ -146,6 +147,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.QUESTION, p.parseTernary)
 	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
 	p.registerInfix(token.SLASH, p.parseInfixExpr)
+	p.registerInfix(token.IN, p.parseIn)
 
 	// Register postfix functions
 	p.registerPostfix(token.MINUS_MINUS, p.parsePostfixExpr)
@@ -282,20 +284,28 @@ func (p *Parser) parseStatement() ast.Node {
 		return p.parseContinue()
 	case token.NEWLINE:
 		return nil
-	default:
-		if p.peekTokenIs(token.DECLARE) {
+	case token.IDENT:
+		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
 			return p.parseDeclaration()
 		}
-		return p.parseExpressionStatement()
+		// intentional fallthrough!
 	}
+	return p.parseExpressionStatement()
 }
 
-func (p *Parser) parseVar() *ast.Var {
+func (p *Parser) parseVar() ast.Node {
 	tok := p.curToken
 	if !p.expectPeek("var statement", token.IDENT) {
 		return nil
 	}
-	name := ast.NewIdent(p.curToken)
+	idents := []*ast.Ident{ast.NewIdent(p.curToken)}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		if !p.expectPeek("var statement", token.IDENT) {
+			return nil
+		}
+		idents = append(idents, ast.NewIdent(p.curToken))
+	}
 	if !p.expectPeek("var statement", token.ASSIGN) {
 		return nil
 	}
@@ -304,12 +314,22 @@ func (p *Parser) parseVar() *ast.Var {
 	if value == nil {
 		return nil
 	}
-	return ast.NewVar(tok, name, value)
+	if len(idents) > 1 {
+		return ast.NewMultiVar(tok, idents, value, false)
+	}
+	return ast.NewVar(tok, idents[0], value)
 }
 
-func (p *Parser) parseDeclaration() *ast.Var {
+func (p *Parser) parseDeclaration() ast.Node {
 	tok := p.curToken
-	name := ast.NewIdent(tok)
+	idents := []*ast.Ident{ast.NewIdent(p.curToken)}
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		if !p.expectPeek("declaration statement", token.IDENT) {
+			return nil
+		}
+		idents = append(idents, ast.NewIdent(p.curToken))
+	}
 	if !p.expectPeek("declaration statement", token.DECLARE) {
 		return nil
 	}
@@ -318,7 +338,10 @@ func (p *Parser) parseDeclaration() *ast.Var {
 	if value == nil {
 		return nil
 	}
-	return ast.NewDeclaration(tok, name, value)
+	if len(idents) > 1 {
+		return ast.NewMultiVar(tok, idents, value, true)
+	}
+	return ast.NewDeclaration(tok, idents[0], value)
 }
 
 func (p *Parser) parseConst() *ast.Const {
@@ -326,7 +349,7 @@ func (p *Parser) parseConst() *ast.Const {
 	if !p.expectPeek("const statement", token.IDENT) {
 		return nil
 	}
-	name := ast.NewIdent(p.curToken)
+	ident := ast.NewIdent(p.curToken)
 	if !p.expectPeek("const statement", token.ASSIGN) {
 		return nil
 	}
@@ -335,7 +358,7 @@ func (p *Parser) parseConst() *ast.Const {
 	if value == nil {
 		return nil
 	}
-	return ast.NewConst(tok, name, value)
+	return ast.NewConst(tok, ident, value)
 }
 
 // Parses the right hand side of an assignment statement.
@@ -357,7 +380,7 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 	case token.NEWLINE, token.SEMICOLON, token.EOF:
 		p.nextToken()
 		return result
-	case token.RBRACE:
+	case token.RBRACE, token.LBRACE:
 		return result
 	default:
 		p.setError(NewParserError(ErrorOpts{
@@ -418,18 +441,15 @@ func (p *Parser) parseContinue() *ast.Control {
 }
 
 func (p *Parser) parseExpressionStatement() ast.Expression {
-	// stmt := &ast.ExpressionStatement{Token: p.curToken}
 	expr := p.parseExpression(LOWEST)
 	if expr == nil {
 		p.setTokenError(p.curToken, "invalid syntax")
 	}
-	// stmt.Expression = expr
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextTokenWithError(); err != nil {
 			return nil
 		}
 	}
-	// return stmt
 	return expr
 }
 
@@ -749,6 +769,14 @@ func (p *Parser) parseFor() ast.Expression {
 		p.nextToken()
 		return nil
 	}
+	// v, ok := firstExpr.(*ast.Var)
+	// if ok {
+	// 	vs, vv := v.Value()
+	// 	rng, ok := vv.(*ast.Range)
+	// 	if ok {
+	// 		fmt.Println("FIRST:", vs, rng, reflect.TypeOf(rng))
+	// 	}
+	// }
 	// Check for while loop form: "for condition { ... }"
 	if p.peekTokenIs(token.LBRACE) {
 		p.nextToken()
@@ -1055,6 +1083,32 @@ func (p *Parser) parsePipe(first ast.Expression) ast.Expression {
 		}
 	}
 	return ast.NewPipe(pipeToken, exprs)
+}
+
+func (p *Parser) parseIn(left ast.Expression) ast.Expression {
+	inToken := p.curToken
+	if err := p.nextTokenWithError(); err != nil {
+		return nil
+	}
+	right := p.parseExpression(IN)
+	if right == nil {
+		p.setTokenError(p.curToken, "invalid in expression")
+		return nil
+	}
+	return ast.NewIn(inToken, left, right)
+}
+
+func (p *Parser) parseRange() ast.Expression {
+	rangeToken := p.curToken
+	if err := p.nextTokenWithError(); err != nil {
+		return nil
+	}
+	container := p.parseExpression(RANGE)
+	if container == nil {
+		p.setTokenError(p.curToken, "invalid range expression")
+		return nil
+	}
+	return ast.NewRange(rangeToken, container)
 }
 
 func (p *Parser) parseMapOrSet() ast.Expression {

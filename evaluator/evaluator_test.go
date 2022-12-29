@@ -909,13 +909,26 @@ func TestMisc(t *testing.T) {
 		{`[1, 1.0, 2] == [1, "1.0", 2]`, false},
 		{`[1, 1.0, 2] == [1, 1.1, 2]`, false},
 		{`error("foo %s", "bar")`, errors.New("foo bar")},
+		{`"hi" in [1, 2, 3]`, false},
+		{`"hi" in [1, 2, 3, "hi"]`, true},
+		{`"hi" in 42`, errors.New("eval error: right hand side of 'in' operator must be a container")},
+		{`range [42, 43]`, []map[string]any{
+			{"key": int64(0), "value": int64(42)},
+			{"key": int64(1), "value": int64(43)},
+		}},
+		{`range {1,2} | type`, "set_iter"},
+		{`range {1,2}.next | string`, `builtin(next)`},
+		{`for _, x := range [98,99] { x }`, int64(99)},
+		{`for idx, x := range [98,99] { idx }`, int64(1)},
+		{`s := {98, 99}; for item := range s { item }`, int64(99)},
+		{`x, y, z := [3, 2, 1]; sprintf("%d-%d-%d", x, y, z)`, "3-2-1"},
+		{`x, y := [1]`, errors.New("eval error: invalid multi variable assignment (list size: 1; identifiers: 2)")},
 	}
 	for _, tt := range tests {
 		require.Equal(t, tt.expected, testEval(tt.input).Interface(), tt.input)
 	}
 }
 
-// Test "0A"
 func FuzzEval(f *testing.F) {
 	testcases := []string{
 		"1/2+4+=5-[1,2,{}]",

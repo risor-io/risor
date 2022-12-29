@@ -164,7 +164,7 @@ default:
 
 ## Loops
 
-Three forms of for loops are accepted. The `break` and `continue` keywords may
+Four forms of for loops are accepted. The `break` and `continue` keywords may
 be used to control looping as you'd expect from other languages.
 
 This form includes init, condition, and post statements:
@@ -191,6 +191,59 @@ This form checks a condition before evaluating the loop body:
 for a < b {
 
 }
+```
+
+You may also use the `range` keyword to iterate through a container:
+
+```
+mylist := [1, 2, 3]
+for index, value := range mylist { ... }
+```
+
+## Iterators
+
+You can step through items in any container using an iterator. You can create
+an iterator using the `iter` builtin function or by using the `range` keyword.
+
+```
+>>> iter({1,2,3})
+set_iter({1, 2, 3})
+```
+
+```
+>>> range {one: 1, two: 2}
+map_iter({"one": 1, "two": 2})
+```
+
+Iterators offer a `next` method to retrieve the next entry in the sequence. Each
+entry is returned as an `iter_entry` object, which has `key` and `value` attributes.
+When the iterator is exhausted, `nil` is returned instead.
+
+For loops work with these iterators natively, and automatically assign the
+key and value to the loop variables. But you can use iterators directly as well.
+
+```
+>>> entry := range {foo: "bar"}.next()
+iter_entry("foo", "bar")
+>>> entry.key
+"foo"
+>>> entry.value
+"bar"
+```
+
+## The "in" keyword
+
+Check if an item exists is a container using the `in` keyword:
+
+```
+>>> 42 in [40, 41, 42]
+true
+>>> 3 in {2,3,4}
+true
+>>> "foo" in {foo: "bar"}
+true
+>>> "foo" in "bar foo baz"
+true
 ```
 
 ## Operations that may fail
@@ -230,32 +283,35 @@ list = list.map(func(x) { x \* x })
 ## Builtins
 
 ```
-type(x)            // returns the string type name of x
-len(s)             // returns the size of the string, list, map, or set
-any(arr)           // true if any item in arr is truthy
-all(arr)           // true if all items in arr are truthy
-sprintf(msg, ...)  // equivalent to fmt.Sprintf
-keys(map)          // returns an array of keys in the given map
-delete(map, key)   // delete an item from the map
-string(obj)        // convert an object to its string representation
-bool(obj)          // evaluates an object's truthiness
-ok(result)         // create a Result object containing the given object
-err(message)       // create a Result error object
-unwrap(result)     // unwraps the ok value from the Result if allowed
-unwrap_or(obj)     // unwraps but returns the provided obj if the Result is an Error
-sorted(obj)        // works with lists, maps, and sets
-reversed(arr)      // returns a reversed version of the given array
-assert(obj, msg)   // raises an error if obj is falsy
-print(...)         // equivalent to fmt.Println
-printf(...)        // equivalent to fmt.Printf
-set(obj)           // create a new set populated with items from the given iterable
-list(obj)          // create a new list populated with items from the given iterable
-int(s)             // convert a string to an int
-float(s)           // convert a string to a float
-call(fn, ...)      // call the given function (can be useful in pipe expressions)
-getattr(obj, name) // get the object's attribute with the given name
-ord()              // convert a unicode character to its integer value
-chr()              // convert an integer to its corresponding unicode rune
+all(arr)            // true if all items in arr are truthy
+any(arr)            // true if any item in arr is truthy
+assert(obj, msg)    // raises an error if obj is falsy
+bool(obj)           // evaluates an object's truthiness
+call(fn, ...)       // call the given function (can be useful in pipe expressions)
+chr()               // convert an integer to its corresponding unicode rune
+delete(map, key)    // delete an item from the map
+err(message)        // create a Result error object
+error(message)      // raise an error
+float(s)            // convert a string to a float
+getattr(obj, name)  // get the object's attribute with the given name
+int(s)              // convert a string to an int
+iter(obj)           // returns an iterator for the given container
+keys(map)           // returns an array of keys in the given map
+len(s)              // returns the size of the string, list, map, or set
+list(obj)           // create a new list populated with items from the given iterable
+ok(result)          // create a Result object containing the given object
+ord()               // convert a unicode character to its integer value
+print(...)          // equivalent to fmt.Println
+printf(...)         // equivalent to fmt.Printf
+reversed(arr)       // returns a reversed version of the given array
+set(obj)            // create a new set populated with items from the given iterable
+sorted(obj)         // return a sorted list of items from a container
+sprintf(msg, ...)   // equivalent to fmt.Sprintf
+string(obj)         // convert an object to its string representation
+try(expr, fallback) // evaluate expr and return fallback if an error occurs
+type(x)             // returns the string type name of x
+unwrap_or(obj)      // unwraps but returns the provided obj if the Result is an Error
+unwrap(result)      // unwraps the ok value from the Result if allowed
 ```
 
 ## Types
@@ -263,16 +319,20 @@ chr()              // convert an integer to its corresponding unicode rune
 A variety of built-in types are available.
 
 ```
-101        // int
-1.1        // float
-"1"        // string
-[1,2,3]    // list
-{"key":2}  // map
-{1,2}      // set
-false      // bool
-nil        // nil
-func() {}  // function
-time.now() // time
+101         // int
+1.1         // float
+"1"         // string
+[1,2,3]     // list
+{"key":2}   // map
+{1,2}       // set
+false       // bool
+nil         // nil
+func() {}   // function
+time.now()  // time
+iter([1])   // list_iter
+iter(set()) // set_iter
+iter({})    // map_iter
+iter("1")   // string_iter
 ```
 
 There are also `HttpResponse` and `DatabaseConnection` types in progress.

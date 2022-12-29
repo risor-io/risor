@@ -168,6 +168,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalInfixExpression(ctx, node, s)
 	case *ast.Ternary:
 		return e.evalTernaryExpression(ctx, node, s)
+	case *ast.In:
+		return e.evalIn(ctx, node, s)
 
 	// Miscellaneous
 	case *ast.Ident:
@@ -188,6 +190,8 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 		return e.evalConstStatement(ctx, node, s)
 	case *ast.Assign:
 		return e.evalAssignStatement(ctx, node, s)
+	case *ast.MultiVar:
+		return e.evalMultiVarStatement(ctx, node, s)
 
 	// Functions
 	case *ast.Func:
@@ -203,15 +207,17 @@ func (e *Evaluator) Evaluate(ctx context.Context, node ast.Node, s *scope.Scope)
 
 	// Control
 	case *ast.If:
-		return e.evalIfExpression(ctx, node, s)
+		return e.evalIf(ctx, node, s)
 	case *ast.For:
-		return e.evalForLoopExpression(ctx, node, s)
+		return e.evalFor(ctx, node, s)
 	case *ast.Switch:
-		return e.evalSwitchStatement(ctx, node, s)
+		return e.evalSwitch(ctx, node, s)
 	case *ast.Pipe:
 		return e.evalPipe(ctx, node, s)
 	case *ast.Control:
 		return e.evalControl(ctx, node, s)
+	case *ast.Range:
+		return e.evalRange(ctx, node, s)
 
 	// Literals
 	case *ast.Nil:

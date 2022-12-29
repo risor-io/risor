@@ -8,10 +8,9 @@ import (
 	"github.com/cloudcmds/tamarin/scope"
 )
 
-// evalIfExpression handles an `if` expression, running the block
-// if the condition matches, and running any optional else block
-// otherwise.
-func (e *Evaluator) evalIfExpression(ctx context.Context, ie *ast.If, s *scope.Scope) object.Object {
+// evalIf handles an `if` expression, running the block if the condition
+// matches, and running any optional else block otherwise.
+func (e *Evaluator) evalIf(ctx context.Context, ie *ast.If, s *scope.Scope) object.Object {
 	condition := e.Evaluate(ctx, ie.Condition(), s)
 	if object.IsError(condition) {
 		return condition
@@ -24,7 +23,7 @@ func (e *Evaluator) evalIfExpression(ctx context.Context, ie *ast.If, s *scope.S
 	return object.Nil
 }
 
-func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
+func (e *Evaluator) evalFor(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
 
 	forScope := s.NewChild(scope.Opts{Name: "for"})
 	loopScope := forScope.NewChild(scope.Opts{Name: "for-loop"})
@@ -37,38 +36,21 @@ func (e *Evaluator) evalForLoopExpression(ctx context.Context, fle *ast.For, s *
 		}
 	}
 
+	if fle.IsSimpleLoop() {
+		// This is a simple for loop, like "for { ... }". It will run until
+		// an error occurs or a break or return statement is encountered.
+		return e.evalSimpleForLoop(ctx, fle, loopScope)
+	} else if fle.IsIteratorLoop() {
+		// This is an iterator loop, like "for k, v := range m { ... }"
+		return e.evalIteratorForLoop(ctx, fle, loopScope)
+	}
+
 	// The for loop evaluates to this value. It is set to the last value
 	// evaluated in the for loop block.
 	var latestValue object.Object = object.Nil
 
-	// This is a simple for loop, like "for { ... }". It will run until
-	// an error occurs or a break or return statement is encountered.
-	if fle.IsSimpleLoop() {
-
-	simpleLoop:
-		for {
-			loopScope.Clear()
-			result := e.Evaluate(ctx, fle.Consequence(), loopScope)
-			switch result := result.(type) {
-			case *object.Error:
-				return result
-			case *object.Control:
-				switch result.Keyword() {
-				case "break":
-					break simpleLoop
-				case "continue":
-					continue simpleLoop
-				case "return":
-					return result
-				}
-			}
-			latestValue = result
-		}
-		return latestValue
-	}
-
-	// This is a standard for loop that runs until a specified condition is met
-loop:
+	// This is a standard for loop that runs until a specified condition is met.
+forLoop:
 	for {
 		loopScope.Clear()
 		// Evaluate the condition
@@ -85,7 +67,7 @@ loop:
 			case *object.Control:
 				switch rt.Keyword() {
 				case "break":
-					break loop
+					break forLoop
 				case "return":
 					return rt
 				}
@@ -105,7 +87,95 @@ loop:
 	return latestValue
 }
 
-func (e *Evaluator) evalSwitchStatement(ctx context.Context, se *ast.Switch, s *scope.Scope) object.Object {
+func (e *Evaluator) evalSimpleForLoop(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
+	var latestValue object.Object = object.Nil
+forLoop:
+	for {
+		s.Clear()
+		result := e.Evaluate(ctx, fle.Consequence(), s)
+		switch result := result.(type) {
+		case *object.Error:
+			return result
+		case *object.Control:
+			switch result.Keyword() {
+			case "break":
+				break forLoop
+			case "continue":
+				continue forLoop
+			case "return":
+				return result
+			}
+		}
+		latestValue = result
+	}
+	return latestValue
+}
+
+func (e *Evaluator) evalIteratorForLoop(ctx context.Context, fle *ast.For, s *scope.Scope) object.Object {
+	var latestValue object.Object = object.Nil
+
+	// The "condition" here is the assignment statement with a RHS iterator.
+	var iterExpr ast.Node
+	var names []string
+	switch cond := fle.Condition().(type) {
+	case *ast.Var:
+		name, expr := cond.Value()
+		names = append(names, name)
+		iterExpr = expr
+	case *ast.MultiVar:
+		names, iterExpr = cond.Value()
+	default:
+		return object.Errorf("eval error: invalid for loop condition")
+	}
+
+	if len(names) < 1 || len(names) > 2 {
+		return object.Errorf("eval error: invalid for loop condition")
+	}
+
+	// Evaluate the RHS expression to get the iterator.
+	iterObj := e.Evaluate(ctx, iterExpr, s)
+	if object.IsError(iterObj) {
+		return iterObj
+	}
+	iterator, ok := iterObj.(object.Iterator)
+	if !ok {
+		return object.Errorf("eval error: cannot iterate over %s", iterObj.Type())
+	}
+
+forLoop:
+	for {
+		s.Clear()
+		entry, ok := iterator.Next()
+		if !ok {
+			break
+		}
+		if err := s.Declare(names[0], entry.Key(), false); err != nil {
+			return object.NewError(err)
+		}
+		if len(names) > 1 {
+			if err := s.Declare(names[1], entry.Value(), false); err != nil {
+				return object.NewError(err)
+			}
+		}
+		rt := e.Evaluate(ctx, fle.Consequence(), s)
+		switch rt := rt.(type) {
+		case *object.Error:
+			return rt
+		case *object.Control:
+			switch rt.Keyword() {
+			case "break":
+				break forLoop
+			case "return":
+				return rt
+			}
+		default:
+			latestValue = rt
+		}
+	}
+	return latestValue
+}
+
+func (e *Evaluator) evalSwitch(ctx context.Context, se *ast.Switch, s *scope.Scope) object.Object {
 	value := e.Evaluate(ctx, se.Value(), s)
 	if object.IsError(value) {
 		return value
@@ -267,4 +337,16 @@ func (e *Evaluator) upwrapReturnValue(obj object.Object) object.Object {
 		return rv.Value()
 	}
 	return obj
+}
+
+func (e *Evaluator) evalRange(ctx context.Context, node *ast.Range, s *scope.Scope) object.Object {
+	value := e.Evaluate(ctx, node.Container(), s)
+	if object.IsError(value) {
+		return value
+	}
+	container, ok := value.(object.Container)
+	if !ok {
+		return object.Errorf("type error: %s is not a container", value.Type())
+	}
+	return container.Iter()
 }
