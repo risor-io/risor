@@ -11,3 +11,4 @@ cover.out
 profile.out
 
 dist/
+venv/
