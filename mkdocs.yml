@@ -26,5 +26,5 @@ nav:
   - install.md
   - quick-start.md
   - how-it-works.md
-  - Limitations:
-      - limitations/foo.md
+  # - Limitations:
+  #     - limitations/foo.md
