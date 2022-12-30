@@ -8,61 +8,29 @@
 
 A fun and pragmatic scripting language written in Go. May be used as a CLI or embedded as a library.
 
+## Documentation
+
+Documentation is available at [cloudcmds.github.io/tamarin](https://cloudcmds.github.io/tamarin/).
+
 ## Getting Started
 
-Install the Tamarin CLI as follows:
+The [Quick Start](https://cloudcmds.github.io/tamarin/quick-start/) in the documentation
+is where you should head to get started.
+
+If you use Homebrew, you can install the Tamarin CLI as follows:
 
 ```
-go install github.com/cloudcmds/tamarin@latest
+brew tap cloudcmds/tamarin
+brew install tamarin
 ```
 
-You can then use the CLI in three different ways. Running `tamarin`
-by itself runs an interaction REPL:
+Having done that, just run `tamarin` to start the CLI or `tamarin -h` to see
+usage information.
 
-```bash
-tamarin
-```
+## Discuss the Project
 
-Pass a short script to execute using the `-c` flag:
-
-```bash
-tamarin -c 'uuid.v4()'
-```
-
-Or pass the path to a Tamarin script to execute:
-
-```bash
-tamarin ./examples/hello.tm
-```
-
-To use Tamarin as a library, see the example
-[cmd/simple-example/main.go](./cmd/simple-example/main.go).
-
-## Project Status
-
-This project is early so Tamarin should be considered **alpha** software.
 Please visit the [Github discussions](https://github.com/cloudcmds/tamarin/discussions)
-page to share thoughts and questions! Feedback now is useful to guide the
-project as it matures.
-
-## Goals
-
-Tamarin is meant to be useful for cloud, web, and general scripting.
-The syntax should be familiar to Go, Typescript, and Python developers.
-Tamarin should be "batteries included" with a handy standard library.
-
-Miscellaneous popular Go open source libraries may be integrated into the
-Tamarin standard library. Please share suggestions for what you think would
-be good additions on this front!
-
-We are using Tamarin to evaluate user-submitted scripts in sandboxes, but
-there are many other situations where Tamarin may be useful. Because of this
-initial use case, we chose to not support file I/O operations at this point,
-however those will be added as an opt-in feature.
-
-It is **not** currently considered important to be performance competitive
-with widely used scripting languages. If you are looking for top performance
-you should probably be using sandboxed V8/Javascript or Lua.
+page to share thoughts and questions.
 
 ## Feature Overview
 

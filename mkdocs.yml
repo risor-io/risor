@@ -23,8 +23,5 @@ markdown_extensions:
   - md_in_html
 nav:
   - Home: index.md
-  - install.md
   - quick-start.md
   - how-it-works.md
-  # - Limitations:
-  #     - limitations/foo.md
