@@ -6,6 +6,7 @@ theme:
     - yaml
     - rust
     - go
+    - bash
   features:
     - content.code.annotate
   palette:
