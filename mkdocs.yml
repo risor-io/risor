@@ -1,0 +1,31 @@
+site_name: Tamarin
+theme:
+  name: material
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - rust
+    - go
+  features:
+    - content.code.annotate
+  palette:
+    scheme: default
+    primary: blue
+    accent: light-blue
+repo_url: https://github.com/cloudcmds/tamarin
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+nav:
+  - Home: index.md
+  - intro.md
+  - install.md
+  - quick-start.md
+  - how-it-works.md
+  - Limitations:
+      - limitations/foo.md

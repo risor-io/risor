@@ -26,19 +26,30 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives
     format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        format: zip
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-
+      - "^docs:"
+      - "^test:"
+brews:
+  - skip_upload: auto
+    tap:
+      owner: cloudcmds
+      name: homebrew-tamarin
+    commit_author:
+      name: Curtis Myzie
+      email: info@cmds.dev
+    folder: Formula
+    homepage: "https://github.com/cloudcmds/tamarin"
+    description: "An embedded scripting language for Go projects"
+    license: "MIT"
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

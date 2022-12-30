@@ -6,13 +6,13 @@ Here is an overview of Tamarin Language Features. This is not comprehensive.
 
 Print to stdout:
 
-```
+```go
 print("Hello gophers!")
 ```
 
 Print any number of variables:
 
-```
+```go
 print("x:", x, "y:", y)
 ```
 
@@ -22,14 +22,14 @@ Equivalent to `fmt.Println`.
 
 Both `var` and `const` statements are supported:
 
-```
+```go
 var x = 42
 const y = "this is a constant"
 ```
 
 Using the `:=` operator instead of `var` is encouraged:
 
-```
+```go
 x := 42
 ```
 
@@ -37,7 +37,7 @@ x := 42
 
 Variables may change type, similar to Python.
 
-```
+```go
 x := 42
 x = "now a string"
 print(x)
@@ -47,7 +47,7 @@ print(x)
 
 Semicolons are optional, so statements are ended by newlines if semicolons are not present.
 
-```
+```go
 foo := "bar"; baz := "qux"
 ```
 
@@ -55,7 +55,7 @@ foo := "bar"; baz := "qux"
 
 Lines are commented using `//`.
 
-```
+```go
 // This line is commented out
 ```
 
@@ -67,7 +67,7 @@ Integers are represented by Go's `int64` type internally. Numeric operations
 that involve a mix of int and float inputs generally produce a float output.
 Integers are automaticaly converted to floats in these situations.
 
-```
+```go
 >>> 1 + 3.3
 4.3
 >>> type(1)
@@ -78,7 +78,7 @@ int
 
 Floating point numbers use Go's `float64` type internally.
 
-```
+```go
 >>> math.max([1.0, 2.0])
 2.0
 >>> type(2.0)
@@ -94,7 +94,7 @@ f-strings. Finally, raw strings are defined using backticks. Use raw strings
 when you want to include backslashes, single or double quotes, or newlines in
 your string.
 
-```
+```js
 salutation := "hello there"        // double-quoted string
 count_str := 'the count is {1+1}'  // single-quoted string
 raw_str := `\t\r\n`                // raw string
@@ -107,7 +107,7 @@ The `return` keyword is optional. If not present, the value of the last statemen
 expression in the block is understood to be the return value. Expressions that do not
 evaluate to a value will result in an `*object.Nil` being returned.
 
-```
+```go
 func addOne(x) {
     x + 1
 }
@@ -123,7 +123,7 @@ subOne(100)
 
 Default parameter values are supported:
 
-```
+```go
 func increment(value, amount=1) {
     return value + amount
 }
@@ -135,7 +135,7 @@ print(increment(100)) // 101
 
 Go style if-else statements are supported.
 
-```
+```go
 name := "ben"
 
 if name == "noa" {
@@ -149,7 +149,7 @@ if name == "noa" {
 
 Go style switch statements are supported.
 
-```
+```go
 name := "ben"
 
 switch name {
@@ -169,7 +169,7 @@ be used to control looping as you'd expect from other languages.
 
 This form includes init, condition, and post statements:
 
-```
+```go
 for i := 0; i < 10; i++ {
     print(i)
 }
@@ -177,7 +177,7 @@ for i := 0; i < 10; i++ {
 
 This simple form will loop until a `break` is executed:
 
-```
+```go
 for {
     if a > b {
         break
@@ -187,7 +187,7 @@ for {
 
 This form checks a condition before evaluating the loop body:
 
-```
+```go
 for a < b {
 
 }
@@ -195,7 +195,7 @@ for a < b {
 
 You may also use the `range` keyword to iterate through a container:
 
-```
+```go
 mylist := [1, 2, 3]
 for index, value := range mylist { ... }
 ```
@@ -205,12 +205,12 @@ for index, value := range mylist { ... }
 You can step through items in any container using an iterator. You can create
 an iterator using the `iter` builtin function or by using the `range` keyword.
 
-```
+```go
 >>> iter({1,2,3})
 set_iter({1, 2, 3})
 ```
 
-```
+```go
 >>> range {one: 1, two: 2}
 map_iter({"one": 1, "two": 2})
 ```
@@ -222,7 +222,7 @@ When the iterator is exhausted, `nil` is returned instead.
 For loops work with these iterators natively, and automatically assign the
 key and value to the loop variables. But you can use iterators directly as well.
 
-```
+```go
 >>> entry := range {foo: "bar"}.next()
 iter_entry("foo", "bar")
 >>> entry.key
@@ -235,7 +235,7 @@ iter_entry("foo", "bar")
 
 Check if an item exists is a container using the `in` keyword:
 
-```
+```go
 >>> 42 in [40, 41, 42]
 true
 >>> 3 in {2,3,4}
@@ -250,7 +250,7 @@ true
 
 `Result` objects wrap `Ok` and `Err` values for operations that may fail.
 
-```
+```go
 obj := json.unmarshal("true")
 obj.unwrap() // returns true
 
@@ -266,7 +266,7 @@ in as the first argument to the next.
 
 This pipe expression evalutes to the string `"HELLO"`.
 
-```
+```go
 "hello" | strings.to_upper
 ```
 
@@ -274,7 +274,7 @@ This pipe expression evalutes to the string `"HELLO"`.
 
 Lists offer `map` and `filter` methods:
 
-```
+```go
 list := [1, 2, 3, 4].filter(func(x) { x < 3 })
 list = list.map(func(x) { x \* x })
 // list is now [1, 4]
@@ -318,7 +318,7 @@ unwrap(result)      // unwraps the ok value from the Result if allowed
 
 A variety of built-in types are available.
 
-```
+```go
 101         // int
 1.1         // float
 "1"         // string
@@ -353,7 +353,7 @@ Input and output values are type-converted automatically, for a variety of types
 Go structs are mapped to Tamarin map objects. Go `context.Context` and `error`
 values are handled automatically.
 
-```go
+```go title="proxy_service.go" linenums="1"
 	// Create a registry that tracks proxied Go types and their attributes
 	registry, err := object.NewTypeRegistry()
 	if err != nil {
