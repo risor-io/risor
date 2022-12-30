@@ -71,5 +71,4 @@ GOPHERS ARE BURROWING RODENTS
 
 VSCode users can quickly enable Tamarin syntax highlighting by installing the
 [Tamarin VSCode Extension](https://marketplace.visualstudio.com/items?itemName=CurtisMyzie.tamarin-language).
-
 A TextMate grammar file is available [here](https://github.com/cloudcmds/tamarin/blob/main/vscode/syntaxes/tamarin.grammar.json) that may help with syntax highlighting in other editors.

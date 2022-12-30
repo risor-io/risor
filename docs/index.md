@@ -2,13 +2,12 @@
 
 Tamarin is an embedded scripting language for Go projects.
 
-At a high level, Tamarin is especially useful for adding user defined functionality
-to existing Go programs or libraries. Almost any feature can be made extensible
-by integrating Tamarin as a library, since Tamarin scripts can interact with Go
-structs that already exist in your program.
+By integrating Tamarin into your existing Go program or library, you can add
+dynamic behavior and scripting without requiring users to recompile your program.
 
-You may also find that the Tamarin CLI can be handy for miscellaneous scripting
-tasks, thanks to the self-contained binary Go build.
+You may also find that the Tamarin CLI can be handy for miscellaneous command
+line scripting tasks, thanks to the simple, single binary Go build and convenient
+syntax.
 
 ## Use Cases
 
@@ -36,7 +35,6 @@ good match for your project:
 ## Getting Started
 
 Head over to [Quick Start](quick-start.md) for information on how to start using
-Tamarin as a CLI or a library.
-
-There are also a variety of [examples](https://github.com/cloudcmds/tamarin/tree/main/cmd)
-in the Github repository that demonstrate using Tamarin as a library.
+Tamarin as a CLI or a library. There are also a variety of
+[examples](https://github.com/cloudcmds/tamarin/tree/main/cmd) in the Github
+repository that demonstrate using Tamarin as a library.
