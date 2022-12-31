@@ -126,6 +126,15 @@ func (s *String) Iter() Iterator {
 	return NewStringIter(s)
 }
 
+func (s *String) Runes() []Object {
+	runes := []rune(s.value)
+	result := make([]Object, len(runes))
+	for i, r := range runes {
+		result[i] = NewString(string(r))
+	}
+	return result
+}
+
 func NewString(s string) *String {
 	return &String{value: s}
 }

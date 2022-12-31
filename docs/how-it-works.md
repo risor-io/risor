@@ -1,10 +1,9 @@
 # How It Works
 
 Tamarin includes an interpreter written in Go and uses an approach called
-Pratt Parsing to parse expressions.
-
-The excellent book [Writing an Interpreter in Go](https://interpreterbook.com/)
-as the original inspiration for the project.
+Pratt Parsing to parse expressions. The excellent book
+[Writing an Interpreter in Go](https://interpreterbook.com/)
+was the original inspiration for the project.
 
 ## The Internals
 
@@ -26,8 +25,8 @@ As with many other interpreted languages, Tamarin includes:
 The [exec](https://github.com/cloudcmds/tamarin/blob/main/exec/exec.go)
 package offers a user-friendly API to use Tamarin as a library.
 The provided `context.Context` is used to cancel execution or limit execution
-with a timeout. Internally Tamarin passes around this context to ensure execution
-quickly stops when the context is canceled.
+with a timeout. Internally Tamarin passes this context to all operations to
+guarantee that execution quickly stops when the context is canceled.
 
 ## Concurrency
 

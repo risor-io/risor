@@ -10,7 +10,7 @@ the user entered, and the output is shown on the line below.
 ## Variables
 
 Variables are dynamically typed and are declared using `const`, `var`, or `:=`.
-Subsequently, non-const variables may be updated using `=` like in Go.
+After declaration, variables are updated using `=` like in Go.
 
 ```go
 x := 42             // this declares an integer
@@ -262,40 +262,6 @@ Lists offer `map` and `filter` methods:
 list := [1, 2, 3, 4].filter(func(x) { x < 3 })
 list = list.map(func(x) { x \* x })
 // list is now [1, 4]
-```
-
-## Builtins
-
-```
-all(arr)            // true if all items in arr are truthy
-any(arr)            // true if any item in arr is truthy
-assert(obj, msg)    // raises an error if obj is falsy
-bool(obj)           // evaluates an object's truthiness
-call(fn, ...)       // call the given function (can be useful in pipe expressions)
-chr()               // convert an integer to its corresponding unicode rune
-delete(map, key)    // delete an item from the map
-err(message)        // create a Result error object
-error(message)      // raise an error
-float(s)            // convert a string to a float
-getattr(obj, name)  // get the object's attribute with the given name
-int(s)              // convert a string to an int
-iter(obj)           // returns an iterator for the given container
-keys(map)           // returns an array of keys in the given map
-len(s)              // returns the size of the string, list, map, or set
-list(obj)           // create a new list populated with items from the given iterable
-ok(result)          // create a Result object containing the given object
-ord()               // convert a unicode character to its integer value
-print(...)          // equivalent to fmt.Println
-printf(...)         // equivalent to fmt.Printf
-reversed(arr)       // returns a reversed version of the given array
-set(obj)            // create a new set populated with items from the given iterable
-sorted(obj)         // return a sorted list of items from a container
-sprintf(msg, ...)   // equivalent to fmt.Sprintf
-string(obj)         // convert an object to its string representation
-try(expr, fallback) // evaluate expr and return fallback if an error occurs
-type(x)             // returns the string type name of x
-unwrap_or(obj)      // unwraps but returns the provided obj if the Result is an Error
-unwrap(result)      // unwraps the ok value from the Result if allowed
 ```
 
 ## Types

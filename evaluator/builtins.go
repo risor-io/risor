@@ -309,14 +309,25 @@ func Print(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
-// Printf is the implementation of our `printf` function.
 func Printf(ctx context.Context, args ...object.Object) object.Object {
-	// Convert to the formatted version, via our `sprintf` function
-	out := Sprintf(ctx, args...)
-	// If that returned a string then we can print it
-	if out.Type() == object.STRING {
-		fmt.Print(out.(*object.String).Value())
+	numArgs := len(args)
+	if numArgs < 1 {
+		return object.Errorf("type error: printf() takes 1 or more arguments (%d given)", len(args))
 	}
+	format, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	var values []interface{}
+	for _, arg := range args[1:] {
+		switch arg := arg.(type) {
+		case *object.String:
+			values = append(values, arg.Value())
+		default:
+			values = append(values, arg.Interface())
+		}
+	}
+	fmt.Printf(format, values...)
 	return object.Nil
 }
 
@@ -330,7 +341,7 @@ func Unwrap(ctx context.Context, args ...object.Object) object.Object {
 		if !ok {
 			return object.Errorf("type error: unwrap() method not found")
 		}
-		return fn.(*object.Builtin).Call(ctx, args...)
+		return fn.(*object.Builtin).Call(ctx, args[1:]...)
 	default:
 		return object.Errorf("type error: unwrap() argument must be a result (%s given)", arg.Type())
 	}
@@ -346,7 +357,7 @@ func UnwrapOr(ctx context.Context, args ...object.Object) object.Object {
 		if !ok {
 			return object.Errorf("type error: unwrap_or() method not found")
 		}
-		return fn.(*object.Builtin).Call(ctx, args...)
+		return fn.(*object.Builtin).Call(ctx, args[1:]...)
 	default:
 		return object.Errorf("type error: unwrap_or() argument must be a result (%s given)", arg.Type())
 	}
@@ -364,8 +375,10 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 		items = arg.Keys().Value()
 	case *object.Set:
 		items = arg.List().Value()
+	case *object.String:
+		items = arg.Runes()
 	default:
-		return object.Errorf("type error: sorted() argument must be an array, hash, or set (%s given)", arg.Type())
+		return object.Errorf("type error: sorted() argument must be a list, map, or set (%s given)", arg.Type())
 	}
 	resultItems := make([]object.Object, len(items))
 	copy(resultItems, items)

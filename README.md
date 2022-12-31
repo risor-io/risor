@@ -6,7 +6,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cloudcmds/tamarin?style=flat-square)](https://goreportcard.com/report/github.com/cloudcmds/tamarin)
 [![Releases](https://img.shields.io/github/release/cloudcmds/tamarin/all.svg?style=flat-square)](https://github.com/cloudcmds/tamarin/releases)
 
-A fun and pragmatic scripting language written in Go. May be used as a CLI or embedded as a library.
+A fun and pragmatic embedded scripting language written for Go projects.
+Use it as a library and try it out via the CLI REPL.
 
 ## Documentation
 

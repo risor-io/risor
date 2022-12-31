@@ -2,12 +2,13 @@
 
 Tamarin is an embedded scripting language for Go projects.
 
-By integrating Tamarin into your existing Go program or library, you can add
-dynamic scripting and behavior without requiring users to recompile your program.
+Integrating Tamarin into your Go program or library provides extensibility.
+You enable users of your application to extend and modify its functionality
+without recompiling.
 
-You may also find that the Tamarin CLI can be handy for miscellaneous command
-line scripting tasks, thanks to the simple, single binary Go build and convenient
-syntax.
+You may also find that the Tamarin CLI is handy for command line scripting,
+thanks to the single binary distribution, handy built-in functions, and
+convenient syntax.
 
 ```go
 ["welcome", "to", "tamarin", "👋"] | strings.join(" ")
@@ -15,20 +16,20 @@ syntax.
 
 ## Use Cases
 
-- Allow users of your Go program to customize event processing without recompilation.
+- Allow users of your Go program to customize event processing.
 - Add customization hooks to any CLI written in Go.
-- Enable users of your library to write scripts that interact with Go structs.
+- Enable users of your library to write scripts that call methods on your Go structs.
 - Add dynamic behaviors to a Go web server to customize initialization or
   request handling.
-- Extend game engines written in Go with a scripting interface.
+- Extend game engines with a scripting interface.
 - Sandbox execution of user scripts in a SaaS application.
 
 ## Why Choose Tamarin?
 
-There are already some really handy embedded scripting languages for Go. Here is
-the great list on [awesome-go](https://github.com/avelino/awesome-go#embeddable-scripting-languages).
-Tamarin is different in a few ways and you can consider whether this makes it a
-good match for your project:
+There are already some really handy embedded scripting languages for Go
+(visit [awesome-go](https://github.com/avelino/awesome-go#embeddable-scripting-languages)).
+Tamarin is different in a few important ways and you can consider whether this
+makes it a good match for your project:
 
 - General purpose, but with built-in capabilities for HTTP requests and more.
 - Familiar syntax for Go and Python developers.
