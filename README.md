@@ -7,7 +7,7 @@
 [![Releases](https://img.shields.io/github/release/cloudcmds/tamarin/all.svg?style=flat-square)](https://github.com/cloudcmds/tamarin/releases)
 
 A fun and pragmatic embedded scripting language written for Go projects.
-Use it as a library and try it out via the CLI REPL.
+Import it as a library or try out the Tamarin REPL.
 
 ## Documentation
 

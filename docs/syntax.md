@@ -264,29 +264,6 @@ list = list.map(func(x) { x \* x })
 // list is now [1, 4]
 ```
 
-## Types
-
-A variety of built-in types are available.
-
-```go
-101         // int
-1.1         // float
-"1"         // string
-[1,2,3]     // list
-{"key":2}   // map
-{1,2}       // set
-false       // bool
-nil         // nil
-func() {}   // function
-time.now()  // time
-iter([1])   // list_iter
-iter(set()) // set_iter
-iter({})    // map_iter
-iter("1")   // string_iter
-```
-
-There are also `HttpResponse` and `DatabaseConnection` types in progress.
-
 ## Standard Library
 
 Documentation for this is a work in progress. For now, browse the modules [here](../internal/modules).

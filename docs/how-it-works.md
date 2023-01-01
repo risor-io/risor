@@ -3,7 +3,7 @@
 Tamarin includes an interpreter written in Go and uses an approach called
 Pratt Parsing to parse expressions. The excellent book
 [Writing an Interpreter in Go](https://interpreterbook.com/)
-was the original inspiration for the project.
+was the inspiration for the project.
 
 ## The Internals
 

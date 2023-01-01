@@ -8,9 +8,9 @@ built-ins is easily customizable, depending on the goals for your project.
 Returns `true` if all entries in the given container are "truthy".
 
 ```go
->>> all([1, true])
+>>> all([true, 1, "ok"])
 true
->>> all([1, false])
+>>> all([true, 0, "ok"])
 false
 ```
 
