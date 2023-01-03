@@ -44,24 +44,9 @@ page to share thoughts and questions.
 - Cancel evaluation using Go contexts
 - Library may be imported using the `import` keyword
 - Easy HTTP requests via the `fetch` built-in function
-- Pipe expressions to create processing chains
+- Pipeline expressions to create processing chains
 - Error handling inspired by Rust, using a Result type
 - String templates similar to Python's f-strings
-
-## Making Tamarin Scripts Executable
-
-Make a Tamarin script executable by adding a shebang line (`#!`). For example,
-for a script named `hello.tm`:
-
-     $ cat hello.tm
-     #!/usr/bin/env tamarin
-     print("Hello world!")
-
-Execution then works as you would expect:
-
-     $ chmod 755 hello.tm
-     $ ./hello.tm
-     Hello world!
 
 ## Language Features and Syntax
 

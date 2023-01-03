@@ -1,11 +1,15 @@
 # Syntax
 
-Tamarin syntax was designed to be like Go, but with some functionality and
-behavior borrowed from Python, given that Tamarin is an interpreted language.
+Tamarin was designed to be like a more scripting-friendly version of Go.
+At times, approaches from Python were referenced when deciding how Tamarin
+should approach a particular situation as an interpreted language. As a result,
+Tamarin may feel like a hybrid of Go and Python.
 
-In the examples below, when you see a `>>>` it indicates that input and output
-from a Tamarin REPL session is being shown. To the right of the `>>>` is what
-the user entered, and the output is shown on the line below.
+!!! Note
+
+    In the examples below, when you see a `>>>` it indicates that input and output
+    from a Tamarin REPL session is being shown. To the right of the `>>>` is the
+    command the user entered. The command output is shown on the line below.
 
 ## Variables
 
@@ -19,123 +23,112 @@ const foo = "bar"   // const values cannot be updated
 var name = "anne"   // this is equivalent to `name := "anne"`
 ```
 
+Multiple variables may be assigned in one statement, where the right-hand
+side of the assignment is a list with a matching size:
+
+```go
+>>> a, b, c := [1, 2, 3]
+[1, 2, 3]
+>>> a
+1
+>>> b
+2
+>>> c
+3
+```
+
 ## Semicolons
 
-Semicolons are optional. A statement ends on a semicolon if a newline is not present,
-except in some specific situations.
+Semicolons are optional. Multiple statements can be on a single line if
+separated by a semicolon.
 
 ```go
 foo := "bar"; baz := "qux"
 ```
 
-## Print
-
-Print to stdout:
-
-```go
-print("Hello gophers!")
-```
-
-Print any number of variables:
-
-```go
-print("x:", x, "y:", y)
-```
-
-The `print` built-in is equivalent to `fmt.Println` in Go.
-
 ## Comments
 
-Lines are commented using `//`.
+Lines are commented using `//` or `#`.
 
 ```go
 // This line is commented out
 ```
 
+```python
+# As is this one
+```
+
 Block comments are defined using `/*` and `*/`.
-
-## Ints and Floats
-
-Tamarin `int` and `float` types correspond to `int64` and `float64` in Go. These
-values are boxed as Tamarin objects. Generally, Tamarin libraries convert bewtween
-`int` and `float` automatically in numeric operations.
-
-```go
->>> 1 + 3.3
-4.3
->>> type(1)
-int
->>> type(2.0)
-float
->>> math.max([1, 2.0])
-2
-```
-
-## Strings
-
-String behavior overall is quite similar to that in Go, but single quoted
-string templates are available to provide templating similar to Python f-strings.
-Raw strings are defined using backticks and these opt-out of all escape character
-behaviors.
-
-```js
-salutation := "hello there"        // double-quoted string
-count_str := 'the count is {1+1}'  // single-quoted string with template variable
-raw_str := `\t\r\n`                // raw string
-```
 
 ## Functions
 
-Functions are defined using the `func` keyword. They may be passed around as values.
-The `return` keyword is optional. If not present, the value of the last statement or
-expression in the block is understood to be the return value. Expressions that do not
-evaluate to a value will result in an `*object.Nil` being returned.
+Functions are defined using the `func` keyword and may be passed around as values.
+The last statement or expression in the function body is understood to be the
+return value, so using the `return` keyword is _optional_.
+
+The syntax for invoking a function is the same as in Go.
+
+Functions may be declared with default parameter values.
 
 ```go
-func addOne(x) {
-    x + 1
-}
-
-// This way of defining a function is equivalent to the above
-const subOne = func(x) {
-    return x - 1
-}
-
-addOne(100)
-subOne(100)
+>>> func increment(x, amount=1) { x + amount }
+>>> increment(3)
+4
+>>> increment(3, 2)
+5
 ```
 
-Default parameter values are supported:
+Functions may also be assigned to variables:
 
 ```go
-func increment(value, amount=1) {
-    return value + amount
+const say_hello = func() {
+    print("hello")
 }
 
-print(increment(100)) // 101
+say_hello()
+```
+
+## Closures
+
+Closures store the environment associated with an outer function, allowing its
+reuse for multiple invocations of an inner function.
+
+```go
+func get_counter(start) {
+  return func() {
+    start++
+  }
+}
+
+c := get_counter(5)
+
+print(c()) // prints 5
+print(c()) // prints 6
+print(c()) // prints 7
 ```
 
 ## Conditionals
 
-Go style if-else statements are supported.
+Go style conditionals are supported, including `if`, `else if`, and `else` cases.
+Parentheses are not required when defining the condition for each case.
 
 ```go
-name := "ben"
-
-if name == "noa" {
-    print("the name is noa")
+if age < 13 {
+    print("this is a kid")
+} else if age < 18 {
+    print("this is a young adult")
 } else {
-    print("the name is something else")
+	print("this is an adult")
 }
 ```
 
 ## Switch Statements
 
-Go style switch statements are supported.
+Switch statements compare a value with multiple defined cases, executing the
+matching case if there is one, and executing the `default` case if one exists
+and no other cases match.
 
 ```go
-name := "ben"
-
 switch name {
 case "ben":
     print("matched ben")
@@ -148,10 +141,10 @@ default:
 
 ## Loops
 
-Four forms of for loops are accepted. The `break` and `continue` keywords may
-be used to control looping as you'd expect from other languages.
+Multiple styles of for loops are accepted. The `break` and `continue` keywords
+may be used to control looping as you'd expect from other languages.
 
-This form includes init, condition, and post statements:
+The "standard" style includes _init_, _condition_, and _post_ statements:
 
 ```go
 for i := 0; i < 10; i++ {
@@ -159,7 +152,7 @@ for i := 0; i < 10; i++ {
 }
 ```
 
-This simple form will loop until a `break` is executed:
+The "simple" style will loop until a `break` statement is reached:
 
 ```go
 for {
@@ -169,53 +162,86 @@ for {
 }
 ```
 
-This form checks a condition before evaluating the loop body:
+The "condition-only" style loops until the condition evaluates to `false`:
 
 ```go
 for a < b {
-
+	a++
 }
 ```
 
-You may also use the `range` keyword to iterate through a container:
+Finally, you may also use the `range` keyword to iterate over the contents of a container:
 
 ```go
-mylist := [1, 2, 3]
-for index, value := range mylist { ... }
+l := [1, 2, 3]
+
+for i, value := range l {
+	print(i, value)
+}
 ```
 
-## Iterators
+## Pipelines
 
-You can step through items in any container using an iterator. You can create
-an iterator using the `iter` builtin function or by using the `range` keyword.
+Pipelines execute a series of function calls, passing each call's output as the
+first argument to the next call. This syntax lends itself to applying one or more
+transformations to input data.
+
+If an error is encountered at any stage in the pipeline, its execution stops early,
+and the error propagates as usual.
+
+Each expression in the pipeline is expected to evaluate to a function or method
+to call. Parentheses may be omitted in each call when the function accepts one
+argument, since that argument is passed implicitly from the previous stage. If
+the function accepts two or more arguments, the pipeline always provides the
+first argument and the code author must supply the following arguments as they
+would in a normal function invocation.
+
+This is an example of a two stage string transformation:
 
 ```go
->>> iter({1,2,3})
-set_iter({1, 2, 3})
+>>> "hello." | strings.to_upper | strings.replace_all(".", "!")
+"HELLO!"
 ```
+
+The expression prior to the first `|` receives no special treatment in pipelines.
+That is, it's treated as the first argument to the subsequent function, even if
+it evaluates to a function value itself.
+
+The examples below are all equivalent and illustrate how values (which may even
+be a function) are passed as the first argument to the next stage.
 
 ```go
->>> range {one: 1, two: 2}
-map_iter({"one": 1, "two": 2})
+>>> [3, 2, 9, 5] | math.max
+9
+>>> math.max | call([3, 2, 9, 5])
+9
+>>> call(math.max, [3, 2, 9, 5])
+9
 ```
 
-Iterators offer a `next` method to retrieve the next entry in the sequence. Each
-entry is returned as an `iter_entry` object, which has `key` and `value` attributes.
-When the iterator is exhausted, `nil` is returned instead.
-
-For loops work with these iterators natively, and automatically assign the
-key and value to the loop variables. But you can use iterators directly as well.
+Pipelines can be used to build functions:
 
 ```go
->>> entry := range {foo: "bar"}.next()
-iter_entry("foo", "bar")
->>> entry.key
-"foo"
->>> entry.value
-"bar"
+>>> func normalize(s) { s | strings.fields | strings.join(" ") }
+>>> normalize("  so   much   whitespace  ")
+"so much whitespace"
 ```
 
-## The "in" keyword
+## Attribute Access
+
+Get attr...
+
+## Method Calls
+
+Method calls...
+
+## Index Operations
+
+## Slice
+
+## Import
+
+## The in Keyword
 
 Check if an item exists is a container using the `in` keyword:
 
@@ -229,83 +255,3 @@ true
 >>> "foo" in "bar foo baz"
 true
 ```
-
-## Operations that may fail
-
-`Result` objects wrap `Ok` and `Err` values for operations that may fail.
-
-```go
-obj := json.unmarshal("true")
-obj.unwrap() // returns true
-
-failed := json.unmarshal("/not-valid/")
-failed.is_err() // returns true
-failed.unwrap() // raises error that stops execution
-```
-
-## Pipe Expressions
-
-These execute a series of function calls, passing the result from one stage
-in as the first argument to the next.
-
-This pipe expression evalutes to the string `"HELLO"`.
-
-```go
-"hello" | strings.to_upper
-```
-
-## List Methods
-
-Lists offer `map` and `filter` methods:
-
-```go
-list := [1, 2, 3, 4].filter(func(x) { x < 3 })
-list = list.map(func(x) { x \* x })
-// list is now [1, 4]
-```
-
-## Standard Library
-
-Documentation for this is a work in progress. For now, browse the modules [here](../internal/modules).
-
-## Proxying Calls to Go Objects
-
-You can expose arbitrary Go objects to Tamarin code in order to enable method
-calls on those objects. This allows you to expose existing structs in your
-application as Tamarin objects that scripts can be written against. Tamarin
-automatically discovers public methods on your Go types and converts inputs and
-outputs for primitive types and for structs that you register.
-
-Input and output values are type-converted automatically, for a variety of types.
-Go structs are mapped to Tamarin map objects. Go `context.Context` and `error`
-values are handled automatically.
-
-```go title="proxy_service.go" linenums="1"
-	// Create a registry that tracks proxied Go types and their attributes
-	registry, err := object.NewTypeRegistry()
-	if err != nil {
-		return err
-	}
-
-	// This is the Go service we will expose in Tamarin
-	svc := &MyService{}
-
-	// Wrap the service in a Tamarin Proxy
-	proxy, err := object.NewProxy(registry, svc)
-	if err != nil {
-		return err
-	}
-
-	// Add the proxy to a Tamarin execution scope
-	s := scope.New(scope.Opts{})
-	s.Declare("svc", proxy, true)
-
-	// Execute Tamarin code against that scope. By doing this, the Tamarin
-	// code can call public methods on `svc` and retrieve its public fields.
-	result, err := exec.Execute(ctx, exec.Opts{
-		Input: string(scriptSourceCode),
-		Scope: s,
-	})
-```
-
-See [example-proxy](../cmd/example-proxy/main.go) for a complete example.

@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -38,6 +39,168 @@ func (s *String) HashKey() HashKey {
 }
 
 func (s *String) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "contains":
+		return &Builtin{
+			name: "string.contains",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.contains", 1, len(args))
+				}
+				return s.Contains(args[0])
+			},
+		}, true
+	case "has_prefix":
+		return &Builtin{
+			name: "string.has_prefix",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.has_prefix", 1, len(args))
+				}
+				return s.HasPrefix(args[0])
+			},
+		}, true
+	case "has_suffix":
+		return &Builtin{
+			name: "string.has_suffix",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.has_suffix", 1, len(args))
+				}
+				return s.HasSuffix(args[0])
+			},
+		}, true
+	case "count":
+		return &Builtin{
+			name: "string.count",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.count", 1, len(args))
+				}
+				return s.Count(args[0])
+			},
+		}, true
+	case "join":
+		return &Builtin{
+			name: "string.join",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.join", 1, len(args))
+				}
+				return s.Join(args[0])
+			},
+		}, true
+	case "split":
+		return &Builtin{
+			name: "string.split",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.split", 1, len(args))
+				}
+				return s.Split(args[0])
+			},
+		}, true
+	case "fields":
+		return &Builtin{
+			name: "string.fields",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("string.fields", 0, len(args))
+				}
+				return s.Fields()
+			},
+		}, true
+	case "index":
+		return &Builtin{
+			name: "string.index",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.index", 1, len(args))
+				}
+				return s.Index(args[0])
+			},
+		}, true
+	case "last_index":
+		return &Builtin{
+			name: "string.last_index",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.last_index", 1, len(args))
+				}
+				return s.LastIndex(args[0])
+			},
+		}, true
+	case "replace_all":
+		return &Builtin{
+			name: "string.replace_all",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 2 {
+					return NewArgsError("string.replace_all", 2, len(args))
+				}
+				return s.ReplaceAll(args[0], args[1])
+			},
+		}, true
+	case "to_lower":
+		return &Builtin{
+			name: "string.to_lower",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("string.to_lower", 0, len(args))
+				}
+				return s.ToLower()
+			},
+		}, true
+	case "to_upper":
+		return &Builtin{
+			name: "string.to_upper",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("string.to_upper", 0, len(args))
+				}
+				return s.ToUpper()
+			},
+		}, true
+	case "trim":
+		return &Builtin{
+			name: "string.trim",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.trim", 1, len(args))
+				}
+				return s.Trim(args[0])
+			},
+		}, true
+	case "trim_prefix":
+		return &Builtin{
+			name: "string.trim_prefix",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.trim_prefix", 1, len(args))
+				}
+				return s.TrimPrefix(args[0])
+			},
+		}, true
+	case "trim_space":
+		return &Builtin{
+			name: "string.trim_space",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("string.trim_space", 0, len(args))
+				}
+				return s.TrimSpace()
+			},
+		}, true
+	case "trim_suffix":
+		return &Builtin{
+			name: "string.trim_suffix",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 1 {
+					return NewArgsError("string.trim_suffix", 1, len(args))
+				}
+				return s.TrimSuffix(args[0])
+			},
+		}, true
+	}
 	return nil, false
 }
 
@@ -110,12 +273,128 @@ func (s *String) DelItem(key Object) *Error {
 	return Errorf("eval error: string does not support del item")
 }
 
-func (s *String) Contains(key Object) *Bool {
-	strObj, ok := key.(*String)
-	if !ok {
+func (s *String) Contains(obj Object) *Bool {
+	other, err := AsString(obj)
+	if err != nil {
 		return False
 	}
-	return NewBool(strings.Contains(s.value, strObj.value))
+	return NewBool(strings.Contains(s.value, other))
+}
+
+func (s *String) HasPrefix(obj Object) Object {
+	prefix, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewBool(strings.HasPrefix(s.value, prefix))
+}
+
+func (s *String) HasSuffix(obj Object) Object {
+	suffix, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewBool(strings.HasSuffix(s.value, suffix))
+}
+
+func (s *String) Count(obj Object) Object {
+	substr, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewInt(int64(strings.Count(s.value, substr)))
+}
+
+func (s *String) Join(obj Object) Object {
+	ls, err := AsList(obj)
+	if err != nil {
+		return err
+	}
+	var strs []string
+	for _, item := range ls.Value() {
+		itemStr, err := AsString(item)
+		if err != nil {
+			return err
+		}
+		strs = append(strs, itemStr)
+	}
+	return NewString(strings.Join(strs, s.value))
+}
+
+func (s *String) Split(obj Object) Object {
+	sep, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewStringList(strings.Split(s.value, sep))
+}
+
+func (s *String) Fields() Object {
+	return NewStringList(strings.Fields(s.value))
+}
+
+func (s *String) Index(obj Object) Object {
+	substr, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewInt(int64(strings.Index(s.value, substr)))
+}
+
+func (s *String) LastIndex(obj Object) Object {
+	substr, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewInt(int64(strings.LastIndex(s.value, substr)))
+}
+
+func (s *String) ReplaceAll(old, new Object) Object {
+	oldStr, err := AsString(old)
+	if err != nil {
+		return err
+	}
+	newStr, err := AsString(new)
+	if err != nil {
+		return err
+	}
+	return NewString(strings.ReplaceAll(s.value, oldStr, newStr))
+}
+
+func (s *String) ToLower() Object {
+	return NewString(strings.ToLower(s.value))
+}
+
+func (s *String) ToUpper() Object {
+	return NewString(strings.ToUpper(s.value))
+}
+
+func (s *String) Trim(obj Object) Object {
+	chars, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewString(strings.Trim(s.value, chars))
+}
+
+func (s *String) TrimPrefix(obj Object) Object {
+	prefix, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewString(strings.TrimPrefix(s.value, prefix))
+}
+
+func (s *String) TrimSuffix(obj Object) Object {
+	suffix, err := AsString(obj)
+	if err != nil {
+		return err
+	}
+	return NewString(strings.TrimSuffix(s.value, suffix))
+}
+
+func (s *String) TrimSpace() Object {
+	return NewString(strings.TrimSpace(s.value))
 }
 
 func (s *String) Len() *Int {

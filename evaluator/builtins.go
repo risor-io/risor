@@ -53,16 +53,14 @@ func Delete(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("delete", 2, args); err != nil {
 		return err
 	}
-	m, err := object.AsMap(args[0])
-	if err != nil {
+	container, ok := args[0].(object.Container)
+	if !ok {
+		return object.Errorf("type error: delete() argument is unsupported (%s given)", args[0].Type())
+	}
+	if err := container.DelItem(args[1]); err != nil {
 		return err
 	}
-	key, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	m.Delete(key)
-	return m
+	return object.Nil
 }
 
 func Set(ctx context.Context, args ...object.Object) object.Object {
@@ -128,6 +126,52 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 	default:
 		return object.Errorf("type error: list() argument is unsupported (%s given)", args[0].Type())
 	}
+}
+
+func Map(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: map() expected at most 1 argument (%d given)", nArgs)
+	}
+	result := object.NewMap(nil)
+	if nArgs == 0 {
+		return result
+	}
+	list, ok := args[0].(*object.List)
+	if ok {
+		for _, obj := range list.Value() {
+			subListObj, ok := obj.(*object.List)
+			if !ok || len(subListObj.Value()) != 2 {
+				return object.Errorf("type error: map() received a list with an unsupported structure")
+			}
+			subList := subListObj.Value()
+			key, ok := subList[0].(*object.String)
+			if !ok {
+				return object.Errorf("type error: map() received a list with an unsupported structure")
+			}
+			result.Set(key.Value(), subList[1])
+		}
+		return result
+	}
+	container, ok := args[0].(object.Container)
+	if !ok {
+		return object.Errorf("type error: map() argument is unsupported (%s given)", args[0].Type())
+	}
+	iter := container.Iter()
+	for {
+		entry, ok := iter.Next()
+		if !ok {
+			break
+		}
+		k, v := entry.Key(), entry.Value()
+		switch k := k.(type) {
+		case *object.String:
+			result.Set(k.Value(), v)
+		default:
+			result.Set(k.Inspect(), v)
+		}
+	}
+	return result
 }
 
 func String(ctx context.Context, args ...object.Object) object.Object {
@@ -635,6 +679,7 @@ func GlobalBuiltins() []*object.Builtin {
 		{"keys", Keys},
 		{"len", Len},
 		{"list", List},
+		{"map", Map},
 		{"ok", Ok},
 		{"ord", Ord},
 		{"print", Print},

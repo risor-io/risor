@@ -17,9 +17,11 @@ repo_url: https://github.com/cloudcmds/tamarin
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - admonition
   - attr_list
   - md_in_html
 nav:
@@ -29,3 +31,6 @@ nav:
   - syntax.md
   - built-ins.md
   - data-types.md
+  - iterators.md
+  - error-handling.md
+  - scripts.md

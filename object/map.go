@@ -130,21 +130,6 @@ func (m *Map) GetAttr(name string) (Object, bool) {
 				return m.Copy()
 			},
 		}, true
-	case "contains":
-		return &Builtin{
-			name: "map.contains",
-			fn: func(ctx context.Context, args ...Object) Object {
-				if len(args) != 1 {
-					return NewArgsError("map.contains", 1, len(args))
-				}
-				key, err := AsString(args[0])
-				if err != nil {
-					return err
-				}
-				_, found := m.items[key]
-				return NewBool(found)
-			},
-		}, true
 	case "items":
 		return &Builtin{
 			name: "map.items",
@@ -403,6 +388,9 @@ func (m *Map) Iter() Iterator {
 }
 
 func NewMap(m map[string]Object) *Map {
+	if m == nil {
+		m = map[string]Object{}
+	}
 	return &Map{items: m}
 }
 

@@ -3,7 +3,6 @@ package strings
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/object"
@@ -13,255 +12,207 @@ import (
 // Name of this module
 const Name = "strings"
 
+func asString(obj object.Object) (*object.String, *object.Error) {
+	s, ok := obj.(*object.String)
+	if !ok {
+		return nil, object.Errorf("type error: expected a string (got %v)", obj.Type())
+	}
+	return s, nil
+}
+
 func Contains(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.contains", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	substr, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewBool(strings.Contains(s, substr))
+	return s.Contains(args[1])
 }
 
 func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.has_prefix", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	prefix, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewBool(strings.HasPrefix(s, prefix))
+	return s.HasPrefix(args[1])
 }
 
 func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.has_suffix", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	suffix, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewBool(strings.HasSuffix(s, suffix))
+	return s.HasSuffix(args[1])
 }
 
 func Count(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.count", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	substr, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewInt(int64(strings.Count(s, substr)))
+	return s.Count(args[1])
 }
 
 func Compare(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.compare", 2, args); err != nil {
 		return err
 	}
-	s1, err := object.AsString(args[0])
-	if err != nil {
-		return err
+	s, errObj := asString(args[0])
+	if errObj != nil {
+		return errObj
 	}
-	s2, err := object.AsString(args[1])
+	value, err := s.Compare(args[1])
 	if err != nil {
-		return err
+		return object.NewError(err)
 	}
-	return object.NewInt(int64(strings.Compare(s1, s2)))
+	return object.NewInt(int64(value))
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.join", 2, args); err != nil {
 		return err
 	}
-	ls, err := object.AsList(args[0])
+	list, err := object.AsList(args[0])
 	if err != nil {
 		return err
 	}
-	separator, err := object.AsString(args[1])
+	sep, err := asString(args[1])
 	if err != nil {
 		return err
 	}
-	var strs []string
-	for _, item := range ls.Value() {
-		itemStr, err := object.AsString(item)
-		if err != nil {
-			return err
-		}
-		strs = append(strs, itemStr)
-	}
-	return object.NewString(strings.Join(strs, separator))
+	return sep.Join(list)
 }
 
 func Split(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.split", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	sep, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewStringList(strings.Split(s, sep))
+	return s.Split(args[1])
 }
 
 func Fields(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.fields", 1, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	return object.NewStringList(strings.Fields(s))
+	return s.Fields()
 }
 
 func Index(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.index", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	substr, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewInt(int64(strings.Index(s, substr)))
+	return s.Index(args[1])
 }
 
 func LastIndex(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.last_index", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	substr, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewInt(int64(strings.LastIndex(s, substr)))
+	return s.LastIndex(args[1])
 }
 
-func Replace(ctx context.Context, args ...object.Object) object.Object {
+func ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.replace", 3, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	old, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	new, err := object.AsString(args[2])
-	if err != nil {
-		return err
-	}
-	return object.NewString(strings.ReplaceAll(s, old, new))
+	return s.ReplaceAll(args[1], args[2])
 }
 
 func ToLower(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.to_lower", 1, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	return object.NewString(strings.ToLower(s))
+	return s.ToLower()
 }
 
 func ToUpper(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.to_upper", 1, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	return object.NewString(strings.ToUpper(s))
+	return s.ToUpper()
 }
 
 func Trim(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.trim", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	cutset, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewString(strings.Trim(s, cutset))
+	return s.Trim(args[1])
 }
 
 func TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.trim_prefix", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	prefix, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewString(strings.TrimPrefix(s, prefix))
+	return s.TrimPrefix(args[1])
 }
 
 func TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.trim_suffix", 2, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	suffix, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	return object.NewString(strings.TrimSuffix(s, suffix))
+	return s.TrimSuffix(args[1])
 }
 
 func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.trim_space", 1, args); err != nil {
 		return err
 	}
-	s, err := object.AsString(args[0])
+	s, err := asString(args[0])
 	if err != nil {
 		return err
 	}
-	return object.NewString(strings.TrimSpace(s))
+	return s.TrimSpace()
 }
 
 func Module(parentScope *scope.Scope) (*object.Module, error) {
@@ -283,7 +234,7 @@ func Module(parentScope *scope.Scope) (*object.Module, error) {
 		object.NewBuiltin("fields", Fields, m),
 		object.NewBuiltin("index", Index, m),
 		object.NewBuiltin("last_index", LastIndex, m),
-		object.NewBuiltin("replace", Replace, m),
+		object.NewBuiltin("replace_all", ReplaceAll, m),
 		object.NewBuiltin("to_lower", ToLower, m),
 		object.NewBuiltin("to_upper", ToUpper, m),
 		object.NewBuiltin("trim", Trim, m),

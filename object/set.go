@@ -45,16 +45,6 @@ func (s *Set) String() string {
 
 func (s *Set) GetAttr(name string) (Object, bool) {
 	switch name {
-	case "contains":
-		return &Builtin{
-			name: "set.contains",
-			fn: func(ctx context.Context, args ...Object) Object {
-				if len(args) != 1 {
-					return NewArgsError("set.contains", 1, len(args))
-				}
-				return s.Contains(args[0])
-			},
-		}, true
 	case "add":
 		return &Builtin{
 			name: "set.add",
@@ -63,6 +53,17 @@ func (s *Set) GetAttr(name string) (Object, bool) {
 					return NewArgsError("set.add", 1, len(args))
 				}
 				return s.Add(args[0])
+			},
+		}, true
+	case "clear":
+		return &Builtin{
+			name: "set.clear",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("set.clear", 0, len(args))
+				}
+				s.Clear()
+				return s
 			},
 		}, true
 	case "remove":
@@ -136,7 +137,7 @@ func (s *Set) Add(items ...Object) Object {
 		}
 		s.items[hashable.HashKey()] = item
 	}
-	return Nil
+	return s
 }
 
 func (s *Set) Remove(items ...Object) Object {
@@ -147,7 +148,11 @@ func (s *Set) Remove(items ...Object) Object {
 		}
 		delete(s.items, hashable.HashKey())
 	}
-	return Nil
+	return s
+}
+
+func (s *Set) Clear() {
+	s.items = map[HashKey]Object{}
 }
 
 // Union returns a new set that is the union of the two sets.
