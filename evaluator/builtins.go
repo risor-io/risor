@@ -76,24 +76,26 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := arg.(type) {
 	case *object.String:
 		for _, v := range arg.Value() {
-			set.Add(object.NewString(string(v)))
+			if res := set.Add(object.NewString(string(v))); object.IsError(res) {
+				return res
+			}
 		}
 	case *object.List:
 		for _, obj := range arg.Value() {
-			if err := set.Add(obj); err != object.Nil {
-				return err
+			if res := set.Add(obj); object.IsError(res) {
+				return res
 			}
 		}
 	case *object.Set:
 		for _, obj := range arg.Value() {
-			if err := set.Add(obj); err != object.Nil {
-				return err
+			if res := set.Add(obj); object.IsError(res) {
+				return res
 			}
 		}
 	case *object.Map:
 		for k := range arg.Value() {
-			if err := set.Add(object.NewString(k)); err != object.Nil {
-				return err
+			if res := set.Add(object.NewString(k)); object.IsError(res) {
+				return res
 			}
 		}
 	default:

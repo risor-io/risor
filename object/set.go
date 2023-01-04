@@ -283,7 +283,7 @@ func (s *Set) Keys() []HashKey {
 func NewSet(items []Object) Object {
 	s := &Set{items: map[HashKey]Object{}}
 	for _, item := range items {
-		if result := s.Add(item); result != Nil {
+		if result := s.Add(item); IsError(result) {
 			return result
 		}
 	}

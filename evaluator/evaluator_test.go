@@ -398,7 +398,7 @@ func TestBuiltins(t *testing.T) {
 		{`sprintf("%02d%t %s!?", 3, false, 'what')`, "03false what!?"},
 		{`sprintf("m")`, "m"},
 		{`sprintf()`, errors.New("type error: sprintf() takes 1 or more arguments (0 given)")},
-		{`m := {"one": 1, two: 2}; delete(m, "two")`, map[string]any{"one": int64(1)}},
+		{`m := {"one": 1, two: 2}; delete(m, "two"); m`, map[string]any{"one": int64(1)}},
 		{`type(getattr([1], "append"))`, "builtin"},
 		{`func x(){}; type(x)`, "function"},
 		{`set([1,2]) | len`, int64(2)},
@@ -409,7 +409,7 @@ func TestBuiltins(t *testing.T) {
 		{`keys([9,8,7])`, []any{int64(0), int64(1), int64(2)}},
 	}
 	for _, tt := range tests {
-		require.Equal(t, tt.expected, testEval(tt.input).Interface())
+		require.Equal(t, tt.expected, testEval(tt.input).Interface(), tt.input)
 	}
 }
 
