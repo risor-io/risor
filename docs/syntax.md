@@ -227,19 +227,105 @@ Pipelines can be used to build functions:
 "so much whitespace"
 ```
 
-## Attribute Access
+## Attributes
 
-Get attr...
+Objects in Tamarin may have data attributes and method attributes. Both are
+retrieved with a familiar `object.attribute` syntax. There is also a built-in
+`getattr` function that supports retrieving a named attribute from an object.
 
-## Method Calls
+A method accessed on an object remains bound to that object, as you can see here:
 
-Method calls...
+```go
+>>> l := [1,2,3]
+[1, 2, 3]
+>>> append := l.append
+builtin(list.append)
+>>> append(4)
+[1, 2, 3, 4]
+>>> l
+[1, 2, 3, 4]
+>>> getattr(l, "append")
+builtin(list.append)
+```
 
-## Index Operations
+## Indexing
 
-## Slice
+Multiple Tamarin core types support index operations. These types are referred
+to as _container types_ and include list, map, set, and string.
+
+Lists use zero-based indexing. Negative indices operate relative to the end of the list:
+
+```go
+>>> l := ["a", "b", "c"]
+["a", "b", "c"]
+>>> l[2]
+"c"
+>>> l[-1]
+"c"
+```
+
+Map indexing is used to retrieve the value for a given key:
+
+```go
+>>> m := {name:"evan", age:18}
+{"age": 18, "name": "evan"}
+>>> m["name"]
+"evan"
+```
+
+Set indexing is used to check whether a value is present in the set:
+
+```go
+>>> s := {3,4,5}
+{3, 4, 5}
+>>> s[5]
+true
+>>> s[6]
+false
+```
+
+String indexing is used to read unicode code points, known as _runes_ in Go,
+from a given string. Note this behavior differs from Go string indexing, which
+operates on the underlying bytes.
+
+```go
+>>> const s = "正體字"
+"正體字"
+>>> s[0]
+"正"
+>>> s[1]
+"體"
+```
+
+## Slices
+
+Lists and strings in Tamarin support slice operations to select a range of items.
+
+```go
+>>> l := ["a", "b", "c"]
+["a", "b", "c"]
+>>> l[0:2]
+["a", "b"]
+>>> l[-2:]
+["b", "c"]
+```
+
+The syntax for this is `l[start:stop]` where `start` and `stop` may be omitted
+in order to refer to the beginning or the end of the sequence, respectively.
 
 ## Import
+
+Tamarin files may be imported as modules using the `import` keyword. All module
+data and functions are available as attributes on the module after import. As a
+convention, if an attribute is intended to be private to a module, prefix its
+name with an underscore.
+
+```go
+>>> import library
+module(library.tm)
+>>> library.add(2,3)
+5
+```
 
 ## The in Keyword
 

@@ -27,10 +27,10 @@ markdown_extensions:
 nav:
   - Home: index.md
   - quick-start.md
-  - how-it-works.md
   - syntax.md
   - built-ins.md
   - data-types.md
   - iterators.md
   - error-handling.md
+  - how-it-works.md
   - scripts.md

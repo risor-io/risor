@@ -9,6 +9,7 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
+	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/exec"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/scope"
@@ -164,6 +165,7 @@ func execute(ctx context.Context, code string, sc *scope.Scope) (object.Object, 
 		Input:             code,
 		Scope:             sc,
 		DisableAutoImport: true,
+		Importer:          &evaluator.SimpleImporter{},
 	})
 	if err != nil {
 		color.Red(err.Error())
