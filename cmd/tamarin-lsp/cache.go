@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/ast"
+	"github.com/cloudcmds/tamarin/core/ast"
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 )
 

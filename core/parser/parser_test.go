@@ -1,0 +1,844 @@
+package parser
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"testing"
+
+	"github.com/cloudcmds/tamarin/core/ast"
+	"github.com/cloudcmds/tamarin/core/token"
+	"github.com/stretchr/testify/require"
+)
+
+func TestVarStatements(t *testing.T) {
+	tests := []struct {
+		input string
+		ident string
+		value interface{}
+	}{
+		{"var x =5;", "x", 5},
+		{"var z =1.3;", "z", 1.3},
+		{"var y_ = true;", "y_", true},
+		{"var foobar=y;", "foobar", "y"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First()
+		testVarStatement(t, stmt, tt.ident)
+		name, val := stmt.(*ast.Var).Value()
+		testLiteralExpression(t, val, tt.value)
+		require.Equal(t, tt.ident, name)
+	}
+}
+
+func TestDeclareStatements(t *testing.T) {
+	input := `
+	var x = foo.bar()
+	y := foo.bar()
+	`
+	program, err := Parse(input)
+	// printMultiError(err)
+	require.Nil(t, err)
+	statements := program.Statements()
+	require.Len(t, statements, 2)
+	stmt1, ok := statements[0].(*ast.Var)
+	require.True(t, ok)
+	stmt2, ok := statements[1].(*ast.Var)
+	require.True(t, ok)
+	fmt.Println(stmt1)
+	fmt.Println(stmt2)
+}
+
+func TestBadVarConstStatement(t *testing.T) {
+	inputs := []struct {
+		input string
+		err   string
+	}{
+		{"var", "parse error: unexpected end of file while parsing var statement (expected identifier)"},
+		{"const", "parse error: unexpected end of file while parsing const statement (expected identifier)"},
+		{"const x;", "parse error: unexpected ; while parsing const statement (expected =)"},
+	}
+	for _, tt := range inputs {
+		_, err := Parse(tt.input)
+		require.NotNil(t, err)
+		e, ok := err.(ParserError)
+		require.True(t, ok)
+		require.Equal(t, tt.err, e.Error())
+	}
+}
+
+func TestConst(t *testing.T) {
+	tests := []struct {
+		input              string
+		expectedIdentifier string
+		expectedValue      interface{}
+	}{
+		{"const x =5;", "x", 5},
+		{"const z =1.3;", "z", 1.3},
+		{"const y = true;", "y", true},
+		{"const foobar=y;", "foobar", "y"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First()
+		if !testConstStatement(t, stmt, tt.expectedIdentifier) {
+			return
+		}
+		name, val := stmt.(*ast.Const).Value()
+		require.Equal(t, tt.expectedIdentifier, name)
+		if !testLiteralExpression(t, val, tt.expectedValue) {
+			return
+		}
+	}
+}
+
+func TestControl(t *testing.T) {
+	tests := []struct {
+		input   string
+		keyword string
+	}{
+		{"return 0b11;", "return"},
+		{"return 0x15;", "return"},
+		{"return 993322;", "return"},
+		{"continue;", "continue"},
+		{"break;", "break"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		control, ok := program.First().(*ast.Control)
+		require.True(t, ok)
+		require.Equal(t, tt.keyword, control.Literal())
+	}
+}
+
+func TestIdent(t *testing.T) {
+	program, err := Parse("foobar;")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	ident, ok := program.First().(*ast.Ident)
+	require.True(t, ok)
+	require.Equal(t, ident.String(), "foobar")
+	require.Equal(t, ident.Literal(), "foobar")
+}
+
+func TestInt(t *testing.T) {
+	tests := []struct {
+		input string
+		value int64
+	}{
+		{"0", 0},
+		{"5", 5},
+		{"10", 10},
+		{"9876543210", 9876543210},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		integer, ok := program.First().(*ast.Int)
+		require.True(t, ok, "got %T", program.First())
+		require.Equal(t, integer.Value(), tt.value)
+		require.Equal(t, integer.Literal(), fmt.Sprintf("%d", tt.value))
+	}
+}
+
+func TestBool(t *testing.T) {
+	tests := []struct {
+		input     string
+		boolValue bool
+	}{
+		{"true", true},
+		{"false", false},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		exp, ok := program.First().(*ast.Bool)
+		require.True(t, ok)
+		require.Equal(t, exp.Value(), tt.boolValue)
+	}
+}
+
+func TestPrefix(t *testing.T) {
+	prefixTests := []struct {
+		input        string
+		operator     string
+		integerValue interface{}
+	}{
+		{"!5;", "!", 5},
+		{"-15;", "-", 15},
+		{"!true;", "!", true},
+		{"!false", "!", false},
+	}
+	for _, tt := range prefixTests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		exp, ok := program.First().(*ast.Prefix)
+		require.True(t, ok)
+		require.Equal(t, exp.Operator(), tt.operator)
+		testLiteralExpression(t, exp.Right(), tt.integerValue)
+	}
+}
+
+func TestParsingInfixExpression(t *testing.T) {
+	infixTests := []struct {
+		input      string
+		leftValue  interface{}
+		operator   string
+		rightValue interface{}
+	}{
+		{"0.4+1.3", 0.4, "+", 1.3},
+		{"5+5;", 5, "+", 5},
+		{"5-5;", 5, "-", 5},
+		{"5*5;", 5, "*", 5},
+		{"5/5;", 5, "/", 5},
+		{"5>5;", 5, ">", 5},
+		{"5<5;", 5, "<", 5},
+		{"2**3;", 2, "**", 3},
+		{"5==5;", 5, "==", 5},
+		{"5!=5;", 5, "!=", 5},
+		{"true == true", true, "==", true},
+		{"true!=false", true, "!=", false},
+		{"false==false", false, "==", false},
+	}
+	for _, tt := range infixTests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		expr, ok := program.First().(ast.Expression)
+		require.True(t, ok)
+		testInfixExpression(t, expr, tt.leftValue, tt.operator, tt.rightValue)
+	}
+}
+
+func TestOperatorPrecedence(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"-a * b", "((-a) * b)"},
+		{"!-a", "(!(-a))"},
+		{"a+b+c", "((a + b) + c)"},
+		{"a+b-c", "((a + b) - c)"},
+		{"a*b*c", "((a * b) * c)"},
+		{"a*b/c", "((a * b) / c)"},
+		{"a+b/c", "(a + (b / c))"},
+		{"a+b*c+d/e-f", "(((a + (b * c)) + (d / e)) - f)"},
+		{"3+4;-5*5", "(3 + 4)((-5) * 5)"},
+		{"5>4==3<4", "((5 > 4) == (3 < 4))"},
+		{"5<4!=3>4", "((5 < 4) != (3 > 4))"},
+		{"3+4*5==3*1+4*5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+		{"true", "true"},
+		{"false", "false"},
+		{"3>5==false", "((3 > 5) == false)"},
+		{"3<5==true", "((3 < 5) == true)"},
+		{"1+(2+3)+4", "((1 + (2 + 3)) + 4)"},
+		{"(5+5)*2", "((5 + 5) * 2)"},
+		{"2/(5+5)", "(2 / (5 + 5))"},
+		{"2**3", "(2 ** 3)"},
+		{"-(5+5)", "(-(5 + 5))"},
+		{"!(true==true)", "(!(true == true))"},
+		{"a + add(b*c)+d", "((a + add((b * c))) + d)"},
+		{"a*[1,2,3,4][b*c]*d", "((a * ([1, 2, 3, 4][(b * c)])) * d)"},
+		{"add(a*b[2], b[1], 2 * [1,2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		actual := program.String()
+		require.Equal(t, tt.expected, actual)
+	}
+}
+
+func TestIf(t *testing.T) {
+	program, err := Parse("if x < y { x }")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	exp, ok := program.First().(*ast.If)
+	require.True(t, ok)
+	if !testInfixExpression(t, exp.Condition(), "x", "<", "y") {
+		return
+	}
+	require.Len(t, exp.Consequence().Statements(), 1)
+	consequence, ok := exp.Consequence().Statements()[0].(*ast.Ident)
+	require.True(t, ok)
+	require.Equal(t, "x", consequence.String())
+	require.Nil(t, exp.Alternative())
+}
+
+func TestFunc(t *testing.T) {
+	program, err := Parse("func f(x, y=3) { x + y; }")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	function, ok := program.First().(*ast.Func)
+	require.True(t, ok)
+	params := function.Parameters()
+	require.Len(t, params, 2)
+	testLiteralExpression(t, params[0], "x")
+	testLiteralExpression(t, params[1], "y")
+	require.Len(t, function.Body().Statements(), 1)
+	bodyStmt, ok := function.Body().Statements()[0].(*ast.Infix)
+	require.True(t, ok)
+	require.Equal(t, "(x + y)", bodyStmt.String())
+}
+
+func TestFuncParams(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedParam []string
+	}{
+		{"func(){}", []string{}},
+		{"func(x){}", []string{"x"}},
+		{"func(x,y){}", []string{"x", "y"}},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		function, ok := program.First().(*ast.Func)
+		require.True(t, ok)
+		params := function.Parameters()
+		require.Len(t, params, len(tt.expectedParam))
+		for i, ident := range tt.expectedParam {
+			testLiteralExpression(t, params[i], ident)
+		}
+	}
+}
+
+func TestCall(t *testing.T) {
+	program, err := Parse("add(1, 2*3, 4+5)")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr, ok := program.First().(*ast.Call)
+	require.True(t, ok)
+	if !testIdentifier(t, expr.Function(), "add") {
+		return
+	}
+	args := expr.Arguments()
+	require.Len(t, args, 3)
+	testLiteralExpression(t, args[0], 1)
+	testInfixExpression(t, args[1], 2, "*", 3)
+	testInfixExpression(t, args[2], 4, "+", 5)
+}
+
+func TestString(t *testing.T) {
+	program, err := Parse(`"hello world";`)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	literal, ok := program.First().(*ast.String)
+	require.True(t, ok)
+	require.Equal(t, "hello world", literal.Value())
+}
+
+func TestList(t *testing.T) {
+	program, err := Parse("[1, 2*2, 3+3]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	ll, ok := program.First().(*ast.List)
+	require.True(t, ok)
+	items := ll.Items()
+	require.Len(t, items, 3)
+	testIntegerLiteral(t, items[0], 1)
+	testInfixExpression(t, items[1], 2, "*", 2)
+	testInfixExpression(t, items[2], 3, "+", 3)
+}
+
+func TestIndex(t *testing.T) {
+	input := "myArray[1+1]"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	indexExp, ok := program.First().(*ast.Index)
+	require.True(t, ok)
+	testIdentifier(t, indexExp.Left(), "myArray")
+	testInfixExpression(t, indexExp.Index(), 1, "+", 1)
+}
+
+func TestParsingMap(t *testing.T) {
+	input := `{"one":1, "two":2, "three":3}`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 3)
+	expected := map[string]int64{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+	}
+	for key, value := range m.Items() {
+		literal, ok := key.(*ast.String)
+		require.True(t, ok)
+		expectedValue := expected[literal.Value()]
+		testIntegerLiteral(t, value, expectedValue)
+	}
+}
+
+func TestParsingEmptyMap(t *testing.T) {
+	input := "{}"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 0)
+}
+
+func TestParsingMapLiteralWithExpression(t *testing.T) {
+	input := `{"one":0+1, "two":10 - 8, "three": 15/5}`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 3)
+	tests := map[string]func(ast.Expression){
+		"one": func(e ast.Expression) {
+			testInfixExpression(t, e, 0, "+", 1)
+		},
+		"two": func(e ast.Expression) {
+			testInfixExpression(t, e, 10, "-", 8)
+		},
+		"three": func(e ast.Expression) {
+			testInfixExpression(t, e, 15, "/", 5)
+		},
+	}
+	for key, value := range m.Items() {
+		literal, ok := key.(*ast.String)
+		require.True(t, ok)
+		testFunc, ok := tests[literal.Value()]
+		require.True(t, ok, literal.Value())
+		testFunc(value)
+	}
+}
+
+// Test operators: +=, -=, /=, and *=.
+func TestMutators(t *testing.T) {
+	inputs := []string{
+		"var w = 5; w *= 3;",
+		"var x = 15; x += 3;",
+		"var y = 10; y /= 2;",
+		"var z = 10; y -= 2;",
+		"var z = 1; z++;",
+		"var z = 1; z--;",
+		"var z = 10; var a = 3; y = a;",
+	}
+	for _, input := range inputs {
+		_, err := Parse(input)
+		require.Nil(t, err)
+	}
+}
+
+// Test method-call operation.
+func TestObjectMethodCall(t *testing.T) {
+	inputs := []string{
+		"\"steve\".len()",
+		"var x = 15; x.string();",
+	}
+	for _, input := range inputs {
+		_, err := Parse(input)
+		require.Nil(t, err)
+	}
+}
+
+// Test that incomplete blocks / statements are handled.
+func TestIncompleThings(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`if ( true ) { `, "parse error: unterminated block statement"},
+		{`if ( true ) { puts( "OK" ) ; } else { `, "parse error: unterminated block statement"},
+		{`var x = `, "parse error: assignment is missing a value"},
+		{`const x =`, "parse error: assignment is missing a value"},
+		{`func foo( a, b ="steve", `, "parse error: unterminated function parameters"},
+		{`func foo() {`, "parse error: unterminated block statement"},
+		{`switch (foo) { `, "parse error: unterminated switch statement"},
+	}
+	for _, tt := range tests {
+		_, err := Parse(tt.input)
+		require.NotNil(t, err)
+		pe, ok := err.(ParserError)
+		require.True(t, ok)
+		require.Equal(t, tt.expected, pe.Error())
+	}
+}
+
+func TestSwitch(t *testing.T) {
+	input := `switch val {
+   case 1:
+      x
+   default:
+      y
+	  x = x + 1
+}`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	switchExpr, ok := program.First().(*ast.Switch)
+	require.True(t, ok)
+	require.Equal(t, "val", switchExpr.Value().String())
+	require.Len(t, switchExpr.Choices(), 2)
+	choice1 := switchExpr.Choices()[0]
+	require.Len(t, choice1.Expressions(), 1)
+	require.Equal(t, "1", choice1.Expressions()[0].String())
+	choice2 := switchExpr.Choices()[1]
+	require.Len(t, choice2.Expressions(), 0)
+}
+
+func TestMultiDefault(t *testing.T) {
+	input := `
+switch val {
+case 1:
+    print("1")
+case 2:
+    print("2")
+default:
+    print("default")
+default:
+    print("oh no!")
+}`
+	_, err := Parse(input)
+	require.NotNil(t, err)
+	parserErr, ok := err.(ParserError)
+	require.True(t, ok)
+	require.Equal(t, "parse error: switch statement has multiple default blocks", parserErr.Error())
+	require.Equal(t, 0, parserErr.StartPosition().Column)
+	require.Equal(t, 8, parserErr.StartPosition().Line)
+	require.Equal(t, 6, parserErr.EndPosition().Column) // last col in the word "default"
+	require.Equal(t, 8, parserErr.EndPosition().Line)
+}
+
+func TestPipe(t *testing.T) {
+	tests := []struct {
+		input          string
+		exprType       string
+		expectedIdents []string
+	}{
+		{"var x = foo | bar;", "ident", []string{"foo", "bar"}},
+		{`var x = foo() | bar(name="foo") | baz(y=4);`, "call", []string{"foo", "bar", "baz"}},
+		{`var x = a() | b();`, "call", []string{"a", "b"}},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		stmt := program.First().(*ast.Var)
+		name, expr := stmt.Value()
+		require.Equal(t, "x", name)
+		pipe, ok := expr.(*ast.Pipe)
+		require.True(t, ok)
+		pipeExprs := pipe.Expressions()
+		require.Len(t, pipeExprs, len(tt.expectedIdents))
+		if tt.exprType == "ident" {
+			for i, ident := range tt.expectedIdents {
+				identExpr, ok := pipeExprs[i].(*ast.Ident)
+				require.True(t, ok)
+				require.Equal(t, ident, identExpr.String())
+			}
+		} else if tt.exprType == "call" {
+			for i, ident := range tt.expectedIdents {
+				callExpr, ok := pipeExprs[i].(*ast.Call)
+				require.True(t, ok)
+				require.Equal(t, ident, callExpr.Function().String())
+			}
+		}
+	}
+}
+
+func TestMapExpression(t *testing.T) {
+	input := `{
+		"a": "b",
+
+		"c": "d",
+
+	}
+	`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	m, ok := expr.(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 2)
+}
+
+func TestSetExpression(t *testing.T) {
+	input := `{
+		"a",
+		1, 2,
+		"c",
+	}
+	`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	set, ok := expr.(*ast.Set)
+	require.True(t, ok)
+	require.Len(t, set.Items(), 4)
+	require.Equal(t, `{"a", 1, 2, "c"}`, set.String())
+}
+
+func TestCallExpression(t *testing.T) {
+	input := `foo(
+		a=1,
+		b=2,
+	)
+	`
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	call, ok := expr.(*ast.Call)
+	require.True(t, ok)
+	require.Equal(t, "foo", call.Function().String())
+	args := call.Arguments()
+	require.Len(t, args, 2)
+	arg0 := args[0].(*ast.Assign)
+	require.Equal(t, "a = 1", arg0.String())
+	arg1 := args[1].(*ast.Assign)
+	require.Equal(t, "b = 2", arg1.String())
+}
+
+func TestGetAttr(t *testing.T) {
+	program, err := Parse("foo.bar")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	getAttr, ok := expr.(*ast.GetAttr)
+	require.True(t, ok)
+	require.Equal(t, "bar", getAttr.Name())
+	require.Equal(t, "foo.bar", getAttr.String())
+}
+
+func TestForLoop(t *testing.T) {
+	tests := []struct {
+		input   string
+		initStr string
+		condStr string
+		postStr string
+	}{
+		{
+			"for var i = 0; i < 5; i++ { }",
+			"var i = 0",
+			"(i < 5)",
+			"(i++)",
+		},
+		{
+			"for i := 2+2; x < i; x-- { }",
+			"i := (2 + 2)",
+			"(x < i)",
+			"(x--)",
+		},
+		{
+			"for i := range mymap { }",
+			"",
+			"i := range mymap",
+			"",
+		},
+		{
+			"for k,v := range [1,2,3,4] { }",
+			"",
+			"k, v := range [1, 2, 3, 4]",
+			"",
+		},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		// printMultiError(err)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		expr, ok := program.First().(*ast.For)
+		require.True(t, ok)
+		require.Equal(t, tt.condStr, expr.Condition().String())
+		if tt.initStr != "" {
+			require.Equal(t, tt.initStr, expr.Init().String())
+		} else {
+			if expr.Init() != nil {
+				t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
+			}
+		}
+		if tt.postStr != "" {
+			require.Equal(t, tt.postStr, expr.Post().String())
+		} else {
+			if expr.Post() != nil {
+				t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
+			}
+		}
+	}
+}
+
+func TestMultiVar(t *testing.T) {
+	program, err := Parse("x, y := [1, 2]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	mvar, ok := program.First().(*ast.MultiVar)
+	require.True(t, ok)
+	names, expr := mvar.Value()
+	require.Equal(t, []string{"x", "y"}, names)
+	require.Equal(t, "[1, 2]", expr.String())
+}
+
+func TestIn(t *testing.T) {
+	program, err := Parse("x in [1, 2]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	node, ok := program.First().(*ast.In)
+	require.True(t, ok)
+	require.Equal(t, "in", node.Literal())
+	require.Equal(t, "x", node.Left().String())
+	require.Equal(t, "[1, 2]", node.Right().String())
+	require.Equal(t, "x in [1, 2]", node.String())
+}
+
+func TestBreak(t *testing.T) {
+	program, err := Parse("break")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	_, ok := program.First().(*ast.Control)
+	require.True(t, ok)
+}
+
+func TestBacktick(t *testing.T) {
+	input := "`" + `\\n\t foo bar /hey there/` + "`"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr, ok := program.First().(*ast.String)
+	require.True(t, ok)
+	require.Equal(t, `\\n\t foo bar /hey there/`, expr.Value())
+}
+
+func TestUnterminatedBacktickString(t *testing.T) {
+	input := "`foo"
+	_, err := Parse(input)
+	require.NotNil(t, err)
+	require.Equal(t, "syntax error: unterminated string literal", err.Error())
+	var syntaxErr *SyntaxError
+	ok := errors.As(err, &syntaxErr)
+	require.True(t, ok)
+	require.NotNil(t, syntaxErr.Cause())
+	require.Equal(t, "unterminated string literal", syntaxErr.Cause().Error())
+	require.Equal(t, NewSyntaxError(ErrorOpts{
+		ErrType: "syntax error",
+		Cause:   syntaxErr.Cause(),
+		StartPosition: token.Position{
+			Value: rune('`'),
+		},
+		EndPosition: token.Position{
+			Value:  rune('o'),
+			Column: 3, // the last "o" in foo is at index 3
+			Char:   3, // the last "o" in foo is at index 3
+		},
+		File:       "",
+		SourceCode: "`foo",
+	}), syntaxErr)
+}
+
+func TestUnterminatedString(t *testing.T) {
+	input := `42
+x := "a`
+	ctx := context.Background()
+	_, err := ParseWithOpts(ctx, Opts{Input: input, File: "main.tm"})
+	require.NotNil(t, err)
+	fmt.Printf("%+v\n", err.(*SyntaxError).StartPosition())
+	require.Equal(t, "syntax error: unterminated string literal", err.Error())
+	var syntaxErr *SyntaxError
+	ok := errors.As(err, &syntaxErr)
+	require.True(t, ok)
+	require.NotNil(t, syntaxErr.Cause())
+	require.Equal(t, "unterminated string literal", syntaxErr.Cause().Error())
+	require.Equal(t, NewSyntaxError(ErrorOpts{
+		ErrType: "syntax error",
+		Cause:   syntaxErr.Cause(),
+		StartPosition: token.Position{
+			Value:     rune('"'),
+			Column:    5,
+			Line:      1,
+			LineStart: 3,
+			Char:      8,
+			File:      "main.tm",
+		},
+		EndPosition: token.Position{
+			Value:     rune('a'),
+			Column:    6,
+			Line:      1,
+			LineStart: 3,
+			Char:      9,
+			File:      "main.tm",
+		},
+		File:       "main.tm",
+		SourceCode: "x := \"a",
+	}), syntaxErr)
+}
+
+func TestMapIdentifierKey(t *testing.T) {
+	input := "{ one: 1 }"
+	program, err := Parse(input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	m, ok := program.First().(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 1)
+	for key := range m.Items() {
+		ident, ok := key.(*ast.Ident)
+		require.True(t, ok, fmt.Sprintf("%T", key))
+		require.Equal(t, "one", ident.String())
+	}
+}
+
+func FuzzParse(f *testing.F) {
+	testcases := []string{
+		"1/2+4+=5-[1,2,{}]",
+		" ",
+		"!12345",
+		"var x = [1,2,3];",
+		`; const z = {"foo"}`,
+		`"foo_" + 1.34 /= 2.0`,
+		`{hey: {there: 1}}`,
+		`'foo {x + 1}'`,
+		`x.func(x=1, y=2).bar`,
+		`0A=`,
+	}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+	f.Fuzz(func(t *testing.T, input string) {
+		Parse(input) // Confirms no panics
+	})
+}
+
+func TestBadInputs(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"if", `parse error: invalid syntax`},
+		{"else", `parse error: invalid syntax (unexpected "else")`},
+		{"&&", `parse error: invalid syntax (unexpected "&&")`},
+		{"[", `parse error: invalid syntax in list expression`},
+		{"[1,", `parse error: unexpected end of file while parsing an expression list (expected ])`},
+		{"0?if", `parse error: invalid syntax in ternary if true expression`},
+		{"0?0:", `parse error: invalid syntax in ternary if false expression`},
+		{"range", `parse error: invalid range expression`},
+		{"in", `parse error: invalid syntax (unexpected "in")`},
+		{"x in", `parse error: invalid in expression`},
+	}
+	for _, tt := range tests {
+		program, err := Parse(tt.input)
+		fmt.Println(program)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expected, err.Error())
+	}
+}

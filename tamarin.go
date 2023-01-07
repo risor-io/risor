@@ -20,12 +20,12 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/exec"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/core/evaluator"
+	"github.com/cloudcmds/tamarin/core/exec"
+	"github.com/cloudcmds/tamarin/core/object"
+	"github.com/cloudcmds/tamarin/core/parser"
+	"github.com/cloudcmds/tamarin/core/scope"
 	"github.com/cloudcmds/tamarin/repl"
-	"github.com/cloudcmds/tamarin/scope"
 	"github.com/fatih/color"
 )
 

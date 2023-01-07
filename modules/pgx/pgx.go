@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/core/object"
+	"github.com/cloudcmds/tamarin/core/scope"
 	"github.com/jackc/pgx/v5"
 )
 

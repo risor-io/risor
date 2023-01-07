@@ -8,7 +8,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/exec"
+	"github.com/cloudcmds/tamarin/core/exec"
 )
 
 func main() {

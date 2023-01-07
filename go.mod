@@ -10,11 +10,12 @@ require (
 	github.com/jackc/pgx/v5 v5.0.4
 	github.com/jdbaldry/go-language-server-protocol v0.0.0-20211013214444-3022da0884b2
 	github.com/rs/zerolog v1.28.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/wI2L/jsondiff v0.3.0
 )
 
 require (
+	github.com/cloudcmds/tamarin/core v0.0.0-00010101000000-000000000000 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
@@ -35,3 +36,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/cloudcmds/tamarin/core => ./core

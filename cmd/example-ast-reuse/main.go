@@ -8,10 +8,10 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/exec"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/core/exec"
+	"github.com/cloudcmds/tamarin/core/object"
+	"github.com/cloudcmds/tamarin/core/parser"
+	"github.com/cloudcmds/tamarin/core/scope"
 )
 
 func main() {
