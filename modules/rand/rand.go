@@ -15,7 +15,7 @@ import (
 // Name of this module
 const Name = "rand"
 
-func init() {
+func Seed() {
 	var b [8]byte
 	if _, err := crand.Read(b[:]); err != nil {
 		panic("crypto/rand failed: " + err.Error())
