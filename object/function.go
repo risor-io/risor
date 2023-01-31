@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cloudcmds/tamarin/ast"
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Function contains the AST for user defined function and implements Object interface.
@@ -14,6 +15,9 @@ type Function struct {
 	body       *ast.Block
 	defaults   map[string]ast.Expression
 	scope      Scope
+
+	codeStart int
+	codeEnd   int
 }
 
 func (f *Function) Type() Type {
@@ -107,4 +111,19 @@ func NewFunction(
 		defaults:   defaults,
 		scope:      scope,
 	}
+}
+
+func NewFunctionWithCode(codeStart, codeEnd int) *Function {
+	return &Function{
+		codeStart: codeStart,
+		codeEnd:   codeEnd,
+	}
+}
+
+func (f *Function) GetCodeStart() int {
+	return f.codeStart
+}
+
+func (f *Function) GetCode(code []op.Code) []op.Code {
+	return code[f.codeStart:f.codeEnd]
 }

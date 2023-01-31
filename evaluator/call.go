@@ -13,12 +13,12 @@ func (e *Evaluator) evalCallExpression(ctx context.Context, node *ast.Call, s *s
 	if object.IsError(function) {
 		return function
 	}
-	if builtin, ok := function.(*object.Builtin); ok {
-		if builtin.IsErrorHandler() {
-			return e.applyFunction(ctx, s, function,
-				e.evalExpressionsIgnoreErrors(ctx, node.Arguments(), s))
-		}
-	}
+	// if builtin, ok := function.(*object.Builtin); ok {
+	// 	if builtin.IsErrorHandler() {
+	// 		return e.applyFunction(ctx, s, function,
+	// 			e.evalExpressionsIgnoreErrors(ctx, node.Arguments(), s))
+	// 	}
+	// }
 	args := e.evalExpressions(ctx, node.Arguments(), s)
 	if len(args) == 1 && object.IsError(args[0]) {
 		return args[0]

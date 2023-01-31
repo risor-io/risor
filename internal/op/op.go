@@ -1,0 +1,136 @@
+package op
+
+type Code byte
+
+const (
+	Nop           Code = 1
+	LoadConst     Code = 2
+	LoadName      Code = 3
+	LoadGlobal    Code = 4
+	LoadFast      Code = 5 // Pushes a reference to the local co_varnames[var_num] onto the stack.
+	LoadAttr      Code = 6
+	StoreFast     Code = 7 // Stores TOS into the local co_varnames[var_num].
+	StoreName     Code = 8
+	StoreAttr     Code = 9
+	StoreGlobal   Code = 10
+	Nil           Code = 11
+	True          Code = 12
+	False         Code = 13
+	BinaryOp      Code = 14
+	UnaryPositive Code = 15
+	UnaryNegative Code = 16
+	UnaryNot      Code = 17
+	UnaryInvert   Code = 18
+	CompareOp     Code = 19
+	ReturnValue   Code = 20
+	JumpForward   Code = 21
+	JumpBackward  Code = 22
+	Halt          Code = 23
+	Print         Code = 24
+	PopTop        Code = 25
+	PushNil       Code = 26
+	Call          Code = 27
+)
+
+type BinaryOpType byte
+
+const (
+	Add      BinaryOpType = 1
+	Subtract BinaryOpType = 2
+	Multiply BinaryOpType = 3
+	Divide   BinaryOpType = 4
+	Modulo   BinaryOpType = 5
+	And      BinaryOpType = 6
+	Or       BinaryOpType = 7
+	Xor      BinaryOpType = 8
+	Power    BinaryOpType = 9
+	LShift   BinaryOpType = 10
+	RShift   BinaryOpType = 11
+)
+
+type Info struct {
+	Name          string
+	OperandCount  int
+	OperandWidths []int
+}
+
+var OperandCount = make([]Info, 256)
+
+func init() {
+	type opInfo struct {
+		op     Code
+		name   string
+		count  int
+		widths []int
+	}
+	ops := []opInfo{
+		{Nop, "NOP", 0, nil},
+		{Call, "CALL", 1, []int{1}},
+		{LoadConst, "LOAD_CONST", 1, []int{2}},
+		{LoadFast, "LOAD_FAST", 1, []int{1}},
+		{LoadName, "LOAD_NAME", 1, []int{1}},
+		{LoadGlobal, "LOAD_GLOBAL", 1, []int{1}},
+		{LoadAttr, "LOAD_ATTR", 1, []int{1}},
+		{StoreFast, "STORE_FAST", 1, []int{1}},
+		{StoreName, "STORE_NAME", 1, []int{1}},
+		{StoreAttr, "STORE_ATTR", 1, []int{1}},
+		{StoreGlobal, "STORE_GLOBAL", 1, []int{2}},
+		{Nil, "NIL", 0, nil},
+		{True, "TRUE", 0, nil},
+		{False, "FALSE", 0, nil},
+		{BinaryOp, "BINARY_OP", 1, []int{1}},
+		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
+		{UnaryNegative, "UNARY_NEGATIVE", 0, nil},
+		{UnaryNot, "UNARY_NOT", 0, nil},
+		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
+		{CompareOp, "COMPARE_OP", 1, []int{1}},
+		{ReturnValue, "RETURN_VALUE", 1, []int{1}},
+		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
+		{JumpBackward, "JUMP_BACKWARD", 1, []int{2}},
+		{Halt, "HALT", 0, nil},
+		{Print, "PRINT", 0, nil},
+		{PopTop, "POP_TOP", 0, nil},
+	}
+	for _, o := range ops {
+		OperandCount[o.op] = Info{
+			Name:          o.name,
+			OperandCount:  o.count,
+			OperandWidths: o.widths,
+		}
+	}
+}
+
+func GetInfo(op Code) Info {
+	return OperandCount[op]
+}
+
+// Python/ceval.c
+// https://bytecode.readthedocs.io/en/latest/api.html#binary-operation
+// static const binaryfunc binary_ops[] = {
+//     [NB_ADD] = PyNumber_Add,
+//     [NB_AND] = PyNumber_And,
+//     [NB_FLOOR_DIVIDE] = PyNumber_FloorDivide,
+//     [NB_LSHIFT] = PyNumber_Lshift,
+//     [NB_MATRIX_MULTIPLY] = PyNumber_MatrixMultiply,
+//     [NB_MULTIPLY] = PyNumber_Multiply,
+//     [NB_REMAINDER] = PyNumber_Remainder,
+//     [NB_OR] = PyNumber_Or,
+//     [NB_POWER] = _PyNumber_PowerNoMod,
+//     [NB_RSHIFT] = PyNumber_Rshift,
+//     [NB_SUBTRACT] = PyNumber_Subtract,
+//     [NB_TRUE_DIVIDE] = PyNumber_TrueDivide,
+//     [NB_XOR] = PyNumber_Xor,
+//     [NB_INPLACE_ADD] = PyNumber_InPlaceAdd,
+//     [NB_INPLACE_AND] = PyNumber_InPlaceAnd,
+//     [NB_INPLACE_FLOOR_DIVIDE] = PyNumber_InPlaceFloorDivide,
+//     [NB_INPLACE_LSHIFT] = PyNumber_InPlaceLshift,
+//     [NB_INPLACE_MATRIX_MULTIPLY] = PyNumber_InPlaceMatrixMultiply,
+//     [NB_INPLACE_MULTIPLY] = PyNumber_InPlaceMultiply,
+//     [NB_INPLACE_REMAINDER] = PyNumber_InPlaceRemainder,
+//     [NB_INPLACE_OR] = PyNumber_InPlaceOr,
+//     [NB_INPLACE_POWER] = _PyNumber_InPlacePowerNoMod,
+//     [NB_INPLACE_RSHIFT] = PyNumber_InPlaceRshift,
+//     [NB_INPLACE_SUBTRACT] = PyNumber_InPlaceSubtract,
+//     [NB_INPLACE_TRUE_DIVIDE] = PyNumber_InPlaceTrueDivide,
+//     [NB_INPLACE_XOR] = PyNumber_InPlaceXor,
+// };
