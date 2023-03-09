@@ -3,16 +3,23 @@ package compiler
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
 )
 
+type Bytecode struct {
+	Instructions []op.Code
+	Constants    []object.Object
+	Symbols      *SymbolTable
+}
+
 type Compiler struct {
 	symbols      *SymbolTable
 	constants    []object.Object
-	instructions []byte
+	instructions []op.Code
 }
 
 type Options struct {
@@ -35,7 +42,30 @@ func New(opts Options) *Compiler {
 	}
 }
 
-func (c *Compiler) Compile(node ast.Node) error {
+func (c *Compiler) Symbols() *SymbolTable {
+	return c.symbols
+}
+
+func (c *Compiler) Instructions() []op.Code {
+	return c.instructions
+}
+
+func (c *Compiler) Constants() []object.Object {
+	return c.constants
+}
+
+func (c *Compiler) Compile(node ast.Node) (*Bytecode, error) {
+	if err := c.compile(node); err != nil {
+		return nil, err
+	}
+	return &Bytecode{
+		Instructions: c.instructions,
+		Constants:    c.constants,
+		Symbols:      c.symbols,
+	}, nil
+}
+
+func (c *Compiler) compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Nil:
 		c.emit(node, op.Nil)
@@ -51,19 +81,30 @@ func (c *Compiler) Compile(node ast.Node) error {
 		} else {
 			c.emit(node, op.False)
 		}
+	case *ast.If:
+		if err := c.compileIf(node); err != nil {
+			return err
+		}
 	case *ast.Infix:
 		if err := c.compileInfix(node); err != nil {
 			return err
 		}
 	case *ast.Program:
 		for _, stmt := range node.Statements() {
-			if err := c.Compile(stmt); err != nil {
+			if err := c.compile(stmt); err != nil {
+				return err
+			}
+		}
+	case *ast.Block:
+		// TODO: implement behavior for block specific variables
+		for _, stmt := range node.Statements() {
+			if err := c.compile(stmt); err != nil {
 				return err
 			}
 		}
 	case *ast.Var:
 		name, expr := node.Value()
-		if err := c.Compile(expr); err != nil {
+		if err := c.compile(expr); err != nil {
 			return err
 		}
 		symbol, err := c.symbols.Insert(name, SymbolAttrs{})
@@ -71,19 +112,94 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		c.emit(node, op.StoreFast, symbol.Index)
+	case *ast.Assign:
+		name := node.Name()
+		expr := node.Value()
+		if err := c.compile(expr); err != nil {
+			return err
+		}
+		symbol, found := c.symbols.Lookup(name)
+		fmt.Println("ASSIGN", name, symbol, found, symbol.Scope)
+		if !found {
+			return fmt.Errorf("undefined variable: %s", name)
+		}
+		switch symbol.Scope {
+		case ScopeGlobal:
+			c.emit(node, op.StoreGlobal, symbol.Index)
+		case ScopeLocal:
+			c.emit(node, op.StoreFast, symbol.Index)
+			fmt.Println("EMIT", node, op.StoreFast, symbol.Index)
+		}
+	case *ast.Ident:
+		name := node.Literal()
+		symbol, found := c.symbols.Lookup(name)
+		if !found {
+			return fmt.Errorf("undefined variable: %s", name)
+		}
+		switch symbol.Scope {
+		// case ScopeBuiltin:
+		// 	c.emit(node, op.LoadBuiltin, symbol.Index)
+		// case ScopeFree:
+		// 	c.emit(node, op.LoadFree, symbol.Index)
+		case ScopeGlobal:
+			c.emit(node, op.LoadGlobal, symbol.Index)
+		case ScopeLocal:
+			c.emit(node, op.LoadFast, symbol.Index)
+		}
+	default:
+		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
 	}
 	// panic(fmt.Sprintf("unknown ast node type: %T", node))
 	return nil
 }
 
+func (c *Compiler) compileIf(node *ast.If) error {
+	if err := c.compile(node.Condition()); err != nil {
+		return err
+	}
+	jumpIfFalsePos := c.emit(node, op.PopJumpForwardIfFalse, 9999)
+	if err := c.compile(node.Consequence()); err != nil {
+		return err
+	}
+	alternative := node.Alternative()
+	if alternative != nil {
+		// Jump forward to skip the alternative by default
+		jumpForwardPos := c.emit(node, op.JumpForward, 9999)
+
+		// Update PopJumpForwardIfFalse to point to this alternative,
+		// so that the alternative is executed if the condition is false
+		delta := c.calculateDelta(jumpIfFalsePos)
+		c.changeOperand2(jumpIfFalsePos, delta)
+
+		if err := c.compile(alternative); err != nil {
+			return err
+		}
+		c.changeOperand2(jumpForwardPos, c.calculateDelta(jumpForwardPos))
+	} else {
+		delta := c.calculateDelta(jumpIfFalsePos)
+		c.changeOperand2(jumpIfFalsePos, delta)
+	}
+	return nil
+}
+
+func (c *Compiler) calculateDelta(pos int) int {
+	return len(c.instructions) - pos
+}
+
+func (c *Compiler) changeOperand2(pos, operand int) {
+	converted := make([]byte, 2)
+	binary.LittleEndian.PutUint16(converted, uint16(operand))
+	c.instructions[pos+1] = op.Code(converted[0])
+	c.instructions[pos+2] = op.Code(converted[1])
+}
+
 func (c *Compiler) compileInfix(node *ast.Infix) error {
-	if err := c.Compile(node.Left()); err != nil {
+	if err := c.compile(node.Left()); err != nil {
 		return err
 	}
-	if err := c.Compile(node.Right()); err != nil {
+	if err := c.compile(node.Right()); err != nil {
 		return err
 	}
-	node.
 	switch node.Operator() {
 	case "+":
 		c.emit(node, op.BinaryOp, int(op.Add))
@@ -101,6 +217,18 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 		c.emit(node, op.BinaryOp, int(op.LShift))
 	case ">>":
 		c.emit(node, op.BinaryOp, int(op.RShift))
+	case ">":
+		c.emit(node, op.CompareOp, int(op.GreaterThan))
+	case ">=":
+		c.emit(node, op.CompareOp, int(op.GreaterThanOrEqual))
+	case "<":
+		c.emit(node, op.CompareOp, int(op.LessThan))
+	case "<=":
+		c.emit(node, op.CompareOp, int(op.LessThanOrEqual))
+	case "==":
+		c.emit(node, op.CompareOp, int(op.Equal))
+	case "!=":
+		c.emit(node, op.CompareOp, int(op.NotEqual))
 	default:
 		return fmt.Errorf("unknown operator: %s", node.Operator())
 	}
@@ -112,19 +240,21 @@ func (c *Compiler) constant(obj object.Object) int {
 	return len(c.constants) - 1
 }
 
-func (c *Compiler) instruction(b []byte) int {
+func (c *Compiler) instruction(b []op.Code) int {
 	pos := len(c.instructions)
 	c.instructions = append(c.instructions, b...)
 	return pos
 }
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
+	info := op.GetInfo(opcode)
+	fmt.Println("EMIT", opcode, info.Name)
 	inst := MakeInstruction(opcode, operands...)
 	pos := c.instruction(inst)
 	return pos
 }
 
-func MakeInstruction(opcode op.Code, operands ...int) []byte {
+func MakeInstruction(opcode op.Code, operands ...int) []op.Code {
 	opInfo := op.OperandCount[opcode]
 
 	totalLen := 1
@@ -143,12 +273,17 @@ func MakeInstruction(opcode op.Code, operands ...int) []byte {
 			instruction[offset] = byte(o)
 		case 2:
 			n := uint16(o)
-			instruction[offset] = byte(n >> 8)
-			instruction[offset+1] = byte(n)
+			instruction[offset] = byte(n)
+			instruction[offset+1] = byte(n >> 8)
 		}
 		offset += width
 	}
-	return instruction
+
+	result := make([]op.Code, 0, len(instruction))
+	for _, value := range instruction {
+		result = append(result, op.Code(value))
+	}
+	return result
 }
 
 func ReadInstruction(bytes []byte) (op.Code, []int, []byte) {
@@ -163,7 +298,7 @@ func ReadInstruction(bytes []byte) (op.Code, []int, []byte) {
 		case 1:
 			operands = append(operands, int(bytes[1]))
 		case 2:
-			operands = append(operands, int(binary.BigEndian.Uint16(bytes[1:3])))
+			operands = append(operands, int(binary.LittleEndian.Uint16(bytes[1:3])))
 		}
 	}
 	return opcode, operands, bytes[1+totalWidth:]

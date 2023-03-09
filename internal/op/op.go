@@ -3,33 +3,36 @@ package op
 type Code byte
 
 const (
-	Nop           Code = 1
-	LoadConst     Code = 2
-	LoadName      Code = 3
-	LoadGlobal    Code = 4
-	LoadFast      Code = 5 // Pushes a reference to the local co_varnames[var_num] onto the stack.
-	LoadAttr      Code = 6
-	StoreFast     Code = 7 // Stores TOS into the local co_varnames[var_num].
-	StoreName     Code = 8
-	StoreAttr     Code = 9
-	StoreGlobal   Code = 10
-	Nil           Code = 11
-	True          Code = 12
-	False         Code = 13
-	BinaryOp      Code = 14
-	UnaryPositive Code = 15
-	UnaryNegative Code = 16
-	UnaryNot      Code = 17
-	UnaryInvert   Code = 18
-	CompareOp     Code = 19
-	ReturnValue   Code = 20
-	JumpForward   Code = 21
-	JumpBackward  Code = 22
-	Halt          Code = 23
-	Print         Code = 24
-	PopTop        Code = 25
-	PushNil       Code = 26
-	Call          Code = 27
+	Nop                    Code = 1
+	LoadConst              Code = 2
+	LoadName               Code = 3
+	LoadGlobal             Code = 4
+	LoadFast               Code = 5 // Pushes a reference to the local co_varnames[var_num] onto the stack.
+	LoadAttr               Code = 6
+	StoreFast              Code = 7 // Stores TOS into the local co_varnames[var_num].
+	StoreName              Code = 8
+	StoreAttr              Code = 9
+	StoreGlobal            Code = 10
+	Nil                    Code = 11
+	True                   Code = 12
+	False                  Code = 13
+	BinaryOp               Code = 14
+	UnaryPositive          Code = 15
+	UnaryNegative          Code = 16
+	UnaryNot               Code = 17
+	UnaryInvert            Code = 18
+	CompareOp              Code = 19
+	ReturnValue            Code = 20
+	PopJumpForwardIfTrue   Code = 21
+	PopJumpBackwardIfTrue  Code = 22
+	PopJumpForwardIfFalse  Code = 23
+	PopJumpBackwardIfFalse Code = 24
+	Halt                   Code = 25
+	Print                  Code = 26
+	PopTop                 Code = 27
+	PushNil                Code = 28
+	Call                   Code = 29
+	JumpForward            Code = 30
 )
 
 type BinaryOpType byte
@@ -48,6 +51,17 @@ const (
 	RShift   BinaryOpType = 11
 )
 
+type CompareOpType byte
+
+const (
+	LessThan           CompareOpType = 1
+	LessThanOrEqual    CompareOpType = 2
+	Equal              CompareOpType = 3
+	NotEqual           CompareOpType = 4
+	GreaterThan        CompareOpType = 5
+	GreaterThanOrEqual CompareOpType = 6
+)
+
 type Info struct {
 	Name          string
 	OperandCount  int
@@ -64,32 +78,35 @@ func init() {
 		widths []int
 	}
 	ops := []opInfo{
-		{Nop, "NOP", 0, nil},
+		{BinaryOp, "BINARY_OP", 1, []int{1}},
 		{Call, "CALL", 1, []int{1}},
+		{CompareOp, "COMPARE_OP", 1, []int{1}},
+		{False, "FALSE", 0, nil},
+		{Halt, "HALT", 0, nil},
+		{PopJumpForwardIfTrue, "POP_JUMP_FORWARD_IF_TRUE", 1, []int{2}},
+		{PopJumpBackwardIfTrue, "POP_JUMP_BACKWARD_IF_TRUE", 1, []int{2}},
+		{PopJumpForwardIfFalse, "POP_JUMP_FORWARD_IF_FALSE", 1, []int{2}},
+		{PopJumpBackwardIfFalse, "POP_JUMP_BACKWARD_IF_FALSE", 1, []int{2}},
+		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
+		{LoadAttr, "LOAD_ATTR", 1, []int{1}},
 		{LoadConst, "LOAD_CONST", 1, []int{2}},
 		{LoadFast, "LOAD_FAST", 1, []int{1}},
-		{LoadName, "LOAD_NAME", 1, []int{1}},
 		{LoadGlobal, "LOAD_GLOBAL", 1, []int{1}},
-		{LoadAttr, "LOAD_ATTR", 1, []int{1}},
-		{StoreFast, "STORE_FAST", 1, []int{1}},
-		{StoreName, "STORE_NAME", 1, []int{1}},
-		{StoreAttr, "STORE_ATTR", 1, []int{1}},
-		{StoreGlobal, "STORE_GLOBAL", 1, []int{2}},
+		{LoadName, "LOAD_NAME", 1, []int{1}},
 		{Nil, "NIL", 0, nil},
+		{Nop, "NOP", 0, nil},
+		{PopTop, "POP_TOP", 0, nil},
+		{Print, "PRINT", 0, nil},
+		{ReturnValue, "RETURN_VALUE", 1, []int{1}},
+		{StoreAttr, "STORE_ATTR", 1, []int{1}},
+		{StoreFast, "STORE_FAST", 1, []int{1}},
+		{StoreGlobal, "STORE_GLOBAL", 1, []int{2}},
+		{StoreName, "STORE_NAME", 1, []int{1}},
 		{True, "TRUE", 0, nil},
-		{False, "FALSE", 0, nil},
-		{BinaryOp, "BINARY_OP", 1, []int{1}},
-		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
 		{UnaryNegative, "UNARY_NEGATIVE", 0, nil},
 		{UnaryNot, "UNARY_NOT", 0, nil},
 		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
-		{CompareOp, "COMPARE_OP", 1, []int{1}},
-		{ReturnValue, "RETURN_VALUE", 1, []int{1}},
-		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
-		{JumpBackward, "JUMP_BACKWARD", 1, []int{2}},
-		{Halt, "HALT", 0, nil},
-		{Print, "PRINT", 0, nil},
-		{PopTop, "POP_TOP", 0, nil},
+		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

@@ -48,11 +48,12 @@ func (t *SymbolTable) Insert(name string, attrs SymbolAttrs) (*Symbol, error) {
 	}
 	if attrs.IsBuiltin {
 		s.Scope = ScopeBuiltin
-	} else if t.parent == nil {
-		s.Scope = ScopeGlobal
 	} else {
 		s.Scope = ScopeLocal
 	}
+	// else if t.parent == nil {
+	// 	s.Scope = ScopeGlobal
+	// }
 	t.symbols[name] = s
 	return s, nil
 }
