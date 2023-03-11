@@ -11,61 +11,78 @@ import (
 )
 
 type Bytecode struct {
+	Scopes []*Scope
+	// Constants []object.Object
+	// Symbols   *SymbolTable
+}
+
+type Scope struct {
+	Name         string
 	Instructions []op.Code
-	Constants    []object.Object
+	children     []*Scope
+	parent       *Scope
 	Symbols      *SymbolTable
+	Constants    []object.Object
+	loops        []*Loop
 }
 
 type Compiler struct {
-	symbols      *SymbolTable
-	constants    []object.Object
-	instructions []op.Code
+	scopes       []*Scope
+	currentScope *Scope
 }
 
 type Options struct {
 	Builtins []*object.Builtin
 }
 
+type Loop struct {
+	ContinuePos []int
+	BreakPos    []int
+}
+
 func New(opts Options) *Compiler {
-
 	symbols := NewSymbolTable()
-
 	for _, b := range opts.Builtins {
 		symbols.Insert(b.Name(), SymbolAttrs{
 			IsBuiltin: true,
 			// Type:      string(b.Type()),
 		})
 	}
-
+	mainScope := &Scope{
+		Name:    "main",
+		Symbols: symbols,
+	}
 	return &Compiler{
-		symbols: symbols,
+		scopes:       []*Scope{mainScope},
+		currentScope: mainScope,
 	}
 }
 
-func (c *Compiler) Symbols() *SymbolTable {
-	return c.symbols
+// func (c *Compiler) Symbols() *SymbolTable {
+// 	return c.Symbols
+// }
+
+func (c *Compiler) CurrentScope() *Scope {
+	return c.currentScope
 }
 
 func (c *Compiler) Instructions() []op.Code {
-	return c.instructions
+	return c.CurrentScope().Instructions
 }
 
-func (c *Compiler) Constants() []object.Object {
-	return c.constants
-}
+// func (c *Compiler) Constants() []object.Object {
+// 	return c.constants
+// }
 
 func (c *Compiler) Compile(node ast.Node) (*Bytecode, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
-	return &Bytecode{
-		Instructions: c.instructions,
-		Constants:    c.constants,
-		Symbols:      c.symbols,
-	}, nil
+	return &Bytecode{Scopes: c.scopes}, nil
 }
 
 func (c *Compiler) compile(node ast.Node) error {
+	scope := c.CurrentScope()
 	switch node := node.(type) {
 	case *ast.Nil:
 		c.emit(node, op.Nil)
@@ -96,7 +113,10 @@ func (c *Compiler) compile(node ast.Node) error {
 			}
 		}
 	case *ast.Block:
-		// TODO: implement behavior for block specific variables
+		scope.Symbols = scope.Symbols.NewChild()
+		defer func() {
+			scope.Symbols = scope.Symbols.Parent()
+		}()
 		for _, stmt := range node.Statements() {
 			if err := c.compile(stmt); err != nil {
 				return err
@@ -107,49 +127,227 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
-		symbol, err := c.symbols.Insert(name, SymbolAttrs{})
+		symbol, err := scope.Symbols.Insert(name, SymbolAttrs{})
 		if err != nil {
 			return err
 		}
 		c.emit(node, op.StoreFast, symbol.Index)
 	case *ast.Assign:
-		name := node.Name()
-		expr := node.Value()
-		if err := c.compile(expr); err != nil {
+		if err := c.compileAssign(node); err != nil {
 			return err
 		}
-		symbol, found := c.symbols.Lookup(name)
-		fmt.Println("ASSIGN", name, symbol, found, symbol.Scope)
+	case *ast.Ident:
+		name := node.Literal()
+		symbol, found := scope.Symbols.Lookup(name)
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
+		}
+		switch symbol.Scope {
+		case ScopeGlobal:
+			c.emit(node, op.LoadGlobal, symbol.Index)
+		case ScopeLocal:
+			c.emit(node, op.LoadFast, symbol.Index)
+		}
+	case *ast.For:
+		if err := c.compileFor(node); err != nil {
+			return err
+		}
+	case *ast.Control:
+		if err := c.compileControl(node); err != nil {
+			return err
+		}
+	case *ast.Call:
+		if err := c.compileCall(node); err != nil {
+			return err
+		}
+	case *ast.Func:
+		if err := c.compileFunc(node); err != nil {
+			return err
+		}
+	default:
+		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
+	}
+	// panic(fmt.Sprintf("unknown ast node type: %T", node))
+	return nil
+}
+
+func (c *Compiler) currentLoop() *Loop {
+	scope := c.CurrentScope()
+	if len(scope.loops) == 0 {
+		return nil
+	}
+	return scope.loops[len(scope.loops)-1]
+}
+
+func (c *Compiler) compileFunc(node *ast.Func) error {
+
+	// scope.Symbols = scope.Symbols.NewChild()
+	// defer func() {
+	// 	scope.Symbols = scope.Symbols.Parent()
+	// }()
+
+	var name string
+	ident := node.Name()
+	if ident != nil {
+		name = ident.Literal()
+	} else {
+		name = "anonymous"
+	}
+
+	funcScope := &Scope{
+		Name:    name,
+		parent:  c.CurrentScope(),
+		Symbols: c.currentScope.Symbols.NewChild(),
+	}
+	c.currentScope.children = append(c.currentScope.children, funcScope)
+	c.scopes = append(c.scopes, funcScope)
+	c.currentScope = funcScope
+	defer func() {
+		c.currentScope = c.currentScope.parent
+	}()
+
+	for _, arg := range node.Parameters() {
+		funcScope.Symbols.Insert(arg.Literal(), SymbolAttrs{})
+	}
+	if err := c.compile(node.Body()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Compiler) compileCall(node *ast.Call) error {
+	args := node.Arguments()
+	if err := c.compile(node.Function()); err != nil {
+		return err
+	}
+	for _, arg := range args {
+		if err := c.compile(arg); err != nil {
+			return err
+		}
+	}
+	c.emit(node, op.Call, len(args))
+	return nil
+}
+
+func (c *Compiler) compileControl(node *ast.Control) error {
+	literal := node.Literal()
+	if literal == "return" {
+		if c.currentScope.parent == nil {
+			return fmt.Errorf("return outside of function")
+		}
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
+		c.emit(node, op.ReturnValue)
+		return nil
+	}
+	loop := c.currentLoop()
+	if loop == nil {
+		if literal == "break" {
+			return fmt.Errorf("break outside of loop")
+		}
+		return fmt.Errorf("continue outside of loop")
+	}
+	if literal == "break" {
+		controlPos := c.emit(node, op.JumpForward, 9999)
+		loop.BreakPos = append(loop.BreakPos, controlPos)
+	} else {
+		controlPos := c.emit(node, op.JumpBackward, 9999)
+		loop.ContinuePos = append(loop.ContinuePos, controlPos)
+	}
+	return nil
+}
+
+func (c *Compiler) compileAssign(node *ast.Assign) error {
+	name := node.Name()
+	symbol, found := c.currentScope.Symbols.Lookup(name)
+	if !found {
+		return fmt.Errorf("undefined variable: %s", name)
+	}
+	if node.Operator() == "=" {
+		if err := c.compile(node.Value()); err != nil {
+			return err
 		}
 		switch symbol.Scope {
 		case ScopeGlobal:
 			c.emit(node, op.StoreGlobal, symbol.Index)
 		case ScopeLocal:
 			c.emit(node, op.StoreFast, symbol.Index)
-			fmt.Println("EMIT", node, op.StoreFast, symbol.Index)
 		}
-	case *ast.Ident:
-		name := node.Literal()
-		symbol, found := c.symbols.Lookup(name)
-		if !found {
-			return fmt.Errorf("undefined variable: %s", name)
-		}
-		switch symbol.Scope {
-		// case ScopeBuiltin:
-		// 	c.emit(node, op.LoadBuiltin, symbol.Index)
-		// case ScopeFree:
-		// 	c.emit(node, op.LoadFree, symbol.Index)
-		case ScopeGlobal:
-			c.emit(node, op.LoadGlobal, symbol.Index)
-		case ScopeLocal:
-			c.emit(node, op.LoadFast, symbol.Index)
-		}
-	default:
-		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
+		return nil
 	}
-	// panic(fmt.Sprintf("unknown ast node type: %T", node))
+	// Push LHS as TOS
+	switch symbol.Scope {
+	case ScopeGlobal:
+		c.emit(node, op.LoadGlobal, symbol.Index)
+	case ScopeLocal:
+		c.emit(node, op.LoadFast, symbol.Index)
+	}
+	// Push RHS as TOS
+	if err := c.compile(node.Value()); err != nil {
+		return err
+	}
+	// Result becomes TOS
+	switch node.Operator() {
+	case "+=":
+		c.emit(node, op.BinaryOp, int(op.Add))
+	case "-=":
+		c.emit(node, op.BinaryOp, int(op.Subtract))
+	case "*=":
+		c.emit(node, op.BinaryOp, int(op.Multiply))
+	case "/=":
+		c.emit(node, op.BinaryOp, int(op.Divide))
+	}
+	// Store TOS in LHS
+	switch symbol.Scope {
+	case ScopeGlobal:
+		c.emit(node, op.StoreGlobal, symbol.Index)
+	case ScopeLocal:
+		c.emit(node, op.StoreFast, symbol.Index)
+	}
+	return nil
+}
+
+func (c *Compiler) compileFor(node *ast.For) error {
+	if node.IsSimpleLoop() {
+		return c.compileSimpleFor(node)
+	}
+	return nil
+}
+
+func (c *Compiler) startLoop() *Loop {
+	loop := &Loop{}
+	c.currentScope.loops = append(c.currentScope.loops, loop)
+	return loop
+}
+
+func (c *Compiler) endLoop() {
+	scope := c.currentScope
+	scope.loops = scope.loops[:len(scope.loops)-1]
+}
+
+func (c *Compiler) compileSimpleFor(node *ast.For) error {
+	scope := c.currentScope
+	scope.Symbols = scope.Symbols.NewChild()
+	loop := c.startLoop()
+	defer func() {
+		c.endLoop()
+		scope.Symbols = scope.Symbols.Parent()
+	}()
+	startPos := len(c.Instructions())
+	if err := c.compile(node.Consequence()); err != nil {
+		return err
+	}
+	c.emit(node, op.JumpBackward, c.calculateDelta(startPos))
+	nopPos := c.emit(node, op.Nop)
+	for _, pos := range loop.BreakPos {
+		delta := nopPos - pos
+		c.changeOperand2(pos, delta)
+	}
+	for _, pos := range loop.ContinuePos {
+		delta := pos - startPos
+		c.changeOperand2(pos, delta)
+	}
 	return nil
 }
 
@@ -165,12 +363,10 @@ func (c *Compiler) compileIf(node *ast.If) error {
 	if alternative != nil {
 		// Jump forward to skip the alternative by default
 		jumpForwardPos := c.emit(node, op.JumpForward, 9999)
-
 		// Update PopJumpForwardIfFalse to point to this alternative,
 		// so that the alternative is executed if the condition is false
 		delta := c.calculateDelta(jumpIfFalsePos)
 		c.changeOperand2(jumpIfFalsePos, delta)
-
 		if err := c.compile(alternative); err != nil {
 			return err
 		}
@@ -183,14 +379,15 @@ func (c *Compiler) compileIf(node *ast.If) error {
 }
 
 func (c *Compiler) calculateDelta(pos int) int {
-	return len(c.instructions) - pos
+	return len(c.CurrentScope().Instructions) - pos
 }
 
 func (c *Compiler) changeOperand2(pos, operand int) {
+	instrs := c.CurrentScope().Instructions
 	converted := make([]byte, 2)
 	binary.LittleEndian.PutUint16(converted, uint16(operand))
-	c.instructions[pos+1] = op.Code(converted[0])
-	c.instructions[pos+2] = op.Code(converted[1])
+	instrs[pos+1] = op.Code(converted[0])
+	instrs[pos+2] = op.Code(converted[1])
 }
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
@@ -236,22 +433,23 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 }
 
 func (c *Compiler) constant(obj object.Object) int {
-	c.constants = append(c.constants, obj)
-	return len(c.constants) - 1
+	scope := c.currentScope
+	scope.Constants = append(scope.Constants, obj)
+	return len(scope.Constants) - 1
 }
 
 func (c *Compiler) instruction(b []op.Code) int {
-	pos := len(c.instructions)
-	c.instructions = append(c.instructions, b...)
+	scope := c.CurrentScope()
+	pos := len(scope.Instructions)
+	scope.Instructions = append(scope.Instructions, b...)
 	return pos
 }
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
 	info := op.GetInfo(opcode)
-	fmt.Println("EMIT", opcode, info.Name)
+	fmt.Println("EMIT", opcode, info.Name, operands)
 	inst := MakeInstruction(opcode, operands...)
-	pos := c.instruction(inst)
-	return pos
+	return c.instruction(inst)
 }
 
 func MakeInstruction(opcode op.Code, operands ...int) []op.Code {

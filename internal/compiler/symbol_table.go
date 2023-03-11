@@ -2,13 +2,13 @@ package compiler
 
 import "fmt"
 
-type Scope string
+type SymbolScope string
 
 const (
-	ScopeBuiltin Scope = "builtin"
-	ScopeFree    Scope = "free"
-	ScopeGlobal  Scope = "global"
-	ScopeLocal   Scope = "local"
+	ScopeBuiltin SymbolScope = "builtin"
+	ScopeFree    SymbolScope = "free"
+	ScopeGlobal  SymbolScope = "global"
+	ScopeLocal   SymbolScope = "local"
 )
 
 type SymbolAttrs struct {
@@ -20,7 +20,7 @@ type SymbolAttrs struct {
 type Symbol struct {
 	Name  string
 	Index int
-	Scope Scope
+	Scope SymbolScope
 	Attrs SymbolAttrs
 }
 

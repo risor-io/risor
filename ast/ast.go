@@ -613,6 +613,14 @@ func (f *For) String() string {
 		out.WriteString(" }")
 		return out.String()
 	}
+	if f.init == nil {
+		out.WriteString("for ")
+		out.WriteString(f.condition.String())
+		out.WriteString(" { ")
+		out.WriteString(f.consequence.String())
+		out.WriteString(" }")
+		return out.String()
+	}
 	// Full style for loop
 	out.WriteString("for ")
 	out.WriteString(f.init.String() + "; ")

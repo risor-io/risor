@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
@@ -26,9 +27,13 @@ func TestAdd(t *testing.T) {
 		op.Code(op.Add),
 	}
 	vm := New(&compiler.Bytecode{
-		Constants:    constants,
-		Instructions: code,
-		Symbols:      compiler.NewSymbolTable(),
+		Scopes: []*compiler.Scope{
+			{
+				Constants:    constants,
+				Instructions: code,
+				Symbols:      compiler.NewSymbolTable(),
+			},
+		},
 	})
 	err := vm.Run()
 	require.Nil(t, err)
@@ -51,8 +56,10 @@ func TestAddCompilationAndExecution(t *testing.T) {
 
 	c := compiler.New(compiler.Options{})
 	bytecode, err := c.Compile(program)
+	require.Nil(t, err)
+	scope := bytecode.Scopes[0]
 
-	consts := bytecode.Constants
+	consts := scope.Constants
 	require.Len(t, consts, 2)
 
 	c1, ok := consts[0].(*object.Int)
@@ -124,4 +131,45 @@ func TestConditional4(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(33), result)
+}
+
+func TestLoop(t *testing.T) {
+	result, err := Run(`
+	y := 0
+	for {
+		y = y + 1
+		if y > 10 {
+			break
+		}
+	}
+	y
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(11), result)
+}
+
+func TestAssign(t *testing.T) {
+	result, err := Run(`
+	y := 99
+	y  = 3
+	y += 6
+	y /= 9
+	y *= 2
+	y
+	`)
+	fmt.Println(result, err)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestCall(t *testing.T) {
+	result, err := Run(`
+	f := func(x) { x + 42 }
+	f(1)
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(2), result)
 }

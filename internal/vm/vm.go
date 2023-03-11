@@ -31,23 +31,21 @@ func Run(code string) (object.Object, error) {
 }
 
 type VM struct {
-	ip         int
-	sp         int
-	constants  []object.Object
-	stack      *Stack[object.Object]
-	frameStack *Stack[*Frame]
-	code       []op.Code
-	bytecode   *compiler.Bytecode
+	ip           int
+	sp           int
+	stack        *Stack[object.Object]
+	frameStack   *Stack[*Frame]
+	scopes       []*compiler.Scope
+	currentScope *compiler.Scope
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
 	return &VM{
-		stack:      NewStack[object.Object](1024),
-		frameStack: NewStack[*Frame](1024),
-		constants:  bytecode.Constants,
-		sp:         -1,
-		code:       bytecode.Instructions,
-		bytecode:   bytecode,
+		stack:        NewStack[object.Object](1024),
+		frameStack:   NewStack[*Frame](1024),
+		sp:           -1,
+		scopes:       bytecode.Scopes,
+		currentScope: bytecode.Scopes[0],
 	}
 }
 
@@ -55,10 +53,11 @@ func (vm *VM) Run() error {
 	// for i, b := range vm.code {
 	// 	fmt.Printf("%d %d\n", i, b)
 	// }
-	symbolCount := vm.bytecode.Symbols.Size()
+	scope := vm.currentScope
+	symbolCount := vm.currentScope.Symbols.Size()
 	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0))
-	for vm.ip < len(vm.code) {
-		opcode := vm.code[vm.ip]
+	for vm.ip < len(scope.Instructions) {
+		opcode := scope.Instructions[vm.ip]
 		opinfo := op.GetInfo(opcode)
 		fmt.Println("IP:", vm.ip, "OPCODE:", opcode, "INFO:", opinfo)
 		vm.ip++
@@ -66,7 +65,7 @@ func (vm *VM) Run() error {
 		case op.Nop:
 		case op.LoadConst:
 			constIndex := vm.fetch2()
-			vm.stack.Push(vm.constants[constIndex])
+			vm.stack.Push(scope.Constants[constIndex])
 		case op.StoreFast:
 			obj := vm.Pop()
 			idx := vm.fetch()
@@ -144,8 +143,13 @@ func (vm *VM) Run() error {
 				vm.ip -= delta
 			}
 		case op.JumpForward:
-			delta := vm.fetch2() - 3
-			vm.ip += delta
+			base := vm.ip - 1
+			delta := vm.fetch2()
+			vm.ip = base + delta
+		case op.JumpBackward:
+			base := vm.ip - 1
+			delta := vm.fetch2()
+			vm.ip = base - delta
 		case op.Print:
 			fmt.Println("PRINT", vm.top())
 		case op.LoadFast:
@@ -242,7 +246,7 @@ func (vm *VM) top() object.Object {
 func (vm *VM) fetch() int {
 	ip := vm.ip
 	vm.ip++
-	return int(vm.code[ip])
+	return int(vm.currentScope.Instructions[ip])
 }
 
 func (vm *VM) fetch2() int {

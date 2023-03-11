@@ -33,6 +33,7 @@ const (
 	PushNil                Code = 28
 	Call                   Code = 29
 	JumpForward            Code = 30
+	JumpBackward           Code = 31
 )
 
 type BinaryOpType byte
@@ -88,6 +89,7 @@ func init() {
 		{PopJumpForwardIfFalse, "POP_JUMP_FORWARD_IF_FALSE", 1, []int{2}},
 		{PopJumpBackwardIfFalse, "POP_JUMP_BACKWARD_IF_FALSE", 1, []int{2}},
 		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
+		{JumpBackward, "JUMP_BACKWARD", 1, []int{2}},
 		{LoadAttr, "LOAD_ATTR", 1, []int{1}},
 		{LoadConst, "LOAD_CONST", 1, []int{2}},
 		{LoadFast, "LOAD_FAST", 1, []int{1}},
