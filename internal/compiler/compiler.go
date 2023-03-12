@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -21,7 +22,7 @@ type Scope struct {
 	Instructions []op.Code
 	children     []*Scope
 	parent       *Scope
-	Symbols      *SymbolTable
+	Symbols      *symbol.Table
 	Constants    []object.Object
 	loops        []*Loop
 }
@@ -41,9 +42,9 @@ type Loop struct {
 }
 
 func New(opts Options) *Compiler {
-	symbols := NewSymbolTable()
+	symbols := symbol.NewTable()
 	for _, b := range opts.Builtins {
-		symbols.Insert(b.Name(), SymbolAttrs{
+		symbols.Insert(b.Name(), symbol.Attrs{
 			IsBuiltin: true,
 			// Type:      string(b.Type()),
 		})
@@ -127,7 +128,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
-		symbol, err := scope.Symbols.Insert(name, SymbolAttrs{})
+		symbol, err := scope.Symbols.Insert(name, symbol.Attrs{})
 		if err != nil {
 			return err
 		}
@@ -138,15 +139,15 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 	case *ast.Ident:
 		name := node.Literal()
-		symbol, found := scope.Symbols.Lookup(name)
+		sym, found := scope.Symbols.Lookup(name)
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
-		switch symbol.Scope {
-		case ScopeGlobal:
-			c.emit(node, op.LoadGlobal, symbol.Index)
-		case ScopeLocal:
-			c.emit(node, op.LoadFast, symbol.Index)
+		switch sym.Scope {
+		case symbol.ScopeGlobal:
+			c.emit(node, op.LoadGlobal, sym.Index)
+		case symbol.ScopeLocal:
+			c.emit(node, op.LoadFast, sym.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -202,16 +203,23 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	c.currentScope.children = append(c.currentScope.children, funcScope)
 	c.scopes = append(c.scopes, funcScope)
 	c.currentScope = funcScope
-	defer func() {
-		c.currentScope = c.currentScope.parent
-	}()
 
 	for _, arg := range node.Parameters() {
-		funcScope.Symbols.Insert(arg.Literal(), SymbolAttrs{})
+		funcScope.Symbols.Insert(arg.Literal(), symbol.Attrs{})
 	}
 	if err := c.compile(node.Body()); err != nil {
 		return err
 	}
+
+	c.currentScope = c.currentScope.parent
+	fn := object.NewCompiledFunction(
+		node,
+		funcScope.Instructions,
+		funcScope.Symbols,
+		funcScope.Constants,
+	)
+	c.emit(node, op.LoadConst, c.constant(fn))
+
 	return nil
 }
 
@@ -260,7 +268,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 
 func (c *Compiler) compileAssign(node *ast.Assign) error {
 	name := node.Name()
-	symbol, found := c.currentScope.Symbols.Lookup(name)
+	sym, found := c.currentScope.Symbols.Lookup(name)
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
@@ -268,20 +276,20 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		switch symbol.Scope {
-		case ScopeGlobal:
-			c.emit(node, op.StoreGlobal, symbol.Index)
-		case ScopeLocal:
-			c.emit(node, op.StoreFast, symbol.Index)
+		switch sym.Scope {
+		case symbol.ScopeGlobal:
+			c.emit(node, op.StoreGlobal, sym.Index)
+		case symbol.ScopeLocal:
+			c.emit(node, op.StoreFast, sym.Index)
 		}
 		return nil
 	}
 	// Push LHS as TOS
-	switch symbol.Scope {
-	case ScopeGlobal:
-		c.emit(node, op.LoadGlobal, symbol.Index)
-	case ScopeLocal:
-		c.emit(node, op.LoadFast, symbol.Index)
+	switch sym.Scope {
+	case symbol.ScopeGlobal:
+		c.emit(node, op.LoadGlobal, sym.Index)
+	case symbol.ScopeLocal:
+		c.emit(node, op.LoadFast, sym.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -299,11 +307,11 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(node, op.BinaryOp, int(op.Divide))
 	}
 	// Store TOS in LHS
-	switch symbol.Scope {
-	case ScopeGlobal:
-		c.emit(node, op.StoreGlobal, symbol.Index)
-	case ScopeLocal:
-		c.emit(node, op.StoreFast, symbol.Index)
+	switch sym.Scope {
+	case symbol.ScopeGlobal:
+		c.emit(node, op.StoreGlobal, sym.Index)
+	case symbol.ScopeLocal:
+		c.emit(node, op.StoreFast, sym.Index)
 	}
 	return nil
 }
@@ -435,6 +443,7 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 func (c *Compiler) constant(obj object.Object) int {
 	scope := c.currentScope
 	scope.Constants = append(scope.Constants, obj)
+	fmt.Println("constant", obj, len(scope.Constants)-1)
 	return len(scope.Constants) - 1
 }
 

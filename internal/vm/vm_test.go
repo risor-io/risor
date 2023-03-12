@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestAdd(t *testing.T) {
 			{
 				Constants:    constants,
 				Instructions: code,
-				Symbols:      compiler.NewSymbolTable(),
+				Symbols:      symbol.NewTable(),
 			},
 		},
 	})
@@ -167,9 +168,11 @@ func TestAssign(t *testing.T) {
 func TestCall(t *testing.T) {
 	result, err := Run(`
 	f := func(x) { x + 42 }
-	f(1)
+	y := f(1)
+	z := y + 1
+	z
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
-	require.Equal(t, object.NewInt(2), result)
+	require.Equal(t, object.NewInt(43), result)
 }

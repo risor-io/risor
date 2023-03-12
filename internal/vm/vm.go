@@ -64,8 +64,11 @@ func (vm *VM) Run() error {
 		switch opcode {
 		case op.Nop:
 		case op.LoadConst:
+			fmt.Println("LoadConst ip:", vm.ip)
 			constIndex := vm.fetch2()
+			fmt.Println("LoadConst index:", constIndex, "count:", len(scope.Constants))
 			vm.stack.Push(scope.Constants[constIndex])
+			fmt.Println(" value:", scope.Constants[constIndex])
 		case op.StoreFast:
 			obj := vm.Pop()
 			idx := vm.fetch()
@@ -94,20 +97,26 @@ func (vm *VM) Run() error {
 			if vm.frameStack.Size() >= MaxFrameCount {
 				return errors.New("stack overflow")
 			}
-			fn, ok := vm.Pop().(*object.Function)
-			if !ok {
-				return fmt.Errorf("not a function: %T", fn)
-			}
-			fnCode := fn.GetCodeStart()
 			argc := vm.fetch()
 			args := make([]object.Object, argc)
 			for i := 0; i < argc; i++ {
 				args[len(args)-1-i] = vm.Pop()
 			}
+			obj := vm.Pop()
+			fn, ok := obj.(*object.Function)
+			if !ok {
+				return fmt.Errorf("not a function: %T", obj)
+			}
 			frame := NewFrame(fn, args, vm.ip)
 			vm.frameStack.Push(frame)
-			vm.ip = fnCode
-			fmt.Println("CALL IP", fnCode)
+			vm.ip = 0
+			scope = &compiler.Scope{
+				Instructions: fn.Instructions(),
+				Constants:    fn.Constants(),
+				Symbols:      fn.Symbols(),
+			}
+			vm.currentScope = scope
+			fmt.Println("CALL IP", fn)
 		case op.ReturnValue:
 			frame, ok := vm.frameStack.Pop()
 			if !ok {

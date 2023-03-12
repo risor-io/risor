@@ -1,17 +1,17 @@
-package compiler
+package symbol
 
 import "fmt"
 
-type SymbolScope string
+type Scope string
 
 const (
-	ScopeBuiltin SymbolScope = "builtin"
-	ScopeFree    SymbolScope = "free"
-	ScopeGlobal  SymbolScope = "global"
-	ScopeLocal   SymbolScope = "local"
+	ScopeBuiltin Scope = "builtin"
+	ScopeFree    Scope = "free"
+	ScopeGlobal  Scope = "global"
+	ScopeLocal   Scope = "local"
 )
 
-type SymbolAttrs struct {
+type Attrs struct {
 	IsConstant bool
 	IsBuiltin  bool
 	// Type       string
@@ -20,24 +20,24 @@ type SymbolAttrs struct {
 type Symbol struct {
 	Name  string
 	Index int
-	Scope SymbolScope
-	Attrs SymbolAttrs
+	Scope Scope
+	Attrs Attrs
 }
 
-type SymbolTable struct {
-	parent  *SymbolTable
+type Table struct {
+	parent  *Table
 	symbols map[string]*Symbol
 	free    []*Symbol
 }
 
-func (t *SymbolTable) NewChild() *SymbolTable {
-	return &SymbolTable{
+func (t *Table) NewChild() *Table {
+	return &Table{
 		parent:  t,
 		symbols: map[string]*Symbol{},
 	}
 }
 
-func (t *SymbolTable) Insert(name string, attrs SymbolAttrs) (*Symbol, error) {
+func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 	if _, ok := t.symbols[name]; ok {
 		return nil, fmt.Errorf("symbol %q already exists", name)
 	}
@@ -55,10 +55,11 @@ func (t *SymbolTable) Insert(name string, attrs SymbolAttrs) (*Symbol, error) {
 	// 	s.Scope = ScopeGlobal
 	// }
 	t.symbols[name] = s
+	fmt.Println("Insert symbol:", name, s.Index, s)
 	return s, nil
 }
 
-func (t *SymbolTable) Lookup(name string) (*Symbol, bool) {
+func (t *Table) Lookup(name string) (*Symbol, bool) {
 	if s, ok := t.symbols[name]; ok {
 		return s, true
 	}
@@ -68,16 +69,16 @@ func (t *SymbolTable) Lookup(name string) (*Symbol, bool) {
 	return nil, false
 }
 
-func (t *SymbolTable) ShallowLookup(name string) (*Symbol, bool) {
+func (t *Table) ShallowLookup(name string) (*Symbol, bool) {
 	s, ok := t.symbols[name]
 	return s, ok
 }
 
-func (t *SymbolTable) Size() int {
+func (t *Table) Size() int {
 	return len(t.symbols)
 }
 
-func (t *SymbolTable) Names() []string {
+func (t *Table) Names() []string {
 	names := make([]string, len(t.symbols))
 	for name := range t.symbols {
 		names = append(names, name)
@@ -85,16 +86,16 @@ func (t *SymbolTable) Names() []string {
 	return names
 }
 
-func (t *SymbolTable) Parent() *SymbolTable {
+func (t *Table) Parent() *Table {
 	return t.parent
 }
 
-func (t *SymbolTable) Free() []*Symbol {
+func (t *Table) Free() []*Symbol {
 	return t.free
 }
 
-func NewSymbolTable() *SymbolTable {
-	return &SymbolTable{
+func NewTable() *Table {
+	return &Table{
 		symbols: map[string]*Symbol{},
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/internal/symbol"
 )
 
 // Function contains the AST for user defined function and implements Object interface.
@@ -16,8 +17,11 @@ type Function struct {
 	defaults   map[string]ast.Expression
 	scope      Scope
 
-	codeStart int
-	codeEnd   int
+	// compilerScope *compiler.Scope
+	fn           *ast.Func
+	instructions []op.Code
+	symbols      *symbol.Table
+	constants    []Object
 }
 
 func (f *Function) Type() Type {
@@ -113,17 +117,28 @@ func NewFunction(
 	}
 }
 
-func NewFunctionWithCode(codeStart, codeEnd int) *Function {
+func NewCompiledFunction(
+	fn *ast.Func,
+	instructions []op.Code,
+	symbols *symbol.Table,
+	constants []Object,
+) *Function {
 	return &Function{
-		codeStart: codeStart,
-		codeEnd:   codeEnd,
+		fn:           fn,
+		instructions: instructions,
+		symbols:      symbols,
+		constants:    constants,
 	}
 }
 
-func (f *Function) GetCodeStart() int {
-	return f.codeStart
+func (f *Function) Instructions() []op.Code {
+	return f.instructions
 }
 
-func (f *Function) GetCode(code []op.Code) []op.Code {
-	return code[f.codeStart:f.codeEnd]
+func (f *Function) Symbols() *symbol.Table {
+	return f.symbols
+}
+
+func (f *Function) Constants() []Object {
+	return f.constants
 }
