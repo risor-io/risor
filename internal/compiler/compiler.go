@@ -21,7 +21,7 @@ type Scope struct {
 	Name         string
 	Instructions []op.Code
 	children     []*Scope
-	parent       *Scope
+	Parent       *Scope
 	Symbols      *symbol.Table
 	Constants    []object.Object
 	loops        []*Loop
@@ -182,11 +182,6 @@ func (c *Compiler) currentLoop() *Loop {
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
 
-	// scope.Symbols = scope.Symbols.NewChild()
-	// defer func() {
-	// 	scope.Symbols = scope.Symbols.Parent()
-	// }()
-
 	var name string
 	ident := node.Name()
 	if ident != nil {
@@ -197,7 +192,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 	funcScope := &Scope{
 		Name:    name,
-		parent:  c.CurrentScope(),
+		Parent:  c.CurrentScope(),
 		Symbols: c.currentScope.Symbols.NewChild(),
 	}
 	c.currentScope.children = append(c.currentScope.children, funcScope)
@@ -207,11 +202,19 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	for _, arg := range node.Parameters() {
 		funcScope.Symbols.Insert(arg.Literal(), symbol.Attrs{})
 	}
-	if err := c.compile(node.Body()); err != nil {
+	body := node.Body()
+	if err := c.compile(body); err != nil {
 		return err
 	}
+	bodyStatements := body.Statements()
+	if len(bodyStatements) == 0 {
+		c.emit(node, op.Nil)
+		c.emit(node, op.ReturnValue, 1)
+	} else if _, ok := bodyStatements[len(bodyStatements)-1].(*ast.Control); !ok {
+		c.emit(node, op.ReturnValue, 1)
+	}
 
-	c.currentScope = c.currentScope.parent
+	c.currentScope = c.currentScope.Parent
 	fn := object.NewCompiledFunction(
 		node,
 		funcScope.Instructions,
@@ -240,7 +243,7 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 func (c *Compiler) compileControl(node *ast.Control) error {
 	literal := node.Literal()
 	if literal == "return" {
-		if c.currentScope.parent == nil {
+		if c.currentScope.Parent == nil {
 			return fmt.Errorf("return outside of function")
 		}
 		if err := c.compile(node.Value()); err != nil {
@@ -443,7 +446,7 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 func (c *Compiler) constant(obj object.Object) int {
 	scope := c.currentScope
 	scope.Constants = append(scope.Constants, obj)
-	fmt.Println("constant", obj, len(scope.Constants)-1)
+	// fmt.Println("constant", obj, len(scope.Constants)-1)
 	return len(scope.Constants) - 1
 }
 
@@ -455,8 +458,8 @@ func (c *Compiler) instruction(b []op.Code) int {
 }
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
-	info := op.GetInfo(opcode)
-	fmt.Println("EMIT", opcode, info.Name, operands)
+	// info := op.GetInfo(opcode)
+	// fmt.Println("EMIT", opcode, info.Name, operands)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }

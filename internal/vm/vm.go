@@ -53,10 +53,10 @@ func (vm *VM) Run() error {
 	// for i, b := range vm.code {
 	// 	fmt.Printf("%d %d\n", i, b)
 	// }
-	scope := vm.currentScope
 	symbolCount := vm.currentScope.Symbols.Size()
 	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0))
-	for vm.ip < len(scope.Instructions) {
+	for vm.ip < len(vm.currentScope.Instructions) {
+		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
 		opinfo := op.GetInfo(opcode)
 		fmt.Println("IP:", vm.ip, "OPCODE:", opcode, "INFO:", opinfo)
@@ -114,6 +114,7 @@ func (vm *VM) Run() error {
 				Instructions: fn.Instructions(),
 				Constants:    fn.Constants(),
 				Symbols:      fn.Symbols(),
+				Parent:       vm.currentScope,
 			}
 			vm.currentScope = scope
 			fmt.Println("CALL IP", fn)
@@ -122,11 +123,14 @@ func (vm *VM) Run() error {
 			if !ok {
 				return errors.New("invalid return")
 			}
-			if vm.fetch() == 0 {
-				// Ensure that a return value is on top of the stack
-				vm.stack.Push(object.Nil)
+			if vm.fetch() != 1 {
+				return errors.New("expected 1 return value")
 			}
 			vm.ip = frame.returnAddr
+			vm.currentScope = vm.currentScope.Parent
+			fmt.Println("Return value", vm.ip, vm.currentScope)
+			tos, ok := vm.TOS()
+			fmt.Println("TOS:", tos, ok)
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := vm.fetch2() - 3

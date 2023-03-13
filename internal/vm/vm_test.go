@@ -167,12 +167,11 @@ func TestAssign(t *testing.T) {
 
 func TestCall(t *testing.T) {
 	result, err := Run(`
-	f := func(x) { x + 42 }
-	y := f(1)
-	z := y + 1
-	z
+	f := func(x) { 42 + x }
+	v := f(1)
+	v + 10
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
-	require.Equal(t, object.NewInt(43), result)
+	require.Equal(t, object.NewInt(53), result)
 }
