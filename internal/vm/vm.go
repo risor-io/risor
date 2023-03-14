@@ -206,6 +206,15 @@ func (vm *VM) Run() error {
 				items[count-1-i] = vm.Pop()
 			}
 			vm.stack.Push(object.NewList(items))
+		case op.BuildMap:
+			count := vm.fetch2()
+			items := make(map[string]object.Object)
+			for i := 0; i < count; i++ {
+				v := vm.Pop()
+				k := vm.Pop()
+				items[k.(*object.String).Value()] = v
+			}
+			vm.stack.Push(object.NewMap(items))
 		case op.Halt:
 			return nil
 		default:

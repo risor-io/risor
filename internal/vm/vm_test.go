@@ -220,3 +220,16 @@ func TestList2(t *testing.T) {
 		object.NewInt(3),
 	}), result)
 }
+
+func TestMap(t *testing.T) {
+	result, err := Run(`
+	m := {"a": 1, "b": 4-2}
+	m
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewMap(map[string]object.Object{
+		"a": object.NewInt(1),
+		"b": object.NewInt(2),
+	}), result)
+}
