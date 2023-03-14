@@ -208,13 +208,20 @@ func (vm *VM) Run() error {
 			vm.stack.Push(object.NewList(items))
 		case op.BuildMap:
 			count := vm.fetch2()
-			items := make(map[string]object.Object)
+			items := make(map[string]object.Object, count)
 			for i := 0; i < count; i++ {
 				v := vm.Pop()
 				k := vm.Pop()
 				items[k.(*object.String).Value()] = v
 			}
 			vm.stack.Push(object.NewMap(items))
+		case op.BuildSet:
+			count := vm.fetch2()
+			items := make([]object.Object, count)
+			for i := 0; i < count; i++ {
+				items[i] = vm.Pop()
+			}
+			vm.stack.Push(object.NewSet(items))
 		case op.Halt:
 			return nil
 		default:

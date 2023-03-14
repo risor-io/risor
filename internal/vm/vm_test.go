@@ -233,3 +233,16 @@ func TestMap(t *testing.T) {
 		"b": object.NewInt(2),
 	}), result)
 }
+
+func TestSet(t *testing.T) {
+	result, err := Run(`
+	s := {"a", 4-1}
+	s
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewSet([]object.Object{
+		object.NewString("a"),
+		object.NewInt(3),
+	}), result)
+}

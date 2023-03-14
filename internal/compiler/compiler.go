@@ -176,6 +176,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileMap(node); err != nil {
 			return err
 		}
+	case *ast.Set:
+		if err := c.compileSet(node); err != nil {
+			return err
+		}
 	default:
 		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
 	}
@@ -211,6 +215,16 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 		}
 	}
 	c.emit(node, op.BuildMap, len(node.Items()))
+	return nil
+}
+
+func (c *Compiler) compileSet(node *ast.Set) error {
+	for _, expr := range node.Items() {
+		if err := c.compile(expr); err != nil {
+			return err
+		}
+	}
+	c.emit(node, op.BuildSet, len(node.Items()))
 	return nil
 }
 
