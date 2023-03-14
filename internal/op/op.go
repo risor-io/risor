@@ -34,6 +34,7 @@ const (
 	Call                   Code = 29
 	JumpForward            Code = 30
 	JumpBackward           Code = 31
+	BuildList              Code = 32
 )
 
 type BinaryOpType byte
@@ -109,6 +110,7 @@ func init() {
 		{UnaryNot, "UNARY_NOT", 0, nil},
 		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
 		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
+		{BuildList, "BUILD_LIST", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

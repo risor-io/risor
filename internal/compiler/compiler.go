@@ -168,6 +168,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileFunc(node); err != nil {
 			return err
 		}
+	case *ast.List:
+		if err := c.compileList(node); err != nil {
+			return err
+		}
 	default:
 		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
 	}
@@ -181,6 +185,16 @@ func (c *Compiler) currentLoop() *Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compileList(node *ast.List) error {
+	for _, expr := range node.Items() {
+		if err := c.compile(expr); err != nil {
+			return err
+		}
+	}
+	c.emit(node, op.BuildList, len(node.Items()))
+	return nil
 }
 
 func (c *Compiler) compileFunc(node *ast.Func) error {

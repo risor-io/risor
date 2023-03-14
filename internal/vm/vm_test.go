@@ -191,3 +191,32 @@ func TestStrLen(t *testing.T) {
 	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(5), result)
 }
+
+func TestList(t *testing.T) {
+	result, err := Run(`
+	l := [1, 2, 3]
+	l
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), result)
+}
+
+func TestList2(t *testing.T) {
+	result, err := Run(`
+	plusOne := func(x) { x + 1 }
+	l := [plusOne(0), 4-2, plusOne(2)]
+	l
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), result)
+}

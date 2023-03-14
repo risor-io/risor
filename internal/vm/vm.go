@@ -199,6 +199,13 @@ func (vm *VM) Run() error {
 		case op.LoadGlobal:
 			constIndex := vm.fetch2()
 			vm.stack.Push(vm.globals[constIndex])
+		case op.BuildList:
+			count := vm.fetch2()
+			items := make([]object.Object, count)
+			for i := 0; i < count; i++ {
+				items[count-1-i] = vm.Pop()
+			}
+			vm.stack.Push(object.NewList(items))
 		case op.Halt:
 			return nil
 		default:
