@@ -27,14 +27,10 @@ func TestAdd(t *testing.T) {
 		op.BinaryOp,
 		op.Code(op.Add),
 	}
-	vm := New(&compiler.Bytecode{
-		Scopes: []*compiler.Scope{
-			{
-				Constants:    constants,
-				Instructions: code,
-				Symbols:      symbol.NewTable(),
-			},
-		},
+	vm := New(nil, &compiler.Scope{
+		Constants:    constants,
+		Instructions: code,
+		Symbols:      symbol.NewTable(),
 	})
 	err := vm.Run()
 	require.Nil(t, err)
@@ -71,7 +67,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int64(12), c2.Value())
 
-	vm := New(bytecode)
+	vm := New(nil, bytecode.Scopes[0])
 	require.Nil(t, vm.Run())
 
 	tos, ok := vm.TOS()
@@ -94,7 +90,7 @@ func TestConditional(t *testing.T) {
 	bytecode, err := c.Compile(program)
 	require.Nil(t, err)
 
-	vm := New(bytecode)
+	vm := New(nil, bytecode.Scopes[0])
 	require.Nil(t, vm.Run())
 
 	tos, ok := vm.TOS()
@@ -174,4 +170,24 @@ func TestCall(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(53), result)
+}
+
+func TestStr(t *testing.T) {
+	result, err := Run(`
+	s := "hello"
+	s
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewString("hello"), result)
+}
+
+func TestStrLen(t *testing.T) {
+	result, err := Run(`
+	s := "hello"
+	len(s)
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(5), result)
 }

@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/cloudcmds/tamarin/ast"
+	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
@@ -13,18 +14,16 @@ import (
 
 type Bytecode struct {
 	Scopes []*Scope
-	// Constants []object.Object
-	// Symbols   *SymbolTable
 }
 
 type Scope struct {
 	Name         string
-	Instructions []op.Code
-	children     []*Scope
 	Parent       *Scope
+	Children     []*Scope
 	Symbols      *symbol.Table
+	Instructions []op.Code
 	Constants    []object.Object
-	loops        []*Loop
+	Loops        []*Loop
 }
 
 type Compiler struct {
@@ -33,7 +32,8 @@ type Compiler struct {
 }
 
 type Options struct {
-	Builtins []*object.Builtin
+	Global *Scope
+	Name   string
 }
 
 type Loop struct {
@@ -41,27 +41,34 @@ type Loop struct {
 	BreakPos    []int
 }
 
+func NewGlobalScope() *Scope {
+	s := &Scope{
+		Name:    "global",
+		Symbols: symbol.NewTable(),
+	}
+	for _, b := range evaluator.GlobalBuiltins() {
+		s.Symbols.Insert(b.Name(), symbol.Attrs{Value: b})
+	}
+	return s
+}
+
 func New(opts Options) *Compiler {
-	symbols := symbol.NewTable()
-	for _, b := range opts.Builtins {
-		symbols.Insert(b.Name(), symbol.Attrs{
-			IsBuiltin: true,
-			// Type:      string(b.Type()),
-		})
+	var symbols *symbol.Table
+	if opts.Global != nil {
+		symbols = opts.Global.Symbols.NewChild()
+	} else {
+		symbols = symbol.NewTable()
 	}
 	mainScope := &Scope{
-		Name:    "main",
+		Name:    opts.Name,
 		Symbols: symbols,
+		Parent:  opts.Global,
 	}
 	return &Compiler{
 		scopes:       []*Scope{mainScope},
 		currentScope: mainScope,
 	}
 }
-
-// func (c *Compiler) Symbols() *SymbolTable {
-// 	return c.Symbols
-// }
 
 func (c *Compiler) CurrentScope() *Scope {
 	return c.currentScope
@@ -70,10 +77,6 @@ func (c *Compiler) CurrentScope() *Scope {
 func (c *Compiler) Instructions() []op.Code {
 	return c.CurrentScope().Instructions
 }
-
-// func (c *Compiler) Constants() []object.Object {
-// 	return c.constants
-// }
 
 func (c *Compiler) Compile(node ast.Node) (*Bytecode, error) {
 	if err := c.compile(node); err != nil {
@@ -174,10 +177,10 @@ func (c *Compiler) compile(node ast.Node) error {
 
 func (c *Compiler) currentLoop() *Loop {
 	scope := c.CurrentScope()
-	if len(scope.loops) == 0 {
+	if len(scope.Loops) == 0 {
 		return nil
 	}
-	return scope.loops[len(scope.loops)-1]
+	return scope.Loops[len(scope.Loops)-1]
 }
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
@@ -195,7 +198,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		Parent:  c.CurrentScope(),
 		Symbols: c.currentScope.Symbols.NewChild(),
 	}
-	c.currentScope.children = append(c.currentScope.children, funcScope)
+	c.currentScope.Children = append(c.currentScope.Children, funcScope)
 	c.scopes = append(c.scopes, funcScope)
 	c.currentScope = funcScope
 
@@ -228,6 +231,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 func (c *Compiler) compileCall(node *ast.Call) error {
 	args := node.Arguments()
+	fmt.Println("compileCall", node.Function(), reflect.TypeOf(node.Function()), args)
 	if err := c.compile(node.Function()); err != nil {
 		return err
 	}
@@ -328,13 +332,13 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 func (c *Compiler) startLoop() *Loop {
 	loop := &Loop{}
-	c.currentScope.loops = append(c.currentScope.loops, loop)
+	c.currentScope.Loops = append(c.currentScope.Loops, loop)
 	return loop
 }
 
 func (c *Compiler) endLoop() {
 	scope := c.currentScope
-	scope.loops = scope.loops[:len(scope.loops)-1]
+	scope.Loops = scope.Loops[:len(scope.Loops)-1]
 }
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
@@ -458,8 +462,8 @@ func (c *Compiler) instruction(b []op.Code) int {
 }
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
-	// info := op.GetInfo(opcode)
-	// fmt.Println("EMIT", opcode, info.Name, operands)
+	info := op.GetInfo(opcode)
+	fmt.Println("EMIT", opcode, info.Name, operands)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }

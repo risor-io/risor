@@ -1,6 +1,8 @@
 package symbol
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Scope string
 
@@ -14,7 +16,7 @@ const (
 type Attrs struct {
 	IsConstant bool
 	IsBuiltin  bool
-	// Type       string
+	Value      any
 }
 
 type Symbol struct {
@@ -46,16 +48,15 @@ func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 		Index: len(t.symbols),
 		Attrs: attrs,
 	}
-	if attrs.IsBuiltin {
+	if t.parent == nil {
+		s.Scope = ScopeGlobal
+	} else if attrs.IsBuiltin {
 		s.Scope = ScopeBuiltin
 	} else {
 		s.Scope = ScopeLocal
 	}
-	// else if t.parent == nil {
-	// 	s.Scope = ScopeGlobal
-	// }
 	t.symbols[name] = s
-	fmt.Println("Insert symbol:", name, s.Index, s)
+	// fmt.Println("Insert symbol:", name, s.Index, s)
 	return s, nil
 }
 
@@ -84,6 +85,10 @@ func (t *Table) Names() []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+func (t *Table) Map() map[string]*Symbol {
+	return t.symbols
 }
 
 func (t *Table) Parent() *Table {

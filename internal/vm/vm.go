@@ -1,12 +1,14 @@
 package vm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 )
@@ -18,12 +20,16 @@ func Run(code string) (object.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := compiler.New(compiler.Options{})
+	globalScope := compiler.NewGlobalScope()
+	c := compiler.New(compiler.Options{
+		Global: globalScope,
+		Name:   "main",
+	})
 	bytecode, err := c.Compile(ast)
 	if err != nil {
 		return nil, err
 	}
-	vm := New(bytecode)
+	vm := New(globalScope, bytecode.Scopes[0])
 	if err := vm.Run(); err != nil {
 		return nil, err
 	}
@@ -35,24 +41,38 @@ type VM struct {
 	sp           int
 	stack        *Stack[object.Object]
 	frameStack   *Stack[*Frame]
-	scopes       []*compiler.Scope
+	global       *compiler.Scope
+	main         *compiler.Scope
 	currentScope *compiler.Scope
+	globals      []object.Object
 }
 
-func New(bytecode *compiler.Bytecode) *VM {
-	return &VM{
+func New(global *compiler.Scope, main *compiler.Scope) *VM {
+	vm := &VM{
 		stack:        NewStack[object.Object](1024),
 		frameStack:   NewStack[*Frame](1024),
 		sp:           -1,
-		scopes:       bytecode.Scopes,
-		currentScope: bytecode.Scopes[0],
+		global:       global,
+		main:         main,
+		currentScope: main,
 	}
+	if vm.global != nil {
+		m := vm.global.Symbols.Map()
+		vm.globals = make([]object.Object, len(m))
+		for _, sym := range m {
+			if sym.Attrs.Value != nil {
+				vm.globals[sym.Index] = sym.Attrs.Value.(object.Object)
+			}
+		}
+	}
+	return vm
 }
 
 func (vm *VM) Run() error {
 	// for i, b := range vm.code {
 	// 	fmt.Printf("%d %d\n", i, b)
 	// }
+	ctx := context.Background()
 	symbolCount := vm.currentScope.Symbols.Size()
 	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0))
 	for vm.ip < len(vm.currentScope.Instructions) {
@@ -103,21 +123,25 @@ func (vm *VM) Run() error {
 				args[len(args)-1-i] = vm.Pop()
 			}
 			obj := vm.Pop()
-			fn, ok := obj.(*object.Function)
-			if !ok {
+			switch obj := obj.(type) {
+			case *object.Builtin:
+				result := obj.Call(ctx, args...)
+				vm.stack.Push(result)
+			case *object.Function:
+				frame := NewFrame(obj, args, vm.ip)
+				vm.frameStack.Push(frame)
+				vm.ip = 0
+				scope = &compiler.Scope{
+					Instructions: obj.Instructions(),
+					Constants:    obj.Constants(),
+					Symbols:      obj.Symbols().(*symbol.Table),
+					Parent:       vm.currentScope,
+				}
+				vm.currentScope = scope
+				fmt.Println("CALL IP", obj)
+			default:
 				return fmt.Errorf("not a function: %T", obj)
 			}
-			frame := NewFrame(fn, args, vm.ip)
-			vm.frameStack.Push(frame)
-			vm.ip = 0
-			scope = &compiler.Scope{
-				Instructions: fn.Instructions(),
-				Constants:    fn.Constants(),
-				Symbols:      fn.Symbols(),
-				Parent:       vm.currentScope,
-			}
-			vm.currentScope = scope
-			fmt.Println("CALL IP", fn)
 		case op.ReturnValue:
 			frame, ok := vm.frameStack.Pop()
 			if !ok {
@@ -170,8 +194,11 @@ func (vm *VM) Run() error {
 			if !ok {
 				return errors.New("invalid frame")
 			}
-			index := vm.fetch()
+			index := vm.fetch2()
 			vm.stack.Push(frame.locals[index])
+		case op.LoadGlobal:
+			constIndex := vm.fetch2()
+			vm.stack.Push(vm.globals[constIndex])
 		case op.Halt:
 			return nil
 		default:
@@ -266,12 +293,4 @@ func (vm *VM) fetch2() int {
 	v1 := vm.fetch()
 	v2 := vm.fetch()
 	return v1 | v2<<8
-}
-
-func (vm *VM) fetch4() int {
-	v1 := vm.fetch()
-	v2 := vm.fetch()
-	v3 := vm.fetch()
-	v4 := vm.fetch()
-	return v1 | v2<<8 | v3<<16 | v4<<24
 }
