@@ -1,0 +1,61 @@
+>>> a = 42
+>>> def g():
+...     b = a + 1
+...     c.foo = 'bar'
+...
+>>> g.__code__.co_names
+('a', 'c', 'foo')
+>>> g.__code__.co_varnames
+('b',)
+
+>>> dis(g)
+  1           0 RESUME                   0
+
+  2           2 LOAD_GLOBAL              0 (a)
+             14 LOAD_CONST               1 (1)
+             16 BINARY_OP                0 (+)
+             20 STORE_FAST               0 (b)
+
+  3          22 LOAD_CONST               2 ('bar')
+             24 LOAD_GLOBAL              2 (c)
+             36 STORE_ATTR               2 (foo)
+             46 LOAD_CONST               0 (None)
+             48 RETURN_VALUE
+
+------------------------------------------------------
+
+>>> def foo(x=1):
+...     return bar[x].y
+...
+>>> foo.__code__.co_names
+('bar', 'y')
+>>> foo.__code__.co_varnames
+('x',)
+>>> dis(foo)
+  1           0 RESUME                   0
+
+  2           2 LOAD_GLOBAL              0 (bar)
+             14 LOAD_FAST                0 (x)
+             16 BINARY_SUBSCR
+             26 LOAD_ATTR                1 (y)
+             36 RETURN_VALUE
+
+------------------------------------------------------
+
+>>> def foo(x):
+...     return x in bar
+...
+>>> foo.__code__.co_names
+('bar',)
+>>> foo.__code__.co_varnames
+('x',)
+>>> dis(foo)
+  1           0 RESUME                   0
+
+  2           2 LOAD_FAST                0 (x)
+              4 LOAD_GLOBAL              0 (bar)
+             16 CONTAINS_OP              0
+             18 RETURN_VALUE
+
+------------------------------------------------------
+

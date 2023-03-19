@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
-	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 )
@@ -20,16 +19,15 @@ func Run(code string) (object.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	globalScope := compiler.NewGlobalScope()
 	c := compiler.New(compiler.Options{
-		Global: globalScope,
-		Name:   "main",
+		GlobalSymbols: compiler.NewGlobalSymbols(),
+		Name:          "main",
 	})
-	bytecode, err := c.Compile(ast)
+	mainScope, err := c.Compile(ast)
 	if err != nil {
 		return nil, err
 	}
-	vm := New(globalScope, bytecode.Scopes[0])
+	vm := New(mainScope)
 	if err := vm.Run(); err != nil {
 		return nil, err
 	}
@@ -47,17 +45,16 @@ type VM struct {
 	globals      []object.Object
 }
 
-func New(global *compiler.Scope, main *compiler.Scope) *VM {
+func New(main *compiler.Scope) *VM {
 	vm := &VM{
 		stack:        NewStack[object.Object](1024),
 		frameStack:   NewStack[*Frame](1024),
 		sp:           -1,
-		global:       global,
 		main:         main,
 		currentScope: main,
 	}
-	if vm.global != nil {
-		m := vm.global.Symbols.Map()
+	if main.Symbols != nil {
+		m := main.Symbols.Map()
 		vm.globals = make([]object.Object, len(m))
 		for _, sym := range m {
 			if sym.Attrs.Value != nil {
@@ -97,6 +94,10 @@ func (vm *VM) Run() error {
 				return errors.New("no frame")
 			}
 			frame.locals[idx] = obj
+		case op.StoreGlobal:
+			obj := vm.Pop()
+			idx := vm.fetch2()
+			vm.globals[idx] = obj
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -128,17 +129,14 @@ func (vm *VM) Run() error {
 				result := obj.Call(ctx, args...)
 				vm.stack.Push(result)
 			case *object.Function:
-				frame := NewFrame(obj, args, vm.ip)
+				compilerScope := obj.CompilerScope().(*compiler.Scope)
+				locals := make([]object.Object, compilerScope.Symbols.Size())
+				copy(locals, args) // Assumes order is correct (confirm)
+				frame := NewFrame(obj, locals, vm.ip)
 				vm.frameStack.Push(frame)
 				vm.ip = 0
-				scope = &compiler.Scope{
-					Instructions: obj.Instructions(),
-					Constants:    obj.Constants(),
-					Symbols:      obj.Symbols().(*symbol.Table),
-					Parent:       vm.currentScope,
-				}
-				vm.currentScope = scope
-				fmt.Println("CALL IP", obj)
+				vm.currentScope = compilerScope
+				// fmt.Println("CALL IP", obj)
 			default:
 				return fmt.Errorf("not a function: %T", obj)
 			}

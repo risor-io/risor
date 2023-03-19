@@ -27,7 +27,7 @@ func TestAdd(t *testing.T) {
 		op.BinaryOp,
 		op.Code(op.Add),
 	}
-	vm := New(nil, &compiler.Scope{
+	vm := New(&compiler.Scope{
 		Constants:    constants,
 		Instructions: code,
 		Symbols:      symbol.NewTable(),
@@ -52,11 +52,10 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.Nil(t, err)
 
 	c := compiler.New(compiler.Options{})
-	bytecode, err := c.Compile(program)
+	main, err := c.Compile(program)
 	require.Nil(t, err)
-	scope := bytecode.Scopes[0]
 
-	consts := scope.Constants
+	consts := main.Constants
 	require.Len(t, consts, 2)
 
 	c1, ok := consts[0].(*object.Int)
@@ -67,7 +66,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int64(12), c2.Value())
 
-	vm := New(nil, bytecode.Scopes[0])
+	vm := New(main)
 	require.Nil(t, vm.Run())
 
 	tos, ok := vm.TOS()
@@ -87,10 +86,10 @@ func TestConditional(t *testing.T) {
 	require.Nil(t, err)
 
 	c := compiler.New(compiler.Options{})
-	bytecode, err := c.Compile(program)
+	main, err := c.Compile(program)
 	require.Nil(t, err)
 
-	vm := New(nil, bytecode.Scopes[0])
+	vm := New(main)
 	require.Nil(t, vm.Run())
 
 	tos, ok := vm.TOS()
@@ -245,4 +244,45 @@ func TestSet(t *testing.T) {
 		object.NewString("a"),
 		object.NewInt(3),
 	}), result)
+}
+
+func TestNonLocal(t *testing.T) {
+	result, err := Run(`
+	y := 3
+	z := 99
+	f := func() { y = 4 }
+	f()
+	y
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestFrameLocals1(t *testing.T) {
+	result, err := Run(`
+	x := 1
+	f := func(x) {
+		x = 99
+	}
+	f()
+	x
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(1), result)
+}
+
+func TestFrameLocals2(t *testing.T) {
+	result, err := Run(`
+	x := 1
+	f := func(y) {
+		x = 99
+	}
+	f()
+	x
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(99), result)
 }

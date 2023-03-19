@@ -12,10 +12,6 @@ import (
 	"github.com/cloudcmds/tamarin/object"
 )
 
-type Bytecode struct {
-	Scopes []*Scope
-}
-
 type Scope struct {
 	Name         string
 	Parent       *Scope
@@ -32,8 +28,8 @@ type Compiler struct {
 }
 
 type Options struct {
-	Global *Scope
-	Name   string
+	GlobalSymbols *symbol.Table
+	Name          string
 }
 
 type Loop struct {
@@ -41,28 +37,24 @@ type Loop struct {
 	BreakPos    []int
 }
 
-func NewGlobalScope() *Scope {
-	s := &Scope{
-		Name:    "global",
-		Symbols: symbol.NewTable(),
-	}
+func NewGlobalSymbols() *symbol.Table {
+	table := symbol.NewTable()
 	for _, b := range evaluator.GlobalBuiltins() {
-		s.Symbols.Insert(b.Name(), symbol.Attrs{Value: b})
+		table.Insert(b.Name(), symbol.Attrs{Value: b})
 	}
-	return s
+	return table
 }
 
 func New(opts Options) *Compiler {
 	var symbols *symbol.Table
-	if opts.Global != nil {
-		symbols = opts.Global.Symbols.NewChild()
+	if opts.GlobalSymbols != nil {
+		symbols = opts.GlobalSymbols
 	} else {
 		symbols = symbol.NewTable()
 	}
 	mainScope := &Scope{
 		Name:    opts.Name,
 		Symbols: symbols,
-		Parent:  opts.Global,
 	}
 	return &Compiler{
 		scopes:       []*Scope{mainScope},
@@ -78,11 +70,11 @@ func (c *Compiler) Instructions() []op.Code {
 	return c.CurrentScope().Instructions
 }
 
-func (c *Compiler) Compile(node ast.Node) (*Bytecode, error) {
+func (c *Compiler) Compile(node ast.Node) (*Scope, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
-	return &Bytecode{Scopes: c.scopes}, nil
+	return c.scopes[0], nil
 }
 
 func (c *Compiler) compile(node ast.Node) error {
@@ -131,11 +123,16 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
-		symbol, err := scope.Symbols.Insert(name, symbol.Attrs{})
+		sym, err := scope.Symbols.Insert(name, symbol.Attrs{})
 		if err != nil {
 			return err
 		}
-		c.emit(node, op.StoreFast, symbol.Index)
+		switch sym.Scope {
+		case symbol.ScopeGlobal:
+			c.emit(node, op.StoreGlobal, sym.Index)
+		case symbol.ScopeLocal:
+			c.emit(node, op.StoreFast, sym.Index)
+		}
 	case *ast.Assign:
 		if err := c.compileAssign(node); err != nil {
 			return err
@@ -263,12 +260,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	}
 
 	c.currentScope = c.currentScope.Parent
-	fn := object.NewCompiledFunction(
-		node,
-		funcScope.Instructions,
-		funcScope.Symbols,
-		funcScope.Constants,
-	)
+	fn := object.NewCompiledFunction(node, funcScope)
 	c.emit(node, op.LoadConst, c.constant(fn))
 
 	return nil

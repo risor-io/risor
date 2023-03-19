@@ -56,7 +56,7 @@ func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 		s.Scope = ScopeLocal
 	}
 	t.symbols[name] = s
-	// fmt.Println("Insert symbol:", name, s.Index, s)
+	fmt.Println("Insert symbol:", name, s.Index, s)
 	return s, nil
 }
 

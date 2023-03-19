@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Function contains the AST for user defined function and implements Object interface.
@@ -17,10 +16,11 @@ type Function struct {
 	scope      Scope
 
 	// compilerScope *compiler.Scope
-	fn           *ast.Func
-	instructions []op.Code
-	symbols      any
-	constants    []Object
+	fn *ast.Func
+	// instructions []op.Code
+	// symbols      any
+	// constants    []Object
+	fnScope any
 }
 
 func (f *Function) Type() Type {
@@ -118,26 +118,26 @@ func NewFunction(
 
 func NewCompiledFunction(
 	fn *ast.Func,
-	instructions []op.Code,
-	symbols any,
-	constants []Object,
+	fnScope any,
 ) *Function {
 	return &Function{
-		fn:           fn,
-		instructions: instructions,
-		symbols:      symbols,
-		constants:    constants,
+		fn:      fn,
+		fnScope: fnScope,
 	}
 }
 
-func (f *Function) Instructions() []op.Code {
-	return f.instructions
-}
+// func (f *Function) Instructions() []op.Code {
+// 	return f.instructions
+// }
 
-func (f *Function) Symbols() any {
-	return f.symbols
-}
+// func (f *Function) Symbols() any {
+// 	return f.symbols
+// }
 
-func (f *Function) Constants() []Object {
-	return f.constants
+// func (f *Function) Constants() []Object {
+// 	return f.constants
+// }
+
+func (f *Function) CompilerScope() any {
+	return f.fnScope
 }
