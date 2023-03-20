@@ -10,9 +10,8 @@ import (
 
 func TestNil(t *testing.T) {
 	c := New(Options{})
-	bytecode, err := c.Compile(&ast.Nil{})
+	scope, err := c.Compile(&ast.Nil{})
 	require.Nil(t, err)
-	scope := bytecode.Scopes[0]
 	require.Len(t, scope.Instructions, 1)
 	instr := scope.Instructions[0]
 	require.Equal(t, op.Nil, op.Code(instr))

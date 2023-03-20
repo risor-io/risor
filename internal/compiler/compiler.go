@@ -127,10 +127,9 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-		switch sym.Scope {
-		case symbol.ScopeGlobal:
+		if c.currentScope.Parent == nil {
 			c.emit(node, op.StoreGlobal, sym.Index)
-		case symbol.ScopeLocal:
+		} else {
 			c.emit(node, op.StoreFast, sym.Index)
 		}
 	case *ast.Assign:
@@ -145,9 +144,9 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 		switch sym.Scope {
 		case symbol.ScopeGlobal:
-			c.emit(node, op.LoadGlobal, sym.Index)
+			c.emit(node, op.LoadGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
-			c.emit(node, op.LoadFast, sym.Index)
+			c.emit(node, op.LoadFast, sym.Symbol.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -227,6 +226,9 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
 
+	// Python cell variables:
+	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
+
 	var name string
 	ident := node.Name()
 	if ident != nil {
@@ -268,7 +270,6 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 func (c *Compiler) compileCall(node *ast.Call) error {
 	args := node.Arguments()
-	fmt.Println("compileCall", node.Function(), reflect.TypeOf(node.Function()), args)
 	if err := c.compile(node.Function()); err != nil {
 		return err
 	}
@@ -322,18 +323,18 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		}
 		switch sym.Scope {
 		case symbol.ScopeGlobal:
-			c.emit(node, op.StoreGlobal, sym.Index)
+			c.emit(node, op.StoreGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
-			c.emit(node, op.StoreFast, sym.Index)
+			c.emit(node, op.StoreFast, sym.Symbol.Index)
 		}
 		return nil
 	}
 	// Push LHS as TOS
 	switch sym.Scope {
 	case symbol.ScopeGlobal:
-		c.emit(node, op.LoadGlobal, sym.Index)
+		c.emit(node, op.LoadGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
-		c.emit(node, op.LoadFast, sym.Index)
+		c.emit(node, op.LoadFast, sym.Symbol.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -353,9 +354,9 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	// Store TOS in LHS
 	switch sym.Scope {
 	case symbol.ScopeGlobal:
-		c.emit(node, op.StoreGlobal, sym.Index)
+		c.emit(node, op.StoreGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
-		c.emit(node, op.StoreFast, sym.Index)
+		c.emit(node, op.StoreFast, sym.Symbol.Index)
 	}
 	return nil
 }

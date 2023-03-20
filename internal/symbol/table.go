@@ -22,8 +22,12 @@ type Attrs struct {
 type Symbol struct {
 	Name  string
 	Index int
-	Scope Scope
 	Attrs Attrs
+}
+
+type ResolvedSymbol struct {
+	Symbol *Symbol
+	Scope  Scope
 }
 
 type Table struct {
@@ -48,24 +52,29 @@ func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 		Index: len(t.symbols),
 		Attrs: attrs,
 	}
-	if t.parent == nil {
-		s.Scope = ScopeGlobal
-	} else if attrs.IsBuiltin {
-		s.Scope = ScopeBuiltin
-	} else {
-		s.Scope = ScopeLocal
-	}
+	// if t.parent == nil {
+	// 	s.Scope = ScopeGlobal
+	// } else {
+	// 	s.Scope = ScopeLocal
+	// }
 	t.symbols[name] = s
-	fmt.Println("Insert symbol:", name, s.Index, s)
+	// fmt.Println("Insert symbol:", name, s.Index, s)
 	return s, nil
 }
 
-func (t *Table) Lookup(name string) (*Symbol, bool) {
+func (t *Table) Lookup(name string) (*ResolvedSymbol, bool) {
 	if s, ok := t.symbols[name]; ok {
-		return s, true
+		scope := ScopeLocal
+		if t.parent == nil {
+			scope = ScopeGlobal
+		}
+		return &ResolvedSymbol{Symbol: s, Scope: scope}, true
 	}
 	if t.parent != nil {
-		return t.parent.Lookup(name)
+		if rs, found := t.parent.Lookup(name); found {
+			rs.Scope = ScopeFree
+			return rs, true
+		}
 	}
 	return nil, false
 }

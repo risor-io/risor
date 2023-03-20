@@ -286,3 +286,29 @@ func TestFrameLocals2(t *testing.T) {
 	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
+
+func TestMapKeys(t *testing.T) {
+	result, err := Run(`
+	m := {"a": 1, "b": 2}
+	keys(m)
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("a"),
+		object.NewString("b"),
+	}), result)
+}
+
+func TestClosureSimple(t *testing.T) {
+	result, err := Run(`
+	f := func(x) {
+		func() {
+			x
+		}
+	}
+	f(1)()
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+}

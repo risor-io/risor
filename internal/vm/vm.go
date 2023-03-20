@@ -34,12 +34,13 @@ func Run(code string) (object.Object, error) {
 	return vm.Pop(), nil
 }
 
+type Cell *object.Object
+
 type VM struct {
 	ip           int
 	sp           int
 	stack        *Stack[object.Object]
 	frameStack   *Stack[*Frame]
-	global       *compiler.Scope
 	main         *compiler.Scope
 	currentScope *compiler.Scope
 	globals      []object.Object
@@ -71,7 +72,7 @@ func (vm *VM) Run() error {
 	// }
 	ctx := context.Background()
 	symbolCount := vm.currentScope.Symbols.Size()
-	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0))
+	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope))
 	for vm.ip < len(vm.currentScope.Instructions) {
 		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
@@ -132,11 +133,10 @@ func (vm *VM) Run() error {
 				compilerScope := obj.CompilerScope().(*compiler.Scope)
 				locals := make([]object.Object, compilerScope.Symbols.Size())
 				copy(locals, args) // Assumes order is correct (confirm)
-				frame := NewFrame(obj, locals, vm.ip)
+				frame := NewFrame(obj, locals, vm.ip, compilerScope)
 				vm.frameStack.Push(frame)
 				vm.ip = 0
 				vm.currentScope = compilerScope
-				// fmt.Println("CALL IP", obj)
 			default:
 				return fmt.Errorf("not a function: %T", obj)
 			}
@@ -150,9 +150,6 @@ func (vm *VM) Run() error {
 			}
 			vm.ip = frame.returnAddr
 			vm.currentScope = vm.currentScope.Parent
-			fmt.Println("Return value", vm.ip, vm.currentScope)
-			tos, ok := vm.TOS()
-			fmt.Println("TOS:", tos, ok)
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := vm.fetch2() - 3
