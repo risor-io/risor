@@ -20,7 +20,8 @@ type Function struct {
 	// instructions []op.Code
 	// symbols      any
 	// constants    []Object
-	fnScope any
+	fnScope  any
+	freeVars []*Cell
 }
 
 func (f *Function) Type() Type {
@@ -100,6 +101,10 @@ func (f *Function) IsTruthy() bool {
 	return true
 }
 
+func (f *Function) CompilerScope() any {
+	return f.fnScope
+}
+
 func NewFunction(
 	name string,
 	parameters []*ast.Ident,
@@ -114,30 +119,4 @@ func NewFunction(
 		defaults:   defaults,
 		scope:      scope,
 	}
-}
-
-func NewCompiledFunction(
-	fn *ast.Func,
-	fnScope any,
-) *Function {
-	return &Function{
-		fn:      fn,
-		fnScope: fnScope,
-	}
-}
-
-// func (f *Function) Instructions() []op.Code {
-// 	return f.instructions
-// }
-
-// func (f *Function) Symbols() any {
-// 	return f.symbols
-// }
-
-// func (f *Function) Constants() []Object {
-// 	return f.constants
-// }
-
-func (f *Function) CompilerScope() any {
-	return f.fnScope
 }

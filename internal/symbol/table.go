@@ -20,26 +20,30 @@ type Attrs struct {
 }
 
 type Symbol struct {
-	Name  string
-	Index int
-	Attrs Attrs
+	Name   string
+	Index  int
+	Attrs  Attrs
+	IsFree bool
 }
 
 type ResolvedSymbol struct {
 	Symbol *Symbol
 	Scope  Scope
+	Depth  int
 }
 
 type Table struct {
-	parent  *Table
-	symbols map[string]*Symbol
-	free    []*Symbol
+	parent   *Table
+	symbols  map[string]*Symbol
+	accessed map[string]bool
+	free     []*ResolvedSymbol
 }
 
 func (t *Table) NewChild() *Table {
 	return &Table{
-		parent:  t,
-		symbols: map[string]*Symbol{},
+		parent:   t,
+		symbols:  map[string]*Symbol{},
+		accessed: map[string]bool{},
 	}
 }
 
@@ -52,31 +56,48 @@ func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 		Index: len(t.symbols),
 		Attrs: attrs,
 	}
-	// if t.parent == nil {
-	// 	s.Scope = ScopeGlobal
-	// } else {
-	// 	s.Scope = ScopeLocal
-	// }
 	t.symbols[name] = s
-	// fmt.Println("Insert symbol:", name, s.Index, s)
+	// fmt.Println("Insert symbol:", name, s.Index, t.DefaultScope())
 	return s, nil
 }
 
+func (t *Table) DefaultScope() Scope {
+	if t.parent == nil {
+		return ScopeGlobal
+	}
+	return ScopeLocal
+}
+
 func (t *Table) Lookup(name string) (*ResolvedSymbol, bool) {
+	fmt.Println("Lookup", name, t.symbols)
 	if s, ok := t.symbols[name]; ok {
-		scope := ScopeLocal
-		if t.parent == nil {
-			scope = ScopeGlobal
-		}
-		return &ResolvedSymbol{Symbol: s, Scope: scope}, true
+		t.accessed[name] = true
+		return &ResolvedSymbol{
+			Symbol: s,
+			Scope:  t.DefaultScope(),
+			Depth:  0,
+		}, true
 	}
-	if t.parent != nil {
-		if rs, found := t.parent.Lookup(name); found {
-			rs.Scope = ScopeFree
-			return rs, true
-		}
+	if t.parent == nil {
+		return nil, false
 	}
-	return nil, false
+	rs, found := t.parent.Lookup(name)
+	if !found {
+		return nil, false
+	}
+	if rs.Scope == ScopeGlobal {
+		t.accessed[name] = true
+		return rs, true
+	}
+	resolution := &ResolvedSymbol{
+		Symbol: rs.Symbol,
+		Scope:  ScopeFree,
+		Depth:  rs.Depth + 1,
+	}
+	t.free = append(t.free, resolution)
+	t.accessed[name] = true
+	fmt.Printf("FREE SYMBOL: %s %+v\n", name, resolution)
+	return resolution, true
 }
 
 func (t *Table) ShallowLookup(name string) (*Symbol, bool) {
@@ -104,12 +125,13 @@ func (t *Table) Parent() *Table {
 	return t.parent
 }
 
-func (t *Table) Free() []*Symbol {
+func (t *Table) Free() []*ResolvedSymbol {
 	return t.free
 }
 
 func NewTable() *Table {
 	return &Table{
-		symbols: map[string]*Symbol{},
+		symbols:  map[string]*Symbol{},
+		accessed: map[string]bool{},
 	}
 }

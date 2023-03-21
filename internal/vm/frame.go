@@ -6,14 +6,14 @@ import (
 )
 
 type Frame struct {
-	fn         *object.Function
+	fn         *object.CompiledFunction
 	locals     []object.Object
 	returnAddr int
 	scope      *compiler.Scope
 }
 
 func NewFrame(
-	fn *object.Function,
+	fn *object.CompiledFunction,
 	locals []object.Object,
 	returnAddr int,
 	scope *compiler.Scope,

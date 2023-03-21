@@ -28,6 +28,19 @@ func (s *Stack[T]) Top() (T, bool) {
 	return s.items[size-1], true
 }
 
+func (s *Stack[T]) Get(back int) (T, bool) {
+	size := len(s.items)
+	if size == 0 {
+		var empty T
+		return empty, false
+	}
+	if back >= size {
+		var empty T
+		return empty, false
+	}
+	return s.items[size-1-back], true
+}
+
 func (s *Stack[T]) Size() int {
 	return len(s.items)
 }

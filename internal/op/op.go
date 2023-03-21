@@ -3,40 +3,44 @@ package op
 type Code byte
 
 const (
-	Nop                    Code = 1
-	LoadConst              Code = 2
-	LoadName               Code = 3
-	LoadGlobal             Code = 4
-	LoadFast               Code = 5 // Pushes a reference to the local co_varnames[var_num] onto the stack.
-	LoadAttr               Code = 6
-	StoreFast              Code = 7 // Stores TOS into the local co_varnames[var_num].
-	StoreName              Code = 8
-	StoreAttr              Code = 9
-	StoreGlobal            Code = 10
-	Nil                    Code = 11
-	True                   Code = 12
-	False                  Code = 13
-	BinaryOp               Code = 14
-	UnaryPositive          Code = 15
-	UnaryNegative          Code = 16
-	UnaryNot               Code = 17
-	UnaryInvert            Code = 18
-	CompareOp              Code = 19
-	ReturnValue            Code = 20
-	PopJumpForwardIfTrue   Code = 21
-	PopJumpBackwardIfTrue  Code = 22
-	PopJumpForwardIfFalse  Code = 23
-	PopJumpBackwardIfFalse Code = 24
-	Halt                   Code = 25
-	Print                  Code = 26
-	PopTop                 Code = 27
-	PushNil                Code = 28
-	Call                   Code = 29
-	JumpForward            Code = 30
-	JumpBackward           Code = 31
-	BuildList              Code = 32
-	BuildMap               Code = 33
-	BuildSet               Code = 34
+	BinaryOp Code = iota
+	BuildList
+	BuildMap
+	BuildSet
+	Call
+	CompareOp
+	False
+	Halt
+	JumpBackward
+	JumpForward
+	LoadAttr
+	LoadClosure
+	LoadConst
+	LoadFast
+	LoadFree
+	LoadGlobal
+	LoadName
+	MakeCell
+	Nil
+	Nop
+	PopJumpBackwardIfFalse
+	PopJumpBackwardIfTrue
+	PopJumpForwardIfFalse
+	PopJumpForwardIfTrue
+	PopTop
+	Print
+	PushNil
+	ReturnValue
+	StoreAttr
+	StoreFast
+	StoreFree
+	StoreGlobal
+	StoreName
+	True
+	UnaryInvert
+	UnaryNegative
+	UnaryNot
+	UnaryPositive
 )
 
 type BinaryOpType byte
@@ -95,9 +99,12 @@ func init() {
 		{JumpBackward, "JUMP_BACKWARD", 1, []int{2}},
 		{LoadAttr, "LOAD_ATTR", 1, []int{2}},
 		{LoadConst, "LOAD_CONST", 1, []int{2}},
+		{LoadClosure, "LOAD_CLOSURE", 2, []int{2, 2}},
 		{LoadFast, "LOAD_FAST", 1, []int{2}},
 		{LoadGlobal, "LOAD_GLOBAL", 1, []int{2}},
 		{LoadName, "LOAD_NAME", 1, []int{2}},
+		{LoadFree, "LOAD_FREE", 1, []int{2}},
+		{MakeCell, "MAKE_CELL", 2, []int{2, 1}},
 		{Nil, "NIL", 0, nil},
 		{Nop, "NOP", 0, nil},
 		{PopTop, "POP_TOP", 0, nil},
@@ -107,6 +114,7 @@ func init() {
 		{StoreFast, "STORE_FAST", 1, []int{1}},
 		{StoreGlobal, "STORE_GLOBAL", 1, []int{2}},
 		{StoreName, "STORE_NAME", 1, []int{1}},
+		{StoreFree, "STORE_FREE", 1, []int{2}},
 		{True, "TRUE", 0, nil},
 		{UnaryNegative, "UNARY_NEGATIVE", 0, nil},
 		{UnaryNot, "UNARY_NOT", 0, nil},

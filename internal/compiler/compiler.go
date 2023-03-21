@@ -147,6 +147,8 @@ func (c *Compiler) compile(node ast.Node) error {
 			c.emit(node, op.LoadGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
 			c.emit(node, op.LoadFast, sym.Symbol.Index)
+		case symbol.ScopeFree:
+			c.emit(node, op.LoadFree, sym.Symbol.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -246,25 +248,46 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	c.scopes = append(c.scopes, funcScope)
 	c.currentScope = funcScope
 
+	paramsIdx := map[string]int{}
+	paramsAst := node.Parameters()
+	params := make([]string, len(paramsAst))
+	for i, param := range paramsAst {
+		params[i] = param.Literal()
+		paramsIdx[param.Literal()] = i
+	}
+
+	defaults := make([]object.Object, len(paramsAst))
+	for k := range node.Defaults() {
+		idx := paramsIdx[k]
+		defaults[idx] = object.NewInt(0) // FIXME
+	}
+
 	for _, arg := range node.Parameters() {
 		funcScope.Symbols.Insert(arg.Literal(), symbol.Attrs{})
 	}
-	body := node.Body()
-	if err := c.compile(body); err != nil {
-		return err
+	statements := node.Body().Statements()
+	for _, statement := range statements {
+		if err := c.compile(statement); err != nil {
+			return err
+		}
 	}
-	bodyStatements := body.Statements()
-	if len(bodyStatements) == 0 {
+	if len(statements) == 0 {
 		c.emit(node, op.Nil)
 		c.emit(node, op.ReturnValue, 1)
-	} else if _, ok := bodyStatements[len(bodyStatements)-1].(*ast.Control); !ok {
+	} else if _, ok := statements[len(statements)-1].(*ast.Control); !ok {
 		c.emit(node, op.ReturnValue, 1)
 	}
-
 	c.currentScope = c.currentScope.Parent
-	fn := object.NewCompiledFunction(node, funcScope)
-	c.emit(node, op.LoadConst, c.constant(fn))
-
+	freeSymbols := funcScope.Symbols.Free()
+	fn := object.NewCompiledFunction(name, params, defaults, funcScope.Instructions, funcScope)
+	if len(freeSymbols) > 0 {
+		for _, resolution := range freeSymbols {
+			c.emit(nil, op.MakeCell, resolution.Symbol.Index, resolution.Depth)
+		}
+		c.emit(node, op.LoadClosure, c.constant(fn), len(freeSymbols))
+	} else {
+		c.emit(node, op.LoadConst, c.constant(fn))
+	}
 	return nil
 }
 
@@ -326,6 +349,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 			c.emit(node, op.StoreGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
 			c.emit(node, op.StoreFast, sym.Symbol.Index)
+		case symbol.ScopeFree:
+			c.emit(node, op.StoreFree, sym.Symbol.Index)
 		}
 		return nil
 	}
@@ -335,6 +360,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(node, op.LoadGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
 		c.emit(node, op.LoadFast, sym.Symbol.Index)
+	case symbol.ScopeFree:
+		c.emit(node, op.LoadFree, sym.Symbol.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -357,6 +384,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(node, op.StoreGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
 		c.emit(node, op.StoreFast, sym.Symbol.Index)
+	case symbol.ScopeFree:
+		c.emit(node, op.StoreFree, sym.Symbol.Index)
 	}
 	return nil
 }
@@ -501,7 +530,7 @@ func (c *Compiler) instruction(b []op.Code) int {
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
 	info := op.GetInfo(opcode)
-	fmt.Println("EMIT", opcode, info.Name, operands)
+	fmt.Printf("EMIT %2d %-25s %v\n", opcode, info.Name, operands)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }
@@ -554,4 +583,22 @@ func ReadInstruction(bytes []byte) (op.Code, []int, []byte) {
 		}
 	}
 	return opcode, operands, bytes[1+totalWidth:]
+}
+
+func ReadOp(instructions []op.Code) (op.Code, []int) {
+	opcode := instructions[0]
+	opInfo := op.OperandCount[opcode]
+	var operands []int
+	offset := 0
+	for i := 0; i < opInfo.OperandCount; i++ {
+		width := opInfo.OperandWidths[i]
+		switch width {
+		case 1:
+			operands = append(operands, int(instructions[offset+1]))
+		case 2:
+			operands = append(operands, int(binary.LittleEndian.Uint16([]byte{byte(instructions[offset+1]), byte(instructions[offset+2])})))
+		}
+		offset += width
+	}
+	return opcode, operands
 }

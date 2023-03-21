@@ -34,8 +34,6 @@ func Run(code string) (object.Object, error) {
 	return vm.Pop(), nil
 }
 
-type Cell *object.Object
-
 type VM struct {
 	ip           int
 	sp           int
@@ -70,6 +68,7 @@ func (vm *VM) Run() error {
 	// for i, b := range vm.code {
 	// 	fmt.Printf("%d %d\n", i, b)
 	// }
+	fmt.Println("---")
 	ctx := context.Background()
 	symbolCount := vm.currentScope.Symbols.Size()
 	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope))
@@ -77,16 +76,39 @@ func (vm *VM) Run() error {
 		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
 		opinfo := op.GetInfo(opcode)
-		fmt.Println("IP:", vm.ip, "OPCODE:", opcode, "INFO:", opinfo)
+		_, operands := compiler.ReadOp(scope.Instructions[vm.ip:])
+		fmt.Printf("EXEC %2d %-25s %v (IP: %d)\n", opcode, opinfo.Name, operands, vm.ip)
 		vm.ip++
 		switch opcode {
 		case op.Nop:
 		case op.LoadConst:
-			fmt.Println("LoadConst ip:", vm.ip)
 			constIndex := vm.fetch2()
-			fmt.Println("LoadConst index:", constIndex, "count:", len(scope.Constants))
 			vm.stack.Push(scope.Constants[constIndex])
-			fmt.Println(" value:", scope.Constants[constIndex])
+		case op.LoadClosure:
+			constIndex := vm.fetch2()
+			freeCount := vm.fetch2()
+			free := make([]*object.Cell, freeCount)
+			for i := 0; i < freeCount; i++ {
+				obj := vm.Pop()
+				switch obj := obj.(type) {
+				case *object.Cell:
+					free[i] = obj
+					fmt.Println("Closure cell", i, obj.Value())
+				default:
+					return errors.New("expected cell")
+				}
+			}
+			fn := scope.Constants[constIndex].(*object.CompiledFunction)
+			closure := object.NewClosure(fn, fn.Scope(), free)
+			vm.stack.Push(closure)
+		case op.MakeCell:
+			symbolIndex := vm.fetch2()
+			symbolDepth := vm.fetch()
+			frame, ok := vm.frameStack.Get(symbolDepth)
+			if !ok {
+				return fmt.Errorf("no frame at depth %d", symbolDepth)
+			}
+			vm.stack.Push(object.NewCell(&frame.locals[symbolIndex]))
 		case op.StoreFast:
 			obj := vm.Pop()
 			idx := vm.fetch()
@@ -99,6 +121,8 @@ func (vm *VM) Run() error {
 			obj := vm.Pop()
 			idx := vm.fetch2()
 			vm.globals[idx] = obj
+		case op.StoreFree:
+			return errors.New("StoreFree not implemented")
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -129,8 +153,8 @@ func (vm *VM) Run() error {
 			case *object.Builtin:
 				result := obj.Call(ctx, args...)
 				vm.stack.Push(result)
-			case *object.Function:
-				compilerScope := obj.CompilerScope().(*compiler.Scope)
+			case *object.CompiledFunction:
+				compilerScope := obj.Scope().(*compiler.Scope)
 				locals := make([]object.Object, compilerScope.Symbols.Size())
 				copy(locals, args) // Assumes order is correct (confirm)
 				frame := NewFrame(obj, locals, vm.ip, compilerScope)
@@ -194,6 +218,18 @@ func (vm *VM) Run() error {
 		case op.LoadGlobal:
 			constIndex := vm.fetch2()
 			vm.stack.Push(vm.globals[constIndex])
+		case op.LoadFree:
+			idx := vm.fetch2()
+			frame, ok := vm.frameStack.Top()
+			if !ok {
+				return errors.New("invalid frame")
+			}
+			vars := frame.fn.FreeVars()
+			fmt.Println("FreeVars:", vars)
+			freeVar := vars[idx]
+			freeValue := freeVar.Value()
+			fmt.Println("freeValue:", freeValue)
+			vm.stack.Push(freeValue)
 		case op.BuildList:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
