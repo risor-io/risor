@@ -77,10 +77,19 @@ func (vm *VM) Run() error {
 		opcode := scope.Instructions[vm.ip]
 		opinfo := op.GetInfo(opcode)
 		_, operands := compiler.ReadOp(scope.Instructions[vm.ip:])
-		fmt.Printf("EXEC %2d %-25s %v (IP: %d)\n", opcode, opinfo.Name, operands, vm.ip)
+		fmt.Printf("EXEC %-25s %v (IP: %d)\n", opinfo.Name, operands, vm.ip)
 		vm.ip++
 		switch opcode {
 		case op.Nop:
+		case op.LoadAttr:
+			nameIndex := vm.fetch2()
+			obj := vm.Pop()
+			name := vm.currentScope.Names[nameIndex]
+			value, found := obj.GetAttr(name)
+			if !found {
+				return fmt.Errorf("attribute %q not found", name)
+			}
+			vm.stack.Push(value)
 		case op.LoadConst:
 			constIndex := vm.fetch2()
 			vm.stack.Push(scope.Constants[constIndex])
@@ -93,7 +102,6 @@ func (vm *VM) Run() error {
 				switch obj := obj.(type) {
 				case *object.Cell:
 					free[i] = obj
-					fmt.Println("Closure cell", i, obj.Value())
 				default:
 					return errors.New("expected cell")
 				}
@@ -103,10 +111,10 @@ func (vm *VM) Run() error {
 			vm.stack.Push(closure)
 		case op.MakeCell:
 			symbolIndex := vm.fetch2()
-			symbolDepth := vm.fetch()
-			frame, ok := vm.frameStack.Get(symbolDepth)
+			framesBack := vm.fetch()
+			frame, ok := vm.frameStack.Get(framesBack)
 			if !ok {
-				return fmt.Errorf("no frame at depth %d", symbolDepth)
+				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			vm.stack.Push(object.NewCell(&frame.locals[symbolIndex]))
 		case op.StoreFast:
@@ -121,8 +129,6 @@ func (vm *VM) Run() error {
 			obj := vm.Pop()
 			idx := vm.fetch2()
 			vm.globals[idx] = obj
-		case op.StoreFree:
-			return errors.New("StoreFree not implemented")
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -143,6 +149,10 @@ func (vm *VM) Run() error {
 			if vm.frameStack.Size() >= MaxFrameCount {
 				return errors.New("stack overflow")
 			}
+			currentFrame, ok := vm.frameStack.Top()
+			if !ok {
+				return errors.New("no frame")
+			}
 			argc := vm.fetch()
 			args := make([]object.Object, argc)
 			for i := 0; i < argc; i++ {
@@ -157,8 +167,12 @@ func (vm *VM) Run() error {
 				compilerScope := obj.Scope().(*compiler.Scope)
 				locals := make([]object.Object, compilerScope.Symbols.Size())
 				copy(locals, args) // Assumes order is correct (confirm)
-				frame := NewFrame(obj, locals, vm.ip, compilerScope)
+				if compilerScope.IsNamed {
+					locals[len(locals)-1] = obj
+				}
+				frame := currentFrame.NewChild(obj, locals, vm.ip)
 				vm.frameStack.Push(frame)
+				fmt.Println("CALL", args)
 				vm.ip = 0
 				vm.currentScope = compilerScope
 			default:
@@ -173,7 +187,8 @@ func (vm *VM) Run() error {
 				return errors.New("expected 1 return value")
 			}
 			vm.ip = frame.returnAddr
-			vm.currentScope = vm.currentScope.Parent
+			vm.currentScope = frame.parent.scope
+			// fmt.Println("RETURN to", vm.ip, len(vm.currentScope.Instructions))
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := vm.fetch2() - 3
@@ -225,11 +240,19 @@ func (vm *VM) Run() error {
 				return errors.New("invalid frame")
 			}
 			vars := frame.fn.FreeVars()
-			fmt.Println("FreeVars:", vars)
 			freeVar := vars[idx]
 			freeValue := freeVar.Value()
-			fmt.Println("freeValue:", freeValue)
 			vm.stack.Push(freeValue)
+		case op.StoreFree:
+			idx := vm.fetch2()
+			obj := vm.Pop()
+			frame, ok := vm.frameStack.Top()
+			if !ok {
+				return errors.New("invalid frame")
+			}
+			vars := frame.fn.FreeVars()
+			freeVar := vars[idx]
+			freeVar.Set(obj)
 		case op.BuildList:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
@@ -253,6 +276,35 @@ func (vm *VM) Run() error {
 				items[i] = vm.Pop()
 			}
 			vm.stack.Push(object.NewSet(items))
+		case op.BinarySubscr:
+			index := vm.Pop()
+			obj := vm.Pop()
+			container, ok := obj.(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", obj)
+			}
+			result, err := container.GetItem(index)
+			if err != nil {
+				return err.Value()
+			}
+			vm.stack.Push(result)
+		case op.UnaryNegative:
+			obj := vm.Pop()
+			switch obj := obj.(type) {
+			case *object.Int:
+				vm.stack.Push(object.NewInt(-obj.Value()))
+			case *object.Float:
+				vm.stack.Push(object.NewFloat(-obj.Value()))
+			default:
+				return fmt.Errorf("object is not a number: %T", obj)
+			}
+		case op.UnaryNot:
+			obj := vm.Pop()
+			if obj.IsTruthy() {
+				vm.stack.Push(object.False)
+			} else {
+				vm.stack.Push(object.True)
+			}
 		case op.Halt:
 			return nil
 		default:

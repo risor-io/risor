@@ -4,11 +4,13 @@ type Code byte
 
 const (
 	BinaryOp Code = iota
+	BinarySubscr
 	BuildList
 	BuildMap
 	BuildSet
 	Call
 	CompareOp
+	DeleteSubscr
 	False
 	Halt
 	JumpBackward
@@ -36,6 +38,7 @@ const (
 	StoreFree
 	StoreGlobal
 	StoreName
+	StoreSubscr
 	True
 	UnaryInvert
 	UnaryNegative
@@ -119,10 +122,12 @@ func init() {
 		{UnaryNegative, "UNARY_NEGATIVE", 0, nil},
 		{UnaryNot, "UNARY_NOT", 0, nil},
 		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
-		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
 		{BuildList, "BUILD_LIST", 1, []int{2}},
 		{BuildMap, "BUILD_MAP", 1, []int{2}},
 		{BuildSet, "BUILD_SET", 1, []int{2}},
+		{BinarySubscr, "BINARY_SUBSCR", 0, nil},
+		{DeleteSubscr, "DELETE_SUBSCR", 0, nil},
+		{StoreSubscr, "STORE_SUBSCR", 0, nil},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

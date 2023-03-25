@@ -36,14 +36,17 @@ type Table struct {
 	parent   *Table
 	symbols  map[string]*Symbol
 	accessed map[string]bool
-	free     []*ResolvedSymbol
+	free     map[string]*ResolvedSymbol
+	isBlock  bool
 }
 
-func (t *Table) NewChild() *Table {
+func (t *Table) NewChild(isBlock bool) *Table {
 	return &Table{
 		parent:   t,
 		symbols:  map[string]*Symbol{},
 		accessed: map[string]bool{},
+		free:     map[string]*ResolvedSymbol{},
+		isBlock:  isBlock,
 	}
 }
 
@@ -69,7 +72,7 @@ func (t *Table) DefaultScope() Scope {
 }
 
 func (t *Table) Lookup(name string) (*ResolvedSymbol, bool) {
-	fmt.Println("Lookup", name, t.symbols)
+	// fmt.Println("Lookup", name, t.symbols)
 	if s, ok := t.symbols[name]; ok {
 		t.accessed[name] = true
 		return &ResolvedSymbol{
@@ -77,6 +80,9 @@ func (t *Table) Lookup(name string) (*ResolvedSymbol, bool) {
 			Scope:  t.DefaultScope(),
 			Depth:  0,
 		}, true
+	}
+	if rs, ok := t.free[name]; ok {
+		return rs, true
 	}
 	if t.parent == nil {
 		return nil, false
@@ -89,14 +95,22 @@ func (t *Table) Lookup(name string) (*ResolvedSymbol, bool) {
 		t.accessed[name] = true
 		return rs, true
 	}
+	scope := rs.Scope
+	depth := rs.Depth
+	if !t.isBlock {
+		depth++
+		scope = ScopeFree
+	}
 	resolution := &ResolvedSymbol{
 		Symbol: rs.Symbol,
-		Scope:  ScopeFree,
-		Depth:  rs.Depth + 1,
+		Scope:  scope,
+		Depth:  depth,
 	}
-	t.free = append(t.free, resolution)
+	if scope == ScopeFree {
+		t.free[name] = resolution
+	}
 	t.accessed[name] = true
-	fmt.Printf("FREE SYMBOL: %s %+v\n", name, resolution)
+	// fmt.Printf("FREE SYMBOL: %s %+v\n", name, resolution)
 	return resolution, true
 }
 
@@ -126,12 +140,17 @@ func (t *Table) Parent() *Table {
 }
 
 func (t *Table) Free() []*ResolvedSymbol {
-	return t.free
+	result := make([]*ResolvedSymbol, 0, len(t.free))
+	for _, rs := range t.free {
+		result = append(result, rs)
+	}
+	return result
 }
 
 func NewTable() *Table {
 	return &Table{
 		symbols:  map[string]*Symbol{},
 		accessed: map[string]bool{},
+		free:     map[string]*ResolvedSymbol{},
 	}
 }

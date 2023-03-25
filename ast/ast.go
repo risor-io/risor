@@ -971,7 +971,7 @@ func (i *Slice) String() string {
 // support other operators like "+=", "-=", "*=", and "/=".
 type Assign struct {
 	token    token.Token
-	name     *Ident
+	name     *Ident // this may be nil, e.g. `[0, 1, 2][0] = 3`
 	index    *Index
 	operator string
 	value    Expression

@@ -59,3 +59,40 @@
 
 ------------------------------------------------------
 
+>>> def ex1(x):
+...     return x.foo
+...
+>>> dis(ex1)
+  1           0 RESUME                   0
+
+  2           2 LOAD_FAST                0 (x)
+              4 LOAD_ATTR                0 (foo)
+             14 RETURN_VALUE
+
+------------------------------------------------------
+
+>>> def fact(n):
+...     if n == 0: return 1
+...     return n * fact(n-1)
+...
+>>> dis(fact)
+  1           0 RESUME                   0
+
+  2           2 LOAD_FAST                0 (n)
+              4 LOAD_CONST               1 (0)
+              6 COMPARE_OP               2 (==)
+             12 POP_JUMP_FORWARD_IF_FALSE     2 (to 18)
+             14 LOAD_CONST               2 (1)
+             16 RETURN_VALUE
+
+  3     >>   18 LOAD_FAST                0 (n)
+             20 LOAD_GLOBAL              1 (NULL + fact)
+             32 LOAD_FAST                0 (n)
+             34 LOAD_CONST               2 (1)
+             36 BINARY_OP               10 (-)
+             40 PRECALL                  1
+             44 CALL                     1
+             54 BINARY_OP                5 (*)
+             58 RETURN_VALUE
+
+------------------------------------------------------

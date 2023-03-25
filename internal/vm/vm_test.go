@@ -307,8 +307,133 @@ func TestClosureSimple(t *testing.T) {
 			x
 		}
 	}
+	f(22)()
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(22), result)
+}
+
+func TestClosureIncrementer(t *testing.T) {
+	result, err := Run(`
+	f := func(x) {
+		func() {
+			x = x + 1
+			x
+		}
+	}
 	f(1)()
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestRecursive(t *testing.T) {
+	result, err := Run(`
+	func twoexp(n) {
+		if n == 0 {
+			return 1
+		} else {
+			return 2 * twoexp(n-1)
+		}
+	}
+	twoexp(4)
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(16), result)
+}
+
+func TestMultipleCases(t *testing.T) {
+
+	t.Run("Arithmetic", func(t *testing.T) {
+		tests := []testCase{
+			{`1 + 2`, object.NewInt(3)},
+			{`1 + 2 + 3`, object.NewInt(6)},
+			{`1 + 2 * 3`, object.NewInt(7)},
+			{`(1 + 2) * 3`, object.NewInt(9)},
+			{`5 - 3`, object.NewInt(2)},
+			{`12 / 4`, object.NewInt(3)},
+			{`3 * (4 + 2)`, object.NewInt(18)},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("Builtins", func(t *testing.T) {
+		tests := []testCase{
+			{`len("hello")`, object.NewInt(5)},
+			{`len([1, 2, 3])`, object.NewInt(3)},
+			{`len({"a": 1})`, object.NewInt(1)},
+			{`keys({"a": 1})`, object.NewList([]object.Object{object.NewString("a")})},
+			{`type(3.14159)`, object.NewString("float")},
+			{`type("hi".contains)`, object.NewString("builtin")},
+			{`"hi".contains("h")`, object.True},
+			{`"hi".contains("x")`, object.False},
+			{`sprintf("%d-%d", 1, 2)`, object.NewString("1-2")},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("Functions", func(t *testing.T) {
+		tests := []testCase{
+			{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
+			{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
+			// {`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("DataStructures", func(t *testing.T) {
+		tests := []testCase{
+			{`true`, object.True},
+			{`[1,2,3][2]`, object.NewInt(3)},
+			{`"hello"[1]`, object.NewString("e")},
+			{`{"x": 10, "y": 20}["x"]`, object.NewInt(10)},
+			// {`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
+			// 	[]object.Object{object.NewInt(4), object.NewInt(5)})},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("ComparisonAndBoolean", func(t *testing.T) {
+		tests := []testCase{
+			{`3 < 5`, object.True},
+			{`10 > 5`, object.True},
+			{`10 == 5`, object.False},
+			{`10 != 5`, object.True},
+			{`!true`, object.False},
+			{`!false`, object.True},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("Strings", func(t *testing.T) {
+		tests := []testCase{
+			// {`"hello" + " " + "world"`, object.NewString("hello world")},
+			{`"hello".contains("e")`, object.True},
+			{`"hello".contains("x")`, object.False},
+			{`"hello".contains("ello")`, object.True},
+			{`"hello".contains("ellx")`, object.False},
+			{`"hello".contains("")`, object.True},
+			{`"hello"[1]`, object.NewString("e")},
+		}
+		runTests(t, tests)
+	})
+}
+
+type testCase struct {
+	input    string
+	expected object.Object
+}
+
+func runTests(t *testing.T, tests []testCase) {
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result, err := Run(tt.input)
+			require.Nil(t, err)
+			require.NotNil(t, result)
+			require.Equal(t, tt.expected, result)
+		})
+	}
 }

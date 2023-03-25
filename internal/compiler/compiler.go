@@ -14,12 +14,19 @@ import (
 
 type Scope struct {
 	Name         string
+	IsNamed      bool
 	Parent       *Scope
 	Children     []*Scope
 	Symbols      *symbol.Table
 	Instructions []op.Code
 	Constants    []object.Object
 	Loops        []*Loop
+	Names        []string
+}
+
+func (s *Scope) AddName(name string) int {
+	s.Names = append(s.Names, name)
+	return len(s.Names) - 1
 }
 
 type Compiler struct {
@@ -109,7 +116,7 @@ func (c *Compiler) compile(node ast.Node) error {
 			}
 		}
 	case *ast.Block:
-		scope.Symbols = scope.Symbols.NewChild()
+		scope.Symbols = scope.Symbols.NewChild(true)
 		defer func() {
 			scope.Symbols = scope.Symbols.Parent()
 		}()
@@ -178,6 +185,22 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileSet(node); err != nil {
 			return err
 		}
+	case *ast.Index:
+		if err := c.compileIndex(node); err != nil {
+			return err
+		}
+	case *ast.GetAttr:
+		if err := c.compileGetAttr(node); err != nil {
+			return err
+		}
+	case *ast.ObjectCall:
+		if err := c.compileObjectCall(node); err != nil {
+			return err
+		}
+	case *ast.Prefix:
+		if err := c.compilePrefix(node); err != nil {
+			return err
+		}
 	default:
 		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
 	}
@@ -191,6 +214,60 @@ func (c *Compiler) currentLoop() *Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compilePrefix(node *ast.Prefix) error {
+	if err := c.compile(node.Right()); err != nil {
+		return err
+	}
+	switch node.Operator() {
+	case "!":
+		c.emit(node, op.UnaryNot)
+	case "-":
+		c.emit(node, op.UnaryNegative)
+	}
+	return nil
+}
+
+func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
+	if err := c.compile(node.Object()); err != nil {
+		return err
+	}
+	expr := node.Call()
+	method, ok := expr.(*ast.Call)
+	if !ok {
+		return fmt.Errorf("invalid call expression")
+	}
+	name := method.Function().String()
+	c.emit(node, op.LoadAttr, c.currentScope.AddName(name))
+	args := method.Arguments()
+	for _, arg := range args {
+		if err := c.compile(arg); err != nil {
+			return err
+		}
+	}
+	c.emit(node, op.Call, len(args))
+	return nil
+}
+
+func (c *Compiler) compileGetAttr(node *ast.GetAttr) error {
+	if err := c.compile(node.Object()); err != nil {
+		return err
+	}
+	idx := c.currentScope.AddName(node.Name())
+	c.emit(node, op.LoadAttr, idx)
+	return nil
+}
+
+func (c *Compiler) compileIndex(node *ast.Index) error {
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	if err := c.compile(node.Index()); err != nil {
+		return err
+	}
+	c.emit(node, op.BinarySubscr)
+	return nil
 }
 
 func (c *Compiler) compileList(node *ast.List) error {
@@ -235,14 +312,13 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	ident := node.Name()
 	if ident != nil {
 		name = ident.Literal()
-	} else {
-		name = "anonymous"
 	}
 
 	funcScope := &Scope{
 		Name:    name,
+		IsNamed: ident != nil,
 		Parent:  c.CurrentScope(),
-		Symbols: c.currentScope.Symbols.NewChild(),
+		Symbols: c.currentScope.Symbols.NewChild(false),
 	}
 	c.currentScope.Children = append(c.currentScope.Children, funcScope)
 	c.scopes = append(c.scopes, funcScope)
@@ -262,8 +338,12 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		defaults[idx] = object.NewInt(0) // FIXME
 	}
 
+	// Add the function's own name to the symbol table to support recursive calls
 	for _, arg := range node.Parameters() {
 		funcScope.Symbols.Insert(arg.Literal(), symbol.Attrs{})
+	}
+	if ident != nil {
+		funcScope.Symbols.Insert(name, symbol.Attrs{})
 	}
 	statements := node.Body().Statements()
 	for _, statement := range statements {
@@ -282,11 +362,22 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	fn := object.NewCompiledFunction(name, params, defaults, funcScope.Instructions, funcScope)
 	if len(freeSymbols) > 0 {
 		for _, resolution := range freeSymbols {
-			c.emit(nil, op.MakeCell, resolution.Symbol.Index, resolution.Depth)
+			c.emit(nil, op.MakeCell, resolution.Symbol.Index, resolution.Depth-1)
 		}
 		c.emit(node, op.LoadClosure, c.constant(fn), len(freeSymbols))
 	} else {
 		c.emit(node, op.LoadConst, c.constant(fn))
+	}
+	if node.Name() != nil {
+		funcSymbol, err := c.currentScope.Symbols.Insert(name, symbol.Attrs{})
+		if err != nil {
+			return err
+		}
+		if c.currentScope.Parent == nil {
+			c.emit(node, op.StoreGlobal, funcSymbol.Index)
+		} else {
+			c.emit(node, op.StoreFast, funcSymbol.Index)
+		}
 	}
 	return nil
 }
@@ -314,7 +405,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		c.emit(node, op.ReturnValue)
+		c.emit(node, op.ReturnValue, 1)
 		return nil
 	}
 	loop := c.currentLoop()
@@ -410,7 +501,7 @@ func (c *Compiler) endLoop() {
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	scope := c.currentScope
-	scope.Symbols = scope.Symbols.NewChild()
+	scope.Symbols = scope.Symbols.NewChild(true)
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
@@ -530,7 +621,7 @@ func (c *Compiler) instruction(b []op.Code) int {
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
 	info := op.GetInfo(opcode)
-	fmt.Printf("EMIT %2d %-25s %v\n", opcode, info.Name, operands)
+	fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }

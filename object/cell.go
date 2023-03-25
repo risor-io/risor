@@ -14,6 +14,10 @@ func (c *Cell) Value() Object {
 	return *c.value
 }
 
+func (c *Cell) Set(value Object) {
+	*c.value = value
+}
+
 func (c *Cell) Type() Type {
 	return CELL
 }
