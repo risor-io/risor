@@ -201,6 +201,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compilePrefix(node); err != nil {
 			return err
 		}
+	case *ast.In:
+		if err := c.compileIn(node); err != nil {
+			return err
+		}
 	default:
 		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
 	}
@@ -214,6 +218,17 @@ func (c *Compiler) currentLoop() *Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compileIn(node *ast.In) error {
+	if err := c.compile(node.Right()); err != nil {
+		return err
+	}
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	c.emit(node, op.ContainsOp, 0)
+	return nil
 }
 
 func (c *Compiler) compilePrefix(node *ast.Prefix) error {

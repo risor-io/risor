@@ -390,6 +390,8 @@ func TestMultipleCases(t *testing.T) {
 			{`[1,2,3][2]`, object.NewInt(3)},
 			{`"hello"[1]`, object.NewString("e")},
 			{`{"x": 10, "y": 20}["x"]`, object.NewInt(10)},
+			{`3 in [1, 2, 3]`, object.True},
+			{`4 in [1, 2, 3]`, object.False},
 			// {`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
 			// 	[]object.Object{object.NewInt(4), object.NewInt(5)})},
 		}

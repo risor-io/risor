@@ -44,6 +44,7 @@ const (
 	UnaryNegative
 	UnaryNot
 	UnaryPositive
+	ContainsOp
 )
 
 type BinaryOpType byte
@@ -128,6 +129,7 @@ func init() {
 		{BinarySubscr, "BINARY_SUBSCR", 0, nil},
 		{DeleteSubscr, "DELETE_SUBSCR", 0, nil},
 		{StoreSubscr, "STORE_SUBSCR", 0, nil},
+		{ContainsOp, "CONTAINS_OP", 1, []int{1}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

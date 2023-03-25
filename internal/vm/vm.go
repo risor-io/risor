@@ -305,6 +305,19 @@ func (vm *VM) Run() error {
 			} else {
 				vm.stack.Push(object.True)
 			}
+		case op.ContainsOp:
+			obj := vm.Pop()
+			containerObj := vm.Pop()
+			invert := vm.fetch() == 1
+			if container, ok := containerObj.(object.Container); ok {
+				value := container.Contains(obj)
+				if invert {
+					value = object.Not(value)
+				}
+				vm.stack.Push(value)
+			} else {
+				return fmt.Errorf("object is not a container: %T", container)
+			}
 		case op.Halt:
 			return nil
 		default:
