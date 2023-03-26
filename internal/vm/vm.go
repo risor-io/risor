@@ -92,6 +92,20 @@ func (vm *VM) Run() error {
 			vm.stack.Push(value)
 		case op.LoadConst:
 			vm.stack.Push(scope.Constants[vm.fetch2()])
+		case op.LoadFast:
+			vm.stack.Push(currentFrame.locals[vm.fetch2()])
+		case op.LoadGlobal:
+			vm.stack.Push(vm.globals[vm.fetch2()])
+		case op.LoadFree:
+			freeVars := currentFrame.fn.FreeVars()
+			vm.stack.Push(freeVars[vm.fetch2()].Value())
+		case op.StoreFast:
+			currentFrame.locals[vm.fetch()] = vm.Pop()
+		case op.StoreGlobal:
+			vm.globals[vm.fetch2()] = vm.Pop()
+		case op.StoreFree:
+			freeVars := currentFrame.fn.FreeVars()
+			freeVars[vm.fetch2()].Set(vm.Pop())
 		case op.LoadClosure:
 			constIndex := vm.fetch2()
 			freeCount := vm.fetch2()
@@ -116,10 +130,6 @@ func (vm *VM) Run() error {
 				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			vm.stack.Push(object.NewCell(&frame.locals[symbolIndex]))
-		case op.StoreFast:
-			currentFrame.locals[vm.fetch()] = vm.Pop()
-		case op.StoreGlobal:
-			vm.globals[vm.fetch2()] = vm.Pop()
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -210,16 +220,6 @@ func (vm *VM) Run() error {
 			vm.ip = base - delta
 		case op.Print:
 			fmt.Println("PRINT", vm.top())
-		case op.LoadFast:
-			vm.stack.Push(currentFrame.locals[vm.fetch2()])
-		case op.LoadGlobal:
-			vm.stack.Push(vm.globals[vm.fetch2()])
-		case op.LoadFree:
-			freeVars := currentFrame.fn.FreeVars()
-			vm.stack.Push(freeVars[vm.fetch2()].Value())
-		case op.StoreFree:
-			freeVars := currentFrame.fn.FreeVars()
-			freeVars[vm.fetch2()].Set(vm.Pop())
 		case op.BuildList:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
