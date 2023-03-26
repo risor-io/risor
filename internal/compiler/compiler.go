@@ -635,8 +635,8 @@ func (c *Compiler) instruction(b []op.Code) int {
 }
 
 func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
-	info := op.GetInfo(opcode)
-	fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
+	// info := op.GetInfo(opcode)
+	// fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }

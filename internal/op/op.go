@@ -3,13 +3,15 @@ package op
 type Code byte
 
 const (
-	BinaryOp Code = iota
+	Nop Code = iota
+	BinaryOp
 	BinarySubscr
 	BuildList
 	BuildMap
 	BuildSet
 	Call
 	CompareOp
+	ContainsOp
 	DeleteSubscr
 	False
 	Halt
@@ -24,7 +26,6 @@ const (
 	LoadName
 	MakeCell
 	Nil
-	Nop
 	PopJumpBackwardIfFalse
 	PopJumpBackwardIfTrue
 	PopJumpForwardIfFalse
@@ -44,7 +45,6 @@ const (
 	UnaryNegative
 	UnaryNot
 	UnaryPositive
-	ContainsOp
 )
 
 type BinaryOpType byte

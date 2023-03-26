@@ -68,36 +68,35 @@ func (vm *VM) Run() error {
 	// for i, b := range vm.code {
 	// 	fmt.Printf("%d %d\n", i, b)
 	// }
-	fmt.Println("---")
+	// fmt.Println("---")
 	ctx := context.Background()
 	symbolCount := vm.currentScope.Symbols.Size()
-	vm.frameStack.Push(NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope))
+	currentFrame := NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope)
+	vm.frameStack.Push(currentFrame)
 	for vm.ip < len(vm.currentScope.Instructions) {
 		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
-		opinfo := op.GetInfo(opcode)
-		_, operands := compiler.ReadOp(scope.Instructions[vm.ip:])
-		fmt.Printf("EXEC %-25s %v (IP: %d)\n", opinfo.Name, operands, vm.ip)
+		// opinfo := op.GetInfo(opcode)
+		// _, operands := compiler.ReadOp(scope.Instructions[vm.ip:])
+		// fmt.Printf("EXEC %-25s %v (IP: %d)\n", opinfo.Name, operands, vm.ip)
 		vm.ip++
 		switch opcode {
 		case op.Nop:
 		case op.LoadAttr:
-			nameIndex := vm.fetch2()
 			obj := vm.Pop()
-			name := vm.currentScope.Names[nameIndex]
+			name := vm.currentScope.Names[vm.fetch2()]
 			value, found := obj.GetAttr(name)
 			if !found {
 				return fmt.Errorf("attribute %q not found", name)
 			}
 			vm.stack.Push(value)
 		case op.LoadConst:
-			constIndex := vm.fetch2()
-			vm.stack.Push(scope.Constants[constIndex])
+			vm.stack.Push(scope.Constants[vm.fetch2()])
 		case op.LoadClosure:
 			constIndex := vm.fetch2()
 			freeCount := vm.fetch2()
 			free := make([]*object.Cell, freeCount)
-			for i := 0; i < freeCount; i++ {
+			for i := uint16(0); i < freeCount; i++ {
 				obj := vm.Pop()
 				switch obj := obj.(type) {
 				case *object.Cell:
@@ -112,23 +111,15 @@ func (vm *VM) Run() error {
 		case op.MakeCell:
 			symbolIndex := vm.fetch2()
 			framesBack := vm.fetch()
-			frame, ok := vm.frameStack.Get(framesBack)
+			frame, ok := vm.frameStack.Get(int(framesBack))
 			if !ok {
 				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			vm.stack.Push(object.NewCell(&frame.locals[symbolIndex]))
 		case op.StoreFast:
-			obj := vm.Pop()
-			idx := vm.fetch()
-			frame, ok := vm.frameStack.Top()
-			if !ok {
-				return errors.New("no frame")
-			}
-			frame.locals[idx] = obj
+			currentFrame.locals[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
-			obj := vm.Pop()
-			idx := vm.fetch2()
-			vm.globals[idx] = obj
+			vm.globals[vm.fetch2()] = vm.Pop()
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -149,14 +140,10 @@ func (vm *VM) Run() error {
 			if vm.frameStack.Size() >= MaxFrameCount {
 				return errors.New("stack overflow")
 			}
-			currentFrame, ok := vm.frameStack.Top()
-			if !ok {
-				return errors.New("no frame")
-			}
 			argc := vm.fetch()
 			args := make([]object.Object, argc)
-			for i := 0; i < argc; i++ {
-				args[len(args)-1-i] = vm.Pop()
+			for i := uint8(0); i < argc; i++ {
+				args[argc-1-i] = vm.Pop()
 			}
 			obj := vm.Pop()
 			switch obj := obj.(type) {
@@ -172,7 +159,7 @@ func (vm *VM) Run() error {
 				}
 				frame := currentFrame.NewChild(obj, locals, vm.ip)
 				vm.frameStack.Push(frame)
-				fmt.Println("CALL", args)
+				currentFrame = frame
 				vm.ip = 0
 				vm.currentScope = compilerScope
 			default:
@@ -188,82 +175,62 @@ func (vm *VM) Run() error {
 			}
 			vm.ip = frame.returnAddr
 			vm.currentScope = frame.parent.scope
-			// fmt.Println("RETURN to", vm.ip, len(vm.currentScope.Instructions))
+			currentFrame = frame.parent
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
-			delta := vm.fetch2() - 3
+			delta := int(vm.fetch2()) - 3
 			if tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpForwardIfFalse:
 			tos := vm.Pop()
-			delta := vm.fetch2() - 3
+			delta := int(vm.fetch2()) - 3
 			if !tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpBackwardIfTrue:
 			tos := vm.Pop()
-			delta := vm.fetch2() - 3
+			delta := int(vm.fetch2()) - 3
 			if tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.PopJumpBackwardIfFalse:
 			tos := vm.Pop()
-			delta := vm.fetch2() - 3
+			delta := int(vm.fetch2()) - 3
 			if !tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.JumpForward:
 			base := vm.ip - 1
-			delta := vm.fetch2()
+			delta := int(vm.fetch2())
 			vm.ip = base + delta
 		case op.JumpBackward:
 			base := vm.ip - 1
-			delta := vm.fetch2()
+			delta := int(vm.fetch2())
 			vm.ip = base - delta
 		case op.Print:
 			fmt.Println("PRINT", vm.top())
 		case op.LoadFast:
-			frame, ok := vm.frameStack.Top()
-			if !ok {
-				return errors.New("invalid frame")
-			}
-			index := vm.fetch2()
-			vm.stack.Push(frame.locals[index])
+			vm.stack.Push(currentFrame.locals[vm.fetch2()])
 		case op.LoadGlobal:
-			constIndex := vm.fetch2()
-			vm.stack.Push(vm.globals[constIndex])
+			vm.stack.Push(vm.globals[vm.fetch2()])
 		case op.LoadFree:
-			idx := vm.fetch2()
-			frame, ok := vm.frameStack.Top()
-			if !ok {
-				return errors.New("invalid frame")
-			}
-			vars := frame.fn.FreeVars()
-			freeVar := vars[idx]
-			freeValue := freeVar.Value()
-			vm.stack.Push(freeValue)
+			freeVars := currentFrame.fn.FreeVars()
+			vm.stack.Push(freeVars[vm.fetch2()].Value())
 		case op.StoreFree:
-			idx := vm.fetch2()
-			obj := vm.Pop()
-			frame, ok := vm.frameStack.Top()
-			if !ok {
-				return errors.New("invalid frame")
-			}
-			vars := frame.fn.FreeVars()
-			freeVar := vars[idx]
-			freeVar.Set(obj)
+			freeVars := currentFrame.fn.FreeVars()
+			freeVars[vm.fetch2()].Set(vm.Pop())
 		case op.BuildList:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
-			for i := 0; i < count; i++ {
+			for i := uint16(0); i < count; i++ {
 				items[count-1-i] = vm.Pop()
 			}
 			vm.stack.Push(object.NewList(items))
 		case op.BuildMap:
 			count := vm.fetch2()
 			items := make(map[string]object.Object, count)
-			for i := 0; i < count; i++ {
+			for i := uint16(0); i < count; i++ {
 				v := vm.Pop()
 				k := vm.Pop()
 				items[k.(*object.String).Value()] = v
@@ -272,7 +239,7 @@ func (vm *VM) Run() error {
 		case op.BuildSet:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
-			for i := 0; i < count; i++ {
+			for i := uint16(0); i < count; i++ {
 				items[i] = vm.Pop()
 			}
 			vm.stack.Push(object.NewSet(items))
@@ -402,14 +369,15 @@ func (vm *VM) top() object.Object {
 	return obj
 }
 
-func (vm *VM) fetch() int {
+func (vm *VM) fetch() uint8 {
 	ip := vm.ip
 	vm.ip++
-	return int(vm.currentScope.Instructions[ip])
+	return uint8(vm.currentScope.Instructions[ip])
 }
 
-func (vm *VM) fetch2() int {
-	v1 := vm.fetch()
-	v2 := vm.fetch()
-	return v1 | v2<<8
+func (vm *VM) fetch2() uint16 {
+	instr := vm.currentScope.Instructions
+	value := uint16(instr[vm.ip]) | uint16(instr[vm.ip+1])<<8
+	vm.ip += 2
+	return value
 }

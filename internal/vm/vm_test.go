@@ -379,7 +379,7 @@ func TestMultipleCases(t *testing.T) {
 		tests := []testCase{
 			{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
 			{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
-			// {`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
+			{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
 		}
 		runTests(t, tests)
 	})
