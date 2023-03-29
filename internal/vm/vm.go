@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	// MaxFrameCount = 2048
-	MaxArgs = 255
+	MaxArgs       = 255
+	MaxFrameDepth = 1024
+	MaxStackDepth = 1024
 )
 
 func Run(code string) (object.Object, error) {
@@ -37,40 +38,26 @@ func Run(code string) (object.Object, error) {
 	return vm.Pop(), nil
 }
 
-const MaxFrameDepth = 1024
-
 type VM struct {
-	ip    int
-	sp    int
-	stack *Stack[object.Object]
-	// frameStack   *Stack[*Frame]
+	ip           int // instruction pointer
+	sp           int // stack pointer
+	fp           int // frame pointer
+	stack        [MaxStackDepth]object.Object
 	frames       [MaxFrameDepth]Frame
-	framesIndex  int
+	tmp          [MaxArgs]object.Object
+	currentFrame *Frame
 	main         *compiler.Scope
 	currentScope *compiler.Scope
 	globals      []object.Object
-	// framePool    sync.Pool
-	// arrayPool sync.Pool
 }
 
 func New(main *compiler.Scope) *VM {
 	vm := &VM{
-		stack: NewStack[object.Object](1024),
-		// frameStack:   NewStack[*Frame](1024),
+		ip:           -1,
 		sp:           -1,
+		fp:           -1,
 		main:         main,
 		currentScope: main,
-		// framePool: sync.Pool{
-		// 	New: func() interface{} {
-		// 		return &Frame{}
-		// 	},
-		// },
-		// arrayPool: sync.Pool{
-		// 	New: func() interface{} {
-		// 		slice := make([]object.Object, 8)
-		// 		return &slice
-		// 	},
-		// },
 	}
 	if main.Symbols != nil {
 		m := main.Symbols.Map()
@@ -85,17 +72,16 @@ func New(main *compiler.Scope) *VM {
 }
 
 func (vm *VM) Run() error {
-	// for i, b := range vm.code {
-	// 	fmt.Printf("%d %d\n", i, b)
-	// }
-	// fmt.Println("---")
+
 	ctx := context.Background()
-	// currentFrame := NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope)
-	tmpArgs := [MaxArgs]object.Object{}
-	currentFrame := &vm.frames[0]
-	currentFrame.Init(nil, 0, vm.currentScope.Symbols.Size())
-	currentFrame.scope = vm.main
-	// vm.frameStack.Push(currentFrame)
+
+	// Initialize the first frame with the main function
+	vm.fp++
+	vm.ip++
+	vm.currentFrame = &vm.frames[vm.fp]
+	vm.currentFrame.Init(nil, 0, vm.currentScope.Symbols.Size())
+	vm.currentFrame.scope = vm.main
+
 	for vm.ip < len(vm.currentScope.Instructions) {
 		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
@@ -112,22 +98,22 @@ func (vm *VM) Run() error {
 			if !found {
 				return fmt.Errorf("attribute %q not found", name)
 			}
-			vm.stack.Push(value)
+			vm.Push(value)
 		case op.LoadConst:
-			vm.stack.Push(scope.Constants[vm.fetch2()])
+			vm.Push(scope.Constants[vm.fetch2()])
 		case op.LoadFast:
-			vm.stack.Push(currentFrame.locals[vm.fetch2()])
+			vm.Push(vm.currentFrame.locals[vm.fetch2()])
 		case op.LoadGlobal:
-			vm.stack.Push(vm.globals[vm.fetch2()])
+			vm.Push(vm.globals[vm.fetch2()])
 		case op.LoadFree:
-			freeVars := currentFrame.fn.FreeVars()
-			vm.stack.Push(freeVars[vm.fetch2()].Value())
+			freeVars := vm.currentFrame.fn.FreeVars()
+			vm.Push(freeVars[vm.fetch2()].Value())
 		case op.StoreFast:
-			currentFrame.locals[vm.fetch()] = vm.Pop()
+			vm.currentFrame.locals[vm.fetch1()] = vm.Pop()
 		case op.StoreGlobal:
 			vm.globals[vm.fetch2()] = vm.Pop()
 		case op.StoreFree:
-			freeVars := currentFrame.fn.FreeVars()
+			freeVars := vm.currentFrame.fn.FreeVars()
 			freeVars[vm.fetch2()].Set(vm.Pop())
 		case op.LoadClosure:
 			constIndex := vm.fetch2()
@@ -144,83 +130,70 @@ func (vm *VM) Run() error {
 			}
 			fn := scope.Constants[constIndex].(*object.CompiledFunction)
 			closure := object.NewClosure(fn, fn.Scope(), free)
-			vm.stack.Push(closure)
+			vm.Push(closure)
 		case op.MakeCell:
 			symbolIndex := vm.fetch2()
-			framesBack := int(vm.fetch())
-			frameIndex := vm.framesIndex - framesBack
+			framesBack := int(vm.fetch1())
+			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
 				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
 			locals := frame.Locals()
-			vm.stack.Push(object.NewCell(&locals[symbolIndex]))
+			vm.Push(object.NewCell(&locals[symbolIndex]))
 		case op.Nil:
-			vm.stack.Push(object.Nil)
+			vm.Push(object.Nil)
 		case op.True:
-			vm.stack.Push(object.True)
+			vm.Push(object.True)
 		case op.False:
-			vm.stack.Push(object.False)
+			vm.Push(object.False)
 		case op.CompareOp:
-			opType := op.CompareOpType(vm.fetch())
+			opType := op.CompareOpType(vm.fetch1())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.stack.Push(vm.runCompareOp(opType, a, b))
+			vm.Push(vm.runCompareOp(opType, a, b))
 		case op.BinaryOp:
-			opType := op.BinaryOpType(vm.fetch())
+			opType := op.BinaryOpType(vm.fetch1())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.stack.Push(vm.runBinaryOp(opType, a, b))
+			vm.Push(vm.runBinaryOp(opType, a, b))
 		case op.Call:
-			argc := int(vm.fetch())
+			argc := int(vm.fetch1())
 			for i := 0; i < argc; i++ {
-				tmpArgs[argc-1-i] = vm.Pop()
+				vm.tmp[argc-1-i] = vm.Pop()
 			}
 			obj := vm.Pop()
 			switch obj := obj.(type) {
 			case *object.Builtin:
-				result := obj.Call(ctx, tmpArgs[:argc]...)
-				vm.stack.Push(result)
+				result := obj.Call(ctx, vm.tmp[:argc]...)
+				vm.Push(result)
 			case *object.CompiledFunction:
-				if vm.framesIndex+1 >= MaxFrameDepth {
-					fmt.Println("OVERFLOW", vm.framesIndex)
+				if vm.fp+1 >= MaxFrameDepth {
 					return errors.New("frame overflow")
 				}
-				vm.framesIndex++
-				frame := &vm.frames[vm.framesIndex]
+				vm.fp++
+				frame := &vm.frames[vm.fp]
 				scope := obj.Scope().(*compiler.Scope)
 				if scope.IsNamed {
-					tmpArgs[argc] = obj
+					vm.tmp[argc] = obj
 					argc++
 				}
-				// fmt.Println("frame.InitWithLocals", argc, vm.ip, tmpArgs[:argc])
-				frame.InitWithLocals(obj, vm.ip, tmpArgs[:argc])
-				// frame := currentFrame.NewChild(obj, locals, vm.ip)
-				// frame := vm.framePool.Get().(*Frame)
-				// frame.fn = obj
-				// frame.locals = args
-				// frame.returnAddr = vm.ip
-				// frame.parent = currentFrame
-				// frame.scope = scope
-				// vm.frameStack.Push(frame)
-				currentFrame = frame
+				frame.InitWithLocals(obj, vm.ip, vm.tmp[:argc])
+				vm.currentFrame = frame
 				vm.ip = 0
 				vm.currentScope = scope
 			default:
 				return fmt.Errorf("not a function: %T", obj)
 			}
 		case op.ReturnValue:
-			if vm.framesIndex < 1 {
+			if vm.fp < 1 {
 				return errors.New("frame underflow")
 			}
-			leaving := &vm.frames[vm.framesIndex]
-			vm.framesIndex--
-			currentFrame = &vm.frames[vm.framesIndex]
-			vm.ip = leaving.returnAddr
-			vm.currentScope = currentFrame.Scope()
-			// currentFrame = frame.parent
-			// vm.framePool.Put(frame)
-			// vm.arrayPool.Put(&frame.locals)
+			returnAddr := vm.frames[vm.fp].returnAddr
+			vm.fp--
+			vm.currentFrame = &vm.frames[vm.fp]
+			vm.ip = returnAddr
+			vm.currentScope = vm.currentFrame.Scope()
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := int(vm.fetch2()) - 3
@@ -253,15 +226,13 @@ func (vm *VM) Run() error {
 			base := vm.ip - 1
 			delta := int(vm.fetch2())
 			vm.ip = base - delta
-		case op.Print:
-			fmt.Println("PRINT", vm.top())
 		case op.BuildList:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
 				items[count-1-i] = vm.Pop()
 			}
-			vm.stack.Push(object.NewList(items))
+			vm.Push(object.NewList(items))
 		case op.BuildMap:
 			count := vm.fetch2()
 			items := make(map[string]object.Object, count)
@@ -270,14 +241,14 @@ func (vm *VM) Run() error {
 				k := vm.Pop()
 				items[k.(*object.String).Value()] = v
 			}
-			vm.stack.Push(object.NewMap(items))
+			vm.Push(object.NewMap(items))
 		case op.BuildSet:
 			count := vm.fetch2()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
 				items[i] = vm.Pop()
 			}
-			vm.stack.Push(object.NewSet(items))
+			vm.Push(object.NewSet(items))
 		case op.BinarySubscr:
 			index := vm.Pop()
 			obj := vm.Pop()
@@ -289,34 +260,34 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err.Value()
 			}
-			vm.stack.Push(result)
+			vm.Push(result)
 		case op.UnaryNegative:
 			obj := vm.Pop()
 			switch obj := obj.(type) {
 			case *object.Int:
-				vm.stack.Push(object.NewInt(-obj.Value()))
+				vm.Push(object.NewInt(-obj.Value()))
 			case *object.Float:
-				vm.stack.Push(object.NewFloat(-obj.Value()))
+				vm.Push(object.NewFloat(-obj.Value()))
 			default:
 				return fmt.Errorf("object is not a number: %T", obj)
 			}
 		case op.UnaryNot:
 			obj := vm.Pop()
 			if obj.IsTruthy() {
-				vm.stack.Push(object.False)
+				vm.Push(object.False)
 			} else {
-				vm.stack.Push(object.True)
+				vm.Push(object.True)
 			}
 		case op.ContainsOp:
 			obj := vm.Pop()
 			containerObj := vm.Pop()
-			invert := vm.fetch() == 1
+			invert := vm.fetch1() == 1
 			if container, ok := containerObj.(object.Container); ok {
 				value := container.Contains(obj)
 				if invert {
 					value = object.Not(value)
 				}
-				vm.stack.Push(value)
+				vm.Push(value)
 			} else {
 				return fmt.Errorf("object is not a container: %T", container)
 			}
@@ -380,28 +351,22 @@ func (vm *VM) runBinaryOp(opType op.BinaryOpType, a, b object.Object) object.Obj
 	return nil
 }
 
-func (vm *VM) TOS() (object.Object, bool) {
-	return vm.stack.Top()
+func (vm *VM) TOS() object.Object {
+	return vm.stack[vm.sp]
 }
-
-// func (vm *VM) Frame() (*Frame, bool) {
-// 	return vm.frameStack.Top()
-// }
 
 func (vm *VM) Pop() object.Object {
-	obj, _ := vm.stack.Pop()
+	obj := vm.stack[vm.sp]
+	vm.sp--
 	return obj
 }
 
-func (vm *VM) top() object.Object {
-	obj, ok := vm.stack.Top()
-	if !ok {
-		return nil
-	}
-	return obj
+func (vm *VM) Push(obj object.Object) {
+	vm.sp++
+	vm.stack[vm.sp] = obj
 }
 
-func (vm *VM) fetch() uint8 {
+func (vm *VM) fetch1() uint8 {
 	ip := vm.ip
 	vm.ip++
 	return uint8(vm.currentScope.Instructions[ip])

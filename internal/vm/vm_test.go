@@ -35,8 +35,7 @@ func TestAdd(t *testing.T) {
 	err := vm.Run()
 	require.Nil(t, err)
 
-	tos, ok := vm.TOS()
-	require.True(t, ok)
+	tos := vm.TOS()
 	require.Equal(t, object.NewInt(7), tos)
 }
 
@@ -69,8 +68,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	vm := New(main)
 	require.Nil(t, vm.Run())
 
-	tos, ok := vm.TOS()
-	require.True(t, ok)
+	tos := vm.TOS()
 	require.Equal(t, object.NewInt(23), tos)
 }
 
@@ -92,8 +90,7 @@ func TestConditional(t *testing.T) {
 	vm := New(main)
 	require.Nil(t, vm.Run())
 
-	tos, ok := vm.TOS()
-	require.True(t, ok)
+	tos := vm.TOS()
 	require.Equal(t, object.NewInt(99), tos)
 }
 
