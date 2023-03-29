@@ -75,13 +75,14 @@ func (vm *VM) Run() error {
 
 	ctx := context.Background()
 
-	// Initialize the first frame with the main function
+	// Initialize the call frame with the main function
 	vm.fp++
 	vm.ip++
 	vm.currentFrame = &vm.frames[vm.fp]
 	vm.currentFrame.Init(nil, 0, vm.currentScope.Symbols.Size())
 	vm.currentFrame.scope = vm.main
 
+	// Run the program until finished
 	for vm.ip < len(vm.currentScope.Instructions) {
 
 		// The current function scope
