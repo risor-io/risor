@@ -96,31 +96,31 @@ func (vm *VM) Run() error {
 		case op.Nop:
 		case op.LoadAttr:
 			obj := vm.Pop()
-			name := vm.currentScope.Names[vm.fetch2()]
+			name := vm.currentScope.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
 				return fmt.Errorf("attribute %q not found", name)
 			}
 			vm.Push(value)
 		case op.LoadConst:
-			vm.Push(scope.Constants[vm.fetch2()])
+			vm.Push(scope.Constants[vm.fetch()])
 		case op.LoadFast:
-			vm.Push(vm.currentFrame.locals[vm.fetch2()])
+			vm.Push(vm.currentFrame.locals[vm.fetch()])
 		case op.LoadGlobal:
-			vm.Push(vm.globals[vm.fetch2()])
+			vm.Push(vm.globals[vm.fetch()])
 		case op.LoadFree:
 			freeVars := vm.currentFrame.fn.FreeVars()
-			vm.Push(freeVars[vm.fetch2()].Value())
+			vm.Push(freeVars[vm.fetch()].Value())
 		case op.StoreFast:
-			vm.currentFrame.locals[vm.fetch1()] = vm.Pop()
+			vm.currentFrame.locals[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
-			vm.globals[vm.fetch2()] = vm.Pop()
+			vm.globals[vm.fetch()] = vm.Pop()
 		case op.StoreFree:
 			freeVars := vm.currentFrame.fn.FreeVars()
-			freeVars[vm.fetch2()].Set(vm.Pop())
+			freeVars[vm.fetch()].Set(vm.Pop())
 		case op.LoadClosure:
-			constIndex := vm.fetch2()
-			freeCount := vm.fetch2()
+			constIndex := vm.fetch()
+			freeCount := vm.fetch()
 			free := make([]*object.Cell, freeCount)
 			for i := uint16(0); i < freeCount; i++ {
 				obj := vm.Pop()
@@ -135,8 +135,8 @@ func (vm *VM) Run() error {
 			closure := object.NewClosure(fn, fn.Scope(), free)
 			vm.Push(closure)
 		case op.MakeCell:
-			symbolIndex := vm.fetch2()
-			framesBack := int(vm.fetch1())
+			symbolIndex := vm.fetch()
+			framesBack := int(vm.fetch())
 			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
 				return fmt.Errorf("no frame at depth %d", framesBack)
@@ -151,17 +151,17 @@ func (vm *VM) Run() error {
 		case op.False:
 			vm.Push(object.False)
 		case op.CompareOp:
-			opType := op.CompareOpType(vm.fetch1())
+			opType := op.CompareOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
 			vm.Push(vm.runCompareOp(opType, a, b))
 		case op.BinaryOp:
-			opType := op.BinaryOpType(vm.fetch1())
+			opType := op.BinaryOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
 			vm.Push(vm.runBinaryOp(opType, a, b))
 		case op.Call:
-			argc := int(vm.fetch1())
+			argc := int(vm.fetch())
 			for i := 0; i < argc; i++ {
 				vm.tmp[argc-1-i] = vm.Pop()
 			}
@@ -199,45 +199,45 @@ func (vm *VM) Run() error {
 			vm.ip = returnAddr
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
-			delta := int(vm.fetch2()) - 3
+			delta := int(vm.fetch()) - 3
 			if tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpForwardIfFalse:
 			tos := vm.Pop()
-			delta := int(vm.fetch2()) - 3
+			delta := int(vm.fetch()) - 3
 			if !tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpBackwardIfTrue:
 			tos := vm.Pop()
-			delta := int(vm.fetch2()) - 3
+			delta := int(vm.fetch()) - 3
 			if tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.PopJumpBackwardIfFalse:
 			tos := vm.Pop()
-			delta := int(vm.fetch2()) - 3
+			delta := int(vm.fetch()) - 3
 			if !tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.JumpForward:
 			base := vm.ip - 1
-			delta := int(vm.fetch2())
+			delta := int(vm.fetch())
 			vm.ip = base + delta
 		case op.JumpBackward:
 			base := vm.ip - 1
-			delta := int(vm.fetch2())
+			delta := int(vm.fetch())
 			vm.ip = base - delta
 		case op.BuildList:
-			count := vm.fetch2()
+			count := vm.fetch()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
 				items[count-1-i] = vm.Pop()
 			}
 			vm.Push(object.NewList(items))
 		case op.BuildMap:
-			count := vm.fetch2()
+			count := vm.fetch()
 			items := make(map[string]object.Object, count)
 			for i := uint16(0); i < count; i++ {
 				v := vm.Pop()
@@ -246,7 +246,7 @@ func (vm *VM) Run() error {
 			}
 			vm.Push(object.NewMap(items))
 		case op.BuildSet:
-			count := vm.fetch2()
+			count := vm.fetch()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
 				items[i] = vm.Pop()
@@ -284,7 +284,7 @@ func (vm *VM) Run() error {
 		case op.ContainsOp:
 			obj := vm.Pop()
 			containerObj := vm.Pop()
-			invert := vm.fetch1() == 1
+			invert := vm.fetch() == 1
 			if container, ok := containerObj.(object.Container); ok {
 				value := container.Contains(obj)
 				if invert {
@@ -359,6 +359,7 @@ func (vm *VM) TOS() object.Object {
 }
 
 func (vm *VM) Pop() object.Object {
+	fmt.Println("POP", vm.sp)
 	obj := vm.stack[vm.sp]
 	vm.sp--
 	return obj
@@ -367,17 +368,11 @@ func (vm *VM) Pop() object.Object {
 func (vm *VM) Push(obj object.Object) {
 	vm.sp++
 	vm.stack[vm.sp] = obj
+	fmt.Println("PUSH", obj, vm.sp)
 }
 
-func (vm *VM) fetch1() uint8 {
+func (vm *VM) fetch() uint16 {
 	ip := vm.ip
 	vm.ip++
-	return uint8(vm.currentScope.Instructions[ip])
-}
-
-func (vm *VM) fetch2() uint16 {
-	instr := vm.currentScope.Instructions
-	value := uint16(instr[vm.ip]) | uint16(instr[vm.ip+1])<<8
-	vm.ip += 2
-	return value
+	return uint16(vm.currentScope.Instructions[ip])
 }

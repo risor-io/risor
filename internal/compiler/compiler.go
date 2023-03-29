@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"encoding/binary"
 	"fmt"
 	"reflect"
 
@@ -24,9 +23,9 @@ type Scope struct {
 	Names        []string
 }
 
-func (s *Scope) AddName(name string) int {
+func (s *Scope) AddName(name string) uint16 {
 	s.Names = append(s.Names, name)
-	return len(s.Names) - 1
+	return uint16(len(s.Names) - 1)
 }
 
 type Compiler struct {
@@ -40,8 +39,8 @@ type Options struct {
 }
 
 type Loop struct {
-	ContinuePos []int
-	BreakPos    []int
+	ContinuePos []uint16
+	BreakPos    []uint16
 }
 
 func NewGlobalSymbols() *symbol.Table {
@@ -88,18 +87,18 @@ func (c *Compiler) compile(node ast.Node) error {
 	scope := c.CurrentScope()
 	switch node := node.(type) {
 	case *ast.Nil:
-		c.emit(node, op.Nil)
+		c.emit(op.Nil)
 	case *ast.Int:
-		c.emit(node, op.LoadConst, c.constant(object.NewInt(node.Value())))
+		c.emit(op.LoadConst, c.constant(object.NewInt(node.Value())))
 	case *ast.Float:
-		c.emit(node, op.LoadConst, c.constant(object.NewFloat(node.Value())))
+		c.emit(op.LoadConst, c.constant(object.NewFloat(node.Value())))
 	case *ast.String:
-		c.emit(node, op.LoadConst, c.constant(object.NewString(node.Value())))
+		c.emit(op.LoadConst, c.constant(object.NewString(node.Value())))
 	case *ast.Bool:
 		if node.Value() {
-			c.emit(node, op.True)
+			c.emit(op.True)
 		} else {
-			c.emit(node, op.False)
+			c.emit(op.False)
 		}
 	case *ast.If:
 		if err := c.compileIf(node); err != nil {
@@ -135,9 +134,9 @@ func (c *Compiler) compile(node ast.Node) error {
 			return err
 		}
 		if c.currentScope.Parent == nil {
-			c.emit(node, op.StoreGlobal, sym.Index)
+			c.emit(op.StoreGlobal, sym.Index)
 		} else {
-			c.emit(node, op.StoreFast, sym.Index)
+			c.emit(op.StoreFast, sym.Index)
 		}
 	case *ast.Assign:
 		if err := c.compileAssign(node); err != nil {
@@ -151,11 +150,11 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 		switch sym.Scope {
 		case symbol.ScopeGlobal:
-			c.emit(node, op.LoadGlobal, sym.Symbol.Index)
+			c.emit(op.LoadGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
-			c.emit(node, op.LoadFast, sym.Symbol.Index)
+			c.emit(op.LoadFast, sym.Symbol.Index)
 		case symbol.ScopeFree:
-			c.emit(node, op.LoadFree, sym.Symbol.Index)
+			c.emit(op.LoadFree, sym.Symbol.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -227,7 +226,7 @@ func (c *Compiler) compileIn(node *ast.In) error {
 	if err := c.compile(node.Left()); err != nil {
 		return err
 	}
-	c.emit(node, op.ContainsOp, 0)
+	c.emit(op.ContainsOp, 0)
 	return nil
 }
 
@@ -237,9 +236,9 @@ func (c *Compiler) compilePrefix(node *ast.Prefix) error {
 	}
 	switch node.Operator() {
 	case "!":
-		c.emit(node, op.UnaryNot)
+		c.emit(op.UnaryNot)
 	case "-":
-		c.emit(node, op.UnaryNegative)
+		c.emit(op.UnaryNegative)
 	}
 	return nil
 }
@@ -254,14 +253,14 @@ func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 		return fmt.Errorf("invalid call expression")
 	}
 	name := method.Function().String()
-	c.emit(node, op.LoadAttr, c.currentScope.AddName(name))
+	c.emit(op.LoadAttr, c.currentScope.AddName(name))
 	args := method.Arguments()
 	for _, arg := range args {
 		if err := c.compile(arg); err != nil {
 			return err
 		}
 	}
-	c.emit(node, op.Call, len(args))
+	c.emit(op.Call, uint16(len(args)))
 	return nil
 }
 
@@ -270,7 +269,7 @@ func (c *Compiler) compileGetAttr(node *ast.GetAttr) error {
 		return err
 	}
 	idx := c.currentScope.AddName(node.Name())
-	c.emit(node, op.LoadAttr, idx)
+	c.emit(op.LoadAttr, idx)
 	return nil
 }
 
@@ -281,7 +280,7 @@ func (c *Compiler) compileIndex(node *ast.Index) error {
 	if err := c.compile(node.Index()); err != nil {
 		return err
 	}
-	c.emit(node, op.BinarySubscr)
+	c.emit(op.BinarySubscr)
 	return nil
 }
 
@@ -291,7 +290,8 @@ func (c *Compiler) compileList(node *ast.List) error {
 			return err
 		}
 	}
-	c.emit(node, op.BuildList, len(node.Items()))
+	// TODO: error on too many items
+	c.emit(op.BuildList, uint16(len(node.Items())))
 	return nil
 }
 
@@ -304,7 +304,8 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 			return err
 		}
 	}
-	c.emit(node, op.BuildMap, len(node.Items()))
+	// TODO: error on too many items
+	c.emit(op.BuildMap, uint16(len(node.Items())))
 	return nil
 }
 
@@ -314,7 +315,8 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 			return err
 		}
 	}
-	c.emit(node, op.BuildSet, len(node.Items()))
+	// TODO: error on too many items
+	c.emit(op.BuildSet, uint16(len(node.Items())))
 	return nil
 }
 
@@ -367,21 +369,21 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		}
 	}
 	if len(statements) == 0 {
-		c.emit(node, op.Nil)
-		c.emit(node, op.ReturnValue, 1)
+		c.emit(op.Nil)
+		c.emit(op.ReturnValue, 1)
 	} else if _, ok := statements[len(statements)-1].(*ast.Control); !ok {
-		c.emit(node, op.ReturnValue, 1)
+		c.emit(op.ReturnValue, 1)
 	}
 	c.currentScope = c.currentScope.Parent
 	freeSymbols := funcScope.Symbols.Free()
 	fn := object.NewCompiledFunction(name, params, defaults, funcScope.Instructions, funcScope)
 	if len(freeSymbols) > 0 {
 		for _, resolution := range freeSymbols {
-			c.emit(nil, op.MakeCell, resolution.Symbol.Index, resolution.Depth-1)
+			c.emit(op.MakeCell, resolution.Symbol.Index, uint16(resolution.Depth-1))
 		}
-		c.emit(node, op.LoadClosure, c.constant(fn), len(freeSymbols))
+		c.emit(op.LoadClosure, c.constant(fn), uint16(len(freeSymbols)))
 	} else {
-		c.emit(node, op.LoadConst, c.constant(fn))
+		c.emit(op.LoadConst, c.constant(fn))
 	}
 	if node.Name() != nil {
 		funcSymbol, err := c.currentScope.Symbols.Insert(name, symbol.Attrs{})
@@ -389,9 +391,9 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 			return err
 		}
 		if c.currentScope.Parent == nil {
-			c.emit(node, op.StoreGlobal, funcSymbol.Index)
+			c.emit(op.StoreGlobal, funcSymbol.Index)
 		} else {
-			c.emit(node, op.StoreFast, funcSymbol.Index)
+			c.emit(op.StoreFast, funcSymbol.Index)
 		}
 	}
 	return nil
@@ -407,7 +409,7 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 			return err
 		}
 	}
-	c.emit(node, op.Call, len(args))
+	c.emit(op.Call, uint16(len(args)))
 	return nil
 }
 
@@ -420,7 +422,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		c.emit(node, op.ReturnValue, 1)
+		c.emit(op.ReturnValue, 1)
 		return nil
 	}
 	loop := c.currentLoop()
@@ -431,11 +433,11 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		return fmt.Errorf("continue outside of loop")
 	}
 	if literal == "break" {
-		controlPos := c.emit(node, op.JumpForward, 9999)
-		loop.BreakPos = append(loop.BreakPos, controlPos)
+		position := c.emit(op.JumpForward, 9999)
+		loop.BreakPos = append(loop.BreakPos, uint16(position))
 	} else {
-		controlPos := c.emit(node, op.JumpBackward, 9999)
-		loop.ContinuePos = append(loop.ContinuePos, controlPos)
+		position := c.emit(op.JumpBackward, 9999)
+		loop.ContinuePos = append(loop.ContinuePos, uint16(position))
 	}
 	return nil
 }
@@ -452,22 +454,22 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		}
 		switch sym.Scope {
 		case symbol.ScopeGlobal:
-			c.emit(node, op.StoreGlobal, sym.Symbol.Index)
+			c.emit(op.StoreGlobal, sym.Symbol.Index)
 		case symbol.ScopeLocal:
-			c.emit(node, op.StoreFast, sym.Symbol.Index)
+			c.emit(op.StoreFast, sym.Symbol.Index)
 		case symbol.ScopeFree:
-			c.emit(node, op.StoreFree, sym.Symbol.Index)
+			c.emit(op.StoreFree, sym.Symbol.Index)
 		}
 		return nil
 	}
 	// Push LHS as TOS
 	switch sym.Scope {
 	case symbol.ScopeGlobal:
-		c.emit(node, op.LoadGlobal, sym.Symbol.Index)
+		c.emit(op.LoadGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
-		c.emit(node, op.LoadFast, sym.Symbol.Index)
+		c.emit(op.LoadFast, sym.Symbol.Index)
 	case symbol.ScopeFree:
-		c.emit(node, op.LoadFree, sym.Symbol.Index)
+		c.emit(op.LoadFree, sym.Symbol.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -476,22 +478,22 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	// Result becomes TOS
 	switch node.Operator() {
 	case "+=":
-		c.emit(node, op.BinaryOp, int(op.Add))
+		c.emit(op.BinaryOp, uint16(op.Add))
 	case "-=":
-		c.emit(node, op.BinaryOp, int(op.Subtract))
+		c.emit(op.BinaryOp, uint16(op.Subtract))
 	case "*=":
-		c.emit(node, op.BinaryOp, int(op.Multiply))
+		c.emit(op.BinaryOp, uint16(op.Multiply))
 	case "/=":
-		c.emit(node, op.BinaryOp, int(op.Divide))
+		c.emit(op.BinaryOp, uint16(op.Divide))
 	}
 	// Store TOS in LHS
 	switch sym.Scope {
 	case symbol.ScopeGlobal:
-		c.emit(node, op.StoreGlobal, sym.Symbol.Index)
+		c.emit(op.StoreGlobal, sym.Symbol.Index)
 	case symbol.ScopeLocal:
-		c.emit(node, op.StoreFast, sym.Symbol.Index)
+		c.emit(op.StoreFast, sym.Symbol.Index)
 	case symbol.ScopeFree:
-		c.emit(node, op.StoreFree, sym.Symbol.Index)
+		c.emit(op.StoreFree, sym.Symbol.Index)
 	}
 	return nil
 }
@@ -522,19 +524,19 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 		c.endLoop()
 		scope.Symbols = scope.Symbols.Parent()
 	}()
-	startPos := len(c.Instructions())
+	startPos := uint16(len(c.Instructions()))
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
-	c.emit(node, op.JumpBackward, c.calculateDelta(startPos))
-	nopPos := c.emit(node, op.Nop)
+	c.emit(op.JumpBackward, c.calculateDelta(startPos))
+	nopPos := c.emit(op.Nop)
 	for _, pos := range loop.BreakPos {
-		delta := nopPos - pos
-		c.changeOperand2(pos, delta)
+		delta := uint16(nopPos) - pos
+		c.changeOperand(pos, delta)
 	}
 	for _, pos := range loop.ContinuePos {
-		delta := pos - startPos
-		c.changeOperand2(pos, delta)
+		delta := pos - uint16(startPos)
+		c.changeOperand(pos, delta)
 	}
 	return nil
 }
@@ -543,39 +545,36 @@ func (c *Compiler) compileIf(node *ast.If) error {
 	if err := c.compile(node.Condition()); err != nil {
 		return err
 	}
-	jumpIfFalsePos := c.emit(node, op.PopJumpForwardIfFalse, 9999)
+	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, 9999)
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
 	alternative := node.Alternative()
 	if alternative != nil {
 		// Jump forward to skip the alternative by default
-		jumpForwardPos := c.emit(node, op.JumpForward, 9999)
+		jumpForwardPos := c.emit(op.JumpForward, 9999)
 		// Update PopJumpForwardIfFalse to point to this alternative,
 		// so that the alternative is executed if the condition is false
 		delta := c.calculateDelta(jumpIfFalsePos)
-		c.changeOperand2(jumpIfFalsePos, delta)
+		c.changeOperand(jumpIfFalsePos, delta)
 		if err := c.compile(alternative); err != nil {
 			return err
 		}
-		c.changeOperand2(jumpForwardPos, c.calculateDelta(jumpForwardPos))
+		c.changeOperand(jumpForwardPos, c.calculateDelta(jumpForwardPos))
 	} else {
 		delta := c.calculateDelta(jumpIfFalsePos)
-		c.changeOperand2(jumpIfFalsePos, delta)
+		c.changeOperand(jumpIfFalsePos, delta)
 	}
 	return nil
 }
 
-func (c *Compiler) calculateDelta(pos int) int {
-	return len(c.CurrentScope().Instructions) - pos
+func (c *Compiler) calculateDelta(pos uint16) uint16 {
+	// TODO: error on overflow
+	return uint16(len(c.CurrentScope().Instructions)) - pos
 }
 
-func (c *Compiler) changeOperand2(pos, operand int) {
-	instrs := c.CurrentScope().Instructions
-	converted := make([]byte, 2)
-	binary.LittleEndian.PutUint16(converted, uint16(operand))
-	instrs[pos+1] = op.Code(converted[0])
-	instrs[pos+2] = op.Code(converted[1])
+func (c *Compiler) changeOperand(pos, operand uint16) {
+	c.CurrentScope().Instructions[pos+1] = op.Code(operand)
 }
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
@@ -587,124 +586,104 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 	}
 	switch node.Operator() {
 	case "+":
-		c.emit(node, op.BinaryOp, int(op.Add))
+		c.emit(op.BinaryOp, uint16(op.Add))
 	case "-":
-		c.emit(node, op.BinaryOp, int(op.Subtract))
+		c.emit(op.BinaryOp, uint16(op.Subtract))
 	case "*":
-		c.emit(node, op.BinaryOp, int(op.Multiply))
+		c.emit(op.BinaryOp, uint16(op.Multiply))
 	case "/":
-		c.emit(node, op.BinaryOp, int(op.Divide))
+		c.emit(op.BinaryOp, uint16(op.Divide))
 	case "%":
-		c.emit(node, op.BinaryOp, int(op.Modulo))
+		c.emit(op.BinaryOp, uint16(op.Modulo))
 	case "**":
-		c.emit(node, op.BinaryOp, int(op.Power))
+		c.emit(op.BinaryOp, uint16(op.Power))
 	case "<<":
-		c.emit(node, op.BinaryOp, int(op.LShift))
+		c.emit(op.BinaryOp, uint16(op.LShift))
 	case ">>":
-		c.emit(node, op.BinaryOp, int(op.RShift))
+		c.emit(op.BinaryOp, uint16(op.RShift))
 	case ">":
-		c.emit(node, op.CompareOp, int(op.GreaterThan))
+		c.emit(op.CompareOp, uint16(op.GreaterThan))
 	case ">=":
-		c.emit(node, op.CompareOp, int(op.GreaterThanOrEqual))
+		c.emit(op.CompareOp, uint16(op.GreaterThanOrEqual))
 	case "<":
-		c.emit(node, op.CompareOp, int(op.LessThan))
+		c.emit(op.CompareOp, uint16(op.LessThan))
 	case "<=":
-		c.emit(node, op.CompareOp, int(op.LessThanOrEqual))
+		c.emit(op.CompareOp, uint16(op.LessThanOrEqual))
 	case "==":
-		c.emit(node, op.CompareOp, int(op.Equal))
+		c.emit(op.CompareOp, uint16(op.Equal))
 	case "!=":
-		c.emit(node, op.CompareOp, int(op.NotEqual))
+		c.emit(op.CompareOp, uint16(op.NotEqual))
 	default:
 		return fmt.Errorf("unknown operator: %s", node.Operator())
 	}
 	return nil
 }
 
-func (c *Compiler) constant(obj object.Object) int {
+func (c *Compiler) constant(obj object.Object) uint16 {
 	scope := c.currentScope
 	scope.Constants = append(scope.Constants, obj)
-	// fmt.Println("constant", obj, len(scope.Constants)-1)
-	return len(scope.Constants) - 1
+	// TODO: error if > 65535
+	return uint16(len(scope.Constants) - 1)
 }
 
-func (c *Compiler) instruction(b []op.Code) int {
+func (c *Compiler) instruction(b []op.Code) uint16 {
 	scope := c.CurrentScope()
 	pos := len(scope.Instructions)
 	scope.Instructions = append(scope.Instructions, b...)
-	return pos
+	return uint16(pos)
 }
 
-func (c *Compiler) emit(node ast.Node, opcode op.Code, operands ...int) int {
-	// info := op.GetInfo(opcode)
-	// fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
+func (c *Compiler) emit(opcode op.Code, operands ...uint16) uint16 {
+	info := op.GetInfo(opcode)
+	fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
 	inst := MakeInstruction(opcode, operands...)
 	return c.instruction(inst)
 }
 
-func MakeInstruction(opcode op.Code, operands ...int) []op.Code {
+func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 	opInfo := op.OperandCount[opcode]
-
-	totalLen := 1
-	for _, w := range opInfo.OperandWidths {
-		totalLen += w
-	}
-
-	instruction := make([]byte, totalLen)
-	instruction[0] = byte(opcode)
-
+	instruction := make([]op.Code, 1+opInfo.OperandCount)
+	instruction[0] = opcode
 	offset := 1
-	for i, o := range operands {
-		width := opInfo.OperandWidths[i]
-		switch width {
-		case 1:
-			instruction[offset] = byte(o)
-		case 2:
-			n := uint16(o)
-			instruction[offset] = byte(n)
-			instruction[offset+1] = byte(n >> 8)
-		}
-		offset += width
+	for _, o := range operands {
+		instruction[offset] = op.Code(o)
+		offset++
 	}
-
-	result := make([]op.Code, 0, len(instruction))
-	for _, value := range instruction {
-		result = append(result, op.Code(value))
-	}
-	return result
+	return instruction
 }
 
-func ReadInstruction(bytes []byte) (op.Code, []int, []byte) {
-	opcode := op.Code(bytes[0])
-	opInfo := op.OperandCount[opcode]
-	totalWidth := 0
-	var operands []int
-	for i := 0; i < opInfo.OperandCount; i++ {
-		width := opInfo.OperandWidths[i]
-		totalWidth += width
-		switch width {
-		case 1:
-			operands = append(operands, int(bytes[1]))
-		case 2:
-			operands = append(operands, int(binary.LittleEndian.Uint16(bytes[1:3])))
-		}
-	}
-	return opcode, operands, bytes[1+totalWidth:]
-}
+// func ReadInstruction(data []uint16) (op.Code, []int, []byte) {
+// 	opcode := op.Code(bytes[0])
+// 	opInfo := op.OperandCount[opcode]
+// 	totalWidth := 0
+// 	var operands []int
+// 	for i := 0; i < opInfo.OperandCount; i++ {
+// 		width := opInfo.OperandWidths[i]
+// 		totalWidth += width
+// 		switch width {
+// 		case 1:
+// 			operands = append(operands, int(bytes[1]))
+// 		case 2:
+// 			operands = append(operands, int(binary.LittleEndian.Uint16(bytes[1:3])))
+// 		}
+// 	}
+// 	return opcode, operands, bytes[1+totalWidth:]
+// }
 
-func ReadOp(instructions []op.Code) (op.Code, []int) {
-	opcode := instructions[0]
-	opInfo := op.OperandCount[opcode]
-	var operands []int
-	offset := 0
-	for i := 0; i < opInfo.OperandCount; i++ {
-		width := opInfo.OperandWidths[i]
-		switch width {
-		case 1:
-			operands = append(operands, int(instructions[offset+1]))
-		case 2:
-			operands = append(operands, int(binary.LittleEndian.Uint16([]byte{byte(instructions[offset+1]), byte(instructions[offset+2])})))
-		}
-		offset += width
-	}
-	return opcode, operands
-}
+// func ReadOp(instructions []op.Code) (op.Code, []int) {
+// 	opcode := instructions[0]
+// 	opInfo := op.OperandCount[opcode]
+// 	var operands []int
+// 	offset := 0
+// 	for i := 0; i < opInfo.OperandCount; i++ {
+// 		width := opInfo.OperandWidths[i]
+// 		switch width {
+// 		case 1:
+// 			operands = append(operands, int(instructions[offset+1]))
+// 		case 2:
+// 			operands = append(operands, int(binary.LittleEndian.Uint16([]byte{byte(instructions[offset+1]), byte(instructions[offset+2])})))
+// 		}
+// 		offset += width
+// 	}
+// 	return opcode, operands
+// }

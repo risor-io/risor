@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"time"
 
 	"github.com/cloudcmds/tamarin/exec"
 	"github.com/cloudcmds/tamarin/internal/vm"
@@ -17,9 +18,10 @@ import (
 )
 
 func main() {
-	var noColor bool
+	var noColor, showTiming bool
 	var profilerOutputPath, code, breakpoints string
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
+	flag.BoolVar(&showTiming, "timing", false, "Show timing information")
 	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
 	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
@@ -77,6 +79,8 @@ func main() {
 		input = string(bytes)
 	}
 
+	start := time.Now()
+
 	result, err := vm.Run(string(input))
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
@@ -88,8 +92,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Print the result
-	if result != object.Nil {
-		fmt.Println(result.Inspect())
+	if showTiming {
+		fmt.Printf("%.03f\n", time.Since(start).Seconds())
+	} else {
+		// Print the result
+		if result != object.Nil {
+			fmt.Println(result.Inspect())
+		}
 	}
 }

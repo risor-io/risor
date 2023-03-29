@@ -1,6 +1,6 @@
 package op
 
-type Code byte
+type Code uint16
 
 const (
 	Nop Code = iota
@@ -47,7 +47,7 @@ const (
 	UnaryPositive
 )
 
-type BinaryOpType byte
+type BinaryOpType uint16
 
 const (
 	Add      BinaryOpType = 1
@@ -63,7 +63,7 @@ const (
 	RShift   BinaryOpType = 11
 )
 
-type CompareOpType byte
+type CompareOpType uint16
 
 const (
 	LessThan           CompareOpType = 1

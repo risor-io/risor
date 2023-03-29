@@ -21,7 +21,7 @@ type Attrs struct {
 
 type Symbol struct {
 	Name   string
-	Index  int
+	Index  uint16
 	Attrs  Attrs
 	IsFree bool
 }
@@ -56,7 +56,7 @@ func (t *Table) Insert(name string, attrs Attrs) (*Symbol, error) {
 	}
 	s := &Symbol{
 		Name:  name,
-		Index: len(t.symbols),
+		Index: uint16(len(t.symbols)),
 		Attrs: attrs,
 	}
 	t.symbols[name] = s
