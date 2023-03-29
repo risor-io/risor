@@ -85,11 +85,8 @@ func (vm *VM) Run() error {
 	// Run the program until finished
 	for vm.ip < len(vm.currentScope.Instructions) {
 
-		// The current function scope
-		scope := vm.currentScope
-
 		// The current instruction opcode
-		opcode := scope.Instructions[vm.ip]
+		opcode := vm.currentScope.Instructions[vm.ip]
 		vm.ip++
 
 		switch opcode {
@@ -103,7 +100,7 @@ func (vm *VM) Run() error {
 			}
 			vm.Push(value)
 		case op.LoadConst:
-			vm.Push(scope.Constants[vm.fetch()])
+			vm.Push(vm.currentScope.Constants[vm.fetch()])
 		case op.LoadFast:
 			vm.Push(vm.currentFrame.locals[vm.fetch()])
 		case op.LoadGlobal:
@@ -131,7 +128,7 @@ func (vm *VM) Run() error {
 					return errors.New("expected cell")
 				}
 			}
-			fn := scope.Constants[constIndex].(*object.CompiledFunction)
+			fn := vm.currentScope.Constants[constIndex].(*object.CompiledFunction)
 			closure := object.NewClosure(fn, fn.Scope(), free)
 			vm.Push(closure)
 		case op.MakeCell:
@@ -162,8 +159,8 @@ func (vm *VM) Run() error {
 			vm.Push(vm.runBinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
-			for i := 0; i < argc; i++ {
-				vm.tmp[argc-1-i] = vm.Pop()
+			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
+				vm.tmp[argIndex] = vm.Pop()
 			}
 			obj := vm.Pop()
 			switch obj := obj.(type) {
@@ -172,9 +169,6 @@ func (vm *VM) Run() error {
 				vm.Push(result)
 			case *object.CompiledFunction:
 				vm.fp++
-				if vm.fp >= MaxFrameDepth {
-					return errors.New("frame overflow")
-				}
 				frame := &vm.frames[vm.fp]
 				scope := obj.Scope().(*compiler.Scope)
 				if scope.IsNamed {
@@ -191,9 +185,6 @@ func (vm *VM) Run() error {
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
-			if vm.fp < 0 {
-				return errors.New("frame underflow")
-			}
 			vm.currentFrame = &vm.frames[vm.fp]
 			vm.currentScope = vm.currentFrame.Scope()
 			vm.ip = returnAddr

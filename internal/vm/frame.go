@@ -8,10 +8,10 @@ import (
 const DefaultFrameLocals = 4
 
 type Frame struct {
-	fn             *object.CompiledFunction
-	scope          *compiler.Scope
 	returnAddr     int
 	localsCount    int
+	fn             *object.CompiledFunction
+	scope          *compiler.Scope
 	locals         [DefaultFrameLocals]object.Object
 	extendedLocals []object.Object
 }
@@ -36,7 +36,10 @@ func (f *Frame) InitWithLocals(fn *object.CompiledFunction, returnAddr int, loca
 	if count > DefaultFrameLocals {
 		copy(f.extendedLocals, locals)
 	} else {
-		copy(f.locals[:], locals)
+		// Using `copy` is slower than this loop.
+		for i := 0; i < count; i++ {
+			f.locals[i] = locals[i]
+		}
 	}
 }
 
