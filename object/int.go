@@ -86,7 +86,7 @@ func NewInt(value int64) *Int {
 	return &Int{value: value}
 }
 
-const tableSize = 1024
+const tableSize = 256
 
 var intCache = []*Int{}
 

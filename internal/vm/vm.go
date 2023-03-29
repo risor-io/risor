@@ -83,12 +83,14 @@ func (vm *VM) Run() error {
 	vm.currentFrame.scope = vm.main
 
 	for vm.ip < len(vm.currentScope.Instructions) {
+
+		// The current function scope
 		scope := vm.currentScope
+
+		// The current instruction opcode
 		opcode := scope.Instructions[vm.ip]
-		// opinfo := op.GetInfo(opcode)
-		// _, operands := compiler.ReadOp(scope.Instructions[vm.ip:])
-		// fmt.Printf("EXEC %-25s %v (IP: %d)\n", opinfo.Name, operands, vm.ip)
 		vm.ip++
+
 		switch opcode {
 		case op.Nop:
 		case op.LoadAttr:
@@ -168,10 +170,10 @@ func (vm *VM) Run() error {
 				result := obj.Call(ctx, vm.tmp[:argc]...)
 				vm.Push(result)
 			case *object.CompiledFunction:
-				if vm.fp+1 >= MaxFrameDepth {
+				vm.fp++
+				if vm.fp >= MaxFrameDepth {
 					return errors.New("frame overflow")
 				}
-				vm.fp++
 				frame := &vm.frames[vm.fp]
 				scope := obj.Scope().(*compiler.Scope)
 				if scope.IsNamed {
@@ -180,20 +182,20 @@ func (vm *VM) Run() error {
 				}
 				frame.InitWithLocals(obj, vm.ip, vm.tmp[:argc])
 				vm.currentFrame = frame
-				vm.ip = 0
 				vm.currentScope = scope
+				vm.ip = 0
 			default:
-				return fmt.Errorf("not a function: %T", obj)
+				return fmt.Errorf("object is not callable: %T", obj)
 			}
 		case op.ReturnValue:
-			if vm.fp < 1 {
-				return errors.New("frame underflow")
-			}
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
+			if vm.fp < 0 {
+				return errors.New("frame underflow")
+			}
 			vm.currentFrame = &vm.frames[vm.fp]
-			vm.ip = returnAddr
 			vm.currentScope = vm.currentFrame.Scope()
+			vm.ip = returnAddr
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := int(vm.fetch2()) - 3
