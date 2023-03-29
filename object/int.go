@@ -62,13 +62,13 @@ func (i *Int) Compare(other Object) (int, error) {
 }
 
 func (i *Int) Equals(other Object) Object {
-	switch other.Type() {
-	case INT:
-		if i.value == other.(*Int).value {
+	switch other := other.(type) {
+	case *Int:
+		if i.value == other.value {
 			return True
 		}
-	case FLOAT:
-		if float64(i.value) == other.(*Float).value {
+	case *Float:
+		if float64(i.value) == other.value {
 			return True
 		}
 	}
@@ -80,5 +80,19 @@ func (i *Int) IsTruthy() bool {
 }
 
 func NewInt(value int64) *Int {
+	if value >= 0 && value < tableSize {
+		return intCache[value]
+	}
 	return &Int{value: value}
+}
+
+const tableSize = 1024
+
+var intCache = []*Int{}
+
+func init() {
+	intCache = make([]*Int, tableSize)
+	for i := 0; i < tableSize; i++ {
+		intCache[i] = &Int{value: int64(i)}
+	}
 }

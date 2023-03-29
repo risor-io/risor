@@ -12,7 +12,10 @@ import (
 	"github.com/cloudcmds/tamarin/parser"
 )
 
-const MaxFrameCount = 1024
+const (
+	// MaxFrameCount = 2048
+	MaxArgs = 255
+)
 
 func Run(code string) (object.Object, error) {
 	ast, err := parser.Parse(code)
@@ -34,23 +37,40 @@ func Run(code string) (object.Object, error) {
 	return vm.Pop(), nil
 }
 
+const MaxFrameDepth = 1024
+
 type VM struct {
-	ip           int
-	sp           int
-	stack        *Stack[object.Object]
-	frameStack   *Stack[*Frame]
+	ip    int
+	sp    int
+	stack *Stack[object.Object]
+	// frameStack   *Stack[*Frame]
+	frames       [MaxFrameDepth]Frame
+	framesIndex  int
 	main         *compiler.Scope
 	currentScope *compiler.Scope
 	globals      []object.Object
+	// framePool    sync.Pool
+	// arrayPool sync.Pool
 }
 
 func New(main *compiler.Scope) *VM {
 	vm := &VM{
-		stack:        NewStack[object.Object](1024),
-		frameStack:   NewStack[*Frame](1024),
+		stack: NewStack[object.Object](1024),
+		// frameStack:   NewStack[*Frame](1024),
 		sp:           -1,
 		main:         main,
 		currentScope: main,
+		// framePool: sync.Pool{
+		// 	New: func() interface{} {
+		// 		return &Frame{}
+		// 	},
+		// },
+		// arrayPool: sync.Pool{
+		// 	New: func() interface{} {
+		// 		slice := make([]object.Object, 8)
+		// 		return &slice
+		// 	},
+		// },
 	}
 	if main.Symbols != nil {
 		m := main.Symbols.Map()
@@ -70,9 +90,12 @@ func (vm *VM) Run() error {
 	// }
 	// fmt.Println("---")
 	ctx := context.Background()
-	symbolCount := vm.currentScope.Symbols.Size()
-	currentFrame := NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope)
-	vm.frameStack.Push(currentFrame)
+	// currentFrame := NewFrame(nil, make([]object.Object, symbolCount), 0, vm.currentScope)
+	tmpArgs := [MaxArgs]object.Object{}
+	currentFrame := &vm.frames[0]
+	currentFrame.Init(nil, 0, vm.currentScope.Symbols.Size())
+	currentFrame.scope = vm.main
+	// vm.frameStack.Push(currentFrame)
 	for vm.ip < len(vm.currentScope.Instructions) {
 		scope := vm.currentScope
 		opcode := scope.Instructions[vm.ip]
@@ -124,12 +147,14 @@ func (vm *VM) Run() error {
 			vm.stack.Push(closure)
 		case op.MakeCell:
 			symbolIndex := vm.fetch2()
-			framesBack := vm.fetch()
-			frame, ok := vm.frameStack.Get(int(framesBack))
-			if !ok {
+			framesBack := int(vm.fetch())
+			frameIndex := vm.framesIndex - framesBack
+			if frameIndex < 0 {
 				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
-			vm.stack.Push(object.NewCell(&frame.locals[symbolIndex]))
+			frame := &vm.frames[frameIndex]
+			locals := frame.Locals()
+			vm.stack.Push(object.NewCell(&locals[symbolIndex]))
 		case op.Nil:
 			vm.stack.Push(object.Nil)
 		case op.True:
@@ -147,45 +172,55 @@ func (vm *VM) Run() error {
 			a := vm.Pop()
 			vm.stack.Push(vm.runBinaryOp(opType, a, b))
 		case op.Call:
-			if vm.frameStack.Size() >= MaxFrameCount {
-				return errors.New("stack overflow")
-			}
-			argc := vm.fetch()
-			args := make([]object.Object, argc)
-			for i := uint8(0); i < argc; i++ {
-				args[argc-1-i] = vm.Pop()
+			argc := int(vm.fetch())
+			for i := 0; i < argc; i++ {
+				tmpArgs[argc-1-i] = vm.Pop()
 			}
 			obj := vm.Pop()
 			switch obj := obj.(type) {
 			case *object.Builtin:
-				result := obj.Call(ctx, args...)
+				result := obj.Call(ctx, tmpArgs[:argc]...)
 				vm.stack.Push(result)
 			case *object.CompiledFunction:
-				compilerScope := obj.Scope().(*compiler.Scope)
-				locals := make([]object.Object, compilerScope.Symbols.Size())
-				copy(locals, args) // Assumes order is correct (confirm)
-				if compilerScope.IsNamed {
-					locals[len(locals)-1] = obj
+				if vm.framesIndex+1 >= MaxFrameDepth {
+					fmt.Println("OVERFLOW", vm.framesIndex)
+					return errors.New("frame overflow")
 				}
-				frame := currentFrame.NewChild(obj, locals, vm.ip)
-				vm.frameStack.Push(frame)
+				vm.framesIndex++
+				frame := &vm.frames[vm.framesIndex]
+				scope := obj.Scope().(*compiler.Scope)
+				if scope.IsNamed {
+					tmpArgs[argc] = obj
+					argc++
+				}
+				// fmt.Println("frame.InitWithLocals", argc, vm.ip, tmpArgs[:argc])
+				frame.InitWithLocals(obj, vm.ip, tmpArgs[:argc])
+				// frame := currentFrame.NewChild(obj, locals, vm.ip)
+				// frame := vm.framePool.Get().(*Frame)
+				// frame.fn = obj
+				// frame.locals = args
+				// frame.returnAddr = vm.ip
+				// frame.parent = currentFrame
+				// frame.scope = scope
+				// vm.frameStack.Push(frame)
 				currentFrame = frame
 				vm.ip = 0
-				vm.currentScope = compilerScope
+				vm.currentScope = scope
 			default:
 				return fmt.Errorf("not a function: %T", obj)
 			}
 		case op.ReturnValue:
-			frame, ok := vm.frameStack.Pop()
-			if !ok {
-				return errors.New("invalid return")
+			if vm.framesIndex < 1 {
+				return errors.New("frame underflow")
 			}
-			if vm.fetch() != 1 {
-				return errors.New("expected 1 return value")
-			}
-			vm.ip = frame.returnAddr
-			vm.currentScope = frame.parent.scope
-			currentFrame = frame.parent
+			leaving := &vm.frames[vm.framesIndex]
+			vm.framesIndex--
+			currentFrame = &vm.frames[vm.framesIndex]
+			vm.ip = leaving.returnAddr
+			vm.currentScope = currentFrame.Scope()
+			// currentFrame = frame.parent
+			// vm.framePool.Put(frame)
+			// vm.arrayPool.Put(&frame.locals)
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := int(vm.fetch2()) - 3
@@ -349,15 +384,12 @@ func (vm *VM) TOS() (object.Object, bool) {
 	return vm.stack.Top()
 }
 
-func (vm *VM) Frame() (*Frame, bool) {
-	return vm.frameStack.Top()
-}
+// func (vm *VM) Frame() (*Frame, bool) {
+// 	return vm.frameStack.Top()
+// }
 
 func (vm *VM) Pop() object.Object {
-	obj, ok := vm.stack.Pop()
-	if !ok {
-		return nil
-	}
+	obj, _ := vm.stack.Pop()
 	return obj
 }
 
