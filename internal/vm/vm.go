@@ -359,7 +359,6 @@ func (vm *VM) TOS() object.Object {
 }
 
 func (vm *VM) Pop() object.Object {
-	fmt.Println("POP", vm.sp)
 	obj := vm.stack[vm.sp]
 	vm.sp--
 	return obj
@@ -368,7 +367,6 @@ func (vm *VM) Pop() object.Object {
 func (vm *VM) Push(obj object.Object) {
 	vm.sp++
 	vm.stack[vm.sp] = obj
-	fmt.Println("PUSH", obj, vm.sp)
 }
 
 func (vm *VM) fetch() uint16 {
