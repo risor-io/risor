@@ -199,25 +199,25 @@ func (vm *VM) Run() error {
 			vm.ip = returnAddr
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
-			delta := int(vm.fetch()) - 3
+			delta := int(vm.fetch()) - 2
 			if tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpForwardIfFalse:
 			tos := vm.Pop()
-			delta := int(vm.fetch()) - 3
+			delta := int(vm.fetch()) - 2
 			if !tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpBackwardIfTrue:
 			tos := vm.Pop()
-			delta := int(vm.fetch()) - 3
+			delta := int(vm.fetch()) - 2
 			if tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.PopJumpBackwardIfFalse:
 			tos := vm.Pop()
-			delta := int(vm.fetch()) - 3
+			delta := int(vm.fetch()) - 2
 			if !tos.IsTruthy() {
 				vm.ip -= delta
 			}

@@ -642,6 +642,9 @@ func (c *Compiler) emit(opcode op.Code, operands ...uint16) uint16 {
 
 func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 	opInfo := op.OperandCount[opcode]
+	if len(operands) != opInfo.OperandCount {
+		panic("wrong operand count")
+	}
 	instruction := make([]op.Code, 1+opInfo.OperandCount)
 	instruction[0] = opcode
 	offset := 1
