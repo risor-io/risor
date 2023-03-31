@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
@@ -34,8 +33,8 @@ type Compiler struct {
 }
 
 type Options struct {
-	GlobalSymbols *symbol.Table
-	Name          string
+	Builtins map[string]object.Object
+	Name     string
 }
 
 type Loop struct {
@@ -43,24 +42,15 @@ type Loop struct {
 	BreakPos    []uint16
 }
 
-func NewGlobalSymbols() *symbol.Table {
-	table := symbol.NewTable()
-	for _, b := range evaluator.GlobalBuiltins() {
-		table.Insert(b.Name(), symbol.Attrs{Value: b})
-	}
-	return table
-}
-
 func New(opts Options) *Compiler {
-	var symbols *symbol.Table
-	if opts.GlobalSymbols != nil {
-		symbols = opts.GlobalSymbols
-	} else {
-		symbols = symbol.NewTable()
-	}
 	mainScope := &Scope{
 		Name:    opts.Name,
-		Symbols: symbols,
+		Symbols: symbol.NewTable(),
+	}
+	for name, builtin := range opts.Builtins {
+		if _, err := mainScope.Symbols.InsertBuiltin(name, builtin); err != nil {
+			panic(fmt.Sprintf("failed to insert builtin %s: %s", name, err))
+		}
 	}
 	return &Compiler{
 		scopes:       []*Scope{mainScope},
@@ -115,7 +105,7 @@ func (c *Compiler) compile(node ast.Node) error {
 			}
 		}
 	case *ast.Block:
-		scope.Symbols = scope.Symbols.NewChild(true)
+		scope.Symbols = scope.Symbols.NewBlock()
 		defer func() {
 			scope.Symbols = scope.Symbols.Parent()
 		}()
@@ -129,7 +119,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
-		sym, err := scope.Symbols.Insert(name, symbol.Attrs{})
+		sym, err := scope.Symbols.InsertVariable(name)
 		if err != nil {
 			return err
 		}
@@ -155,6 +145,8 @@ func (c *Compiler) compile(node ast.Node) error {
 			c.emit(op.LoadFast, sym.Symbol.Index)
 		case symbol.ScopeFree:
 			c.emit(op.LoadFree, sym.Symbol.Index)
+		case symbol.ScopeBuiltin:
+			c.emit(op.LoadBuiltin, sym.Symbol.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -335,7 +327,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		Name:    name,
 		IsNamed: ident != nil,
 		Parent:  c.CurrentScope(),
-		Symbols: c.currentScope.Symbols.NewChild(false),
+		Symbols: c.currentScope.Symbols.NewChild(),
 	}
 	c.currentScope.Children = append(c.currentScope.Children, funcScope)
 	c.scopes = append(c.scopes, funcScope)
@@ -357,10 +349,10 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 	// Add the function's own name to the symbol table to support recursive calls
 	for _, arg := range node.Parameters() {
-		funcScope.Symbols.Insert(arg.Literal(), symbol.Attrs{})
+		funcScope.Symbols.InsertVariable(arg.Literal())
 	}
 	if ident != nil {
-		funcScope.Symbols.Insert(name, symbol.Attrs{})
+		funcScope.Symbols.InsertVariable(name)
 	}
 	statements := node.Body().Statements()
 	for _, statement := range statements {
@@ -386,7 +378,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		c.emit(op.LoadConst, c.constant(fn))
 	}
 	if node.Name() != nil {
-		funcSymbol, err := c.currentScope.Symbols.Insert(name, symbol.Attrs{})
+		funcSymbol, err := c.currentScope.Symbols.InsertVariable(name)
 		if err != nil {
 			return err
 		}
@@ -459,6 +451,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 			c.emit(op.StoreFast, sym.Symbol.Index)
 		case symbol.ScopeFree:
 			c.emit(op.StoreFree, sym.Symbol.Index)
+		case symbol.ScopeBuiltin:
+			c.emit(op.LoadBuiltin, sym.Symbol.Index)
 		}
 		return nil
 	}
@@ -470,6 +464,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.LoadFast, sym.Symbol.Index)
 	case symbol.ScopeFree:
 		c.emit(op.LoadFree, sym.Symbol.Index)
+	case symbol.ScopeBuiltin:
+		c.emit(op.LoadBuiltin, sym.Symbol.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -494,6 +490,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.StoreFast, sym.Symbol.Index)
 	case symbol.ScopeFree:
 		c.emit(op.StoreFree, sym.Symbol.Index)
+	case symbol.ScopeBuiltin:
+		c.emit(op.LoadBuiltin, sym.Symbol.Index)
 	}
 	return nil
 }
@@ -518,7 +516,7 @@ func (c *Compiler) endLoop() {
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	scope := c.currentScope
-	scope.Symbols = scope.Symbols.NewChild(true)
+	scope.Symbols = scope.Symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()

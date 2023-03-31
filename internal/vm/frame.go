@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"math"
+
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/object"
 )
@@ -9,14 +11,14 @@ const DefaultFrameLocals = 4
 
 type Frame struct {
 	returnAddr     int
-	localsCount    int
+	localsCount    uint16
 	fn             *object.CompiledFunction
 	scope          *compiler.Scope
 	locals         [DefaultFrameLocals]object.Object
 	extendedLocals []object.Object
 }
 
-func (f *Frame) Init(fn *object.CompiledFunction, returnAddr int, localsCount int) {
+func (f *Frame) Init(fn *object.CompiledFunction, returnAddr int, localsCount uint16) {
 	f.fn = fn
 	if fn != nil {
 		f.scope = fn.Scope().(*compiler.Scope)
@@ -32,7 +34,10 @@ func (f *Frame) Init(fn *object.CompiledFunction, returnAddr int, localsCount in
 
 func (f *Frame) InitWithLocals(fn *object.CompiledFunction, returnAddr int, locals []object.Object) {
 	count := len(locals)
-	f.Init(fn, returnAddr, count)
+	if count > math.MaxUint16 {
+		panic("too many locals")
+	}
+	f.Init(fn, returnAddr, uint16(count))
 	if count > DefaultFrameLocals {
 		copy(f.extendedLocals, locals)
 	} else {

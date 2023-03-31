@@ -18,6 +18,7 @@ const (
 	JumpBackward
 	JumpForward
 	LoadAttr
+	LoadBuiltin
 	LoadClosure
 	LoadConst
 	LoadFast
@@ -90,9 +91,9 @@ func init() {
 		widths []int
 	}
 	ops := []opInfo{
-		{BinaryOp, "BINARY_OP", 1, []int{1}},
-		{Call, "CALL", 1, []int{1}},
-		{CompareOp, "COMPARE_OP", 1, []int{1}},
+		{BinaryOp, "BINARY_OP", 1, []int{2}},
+		{Call, "CALL", 1, []int{2}},
+		{CompareOp, "COMPARE_OP", 1, []int{2}},
 		{False, "FALSE", 0, nil},
 		{Halt, "HALT", 0, nil},
 		{PopJumpForwardIfTrue, "POP_JUMP_FORWARD_IF_TRUE", 1, []int{2}},
@@ -102,6 +103,7 @@ func init() {
 		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
 		{JumpBackward, "JUMP_BACKWARD", 1, []int{2}},
 		{LoadAttr, "LOAD_ATTR", 1, []int{2}},
+		{LoadBuiltin, "LOAD_BUILTIN", 1, []int{2}},
 		{LoadConst, "LOAD_CONST", 1, []int{2}},
 		{LoadClosure, "LOAD_CLOSURE", 2, []int{2, 2}},
 		{LoadFast, "LOAD_FAST", 1, []int{2}},
@@ -113,11 +115,11 @@ func init() {
 		{Nop, "NOP", 0, nil},
 		{PopTop, "POP_TOP", 0, nil},
 		{Print, "PRINT", 0, nil},
-		{ReturnValue, "RETURN_VALUE", 1, []int{1}},
-		{StoreAttr, "STORE_ATTR", 1, []int{1}},
-		{StoreFast, "STORE_FAST", 1, []int{1}},
+		{ReturnValue, "RETURN_VALUE", 1, []int{2}},
+		{StoreAttr, "STORE_ATTR", 1, []int{2}},
+		{StoreFast, "STORE_FAST", 1, []int{2}},
 		{StoreGlobal, "STORE_GLOBAL", 1, []int{2}},
-		{StoreName, "STORE_NAME", 1, []int{1}},
+		{StoreName, "STORE_NAME", 1, []int{2}},
 		{StoreFree, "STORE_FREE", 1, []int{2}},
 		{True, "TRUE", 0, nil},
 		{UnaryNegative, "UNARY_NEGATIVE", 0, nil},
@@ -129,7 +131,7 @@ func init() {
 		{BinarySubscr, "BINARY_SUBSCR", 0, nil},
 		{DeleteSubscr, "DELETE_SUBSCR", 0, nil},
 		{StoreSubscr, "STORE_SUBSCR", 0, nil},
-		{ContainsOp, "CONTAINS_OP", 1, []int{1}},
+		{ContainsOp, "CONTAINS_OP", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

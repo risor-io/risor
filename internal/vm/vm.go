@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
@@ -23,9 +24,13 @@ func Run(code string) (object.Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	builtins := map[string]object.Object{}
+	for _, b := range evaluator.GlobalBuiltins() {
+		builtins[b.Key()] = b
+	}
 	c := compiler.New(compiler.Options{
-		GlobalSymbols: compiler.NewGlobalSymbols(),
-		Name:          "main",
+		Builtins: builtins,
+		Name:     "main",
 	})
 	mainScope, err := c.Compile(ast)
 	if err != nil {
@@ -49,6 +54,7 @@ type VM struct {
 	main         *compiler.Scope
 	currentScope *compiler.Scope
 	globals      []object.Object
+	builtins     []object.Object
 }
 
 func New(main *compiler.Scope) *VM {
@@ -60,13 +66,8 @@ func New(main *compiler.Scope) *VM {
 		currentScope: main,
 	}
 	if main.Symbols != nil {
-		m := main.Symbols.Map()
-		vm.globals = make([]object.Object, len(m))
-		for _, sym := range m {
-			if sym.Attrs.Value != nil {
-				vm.globals[sym.Index] = sym.Attrs.Value.(object.Object)
-			}
-		}
+		vm.globals = main.Symbols.Variables()
+		vm.builtins = main.Symbols.Builtins()
 	}
 	return vm
 }
@@ -108,6 +109,8 @@ func (vm *VM) Run() error {
 		case op.LoadFree:
 			freeVars := vm.currentFrame.fn.FreeVars()
 			vm.Push(freeVars[vm.fetch()].Value())
+		case op.LoadBuiltin:
+			vm.Push(vm.builtins[vm.fetch()])
 		case op.StoreFast:
 			vm.currentFrame.locals[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
