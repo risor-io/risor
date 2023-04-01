@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 type Set struct {
@@ -256,6 +258,10 @@ func (s *Set) Contains(key Object) *Bool {
 
 func (s *Set) IsTruthy() bool {
 	return len(s.items) > 0
+}
+
+func (s *Set) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for set: %v", opType))
 }
 
 // Len returns the number of items in this container.

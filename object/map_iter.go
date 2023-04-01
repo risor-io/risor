@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 type MapIter struct {
@@ -62,6 +64,10 @@ func (iter *MapIter) GetAttr(name string) (Object, bool) {
 
 func (iter *MapIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.keys))
+}
+
+func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for map_iter: %v", opType))
 }
 
 func (iter *MapIter) Next() (IteratorEntry, bool) {

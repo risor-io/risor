@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/compiler"
@@ -154,12 +153,12 @@ func (vm *VM) Run() error {
 			opType := op.CompareOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.Push(vm.runCompareOp(opType, a, b))
+			vm.Push(compare(opType, a, b))
 		case op.BinaryOp:
 			opType := op.BinaryOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.Push(vm.runBinaryOp(opType, a, b))
+			vm.Push(binaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
@@ -293,57 +292,6 @@ func (vm *VM) Run() error {
 		default:
 			return fmt.Errorf("unknown opcode: %d", opcode)
 		}
-	}
-	return nil
-}
-
-func (vm *VM) runCompareOp(opType op.CompareOpType, a, b object.Object) object.Object {
-	switch opType {
-	case op.Equal:
-		return a.Equals(b)
-	case op.NotEqual:
-		if a.Equals(b) == object.True {
-			return object.False
-		} else {
-			return object.True
-		}
-	case op.LessThan:
-		return object.NewBool(a.(*object.Int).Value() < b.(*object.Int).Value())
-	case op.LessThanOrEqual:
-		return object.NewBool(a.(*object.Int).Value() <= b.(*object.Int).Value())
-	case op.GreaterThan:
-		return object.NewBool(a.(*object.Int).Value() > b.(*object.Int).Value())
-	case op.GreaterThanOrEqual:
-		return object.NewBool(a.(*object.Int).Value() >= b.(*object.Int).Value())
-	default:
-		panic("unknown compare op")
-	}
-}
-
-func (vm *VM) runBinaryOp(opType op.BinaryOpType, a, b object.Object) object.Object {
-	switch opType {
-	case op.Add:
-		return object.NewInt(a.(*object.Int).Value() + b.(*object.Int).Value())
-	case op.Subtract:
-		return object.NewInt(a.(*object.Int).Value() - b.(*object.Int).Value())
-	case op.Multiply:
-		return object.NewInt(a.(*object.Int).Value() * b.(*object.Int).Value())
-	case op.Divide:
-		return object.NewInt(a.(*object.Int).Value() / b.(*object.Int).Value())
-	case op.Modulo:
-		return object.NewInt(a.(*object.Int).Value() % b.(*object.Int).Value())
-	case op.And:
-		return object.NewInt(a.(*object.Int).Value() & b.(*object.Int).Value())
-	case op.Or:
-		return object.NewInt(a.(*object.Int).Value() | b.(*object.Int).Value())
-	case op.Xor:
-		return object.NewInt(a.(*object.Int).Value() ^ b.(*object.Int).Value())
-	case op.Power:
-		return object.NewInt(int64(math.Pow(float64(a.(*object.Int).Value()), float64(b.(*object.Int).Value()))))
-	case op.LShift:
-		return object.NewInt(a.(*object.Int).Value() << b.(*object.Int).Value())
-	case op.RShift:
-		return object.NewInt(a.(*object.Int).Value() >> b.(*object.Int).Value())
 	}
 	return nil
 }

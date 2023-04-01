@@ -1,5 +1,11 @@
 package object
 
+import (
+	"fmt"
+
+	"github.com/cloudcmds/tamarin/internal/op"
+)
+
 type DefaultImpl struct{}
 
 func (d *DefaultImpl) Type() Type {
@@ -27,4 +33,8 @@ func (d *DefaultImpl) GetAttr(name string) (Object, bool) {
 
 func (d *DefaultImpl) IsTruthy() bool {
 	return true
+}
+
+func (d *DefaultImpl) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for default: %v", opType))
 }

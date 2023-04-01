@@ -2,6 +2,9 @@ package object
 
 import (
 	"fmt"
+	"math"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Int wraps int64 and implements Object and Hashable interfaces.
@@ -41,10 +44,11 @@ func (i *Int) String() string {
 func (i *Int) Compare(other Object) (int, error) {
 	switch other := other.(type) {
 	case *Float:
-		if float64(i.value) == other.value {
+		thisFloat := float64(i.value)
+		if thisFloat == other.value {
 			return 0, nil
 		}
-		if float64(i.value) > other.value {
+		if thisFloat > other.value {
 			return 1, nil
 		}
 		return -1, nil
@@ -77,6 +81,46 @@ func (i *Int) Equals(other Object) Object {
 
 func (i *Int) IsTruthy() bool {
 	return i.value != 0
+}
+
+func (i *Int) RunOperation(opType op.BinaryOpType, right Object) Object {
+	switch right := right.(type) {
+	case *Int:
+		return i.runOperationInt(opType, right.value)
+	case *Float:
+		return i.runOperationInt(opType, int64(right.value))
+	default:
+		return NewError(fmt.Errorf("unsupported operation for int: %v on type %s", opType, right.Type()))
+	}
+}
+
+func (i *Int) runOperationInt(opType op.BinaryOpType, right int64) Object {
+	switch opType {
+	case op.Add:
+		return NewInt(i.value + right)
+	case op.Subtract:
+		return NewInt(i.value - right)
+	case op.Multiply:
+		return NewInt(i.value * right)
+	case op.Divide:
+		return NewInt(i.value / right)
+	case op.Modulo:
+		return NewInt(i.value % right)
+	case op.Xor:
+		return NewInt(i.value ^ right)
+	case op.Power:
+		return NewInt(int64(math.Pow(float64(i.value), float64(right))))
+	case op.LShift:
+		return NewInt(i.value << uint(right))
+	case op.RShift:
+		return NewInt(i.value >> uint(right))
+	case op.BitwiseAnd:
+		return NewInt(i.value & right)
+	case op.BitwiseOr:
+		return NewInt(i.value | right)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for int: %v", opType))
+	}
 }
 
 func NewInt(value int64) *Int {

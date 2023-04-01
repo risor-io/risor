@@ -2,6 +2,8 @@ package object
 
 import (
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Bool wraps bool and implements Object and Hashable interface.
@@ -68,6 +70,10 @@ func (b *Bool) Equals(other Object) Object {
 
 func (b *Bool) IsTruthy() bool {
 	return b.value
+}
+
+func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for bool: %v", opType))
 }
 
 func NewBool(value bool) *Bool {

@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 type SetIter struct {
@@ -62,6 +64,10 @@ func (iter *SetIter) GetAttr(name string) (Object, bool) {
 
 func (iter *SetIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.keys))
+}
+
+func (iter *SetIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for set_iter: %v", opType))
 }
 
 func (iter *SetIter) Next() (IteratorEntry, bool) {

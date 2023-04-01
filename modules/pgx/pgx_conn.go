@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -50,6 +51,10 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("pgx_conn.close", c.Close), true
 	}
 	return nil, false
+}
+
+func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
+	return object.NewError(fmt.Errorf("unsupported operation for pgx_conn: %v", opType))
 }
 
 func (c *PgxConn) Close(ctx context.Context, args ...object.Object) object.Object {

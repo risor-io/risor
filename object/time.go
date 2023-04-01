@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 type Time struct {
@@ -67,6 +69,10 @@ func (t *Time) Equals(other Object) Object {
 		return True
 	}
 	return False
+}
+
+func (t *Time) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for time: %v", opType))
 }
 
 func NewTime(t time.Time) *Time {

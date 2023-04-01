@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Result contains one of: an "ok" value or an "err" value
@@ -184,6 +186,10 @@ func (rv *Result) Equals(other Object) Object {
 
 func (rv *Result) IsTruthy() bool {
 	return rv.IsOk()
+}
+
+func (rv *Result) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for result: %v", opType))
 }
 
 func NewErrResult(err *Error) *Result {

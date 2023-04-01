@@ -2,9 +2,11 @@ package object
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/cloudcmds/tamarin/ast"
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // Function contains the AST for user defined function and implements Object interface.
@@ -14,14 +16,7 @@ type Function struct {
 	body       *ast.Block
 	defaults   map[string]ast.Expression
 	scope      Scope
-
-	// compilerScope *compiler.Scope
-	fn *ast.Func
-	// instructions []op.Code
-	// symbols      any
-	// constants    []Object
-	fnScope  any
-	freeVars []*Cell
+	fnScope    any
 }
 
 func (f *Function) Type() Type {
@@ -99,6 +94,10 @@ func (f *Function) Equals(other Object) Object {
 
 func (f *Function) IsTruthy() bool {
 	return true
+}
+
+func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for function: %v", opType))
 }
 
 func (f *Function) CompilerScope() any {

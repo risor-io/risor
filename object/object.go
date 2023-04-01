@@ -16,6 +16,8 @@
 // name of the object type, such as "STRING" or "FLOAT".
 package object
 
+import "github.com/cloudcmds/tamarin/internal/op"
+
 // Type defines the type of an object.
 type Type string
 
@@ -76,6 +78,10 @@ type Object interface {
 
 	// IsTruthy returns true if the object is considered "truthy".
 	IsTruthy() bool
+
+	// RunOperation runs an operation on this object with the given
+	// right-hand side object.
+	RunOperation(opType op.BinaryOpType, right Object) Object
 }
 
 // Slice is used to specify a range or slice of items in a container.

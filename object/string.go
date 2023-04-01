@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 type String struct {
@@ -232,6 +234,10 @@ func (s *String) Equals(other Object) Object {
 
 func (s *String) IsTruthy() bool {
 	return s.value != ""
+}
+
+func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for string: %v", opType))
 }
 
 func (s *String) Reversed() *String {

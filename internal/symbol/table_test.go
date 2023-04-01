@@ -59,3 +59,34 @@ func TestBlock(t *testing.T) {
 	value := locals[0]
 	require.Equal(t, object.NewInt(42), value)
 }
+
+func TestFreeVar(t *testing.T) {
+	main := NewTable()
+	outerFunc := main.NewChild()
+	innerFunc := outerFunc.NewChild()
+
+	outerFunc.InsertVariable("a", object.NewInt(42))
+
+	_, found := innerFunc.Lookup("whut")
+	require.False(t, found)
+
+	res, found := innerFunc.Lookup("a")
+	require.True(t, found)
+
+	exp := &Resolution{
+		Symbol: &Symbol{
+			Name:  "a",
+			Index: 0,
+			Value: object.NewInt(42),
+		},
+		Scope: ScopeFree,
+		Depth: 1,
+	}
+	require.Equal(t, exp, res)
+
+	freeVars := innerFunc.Free()
+	require.Len(t, freeVars, 1)
+	require.Equal(t, exp, freeVars[0])
+
+	require.Len(t, outerFunc.Free(), 0)
+}

@@ -51,28 +51,30 @@ const (
 type BinaryOpType uint16
 
 const (
-	Add      BinaryOpType = 1
-	Subtract BinaryOpType = 2
-	Multiply BinaryOpType = 3
-	Divide   BinaryOpType = 4
-	Modulo   BinaryOpType = 5
-	And      BinaryOpType = 6
-	Or       BinaryOpType = 7
-	Xor      BinaryOpType = 8
-	Power    BinaryOpType = 9
-	LShift   BinaryOpType = 10
-	RShift   BinaryOpType = 11
+	Add BinaryOpType = iota
+	Subtract
+	Multiply
+	Divide
+	Modulo
+	And
+	Or
+	Xor
+	Power
+	LShift
+	RShift
+	BitwiseAnd
+	BitwiseOr
 )
 
 type CompareOpType uint16
 
 const (
-	LessThan           CompareOpType = 1
-	LessThanOrEqual    CompareOpType = 2
-	Equal              CompareOpType = 3
-	NotEqual           CompareOpType = 4
-	GreaterThan        CompareOpType = 5
-	GreaterThanOrEqual CompareOpType = 6
+	LessThan CompareOpType = iota
+	LessThanOrEqual
+	Equal
+	NotEqual
+	GreaterThan
+	GreaterThanOrEqual
 )
 
 type Info struct {

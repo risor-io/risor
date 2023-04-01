@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 const TenMB = 1024 * 1024 * 10
@@ -133,6 +135,10 @@ func (r *HttpResponse) Equals(other Object) Object {
 
 func (r *HttpResponse) IsTruthy() bool {
 	return true
+}
+
+func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for http_response: %v", opType))
 }
 
 func NewHttpResponse(resp *http.Response) *HttpResponse {

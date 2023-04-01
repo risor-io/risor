@@ -399,6 +399,7 @@ func TestMultipleCases(t *testing.T) {
 		tests := []testCase{
 			{`3 < 5`, object.True},
 			{`10 > 5`, object.True},
+			{`3 <= 5`, object.True},
 			{`10 == 5`, object.False},
 			{`10 != 5`, object.True},
 			{`!true`, object.False},

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 var (
@@ -396,6 +398,10 @@ func (p *Proxy) Equals(other Object) Object {
 
 func (p *Proxy) IsTruthy() bool {
 	return true
+}
+
+func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for proxy: %v", opType))
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {

@@ -583,6 +583,10 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 		return err
 	}
 	switch node.Operator() {
+	case "&&":
+		c.emit(op.BinaryOp, uint16(op.And))
+	case "||":
+		c.emit(op.BinaryOp, uint16(op.Or))
 	case "+":
 		c.emit(op.BinaryOp, uint16(op.Add))
 	case "-":

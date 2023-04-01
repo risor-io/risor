@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/internal/op"
 )
 
 // List of objects
@@ -540,6 +542,10 @@ func (ls *List) Len() *Int {
 
 func (ls *List) Iter() Iterator {
 	return NewListIter(ls)
+}
+
+func (ls *List) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for list: %v", opType))
 }
 
 func NewList(items []Object) *List {
