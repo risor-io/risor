@@ -545,7 +545,26 @@ func (ls *List) Iter() Iterator {
 }
 
 func (ls *List) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for list: %v", opType))
+	switch right := right.(type) {
+	case *List:
+		return ls.runOperationList(opType, right)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+			opType, right.Type()))
+	}
+}
+
+func (ls *List) runOperationList(opType op.BinaryOpType, right *List) Object {
+	switch opType {
+	case op.Add:
+		combined := make([]Object, len(ls.items)+len(right.items))
+		copy(combined, ls.items)
+		copy(combined[len(ls.items):], right.items)
+		return NewList(combined)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+			opType, right.Type()))
+	}
 }
 
 func NewList(items []Object) *List {

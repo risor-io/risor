@@ -237,7 +237,21 @@ func (s *String) IsTruthy() bool {
 }
 
 func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for string: %v", opType))
+	switch right := right.(type) {
+	case *String:
+		return s.runOperationString(opType, right)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+	}
+}
+
+func (s *String) runOperationString(opType op.BinaryOpType, right *String) Object {
+	switch opType {
+	case op.Add:
+		return NewString(s.value + right.value)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+	}
 }
 
 func (s *String) Reversed() *String {

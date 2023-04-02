@@ -9,4 +9,5 @@ func fib(n int) int {
 
 func main() {
 	println(fib(10))
+	println("foo" + "bar!")
 }
