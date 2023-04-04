@@ -34,7 +34,7 @@ func (si *SimpleImporter) Import(ctx context.Context, e *Evaluator, name string)
 	if result != nil && result.Type() == "ERROR" {
 		return nil, errors.New(result.Inspect())
 	}
-	return object.NewModule(name, s), nil
+	return object.NewModule(name), nil
 }
 
 func (e *Evaluator) evalImportStatement(ctx context.Context, node *ast.Import, s *scope.Scope) object.Object {

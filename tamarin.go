@@ -8,12 +8,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/cloudcmds/tamarin/exec"
 	"github.com/cloudcmds/tamarin/internal/vm"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 	"github.com/cloudcmds/tamarin/repl"
-	"github.com/cloudcmds/tamarin/scope"
 	"github.com/fatih/color"
 )
 
@@ -43,11 +41,6 @@ func main() {
 	}
 
 	ctx := context.Background()
-	globalScope := scope.New(scope.Opts{Name: "global"})
-	if err := exec.AutoImport(globalScope, nil, nil); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-		os.Exit(1)
-	}
 
 	interp := vm.NewInterpreter(nil)
 

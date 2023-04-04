@@ -3,11 +3,9 @@ package json
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
 	"github.com/wI2L/jsondiff"
 )
 
@@ -91,21 +89,11 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 	return Unmarshal(ctx, unmarshalArgs...)
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
-	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("unmarshal", Unmarshal, m),
-		object.NewBuiltin("marshal", Marshal, m),
-		object.NewBuiltin("valid", Valid, m),
-		object.NewBuiltin("diff", Diff, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+func Module() *object.Module {
+	m := object.NewModule(Name)
+	m.Register("unmarshal", object.NewBuiltin("unmarshal", Unmarshal, m))
+	m.Register("marshal", object.NewBuiltin("marshal", Marshal, m))
+	m.Register("valid", object.NewBuiltin("valid", Valid, m))
+	m.Register("diff", object.NewBuiltin("diff", Diff, m))
+	return m
 }

@@ -81,7 +81,14 @@ func New(main *compiler.Scope) *VM {
 	return vm
 }
 
-func (vm *VM) Run() error {
+func (vm *VM) Run() (err error) {
+
+	// Translate any panic into an error so the caller has a good guarantee
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
 
 	ctx := context.Background()
 

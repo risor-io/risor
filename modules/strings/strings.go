@@ -2,11 +2,9 @@ package strings
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
 )
 
 // Name of this module
@@ -215,34 +213,24 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	return s.TrimSpace()
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
-	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("contains", Contains, m),
-		object.NewBuiltin("count", Count, m),
-		object.NewBuiltin("has_prefix", HasPrefix, m),
-		object.NewBuiltin("has_suffix", HasSuffix, m),
-		object.NewBuiltin("compare", Compare, m),
-		object.NewBuiltin("join", Join, m),
-		object.NewBuiltin("split", Split, m),
-		object.NewBuiltin("fields", Fields, m),
-		object.NewBuiltin("index", Index, m),
-		object.NewBuiltin("last_index", LastIndex, m),
-		object.NewBuiltin("replace_all", ReplaceAll, m),
-		object.NewBuiltin("to_lower", ToLower, m),
-		object.NewBuiltin("to_upper", ToUpper, m),
-		object.NewBuiltin("trim", Trim, m),
-		object.NewBuiltin("trim_prefix", TrimPrefix, m),
-		object.NewBuiltin("trim_suffix", TrimSuffix, m),
-		object.NewBuiltin("trim_space", TrimSpace, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+func Module() *object.Module {
+	m := object.NewModule(Name)
+	m.Register("contains", object.NewBuiltin("contains", Contains, m))
+	m.Register("count", object.NewBuiltin("count", Count, m))
+	m.Register("has_prefix", object.NewBuiltin("has_prefix", HasPrefix, m))
+	m.Register("has_suffix", object.NewBuiltin("has_suffix", HasSuffix, m))
+	m.Register("compare", object.NewBuiltin("compare", Compare, m))
+	m.Register("join", object.NewBuiltin("join", Join, m))
+	m.Register("split", object.NewBuiltin("split", Split, m))
+	m.Register("fields", object.NewBuiltin("fields", Fields, m))
+	m.Register("index", object.NewBuiltin("index", Index, m))
+	m.Register("last_index", object.NewBuiltin("last_index", LastIndex, m))
+	m.Register("replace_all", object.NewBuiltin("replace_all", ReplaceAll, m))
+	m.Register("to_lower", object.NewBuiltin("to_lower", ToLower, m))
+	m.Register("to_upper", object.NewBuiltin("to_upper", ToUpper, m))
+	m.Register("trim", object.NewBuiltin("trim", Trim, m))
+	m.Register("trim_prefix", object.NewBuiltin("trim_prefix", TrimPrefix, m))
+	m.Register("trim_suffix", object.NewBuiltin("trim_suffix", TrimSuffix, m))
+	m.Register("trim_space", object.NewBuiltin("trim_space", TrimSpace, m))
+	return m
 }

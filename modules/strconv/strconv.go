@@ -2,12 +2,10 @@ package strconv
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
 )
 
 // Name of this module
@@ -81,21 +79,11 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewErrResult(object.NewError(err))
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
-	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("atoi", Atoi, m),
-		object.NewBuiltin("parse_bool", ParseBool, m),
-		object.NewBuiltin("parse_float", ParseFloat, m),
-		object.NewBuiltin("parse_int", ParseInt, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+func Module() *object.Module {
+	m := object.NewModule(Name)
+	m.Register("atoi", object.NewBuiltin("atoi", Atoi, m))
+	m.Register("parse_bool", object.NewBuiltin("parse_bool", ParseBool, m))
+	m.Register("parse_float", object.NewBuiltin("parse_float", ParseFloat, m))
+	m.Register("parse_int", object.NewBuiltin("parse_int", ParseInt, m))
+	return m
 }

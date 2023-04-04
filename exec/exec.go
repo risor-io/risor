@@ -22,7 +22,7 @@ import (
 )
 
 // ModuleFunc is the signature of a function that returns a module
-type ModuleFunc func(*scope.Scope) (*object.Module, error)
+type ModuleFunc func() *object.Module
 
 // Will contain module functions for default modules
 var moduleFuncs = map[string]ModuleFunc{}
@@ -78,34 +78,6 @@ type Opts struct {
 	Breakpoints []evaluator.Breakpoint
 }
 
-// AutoImport adds the default modules to the given scope.
-func AutoImport(s *scope.Scope, allowList, denyList []string) error {
-	allowNames := map[string]bool{}
-	for _, name := range allowList {
-		allowNames[name] = true
-	}
-	denyNames := map[string]bool{}
-	for _, name := range denyList {
-		denyNames[name] = true
-	}
-	for name, fn := range moduleFuncs {
-		if denyNames[name] {
-			continue
-		}
-		if allowList != nil && !allowNames[name] {
-			continue
-		}
-		mod, err := fn(s)
-		if err != nil {
-			return err
-		}
-		if err := s.Declare(name, mod, false); err != nil {
-			return fmt.Errorf("init error: failed to attach module %s: %w", name, err)
-		}
-	}
-	return nil
-}
-
 // Execute the given source code as input and return the result.
 // If the execution is successful, a Tamarin object is returned
 // as the final result. The context may be used to cancel the
@@ -132,13 +104,6 @@ func Execute(ctx context.Context, opts Opts) (result object.Object, err error) {
 	s := opts.Scope
 	if s == nil {
 		s = scope.New(scope.Opts{Name: "global"})
-	}
-
-	// Conditionally auto import standard modules
-	if !opts.DisableAutoImport {
-		if err := AutoImport(s, nil, nil); err != nil {
-			return nil, err
-		}
 	}
 
 	// Get the AST for the program, parsing it from opts.Input or accepting

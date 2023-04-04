@@ -2,10 +2,8 @@ package pgx
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -28,18 +26,8 @@ func Connect(ctx context.Context, args ...object.Object) object.Object {
 }
 
 // Module returns the `pgx` module object
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
-	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("connect", Connect, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+func Module() *object.Module {
+	m := object.NewModule(Name)
+	m.Register("connect", object.NewBuiltin("connect", Connect, m))
+	return m
 }

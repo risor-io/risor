@@ -8,7 +8,7 @@ import (
 
 type Module struct {
 	name  string
-	scope Scope
+	attrs map[string]Object
 }
 
 func (m *Module) Type() Type {
@@ -20,7 +20,8 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) GetAttr(name string) (Object, bool) {
-	return m.scope.Get(name)
+	obj, found := m.attrs[name]
+	return obj, found
 }
 
 func (m *Module) Interface() interface{} {
@@ -59,9 +60,16 @@ func (m *Module) RunOperation(opType op.BinaryOpType, right Object) Object {
 }
 
 func (m *Module) Equals(other Object) Object {
-	return NewBool(other.Type() == MODULE && m.name == other.(*Module).name)
+	if m == other {
+		return True
+	}
+	return False
 }
 
-func NewModule(name string, scope Scope) *Module {
-	return &Module{name, scope}
+func (m *Module) Register(name string, obj Object) {
+	m.attrs[name] = obj
+}
+
+func NewModule(name string) *Module {
+	return &Module{name: name, attrs: map[string]Object{}}
 }
