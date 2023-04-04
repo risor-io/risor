@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
@@ -10,31 +9,16 @@ import (
 	"github.com/cloudcmds/tamarin/object"
 )
 
-type Scope struct {
-	Name         string
-	IsNamed      bool
-	Parent       *Scope
-	Children     []*Scope
-	Symbols      *symbol.Table
-	Instructions []op.Code
-	Constants    []object.Object
-	Loops        []*Loop
-	Names        []string
-}
-
-func (s *Scope) AddName(name string) uint16 {
-	s.Names = append(s.Names, name)
-	return uint16(len(s.Names) - 1)
-}
-
 type Compiler struct {
-	scopes       []*Scope
-	currentScope *Scope
+	main     *Scope
+	current  *Scope
+	startPos int
 }
 
 type Options struct {
 	Builtins map[string]object.Object
 	Name     string
+	Scope    *Scope
 }
 
 type Loop struct {
@@ -43,34 +27,40 @@ type Loop struct {
 }
 
 func New(opts Options) *Compiler {
-	mainScope := &Scope{
-		Name:    opts.Name,
-		Symbols: symbol.NewTable(),
+	var main *Scope
+	if opts.Scope != nil {
+		main = opts.Scope
+	} else {
+		main = &Scope{Name: opts.Name, Symbols: symbol.NewTable()}
 	}
 	for name, builtin := range opts.Builtins {
-		if _, err := mainScope.Symbols.InsertBuiltin(name, builtin); err != nil {
+		if _, err := main.Symbols.InsertBuiltin(name, builtin); err != nil {
 			panic(fmt.Sprintf("failed to insert builtin %s: %s", name, err))
 		}
 	}
-	return &Compiler{
-		scopes:       []*Scope{mainScope},
-		currentScope: mainScope,
-	}
+	return &Compiler{main: main, current: main, startPos: len(main.Instructions)}
 }
 
 func (c *Compiler) CurrentScope() *Scope {
-	return c.currentScope
+	return c.current
 }
 
 func (c *Compiler) Instructions() []op.Code {
-	return c.CurrentScope().Instructions
+	return c.main.Instructions
+}
+
+func (c *Compiler) NewInstructions() []op.Code {
+	if c.startPos > len(c.main.Instructions) {
+		return nil
+	}
+	return c.main.Instructions[c.startPos:]
 }
 
 func (c *Compiler) Compile(node ast.Node) (*Scope, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
-	return c.scopes[0], nil
+	return c.main, nil
 }
 
 func (c *Compiler) compile(node ast.Node) error {
@@ -123,7 +113,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-		if c.currentScope.Parent == nil {
+		if c.current.Parent == nil {
 			c.emit(op.StoreGlobal, sym.Index)
 		} else {
 			c.emit(op.StoreFast, sym.Index)
@@ -197,9 +187,8 @@ func (c *Compiler) compile(node ast.Node) error {
 			return err
 		}
 	default:
-		fmt.Println("DEFAULT", node, reflect.TypeOf(node))
+		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
-	// panic(fmt.Sprintf("unknown ast node type: %T", node))
 	return nil
 }
 
@@ -245,7 +234,7 @@ func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 		return fmt.Errorf("invalid call expression")
 	}
 	name := method.Function().String()
-	c.emit(op.LoadAttr, c.currentScope.AddName(name))
+	c.emit(op.LoadAttr, c.current.AddName(name))
 	args := method.Arguments()
 	for _, arg := range args {
 		if err := c.compile(arg); err != nil {
@@ -260,7 +249,7 @@ func (c *Compiler) compileGetAttr(node *ast.GetAttr) error {
 	if err := c.compile(node.Object()); err != nil {
 		return err
 	}
-	idx := c.currentScope.AddName(node.Name())
+	idx := c.current.AddName(node.Name())
 	c.emit(op.LoadAttr, idx)
 	return nil
 }
@@ -327,11 +316,10 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		Name:    name,
 		IsNamed: ident != nil,
 		Parent:  c.CurrentScope(),
-		Symbols: c.currentScope.Symbols.NewChild(),
+		Symbols: c.current.Symbols.NewChild(),
 	}
-	c.currentScope.Children = append(c.currentScope.Children, funcScope)
-	c.scopes = append(c.scopes, funcScope)
-	c.currentScope = funcScope
+	c.current.Children = append(c.current.Children, funcScope)
+	c.current = funcScope
 
 	paramsIdx := map[string]int{}
 	paramsAst := node.Parameters()
@@ -366,7 +354,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	} else if _, ok := statements[len(statements)-1].(*ast.Control); !ok {
 		c.emit(op.ReturnValue, 1)
 	}
-	c.currentScope = c.currentScope.Parent
+	c.current = c.current.Parent
 	freeSymbols := funcScope.Symbols.Free()
 	fn := object.NewCompiledFunction(name, params, defaults, funcScope.Instructions, funcScope)
 	if len(freeSymbols) > 0 {
@@ -378,11 +366,11 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		c.emit(op.LoadConst, c.constant(fn))
 	}
 	if node.Name() != nil {
-		funcSymbol, err := c.currentScope.Symbols.InsertVariable(name)
+		funcSymbol, err := c.current.Symbols.InsertVariable(name)
 		if err != nil {
 			return err
 		}
-		if c.currentScope.Parent == nil {
+		if c.current.Parent == nil {
 			c.emit(op.StoreGlobal, funcSymbol.Index)
 		} else {
 			c.emit(op.StoreFast, funcSymbol.Index)
@@ -408,7 +396,7 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 func (c *Compiler) compileControl(node *ast.Control) error {
 	literal := node.Literal()
 	if literal == "return" {
-		if c.currentScope.Parent == nil {
+		if c.current.Parent == nil {
 			return fmt.Errorf("return outside of function")
 		}
 		if err := c.compile(node.Value()); err != nil {
@@ -436,7 +424,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 
 func (c *Compiler) compileAssign(node *ast.Assign) error {
 	name := node.Name()
-	sym, found := c.currentScope.Symbols.Lookup(name)
+	sym, found := c.current.Symbols.Lookup(name)
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
@@ -505,17 +493,17 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 func (c *Compiler) startLoop() *Loop {
 	loop := &Loop{}
-	c.currentScope.Loops = append(c.currentScope.Loops, loop)
+	c.current.Loops = append(c.current.Loops, loop)
 	return loop
 }
 
 func (c *Compiler) endLoop() {
-	scope := c.currentScope
+	scope := c.current
 	scope.Loops = scope.Loops[:len(scope.Loops)-1]
 }
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
-	scope := c.currentScope
+	scope := c.current
 	scope.Symbols = scope.Symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
@@ -622,24 +610,21 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 }
 
 func (c *Compiler) constant(obj object.Object) uint16 {
-	scope := c.currentScope
+	scope := c.current
 	scope.Constants = append(scope.Constants, obj)
 	// TODO: error if > 65535
 	return uint16(len(scope.Constants) - 1)
 }
 
-func (c *Compiler) instruction(b []op.Code) uint16 {
-	scope := c.CurrentScope()
-	pos := len(scope.Instructions)
-	scope.Instructions = append(scope.Instructions, b...)
-	return uint16(pos)
-}
-
 func (c *Compiler) emit(opcode op.Code, operands ...uint16) uint16 {
 	// info := op.GetInfo(opcode)
-	// fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.currentScope)
+	// fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.current)
 	inst := MakeInstruction(opcode, operands...)
-	return c.instruction(inst)
+	// return c.instruction(inst)
+	scope := c.CurrentScope()
+	pos := len(scope.Instructions)
+	scope.Instructions = append(scope.Instructions, inst...)
+	return uint16(pos)
 }
 
 func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {

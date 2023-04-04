@@ -39,7 +39,11 @@ func Run(code string) (object.Object, error) {
 	if err := vm.Run(); err != nil {
 		return nil, err
 	}
-	return vm.Pop(), nil
+	result, exists := vm.TOS()
+	if exists {
+		return result, nil
+	}
+	return object.Nil, nil
 }
 
 type VM struct {
@@ -54,6 +58,12 @@ type VM struct {
 	currentScope *compiler.Scope
 	globals      []object.Object
 	builtins     []object.Object
+}
+
+func NewWithOffset(main *compiler.Scope, ofs int) *VM {
+	v := New(main)
+	v.ip = ofs - 1
+	return v
 }
 
 func New(main *compiler.Scope) *VM {
@@ -296,8 +306,11 @@ func (vm *VM) Run() error {
 	return nil
 }
 
-func (vm *VM) TOS() object.Object {
-	return vm.stack[vm.sp]
+func (vm *VM) TOS() (object.Object, bool) {
+	if vm.sp >= 0 {
+		return vm.stack[vm.sp], true
+	}
+	return nil, false
 }
 
 func (vm *VM) Pop() object.Object {

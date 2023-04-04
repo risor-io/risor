@@ -49,6 +49,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	interp := vm.NewInterpreter(nil)
+
 	// Input can only come from one source
 	nArgs := len(flag.Args())
 	if nArgs > 0 && len(code) > 0 {
@@ -56,7 +58,7 @@ func main() {
 		os.Exit(1)
 	} else if nArgs == 0 && len(code) == 0 {
 		// Run REPL
-		if err := repl.Run(ctx, globalScope); err != nil {
+		if err := repl.Run(ctx, interp); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 			os.Exit(1)
 		}

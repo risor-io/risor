@@ -9,10 +9,8 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
-	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/exec"
+	"github.com/cloudcmds/tamarin/internal/vm"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
 	"github.com/fatih/color"
 )
 
@@ -22,7 +20,7 @@ const (
 	moveForward = "\033[%dC"
 )
 
-func Run(ctx context.Context, sc *scope.Scope) error {
+func Run(ctx context.Context, interp *vm.Interpreter) error {
 
 	color.New(color.Bold).Println("Tamarin")
 	fmt.Println("")
@@ -65,7 +63,7 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 		switch key.Code {
 		case keys.Enter:
 			fmt.Printf("\n")
-			execute(ctx, accumulate, sc)
+			execute(ctx, accumulate, interp)
 			appendToHistory(accumulate)
 			history = append(history, accumulate)
 			historyIndex = len(history)
@@ -160,18 +158,15 @@ func Run(ctx context.Context, sc *scope.Scope) error {
 	})
 }
 
-func execute(ctx context.Context, code string, sc *scope.Scope) (object.Object, error) {
-	result, err := exec.Execute(ctx, exec.Opts{
-		Input:             code,
-		Scope:             sc,
-		DisableAutoImport: true,
-		Importer:          &evaluator.SimpleImporter{},
-	})
+func execute(ctx context.Context, code string, interp *vm.Interpreter) (object.Object, error) {
+	result, err := interp.Eval(code)
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err
 	}
-	switch result.(type) {
+	switch result := result.(type) {
+	case *object.Error:
+		color.Red(result.Value().Error())
 	case *object.NilType:
 	default:
 		fmt.Println(result.Inspect())
