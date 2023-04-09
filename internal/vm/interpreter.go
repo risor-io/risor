@@ -3,7 +3,6 @@ package vm
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
 	modMath "github.com/cloudcmds/tamarin/modules/math"
@@ -19,14 +18,14 @@ import (
 
 type Interpreter struct {
 	c    *compiler.Compiler
-	main *compiler.Scope
+	main *object.Code
 	// vm   *vm.VM
 }
 
 func NewInterpreter(builtins []*object.Builtin) *Interpreter {
 
 	bmap := map[string]object.Object{}
-	for _, b := range evaluator.GlobalBuiltins() {
+	for _, b := range GlobalBuiltins() {
 		bmap[b.Key()] = b
 	}
 
@@ -39,12 +38,12 @@ func NewInterpreter(builtins []*object.Builtin) *Interpreter {
 	bmap["strconv"] = modStrconv.Module()
 	bmap["pgx"] = modPgx.Module()
 
-	s := compiler.NewScope("main")
+	s := object.NewCode("main")
 
 	c := compiler.New(compiler.Options{
 		Builtins: bmap,
 		Name:     "main",
-		Scope:    s,
+		Code:     s,
 	})
 
 	return &Interpreter{c: c, main: s}

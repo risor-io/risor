@@ -159,7 +159,7 @@ func Run(ctx context.Context, interp *vm.Interpreter) error {
 }
 
 func execute(ctx context.Context, code string, interp *vm.Interpreter) (object.Object, error) {
-	result, err := interp.Eval(code)
+	result, err := interp.Eval(ctx, code)
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err

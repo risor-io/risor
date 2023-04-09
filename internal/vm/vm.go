@@ -5,11 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
 )
 
 const (
@@ -17,34 +14,6 @@ const (
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
 )
-
-func Run(ctx context.Context, code string) (object.Object, error) {
-	ast, err := parser.Parse(code)
-	if err != nil {
-		return nil, err
-	}
-	builtins := map[string]object.Object{}
-	for _, b := range evaluator.GlobalBuiltins() {
-		builtins[b.Key()] = b
-	}
-	c := compiler.New(compiler.Options{
-		Builtins: builtins,
-		Name:     "main",
-	})
-	mainScope, err := c.Compile(ast)
-	if err != nil {
-		return nil, err
-	}
-	vm := New(mainScope)
-	if err := vm.Run(ctx); err != nil {
-		return nil, err
-	}
-	result, exists := vm.TOS()
-	if exists {
-		return result, nil
-	}
-	return object.Nil, nil
-}
 
 type VM struct {
 	ip           int // instruction pointer
@@ -54,19 +23,19 @@ type VM struct {
 	frames       [MaxFrameDepth]Frame
 	tmp          [MaxArgs]object.Object
 	currentFrame *Frame
-	main         *compiler.Scope
-	currentScope *compiler.Scope
+	main         *object.Code
+	currentScope *object.Code
 	globals      []object.Object
 	builtins     []object.Object
 }
 
-func NewWithOffset(main *compiler.Scope, ofs int) *VM {
+func NewWithOffset(main *object.Code, ofs int) *VM {
 	v := New(main)
 	v.ip = ofs - 1
 	return v
 }
 
-func New(main *compiler.Scope) *VM {
+func New(main *object.Code) *VM {
 	vm := &VM{
 		ip:           -1,
 		sp:           -1,
@@ -82,18 +51,14 @@ func New(main *compiler.Scope) *VM {
 }
 
 func (vm *VM) Run(ctx context.Context) error {
-	fn := object.NewCompiledFunction(
-		"",
-		nil,
-		nil,
-		vm.currentScope.Instructions,
-		vm.currentScope,
-	)
+	fn := object.NewFunction(object.FunctionOpts{
+		Code: vm.currentScope,
+	})
 	_, err := vm.Eval(ctx, fn, nil)
 	return err
 }
 
-func (vm *VM) Eval(ctx context.Context, fn *object.CompiledFunction, args []object.Object) (result object.Object, err error) {
+func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Object) (result object.Object, err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
 	defer func() {
@@ -157,8 +122,8 @@ func (vm *VM) Eval(ctx context.Context, fn *object.CompiledFunction, args []obje
 					return nil, errors.New("expected cell")
 				}
 			}
-			fn := vm.currentScope.Constants[constIndex].(*object.CompiledFunction)
-			closure := object.NewClosure(fn, fn.Scope(), free)
+			fn := vm.currentScope.Constants[constIndex].(*object.Function)
+			closure := object.NewClosure(fn, fn.Code(), free)
 			vm.Push(closure)
 		case op.MakeCell:
 			symbolIndex := vm.fetch()
@@ -196,10 +161,10 @@ func (vm *VM) Eval(ctx context.Context, fn *object.CompiledFunction, args []obje
 			case *object.Builtin:
 				result := obj.Call(ctx, vm.tmp[:argc]...)
 				vm.Push(result)
-			case *object.CompiledFunction:
+			case *object.Function:
 				vm.fp++
 				frame := &vm.frames[vm.fp]
-				scope := obj.Scope().(*compiler.Scope)
+				scope := obj.Code()
 				if scope.IsNamed {
 					vm.tmp[argc] = obj
 					argc++
@@ -215,7 +180,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.CompiledFunction, args []obje
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
 			vm.currentFrame = &vm.frames[vm.fp]
-			vm.currentScope = vm.currentFrame.Scope()
+			vm.currentScope = vm.currentFrame.Code()
 			vm.ip = returnAddr
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()

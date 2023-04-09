@@ -1,14 +1,13 @@
-package symbol
+package object
 
 import (
 	"testing"
 
-	"github.com/cloudcmds/tamarin/object"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTable(t *testing.T) {
-	table := NewTable()
+	table := NewSymbolTable()
 
 	require.Nil(t, table.Parent())
 	require.Equal(t, uint16(0), table.Size())
@@ -47,25 +46,25 @@ func TestTable(t *testing.T) {
 }
 
 func TestBlock(t *testing.T) {
-	table := NewTable()
+	table := NewSymbolTable()
 	block := table.NewBlock()
 
-	block.InsertVariable("a", object.NewInt(42))
+	block.InsertVariable("a", NewInt(42))
 
 	require.Equal(t, uint16(1), table.Size())
 
 	locals := table.Variables()
 	require.Len(t, locals, 1)
 	value := locals[0]
-	require.Equal(t, object.NewInt(42), value)
+	require.Equal(t, NewInt(42), value)
 }
 
 func TestFreeVar(t *testing.T) {
-	main := NewTable()
+	main := NewSymbolTable()
 	outerFunc := main.NewChild()
 	innerFunc := outerFunc.NewChild()
 
-	outerFunc.InsertVariable("a", object.NewInt(42))
+	outerFunc.InsertVariable("a", NewInt(42))
 
 	_, found := innerFunc.Lookup("whut")
 	require.False(t, found)
@@ -77,9 +76,9 @@ func TestFreeVar(t *testing.T) {
 		Symbol: &Symbol{
 			Name:  "a",
 			Index: 0,
-			Value: object.NewInt(42),
+			Value: NewInt(42),
 		},
-		Scope: ScopeFree,
+		Code:  ScopeFree,
 		Depth: 1,
 	}
 	require.Equal(t, exp, res)

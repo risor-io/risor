@@ -1,22 +1,17 @@
 package object
 
 import (
-	"bytes"
-	"fmt"
-	"strings"
-
-	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
 )
 
-// Function contains the AST for user defined function and implements Object interface.
+// Function is a function that has been compiled to bytecode.
 type Function struct {
+	*DefaultImpl
 	name       string
-	parameters []*ast.Ident
-	body       *ast.Block
-	defaults   map[string]ast.Expression
-	scope      Scope
-	fnScope    any
+	parameters []string
+	defaults   []Object
+	scope      *Code
+	freeVars   []*Cell
 }
 
 func (f *Function) Type() Type {
@@ -24,98 +19,59 @@ func (f *Function) Type() Type {
 }
 
 func (f *Function) Name() string {
-	if f.name == "" {
-		return "anonymous"
-	}
 	return f.name
 }
 
 func (f *Function) Inspect() string {
-	var out bytes.Buffer
-	parameters := make([]string, 0)
-	for _, p := range f.parameters {
-		ident := p.String()
-		if def, ok := f.defaults[p.String()]; ok {
-			ident += "=" + def.String()
-		}
-		parameters = append(parameters, ident)
-	}
-	out.WriteString("func")
-	if f.name != "" {
-		out.WriteString(" " + f.name)
-	}
-	out.WriteString("(")
-	out.WriteString(strings.Join(parameters, ", "))
-	out.WriteString(") {")
-	lines := strings.Split(f.body.String(), "\n")
-	if len(lines) == 1 {
-		out.WriteString(" " + lines[0] + " }")
-	} else if len(lines) == 0 {
-		out.WriteString(" }")
-	} else {
-		for _, line := range lines {
-			out.WriteString("\n    " + line)
-		}
-		out.WriteString("\n}")
-	}
-	return out.String()
-}
-
-func (f *Function) Body() *ast.Block {
-	return f.body
-}
-
-func (f *Function) Parameters() []*ast.Ident {
-	return f.parameters
-}
-
-func (f *Function) Defaults() map[string]ast.Expression {
-	return f.defaults
-}
-
-func (f *Function) Scope() Scope {
-	return f.scope
-}
-
-func (f *Function) GetAttr(name string) (Object, bool) {
-	return nil, false
-}
-
-func (f *Function) Interface() interface{} {
 	return "function()"
 }
 
-func (f *Function) Equals(other Object) Object {
-	if other.Type() == FUNCTION && f == other.(*Function) {
-		return True
+func (f *Function) Instructions() []op.Code {
+	return f.scope.Instructions
+}
+
+func (f *Function) FreeVars() []*Cell {
+	return f.freeVars
+}
+
+func (f *Function) Code() *Code {
+	return f.scope
+}
+
+func (f *Function) Parameters() []string {
+	return f.parameters
+}
+
+func (f *Function) Defaults() []Object {
+	return f.defaults
+}
+
+type FunctionOpts struct {
+	Name           string
+	ParameterNames []string
+	Defaults       []Object
+	Code           *Code
+}
+
+func NewFunction(opts FunctionOpts) *Function {
+	return &Function{
+		name:       opts.Name,
+		parameters: opts.ParameterNames,
+		defaults:   opts.Defaults,
+		scope:      opts.Code,
 	}
-	return False
 }
 
-func (f *Function) IsTruthy() bool {
-	return true
-}
-
-func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for function: %v", opType))
-}
-
-func (f *Function) CompilerScope() any {
-	return f.fnScope
-}
-
-func NewFunction(
-	name string,
-	parameters []*ast.Ident,
-	body *ast.Block,
-	defaults map[string]ast.Expression,
-	scope Scope,
+func NewClosure(
+	fn *Function,
+	scope *Code,
+	freeVars []*Cell,
 ) *Function {
 	return &Function{
-		name:       name,
-		parameters: parameters,
-		body:       body,
-		defaults:   defaults,
+		name:       fn.name,
+		parameters: fn.parameters,
+		defaults:   fn.defaults,
 		scope:      scope,
+		freeVars:   freeVars,
 	}
 }

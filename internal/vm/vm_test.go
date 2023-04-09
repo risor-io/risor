@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/internal/op"
-	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 	"github.com/stretchr/testify/require"
@@ -31,10 +30,10 @@ func TestAdd(t *testing.T) {
 		op.BinaryOp,
 		op.Code(op.Add),
 	}
-	vm := New(&compiler.Scope{
+	vm := New(&object.Code{
 		Constants:    constants,
 		Instructions: code,
-		Symbols:      symbol.NewTable(),
+		Symbols:      object.NewSymbolTable(),
 	})
 	err := vm.Run(ctx)
 	require.Nil(t, err)

@@ -224,7 +224,7 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	case *Builtin:
 		// numParameters = 1
 		return Errorf("todo")
-	case *CompiledFunction:
+	case *Function:
 		numParameters = len(obj.parameters)
 	default:
 		return Errorf("type error: list.map() expected a function (%s given)", obj.Type())
@@ -232,7 +232,7 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	if numParameters < 1 || numParameters > 2 {
 		return Errorf("type error: list.map() received an incompatible function")
 	}
-	compiledFunc := fn.(*CompiledFunction)
+	compiledFunc := fn.(*Function)
 	var index Int
 	mapArgs := make([]Object, 2)
 	result := make([]Object, 0, len(ls.items))
@@ -264,7 +264,7 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 		return Errorf("eval error: list.filter() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
-	case *CompiledFunction, *Builtin:
+	case *Function, *Builtin:
 		// Nothing do do here
 	default:
 		return Errorf("type error: list.filter() expected a function (%s given)", obj.Type())
@@ -273,7 +273,7 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 	var result []Object
 	for _, value := range ls.items {
 		filterArgs[0] = value
-		decision, err := callFunc(ctx, fn.(*CompiledFunction), filterArgs)
+		decision, err := callFunc(ctx, fn.(*Function), filterArgs)
 		if err != nil {
 			return Errorf(err.Error())
 		}
@@ -293,7 +293,7 @@ func (ls *List) Each(ctx context.Context, fn Object) Object {
 		return Errorf("eval error: list.each() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
-	case *CompiledFunction, *Builtin:
+	case *Function, *Builtin:
 		// Nothing do do here
 	default:
 		return Errorf("type error: list.each() expected a function (%s given)", obj.Type())
@@ -301,7 +301,7 @@ func (ls *List) Each(ctx context.Context, fn Object) Object {
 	eachArgs := make([]Object, 1)
 	for _, value := range ls.items {
 		eachArgs[0] = value
-		result, err := callFunc(ctx, fn.(*CompiledFunction), eachArgs)
+		result, err := callFunc(ctx, fn.(*Function), eachArgs)
 		if err != nil {
 			return Errorf(err.Error())
 		}

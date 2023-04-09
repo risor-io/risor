@@ -76,7 +76,7 @@ func main() {
 
 	start := time.Now()
 
-	result, err := vm.Run(string(input))
+	result, err := vm.Run(ctx, string(input))
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {

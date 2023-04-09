@@ -79,7 +79,7 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	return vm.Run(string(input))
+	return vm.Run(ctx, string(input))
 }
 
 func listTestFiles() []string {

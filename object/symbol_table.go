@@ -1,48 +1,46 @@
-package symbol
+package object
 
 import (
 	"errors"
 	"fmt"
 	"math"
 	"sort"
-
-	"github.com/cloudcmds/tamarin/object"
 )
 
-type Scope string
+type ScopeName string
 
 const (
-	ScopeBuiltin Scope = "builtin"
-	ScopeLocal   Scope = "local"
-	ScopeGlobal  Scope = "global"
-	ScopeFree    Scope = "free"
+	ScopeBuiltin ScopeName = "builtin"
+	ScopeLocal   ScopeName = "local"
+	ScopeGlobal  ScopeName = "global"
+	ScopeFree    ScopeName = "free"
 )
 
 type Symbol struct {
 	Name  string
 	Index uint16
-	Value object.Object
+	Value Object
 }
 
 type Resolution struct {
 	Symbol *Symbol
-	Scope  Scope
+	Code   ScopeName
 	Depth  int
 }
 
-type Table struct {
-	parent    *Table
+type SymbolTable struct {
+	parent    *SymbolTable
 	symbols   map[string]*Symbol
 	variables map[string]*Symbol
 	builtins  map[string]*Symbol
 	accessed  map[string]bool
 	free      map[string]*Resolution
-	values    []object.Object
+	values    []Object
 	isBlock   bool
 }
 
-func (t *Table) NewChild() *Table {
-	return &Table{
+func (t *SymbolTable) NewChild() *SymbolTable {
+	return &SymbolTable{
 		parent:    t,
 		symbols:   map[string]*Symbol{},
 		variables: map[string]*Symbol{},
@@ -53,13 +51,13 @@ func (t *Table) NewChild() *Table {
 	}
 }
 
-func (t *Table) NewBlock() *Table {
+func (t *SymbolTable) NewBlock() *SymbolTable {
 	child := t.NewChild()
 	child.isBlock = true
 	return child
 }
 
-func (t *Table) claimIndex(value object.Object) (uint16, error) {
+func (t *SymbolTable) claimIndex(value Object) (uint16, error) {
 	if t.isBlock {
 		return t.parent.claimIndex(value)
 	}
@@ -71,11 +69,11 @@ func (t *Table) claimIndex(value object.Object) (uint16, error) {
 	return uint16(priorCount), nil
 }
 
-func (t *Table) InsertVariable(name string, value ...object.Object) (*Symbol, error) {
+func (t *SymbolTable) InsertVariable(name string, value ...Object) (*Symbol, error) {
 	if _, ok := t.symbols[name]; ok {
 		return nil, fmt.Errorf("symbol %q already exists", name)
 	}
-	var obj object.Object
+	var obj Object
 	valueCount := len(value)
 	if valueCount > 1 {
 		return nil, errors.New("expected at most one value")
@@ -92,7 +90,7 @@ func (t *Table) InsertVariable(name string, value ...object.Object) (*Symbol, er
 	return s, nil
 }
 
-func (t *Table) InsertBuiltin(name string, value ...object.Object) (*Symbol, error) {
+func (t *SymbolTable) InsertBuiltin(name string, value ...Object) (*Symbol, error) {
 	if t.parent != nil {
 		return nil, errors.New("cannot insert builtin in child table")
 	}
@@ -115,26 +113,26 @@ func (t *Table) InsertBuiltin(name string, value ...object.Object) (*Symbol, err
 	return s, nil
 }
 
-func (t *Table) IsBuiltin(name string) bool {
+func (t *SymbolTable) IsBuiltin(name string) bool {
 	_, ok := t.builtins[name]
 	return ok
 }
 
-func (t *Table) IsVariable(name string) bool {
+func (t *SymbolTable) IsVariable(name string) bool {
 	_, ok := t.variables[name]
 	return ok
 }
 
-func (t *Table) Get(name string) (*Symbol, bool) {
+func (t *SymbolTable) Get(name string) (*Symbol, bool) {
 	s, ok := t.symbols[name]
 	return s, ok
 }
 
-func (t *Table) Lookup(name string) (*Resolution, bool) {
+func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 	// Check if the symbol is defined directly in this table
 	if s, ok := t.symbols[name]; ok {
 		t.accessed[name] = true
-		var scope Scope
+		var scope ScopeName
 		if t.IsBuiltin(name) {
 			scope = ScopeBuiltin
 		} else if t.parent == nil {
@@ -142,7 +140,7 @@ func (t *Table) Lookup(name string) (*Resolution, bool) {
 		} else {
 			scope = ScopeLocal
 		}
-		return &Resolution{Symbol: s, Scope: scope, Depth: 0}, true
+		return &Resolution{Symbol: s, Code: scope, Depth: 0}, true
 	}
 	// Check if the symbol was previously found to be a "free" variable
 	if rs, ok := t.free[name]; ok {
@@ -160,25 +158,25 @@ func (t *Table) Lookup(name string) (*Resolution, bool) {
 	t.accessed[name] = true
 	// Check if this is a global or a builtin. These are simple in that we don't
 	// care about their depth and their scope always stays unchanged.
-	if rs.Scope == ScopeGlobal || rs.Scope == ScopeBuiltin {
+	if rs.Code == ScopeGlobal || rs.Code == ScopeBuiltin {
 		return rs, true
 	}
 	// Determine if this is a free variable which is defined in an outer scope.
 	// Locals may stil be defined in a parent table if this is a block.
-	scope := rs.Scope
+	scope := rs.Code
 	depth := rs.Depth
 	if !t.isBlock {
 		depth++
 		scope = ScopeFree
 	}
-	resolution := &Resolution{Symbol: rs.Symbol, Scope: scope, Depth: depth}
+	resolution := &Resolution{Symbol: rs.Symbol, Code: scope, Depth: depth}
 	if scope == ScopeFree {
 		t.free[name] = resolution
 	}
 	return resolution, true
 }
 
-func (t *Table) AccessedNames() []string {
+func (t *SymbolTable) AccessedNames() []string {
 	names := make([]string, 0, len(t.accessed))
 	for name := range t.accessed {
 		names = append(names, name)
@@ -187,7 +185,7 @@ func (t *Table) AccessedNames() []string {
 	return names
 }
 
-func (t *Table) InsertedNames() []string {
+func (t *SymbolTable) InsertedNames() []string {
 	names := make([]string, 0, len(t.symbols))
 	for name := range t.symbols {
 		names = append(names, name)
@@ -196,15 +194,15 @@ func (t *Table) InsertedNames() []string {
 	return names
 }
 
-func (t *Table) Size() uint16 {
+func (t *SymbolTable) Size() uint16 {
 	return uint16(len(t.values))
 }
 
-func (t *Table) Parent() *Table {
+func (t *SymbolTable) Parent() *SymbolTable {
 	return t.parent
 }
 
-func (t *Table) LocalTable() *Table {
+func (t *SymbolTable) LocalTable() *SymbolTable {
 	current := t
 	for current.isBlock {
 		current = current.parent
@@ -212,19 +210,19 @@ func (t *Table) LocalTable() *Table {
 	return current
 }
 
-func (t *Table) Variables() []object.Object {
+func (t *SymbolTable) Variables() []Object {
 	return t.values
 }
 
-func (t *Table) Builtins() []object.Object {
-	result := make([]object.Object, len(t.builtins))
+func (t *SymbolTable) Builtins() []Object {
+	result := make([]Object, len(t.builtins))
 	for _, s := range t.builtins {
 		result[s.Index] = s.Value
 	}
 	return result
 }
 
-func (t *Table) Free() []*Resolution {
+func (t *SymbolTable) Free() []*Resolution {
 	result := make([]*Resolution, 0, len(t.free))
 	for _, rs := range t.free {
 		result = append(result, rs)
@@ -232,8 +230,8 @@ func (t *Table) Free() []*Resolution {
 	return result
 }
 
-func NewTable() *Table {
-	return &Table{
+func NewSymbolTable() *SymbolTable {
+	return &SymbolTable{
 		symbols:   map[string]*Symbol{},
 		variables: map[string]*Symbol{},
 		builtins:  map[string]*Symbol{},

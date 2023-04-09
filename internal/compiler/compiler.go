@@ -5,33 +5,27 @@ import (
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
-	"github.com/cloudcmds/tamarin/internal/symbol"
 	"github.com/cloudcmds/tamarin/object"
 )
 
 type Compiler struct {
-	main     *Scope
-	current  *Scope
+	main     *object.Code
+	current  *object.Code
 	startPos int
 }
 
 type Options struct {
 	Builtins map[string]object.Object
 	Name     string
-	Scope    *Scope
-}
-
-type Loop struct {
-	ContinuePos []uint16
-	BreakPos    []uint16
+	Code     *object.Code
 }
 
 func New(opts Options) *Compiler {
-	var main *Scope
-	if opts.Scope != nil {
-		main = opts.Scope
+	var main *object.Code
+	if opts.Code != nil {
+		main = opts.Code
 	} else {
-		main = &Scope{Name: opts.Name, Symbols: symbol.NewTable()}
+		main = &object.Code{Name: opts.Name, Symbols: object.NewSymbolTable()}
 	}
 	for name, builtin := range opts.Builtins {
 		if _, err := main.Symbols.InsertBuiltin(name, builtin); err != nil {
@@ -41,7 +35,7 @@ func New(opts Options) *Compiler {
 	return &Compiler{main: main, current: main, startPos: len(main.Instructions)}
 }
 
-func (c *Compiler) CurrentScope() *Scope {
+func (c *Compiler) CurrentScope() *object.Code {
 	return c.current
 }
 
@@ -56,7 +50,7 @@ func (c *Compiler) NewInstructions() []op.Code {
 	return c.main.Instructions[c.startPos:]
 }
 
-func (c *Compiler) Compile(node ast.Node) (*Scope, error) {
+func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -128,14 +122,14 @@ func (c *Compiler) compile(node ast.Node) error {
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
-		switch sym.Scope {
-		case symbol.ScopeGlobal:
+		switch sym.Code {
+		case object.ScopeGlobal:
 			c.emit(op.LoadGlobal, sym.Symbol.Index)
-		case symbol.ScopeLocal:
+		case object.ScopeLocal:
 			c.emit(op.LoadFast, sym.Symbol.Index)
-		case symbol.ScopeFree:
+		case object.ScopeFree:
 			c.emit(op.LoadFree, sym.Symbol.Index)
-		case symbol.ScopeBuiltin:
+		case object.ScopeBuiltin:
 			c.emit(op.LoadBuiltin, sym.Symbol.Index)
 		}
 	case *ast.For:
@@ -200,7 +194,7 @@ func (c *Compiler) compile(node ast.Node) error {
 	return nil
 }
 
-func (c *Compiler) currentLoop() *Loop {
+func (c *Compiler) currentLoop() *object.Loop {
 	scope := c.CurrentScope()
 	if len(scope.Loops) == 0 {
 		return nil
@@ -215,14 +209,14 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
 	// Push variable as TOS
-	switch sym.Scope {
-	case symbol.ScopeGlobal:
+	switch sym.Code {
+	case object.ScopeGlobal:
 		c.emit(op.LoadGlobal, sym.Symbol.Index)
-	case symbol.ScopeLocal:
+	case object.ScopeLocal:
 		c.emit(op.LoadFast, sym.Symbol.Index)
-	case symbol.ScopeFree:
+	case object.ScopeFree:
 		c.emit(op.LoadFree, sym.Symbol.Index)
-	case symbol.ScopeBuiltin:
+	case object.ScopeBuiltin:
 		return fmt.Errorf("invalid operation on builtin: %s", name)
 	}
 	// Push integer 1 or -1 as TOS
@@ -237,12 +231,12 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	// Run increment or decrement as an Add BinaryOp
 	c.emit(op.BinaryOp, uint16(op.Add))
 	// Store TOS in LHS
-	switch sym.Scope {
-	case symbol.ScopeGlobal:
+	switch sym.Code {
+	case object.ScopeGlobal:
 		c.emit(op.StoreGlobal, sym.Symbol.Index)
-	case symbol.ScopeLocal:
+	case object.ScopeLocal:
 		c.emit(op.StoreFast, sym.Symbol.Index)
-	case symbol.ScopeFree:
+	case object.ScopeFree:
 		c.emit(op.StoreFree, sym.Symbol.Index)
 	}
 	return nil
@@ -377,7 +371,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		name = ident.Literal()
 	}
 
-	funcScope := &Scope{
+	funcScope := &object.Code{
 		Name:    name,
 		IsNamed: ident != nil,
 		Parent:  c.CurrentScope(),
@@ -421,7 +415,12 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	}
 	c.current = c.current.Parent
 	freeSymbols := funcScope.Symbols.Free()
-	fn := object.NewCompiledFunction(name, params, defaults, funcScope.Instructions, funcScope)
+	fn := object.NewFunction(object.FunctionOpts{
+		Name:           name,
+		ParameterNames: params,
+		Defaults:       defaults,
+		Code:           funcScope,
+	})
 	if len(freeSymbols) > 0 {
 		for _, resolution := range freeSymbols {
 			c.emit(op.MakeCell, resolution.Symbol.Index, uint16(resolution.Depth-1))
@@ -497,27 +496,27 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		switch sym.Scope {
-		case symbol.ScopeGlobal:
+		switch sym.Code {
+		case object.ScopeGlobal:
 			c.emit(op.StoreGlobal, sym.Symbol.Index)
-		case symbol.ScopeLocal:
+		case object.ScopeLocal:
 			c.emit(op.StoreFast, sym.Symbol.Index)
-		case symbol.ScopeFree:
+		case object.ScopeFree:
 			c.emit(op.StoreFree, sym.Symbol.Index)
-		case symbol.ScopeBuiltin:
+		case object.ScopeBuiltin:
 			c.emit(op.LoadBuiltin, sym.Symbol.Index)
 		}
 		return nil
 	}
 	// Push LHS as TOS
-	switch sym.Scope {
-	case symbol.ScopeGlobal:
+	switch sym.Code {
+	case object.ScopeGlobal:
 		c.emit(op.LoadGlobal, sym.Symbol.Index)
-	case symbol.ScopeLocal:
+	case object.ScopeLocal:
 		c.emit(op.LoadFast, sym.Symbol.Index)
-	case symbol.ScopeFree:
+	case object.ScopeFree:
 		c.emit(op.LoadFree, sym.Symbol.Index)
-	case symbol.ScopeBuiltin:
+	case object.ScopeBuiltin:
 		c.emit(op.LoadBuiltin, sym.Symbol.Index)
 	}
 	// Push RHS as TOS
@@ -536,14 +535,14 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.BinaryOp, uint16(op.Divide))
 	}
 	// Store TOS in LHS
-	switch sym.Scope {
-	case symbol.ScopeGlobal:
+	switch sym.Code {
+	case object.ScopeGlobal:
 		c.emit(op.StoreGlobal, sym.Symbol.Index)
-	case symbol.ScopeLocal:
+	case object.ScopeLocal:
 		c.emit(op.StoreFast, sym.Symbol.Index)
-	case symbol.ScopeFree:
+	case object.ScopeFree:
 		c.emit(op.StoreFree, sym.Symbol.Index)
-	case symbol.ScopeBuiltin:
+	case object.ScopeBuiltin:
 		c.emit(op.LoadBuiltin, sym.Symbol.Index)
 	}
 	return nil
@@ -556,8 +555,8 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	return nil
 }
 
-func (c *Compiler) startLoop() *Loop {
-	loop := &Loop{}
+func (c *Compiler) startLoop() *object.Loop {
+	loop := &object.Loop{}
 	c.current.Loops = append(c.current.Loops, loop)
 	return loop
 }
