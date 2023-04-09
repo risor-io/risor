@@ -186,6 +186,14 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileIn(node); err != nil {
 			return err
 		}
+	case *ast.Const:
+		if err := c.compileConst(node); err != nil {
+			return err
+		}
+	case *ast.Postfix:
+		if err := c.compilePostfix(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -198,6 +206,63 @@ func (c *Compiler) currentLoop() *Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compilePostfix(node *ast.Postfix) error {
+	name := node.Literal()
+	sym, found := c.current.Symbols.Lookup(name)
+	if !found {
+		return fmt.Errorf("undefined variable: %s", name)
+	}
+	// Push variable as TOS
+	switch sym.Scope {
+	case symbol.ScopeGlobal:
+		c.emit(op.LoadGlobal, sym.Symbol.Index)
+	case symbol.ScopeLocal:
+		c.emit(op.LoadFast, sym.Symbol.Index)
+	case symbol.ScopeFree:
+		c.emit(op.LoadFree, sym.Symbol.Index)
+	case symbol.ScopeBuiltin:
+		return fmt.Errorf("invalid operation on builtin: %s", name)
+	}
+	// Push integer 1 or -1 as TOS
+	operator := node.Operator()
+	if operator == "++" {
+		c.emit(op.LoadConst, c.constant(object.NewInt(1)))
+	} else if operator == "--" {
+		c.emit(op.LoadConst, c.constant(object.NewInt(-1)))
+	} else {
+		return fmt.Errorf("unknown operator: %q", operator)
+	}
+	// Run increment or decrement as an Add BinaryOp
+	c.emit(op.BinaryOp, uint16(op.Add))
+	// Store TOS in LHS
+	switch sym.Scope {
+	case symbol.ScopeGlobal:
+		c.emit(op.StoreGlobal, sym.Symbol.Index)
+	case symbol.ScopeLocal:
+		c.emit(op.StoreFast, sym.Symbol.Index)
+	case symbol.ScopeFree:
+		c.emit(op.StoreFree, sym.Symbol.Index)
+	}
+	return nil
+}
+
+func (c *Compiler) compileConst(node *ast.Const) error {
+	name, expr := node.Value()
+	if err := c.compile(expr); err != nil {
+		return err
+	}
+	sym, err := c.current.Symbols.InsertVariable(name)
+	if err != nil {
+		return err
+	}
+	if c.current.Parent == nil {
+		c.emit(op.StoreGlobal, sym.Index)
+	} else {
+		c.emit(op.StoreFast, sym.Index)
+	}
+	return nil
 }
 
 func (c *Compiler) compileIn(node *ast.In) error {

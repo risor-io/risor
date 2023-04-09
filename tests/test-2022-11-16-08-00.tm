@@ -9,3 +9,5 @@ a := [
 ]
 
 b := a.map(func(x) { len(x) } )
+
+b

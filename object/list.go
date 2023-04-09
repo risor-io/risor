@@ -222,8 +222,9 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	var numParameters int
 	switch obj := fn.(type) {
 	case *Builtin:
-		numParameters = 1
-	case *Function:
+		// numParameters = 1
+		return Errorf("todo")
+	case *CompiledFunction:
 		numParameters = len(obj.parameters)
 	default:
 		return Errorf("type error: list.map() expected a function (%s given)", obj.Type())
@@ -231,6 +232,7 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	if numParameters < 1 || numParameters > 2 {
 		return Errorf("type error: list.map() received an incompatible function")
 	}
+	compiledFunc := fn.(*CompiledFunction)
 	var index Int
 	mapArgs := make([]Object, 2)
 	result := make([]Object, 0, len(ls.items))
@@ -238,11 +240,15 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 		index.value = int64(i)
 		mapArgs[0] = &index
 		mapArgs[1] = value
+		var err error
 		var outputValue Object
 		if numParameters == 1 {
-			outputValue = callFunc(ctx, nil, fn, mapArgs[1:])
+			outputValue, err = callFunc(ctx, compiledFunc, mapArgs[1:])
 		} else {
-			outputValue = callFunc(ctx, nil, fn, mapArgs)
+			outputValue, err = callFunc(ctx, compiledFunc, mapArgs)
+		}
+		if err != nil {
+			return Errorf(err.Error())
 		}
 		if IsError(outputValue) {
 			return outputValue
@@ -258,7 +264,7 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 		return Errorf("eval error: list.filter() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
-	case *Function, *Builtin:
+	case *CompiledFunction, *Builtin:
 		// Nothing do do here
 	default:
 		return Errorf("type error: list.filter() expected a function (%s given)", obj.Type())
@@ -267,7 +273,10 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 	var result []Object
 	for _, value := range ls.items {
 		filterArgs[0] = value
-		decision := callFunc(ctx, nil, fn, filterArgs)
+		decision, err := callFunc(ctx, fn.(*CompiledFunction), filterArgs)
+		if err != nil {
+			return Errorf(err.Error())
+		}
 		if IsError(decision) {
 			return decision
 		}
@@ -284,7 +293,7 @@ func (ls *List) Each(ctx context.Context, fn Object) Object {
 		return Errorf("eval error: list.each() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
-	case *Function, *Builtin:
+	case *CompiledFunction, *Builtin:
 		// Nothing do do here
 	default:
 		return Errorf("type error: list.each() expected a function (%s given)", obj.Type())
@@ -292,7 +301,10 @@ func (ls *List) Each(ctx context.Context, fn Object) Object {
 	eachArgs := make([]Object, 1)
 	for _, value := range ls.items {
 		eachArgs[0] = value
-		result := callFunc(ctx, nil, fn, eachArgs)
+		result, err := callFunc(ctx, fn.(*CompiledFunction), eachArgs)
+		if err != nil {
+			return Errorf(err.Error())
+		}
 		if IsError(result) {
 			return result
 		}

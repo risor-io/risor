@@ -7,7 +7,7 @@ import (
 // CallFunc defines a type signature for a function that can call a Tamarin
 // function. In part, this type definition is useful to avoid a circular
 // dependency with the evaluator package.
-type CallFunc func(ctx context.Context, scope interface{}, fn Object, args []Object) Object
+type CallFunc func(ctx context.Context, fn *CompiledFunction, args []Object) (Object, error)
 
 type contextKey string
 

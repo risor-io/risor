@@ -18,7 +18,7 @@ const (
 	MaxStackDepth = 1024
 )
 
-func Run(code string) (object.Object, error) {
+func Run(ctx context.Context, code string) (object.Object, error) {
 	ast, err := parser.Parse(code)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func Run(code string) (object.Object, error) {
 		return nil, err
 	}
 	vm := New(mainScope)
-	if err := vm.Run(); err != nil {
+	if err := vm.Run(ctx); err != nil {
 		return nil, err
 	}
 	result, exists := vm.TOS()
@@ -81,7 +81,19 @@ func New(main *compiler.Scope) *VM {
 	return vm
 }
 
-func (vm *VM) Run() (err error) {
+func (vm *VM) Run(ctx context.Context) error {
+	fn := object.NewCompiledFunction(
+		"",
+		nil,
+		nil,
+		vm.currentScope.Instructions,
+		vm.currentScope,
+	)
+	_, err := vm.Eval(ctx, fn, nil)
+	return err
+}
+
+func (vm *VM) Eval(ctx context.Context, fn *object.CompiledFunction, args []object.Object) (result object.Object, err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
 	defer func() {
@@ -89,8 +101,6 @@ func (vm *VM) Run() (err error) {
 			err = fmt.Errorf("panic: %v", r)
 		}
 	}()
-
-	ctx := context.Background()
 
 	// Initialize the call frame with the main function
 	vm.fp++
@@ -113,7 +123,7 @@ func (vm *VM) Run() (err error) {
 			name := vm.currentScope.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return fmt.Errorf("attribute %q not found", name)
+				return nil, fmt.Errorf("attribute %q not found", name)
 			}
 			vm.Push(value)
 		case op.LoadConst:
@@ -144,7 +154,7 @@ func (vm *VM) Run() (err error) {
 				case *object.Cell:
 					free[i] = obj
 				default:
-					return errors.New("expected cell")
+					return nil, errors.New("expected cell")
 				}
 			}
 			fn := vm.currentScope.Constants[constIndex].(*object.CompiledFunction)
@@ -155,7 +165,7 @@ func (vm *VM) Run() (err error) {
 			framesBack := int(vm.fetch())
 			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
-				return fmt.Errorf("no frame at depth %d", framesBack)
+				return nil, fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
 			locals := frame.Locals()
@@ -199,7 +209,7 @@ func (vm *VM) Run() (err error) {
 				vm.currentScope = scope
 				vm.ip = 0
 			default:
-				return fmt.Errorf("object is not callable: %T", obj)
+				return nil, fmt.Errorf("object is not callable: %T", obj)
 			}
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
@@ -267,11 +277,11 @@ func (vm *VM) Run() (err error) {
 			obj := vm.Pop()
 			container, ok := obj.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", obj)
+				return nil, fmt.Errorf("object is not a container: %T", obj)
 			}
 			result, err := container.GetItem(index)
 			if err != nil {
-				return err.Value()
+				return nil, err.Value()
 			}
 			vm.Push(result)
 		case op.UnaryNegative:
@@ -282,7 +292,7 @@ func (vm *VM) Run() (err error) {
 			case *object.Float:
 				vm.Push(object.NewFloat(-obj.Value()))
 			default:
-				return fmt.Errorf("object is not a number: %T", obj)
+				return nil, fmt.Errorf("object is not a number: %T", obj)
 			}
 		case op.UnaryNot:
 			obj := vm.Pop()
@@ -302,15 +312,15 @@ func (vm *VM) Run() (err error) {
 				}
 				vm.Push(value)
 			} else {
-				return fmt.Errorf("object is not a container: %T", container)
+				return nil, fmt.Errorf("object is not a container: %T", container)
 			}
 		case op.Halt:
-			return nil
+			return nil, nil
 		default:
-			return fmt.Errorf("unknown opcode: %d", opcode)
+			return nil, fmt.Errorf("unknown opcode: %d", opcode)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (vm *VM) TOS() (object.Object, bool) {

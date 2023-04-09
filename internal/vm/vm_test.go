@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -13,6 +14,9 @@ import (
 )
 
 func TestAdd(t *testing.T) {
+
+	ctx := context.Background()
+
 	constants := []object.Object{
 		object.NewInt(3),
 		object.NewInt(4),
@@ -32,7 +36,7 @@ func TestAdd(t *testing.T) {
 		Instructions: code,
 		Symbols:      symbol.NewTable(),
 	})
-	err := vm.Run()
+	err := vm.Run(ctx)
 	require.Nil(t, err)
 
 	tos, ok := vm.TOS()
@@ -43,6 +47,8 @@ func TestAdd(t *testing.T) {
 // https://opensource.com/article/18/4/introduction-python-bytecode
 
 func TestAddCompilationAndExecution(t *testing.T) {
+
+	ctx := context.Background()
 
 	program, err := parser.Parse(`
 	x := 11
@@ -67,7 +73,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.Equal(t, int64(12), c2.Value())
 
 	vm := New(main)
-	require.Nil(t, vm.Run())
+	require.Nil(t, vm.Run(ctx))
 
 	tos, ok := vm.TOS()
 	require.True(t, ok)
@@ -75,6 +81,8 @@ func TestAddCompilationAndExecution(t *testing.T) {
 }
 
 func TestConditional(t *testing.T) {
+
+	ctx := context.Background()
 
 	program, err := parser.Parse(`
 	x := 20
@@ -90,7 +98,7 @@ func TestConditional(t *testing.T) {
 	require.Nil(t, err)
 
 	vm := New(main)
-	require.Nil(t, vm.Run())
+	require.Nil(t, vm.Run(ctx))
 
 	tos, ok := vm.TOS()
 	require.True(t, ok)
@@ -98,7 +106,8 @@ func TestConditional(t *testing.T) {
 }
 
 func TestConditional3(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	x := 5
 	y := 10
 	if x > 1 {
@@ -113,7 +122,8 @@ func TestConditional3(t *testing.T) {
 }
 
 func TestConditional4(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	x := 5
 	y := 22
 	z := 33
@@ -130,7 +140,8 @@ func TestConditional4(t *testing.T) {
 }
 
 func TestLoop(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	y := 0
 	for {
 		y = y + 1
@@ -146,7 +157,8 @@ func TestLoop(t *testing.T) {
 }
 
 func TestAssign(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	y := 99
 	y  = 3
 	y += 6
@@ -161,7 +173,8 @@ func TestAssign(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	f := func(x) { 42 + x }
 	v := f(1)
 	v + 10
@@ -172,7 +185,8 @@ func TestCall(t *testing.T) {
 }
 
 func TestStr(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	s := "hello"
 	s
 	`)
@@ -182,7 +196,8 @@ func TestStr(t *testing.T) {
 }
 
 func TestStrLen(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	s := "hello"
 	len(s)
 	`)
@@ -192,7 +207,8 @@ func TestStrLen(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	l := [1, 2, 3]
 	l
 	`)
@@ -206,7 +222,8 @@ func TestList(t *testing.T) {
 }
 
 func TestList2(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	plusOne := func(x) { x + 1 }
 	l := [plusOne(0), 4-2, plusOne(2)]
 	l
@@ -221,7 +238,8 @@ func TestList2(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	m := {"a": 1, "b": 4-2}
 	m
 	`)
@@ -234,7 +252,8 @@ func TestMap(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	s := {"a", 4-1}
 	s
 	`)
@@ -247,7 +266,8 @@ func TestSet(t *testing.T) {
 }
 
 func TestNonLocal(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	y := 3
 	z := 99
 	f := func() { y = 4 }
@@ -260,7 +280,8 @@ func TestNonLocal(t *testing.T) {
 }
 
 func TestFrameLocals1(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	x := 1
 	f := func(x) {
 		x = 99
@@ -274,7 +295,8 @@ func TestFrameLocals1(t *testing.T) {
 }
 
 func TestFrameLocals2(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	x := 1
 	f := func(y) {
 		x = 99
@@ -288,7 +310,8 @@ func TestFrameLocals2(t *testing.T) {
 }
 
 func TestMapKeys(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	m := {"a": 1, "b": 2}
 	keys(m)
 	`)
@@ -301,7 +324,8 @@ func TestMapKeys(t *testing.T) {
 }
 
 func TestClosureSimple(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	f := func(x) {
 		func() {
 			x
@@ -315,7 +339,8 @@ func TestClosureSimple(t *testing.T) {
 }
 
 func TestClosureIncrementer(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	f := func(x) {
 		func() {
 			x = x + 1
@@ -330,7 +355,8 @@ func TestClosureIncrementer(t *testing.T) {
 }
 
 func TestRecursive(t *testing.T) {
-	result, err := Run(`
+	ctx := context.Background()
+	result, err := Run(ctx, `
 	func twoexp(n) {
 		if n == 0 {
 			return 1
@@ -431,9 +457,10 @@ type testCase struct {
 }
 
 func runTests(t *testing.T, tests []testCase) {
+	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result, err := Run(tt.input)
+			result, err := Run(ctx, tt.input)
 			require.Nil(t, err)
 			require.NotNil(t, result)
 			require.Equal(t, tt.expected, result)

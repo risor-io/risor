@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"context"
+
 	"github.com/cloudcmds/tamarin/evaluator"
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
@@ -48,7 +50,7 @@ func NewInterpreter(builtins []*object.Builtin) *Interpreter {
 	return &Interpreter{c: c, main: s}
 }
 
-func (i *Interpreter) Eval(code string) (object.Object, error) {
+func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, error) {
 	ast, err := parser.Parse(code)
 	if err != nil {
 		return nil, err
@@ -59,7 +61,7 @@ func (i *Interpreter) Eval(code string) (object.Object, error) {
 		return nil, err
 	}
 	v := NewWithOffset(i.main, pos)
-	if err := v.Run(); err != nil {
+	if err := v.Run(ctx); err != nil {
 		return nil, err
 	}
 	result, exists := v.TOS()
