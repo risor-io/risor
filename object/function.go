@@ -7,11 +7,12 @@ import (
 // Function is a function that has been compiled to bytecode.
 type Function struct {
 	*DefaultImpl
-	name       string
-	parameters []string
-	defaults   []Object
-	scope      *Code
-	freeVars   []*Cell
+	name          string
+	parameters    []string
+	defaults      []Object
+	defaultsCount int
+	scope         *Code
+	freeVars      []*Cell
 }
 
 func (f *Function) Type() Type {
@@ -46,6 +47,10 @@ func (f *Function) Defaults() []Object {
 	return f.defaults
 }
 
+func (f *Function) RequiredArgsCount() int {
+	return len(f.parameters) - f.defaultsCount
+}
+
 type FunctionOpts struct {
 	Name           string
 	ParameterNames []string
@@ -54,11 +59,18 @@ type FunctionOpts struct {
 }
 
 func NewFunction(opts FunctionOpts) *Function {
+	var defaultsCount int
+	for _, value := range opts.Defaults {
+		if value != nil {
+			defaultsCount++
+		}
+	}
 	return &Function{
-		name:       opts.Name,
-		parameters: opts.ParameterNames,
-		defaults:   opts.Defaults,
-		scope:      opts.Code,
+		name:          opts.Name,
+		parameters:    opts.ParameterNames,
+		defaults:      opts.Defaults,
+		defaultsCount: defaultsCount,
+		scope:         opts.Code,
 	}
 }
 
@@ -68,10 +80,11 @@ func NewClosure(
 	freeVars []*Cell,
 ) *Function {
 	return &Function{
-		name:       fn.name,
-		parameters: fn.parameters,
-		defaults:   fn.defaults,
-		scope:      scope,
-		freeVars:   freeVars,
+		name:          fn.name,
+		parameters:    fn.parameters,
+		defaults:      fn.defaults,
+		defaultsCount: fn.defaultsCount,
+		scope:         scope,
+		freeVars:      freeVars,
 	}
 }

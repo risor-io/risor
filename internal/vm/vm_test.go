@@ -285,7 +285,7 @@ func TestFrameLocals1(t *testing.T) {
 	f := func(x) {
 		x = 99
 	}
-	f()
+	f(4)
 	x
 	`)
 	require.Nil(t, err)
@@ -300,7 +300,7 @@ func TestFrameLocals2(t *testing.T) {
 	f := func(y) {
 		x = 99
 	}
-	f()
+	f(4)
 	x
 	`)
 	require.Nil(t, err)
@@ -342,7 +342,7 @@ func TestClosureIncrementer(t *testing.T) {
 	result, err := Run(ctx, `
 	f := func(x) {
 		func() {
-			x = x + 1
+			x++
 			x
 		}
 	}
@@ -432,19 +432,26 @@ func TestMultipleCases(t *testing.T) {
 			{`10 != 5`, object.True},
 			{`!true`, object.False},
 			{`!false`, object.True},
+			{`!!true`, object.True},
+			{`!!false`, object.False},
+			{`!0`, object.True},
+			{`!5`, object.False},
 		}
 		runTests(t, tests)
 	})
 
 	t.Run("Strings", func(t *testing.T) {
 		tests := []testCase{
-			// {`"hello" + " " + "world"`, object.NewString("hello world")},
+			{`"hello" + " " + "world"`, object.NewString("hello world")},
 			{`"hello".contains("e")`, object.True},
 			{`"hello".contains("x")`, object.False},
 			{`"hello".contains("ello")`, object.True},
 			{`"hello".contains("ellx")`, object.False},
 			{`"hello".contains("")`, object.True},
+			{`"hello"[0]`, object.NewString("h")},
 			{`"hello"[1]`, object.NewString("e")},
+			{`"hello"[-1]`, object.NewString("o")},
+			{`"hello"[-2]`, object.NewString("l")},
 		}
 		runTests(t, tests)
 	})

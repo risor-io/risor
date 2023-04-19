@@ -164,6 +164,11 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 			case *object.Function:
 				vm.fp++
 				frame := &vm.frames[vm.fp]
+				requiredArgsCount := obj.RequiredArgsCount()
+				if requiredArgsCount > argc || argc > len(obj.Parameters()) {
+					return nil, fmt.Errorf("type error: function takes %d arguments (%d given)",
+						requiredArgsCount, argc)
+				}
 				scope := obj.Code()
 				if scope.IsNamed {
 					vm.tmp[argc] = obj
