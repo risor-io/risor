@@ -171,7 +171,6 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 					defaults := fn.Defaults()
 					for i := argc; i < len(defaults); i++ {
 						vm.tmp[i] = defaults[i]
-						fmt.Println("SET DEFAULT", i, defaults[i])
 					}
 				}
 				code := fn.Code()
