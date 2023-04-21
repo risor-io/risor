@@ -88,7 +88,7 @@ func (i *Int) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *Int:
 		return i.runOperationInt(opType, right.value)
 	case *Float:
-		return i.runOperationInt(opType, int64(right.value))
+		return i.runOperationFloat(opType, right.value)
 	default:
 		return NewError(fmt.Errorf("unsupported operation for int: %v on type %s", opType, right.Type()))
 	}
@@ -119,7 +119,25 @@ func (i *Int) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	case op.BitwiseOr:
 		return NewInt(i.value | right)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for int: %v", opType))
+		return NewError(fmt.Errorf("unsupported operation for int: %v on type int", opType))
+	}
+}
+
+func (i *Int) runOperationFloat(opType op.BinaryOpType, right float64) Object {
+	iValue := float64(i.value)
+	switch opType {
+	case op.Add:
+		return NewFloat(iValue + right)
+	case op.Subtract:
+		return NewFloat(iValue - right)
+	case op.Multiply:
+		return NewFloat(iValue * right)
+	case op.Divide:
+		return NewFloat(iValue / right)
+	case op.Power:
+		return NewInt(int64(math.Pow(float64(i.value), float64(right))))
+	default:
+		return NewError(fmt.Errorf("unsupported operation for int: %v on type float", opType))
 	}
 }
 

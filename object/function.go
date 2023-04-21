@@ -51,6 +51,10 @@ func (f *Function) RequiredArgsCount() int {
 	return len(f.parameters) - f.defaultsCount
 }
 
+func (f *Function) LocalsCount() int {
+	return int(f.scope.Symbols.Size())
+}
+
 type FunctionOpts struct {
 	Name           string
 	ParameterNames []string

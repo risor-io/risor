@@ -325,12 +325,9 @@ func TestMapKeys(t *testing.T) {
 func TestClosureSimple(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
-	f := func(x) {
-		func() {
-			x
-		}
-	}
-	f(22)()
+	f := func(x) { func() { x } }
+	closure := f(22)
+	closure()
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
@@ -341,16 +338,16 @@ func TestClosureIncrementer(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
 	f := func(x) {
-		func() {
-			x++
-			x
-		}
+		func() { x++ }
 	}
-	f(1)()
+	incrementer := f(1)
+	incrementer() // 1
+	incrementer() // 2
+	incrementer() // 3
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
-	require.Equal(t, object.NewInt(2), result)
+	require.Equal(t, object.NewInt(3), result)
 }
 
 func TestRecursive(t *testing.T) {
@@ -361,6 +358,26 @@ func TestRecursive(t *testing.T) {
 			return 1
 		} else {
 			return 2 * twoexp(n-1)
+		}
+	}
+	twoexp(4)
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(16), result)
+}
+
+func TestRecursive2(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	func twoexp(n) {
+		a := 1
+		b := 2
+		c := a * b
+		if n == 0 {
+			return 1
+		} else {
+			return c * twoexp(n-1)
 		}
 	}
 	twoexp(4)
@@ -381,6 +398,9 @@ func TestMultipleCases(t *testing.T) {
 			{`5 - 3`, object.NewInt(2)},
 			{`12 / 4`, object.NewInt(3)},
 			{`3 * (4 + 2)`, object.NewInt(18)},
+			{`1.5 + 1.5`, object.NewFloat(3.0)},
+			{`1.5 + 2`, object.NewFloat(3.5)},
+			{`2 + 1.5`, object.NewFloat(3.5)},
 		}
 		runTests(t, tests)
 	})
@@ -404,10 +424,19 @@ func TestMultipleCases(t *testing.T) {
 		tests := []testCase{
 			{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
 			{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
+			{`func inc(x, amount=1) { x + amount }; inc(3)`, object.NewInt(4)},
 			{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
 		}
 		runTests(t, tests)
 	})
+
+	// t.Run("FunctionErrors", func(t *testing.T) {
+	// 	tests := []testCase{
+	// 		{`func add(x, y) { x + y }; add(3)`,
+	// 			object.NewError(errors.New("type error: function takes 2 arguments (1 given)"))},
+	// 	}
+	// 	runTests(t, tests)
+	// })
 
 	t.Run("DataStructures", func(t *testing.T) {
 		tests := []testCase{
@@ -463,9 +492,11 @@ type testCase struct {
 }
 
 func runTests(t *testing.T, tests []testCase) {
+	t.Helper()
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Helper()
 			result, err := Run(ctx, tt.input)
 			require.Nil(t, err)
 			require.NotNil(t, result)

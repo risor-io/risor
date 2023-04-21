@@ -365,42 +365,50 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Python cell variables:
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
-	var name string
-	ident := node.Name()
-	if ident != nil {
-		name = ident.Literal()
+	// The function has an optional name. If it is named, the name will be
+	// stored in the function's own symbol table to support recursive calls.
+	var functionName string
+	if ident := node.Name(); ident != nil {
+		functionName = ident.Literal()
 	}
 
-	funcScope := &object.Code{
-		Name:    name,
-		IsNamed: ident != nil,
+	// This new code object will store the compiled code for this function
+	code := &object.Code{
+		Name:    functionName,
+		IsNamed: functionName != "",
 		Parent:  c.CurrentScope(),
 		Symbols: c.current.Symbols.NewChild(),
 	}
-	c.current.Children = append(c.current.Children, funcScope)
-	c.current = funcScope
 
+	// Setting current here means subsequent calls to compile will add to this
+	// code object instead of the parent.
+	c.current = code
+
+	// Make it quick to look up the index of a parameter
 	paramsIdx := map[string]int{}
-	paramsAst := node.Parameters()
-	params := make([]string, len(paramsAst))
-	for i, param := range paramsAst {
-		params[i] = param.Literal()
-		paramsIdx[param.Literal()] = i
+	params := node.ParameterNames()
+	for i, name := range params {
+		paramsIdx[name] = i
 	}
 
-	defaults := make([]object.Object, len(paramsAst))
-	for k := range node.Defaults() {
-		idx := paramsIdx[k]
-		defaults[idx] = object.NewInt(0) // FIXME
+	// Build an array of default values for parameters
+	defaults := make([]object.Object, len(params))
+	for name := range node.Defaults() {
+		defaults[paramsIdx[name]] = object.NewInt(0) // FIXME
 	}
 
-	// Add the function's own name to the symbol table to support recursive calls
+	// After the function's name, we'll add the parameter names to the symbols.
 	for _, arg := range node.Parameters() {
-		funcScope.Symbols.InsertVariable(arg.Literal())
+		code.Symbols.InsertVariable(arg.Literal())
 	}
-	if ident != nil {
-		funcScope.Symbols.InsertVariable(name)
+	// Add the function's own name to its symbol table. This supports recursive
+	// calls to the function. Later when we create the function object, we'll
+	// add the object value to the table.
+	if code.IsNamed {
+		code.Symbols.InsertVariable(functionName)
 	}
+
+	// Compile the function code
 	statements := node.Body().Statements()
 	for _, statement := range statements {
 		if err := c.compile(statement); err != nil {
@@ -413,14 +421,24 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	} else if _, ok := statements[len(statements)-1].(*ast.Control); !ok {
 		c.emit(op.ReturnValue, 1)
 	}
+
+	// We're done compiling the function, so switch back to compiling the parent
 	c.current = c.current.Parent
-	freeSymbols := funcScope.Symbols.Free()
+
+	// Create the function object that contains the compiled code
 	fn := object.NewFunction(object.FunctionOpts{
-		Name:           name,
+		Name:           functionName,
 		ParameterNames: params,
 		Defaults:       defaults,
-		Code:           funcScope,
+		Code:           code,
 	})
+	if code.IsNamed {
+		code.Symbols.SetValue(functionName, fn)
+	}
+
+	// Emit the code to load the function object onto the stack. If there are
+	// free variables, we use LoadClosure, otherwise we use LoadConst.
+	freeSymbols := code.Symbols.Free()
 	if len(freeSymbols) > 0 {
 		for _, resolution := range freeSymbols {
 			c.emit(op.MakeCell, resolution.Symbol.Index, uint16(resolution.Depth-1))
@@ -429,8 +447,11 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	} else {
 		c.emit(op.LoadConst, c.constant(fn))
 	}
-	if node.Name() != nil {
-		funcSymbol, err := c.current.Symbols.InsertVariable(name)
+
+	// If the function was named, we store it as a named variable in the current
+	// scope. Otherwise, we just leave it on the stack.
+	if functionName != "" {
+		funcSymbol, err := c.current.Symbols.InsertVariable(functionName)
 		if err != nil {
 			return err
 		}

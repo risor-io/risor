@@ -113,6 +113,15 @@ func (t *SymbolTable) InsertBuiltin(name string, value ...Object) (*Symbol, erro
 	return s, nil
 }
 
+func (t *SymbolTable) SetValue(name string, value Object) error {
+	s, ok := t.symbols[name]
+	if !ok {
+		return fmt.Errorf("symbol %q not found", name)
+	}
+	s.Value = value
+	return nil
+}
+
 func (t *SymbolTable) IsBuiltin(name string) bool {
 	_, ok := t.builtins[name]
 	return ok

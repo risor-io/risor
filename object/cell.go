@@ -1,7 +1,5 @@
 package object
 
-import "fmt"
-
 type Cell struct {
 	*DefaultImpl
 	value *Object
@@ -37,6 +35,5 @@ func (c *Cell) Equals(other Object) Object {
 }
 
 func NewCell(value *Object) *Cell {
-	fmt.Println("NewCell", value)
 	return &Cell{DefaultImpl: &DefaultImpl{}, value: value}
 }

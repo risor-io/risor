@@ -668,6 +668,14 @@ func (f *Func) Name() *Ident { return f.name }
 
 func (f *Func) Parameters() []*Ident { return f.parameters }
 
+func (f *Func) ParameterNames() []string {
+	names := make([]string, 0, len(f.parameters))
+	for _, p := range f.parameters {
+		names = append(names, p.value)
+	}
+	return names
+}
+
 func (f *Func) Defaults() map[string]Expression { return f.defaults }
 
 func (f *Func) Body() *Block { return f.body }

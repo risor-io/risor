@@ -1,57 +1,73 @@
 package vm
 
 import (
-	"math"
-
 	"github.com/cloudcmds/tamarin/object"
 )
 
-const DefaultFrameLocals = 4
+const DefaultFrameLocals = 8
 
 type Frame struct {
 	returnAddr     int
 	localsCount    uint16
 	fn             *object.Function
-	scope          *object.Code
-	locals         [DefaultFrameLocals]object.Object
+	code           *object.Code
+	storage        [DefaultFrameLocals]object.Object
+	locals         []object.Object
 	extendedLocals []object.Object
+	capturedLocals []object.Object
 }
 
-func (f *Frame) Init(fn *object.Function, returnAddr int, localsCount uint16) {
+func (f *Frame) ActivateCode(code *object.Code) {
+	f.code = code
+	f.fn = nil
+	f.returnAddr = 0
+	f.localsCount = code.Symbols.Size()
+	f.capturedLocals = nil
+	for i := 0; i < DefaultFrameLocals; i++ {
+		f.storage[i] = nil
+	}
+	// Decide where to store local variables. If the frame storage has enough
+	// space, use that. Otherwise, allocate a new slice as extendedLocals.
+	// After this, f.locals will always point to the correct storage.
+	if f.localsCount > DefaultFrameLocals {
+		f.extendedLocals = make([]object.Object, f.localsCount)
+		f.locals = f.extendedLocals
+	} else {
+		f.extendedLocals = nil
+		f.locals = f.storage[:f.localsCount]
+	}
+}
+
+func (f *Frame) ActivateFunction(fn *object.Function, returnAddr int, localValues []object.Object) {
+	// Activate the function's code
+	f.ActivateCode(fn.Code())
 	f.fn = fn
-	if fn != nil {
-		f.scope = fn.Code()
-	} else {
-		f.scope = nil
-	}
+	// Save the instruction pointer of the caller
 	f.returnAddr = returnAddr
-	f.localsCount = localsCount
-	if localsCount > DefaultFrameLocals {
-		f.extendedLocals = make([]object.Object, localsCount)
-	}
-}
-
-func (f *Frame) InitWithLocals(fn *object.Function, returnAddr int, locals []object.Object) {
-	count := len(locals)
-	if count > math.MaxUint16 {
-		panic("too many locals")
-	}
-	f.Init(fn, returnAddr, uint16(count))
-	if count > DefaultFrameLocals {
-		copy(f.extendedLocals, locals)
-	} else {
-		// Using `copy` is slower than this loop.
-		for i := 0; i < count; i++ {
-			f.locals[i] = locals[i]
-		}
+	// Initialize any local variables that were provided.
+	// Note the copy builtin is slower than this loop.
+	for i := 0; i < len(localValues); i++ {
+		f.locals[i] = localValues[i]
 	}
 }
 
 func (f *Frame) Locals() []object.Object {
-	if f.localsCount > DefaultFrameLocals {
-		return f.extendedLocals
+	return f.locals
+}
+
+func (f *Frame) CaptureLocals() []object.Object {
+	if f.capturedLocals != nil {
+		return f.capturedLocals
 	}
-	return f.locals[:f.localsCount]
+	if f.extendedLocals != nil {
+		f.capturedLocals = f.extendedLocals
+		return f.capturedLocals
+	}
+	newStorage := make([]object.Object, len(f.locals))
+	copy(newStorage, f.locals)
+	f.capturedLocals = newStorage
+	f.locals = newStorage
+	return newStorage
 }
 
 func (f *Frame) Function() *object.Function {
@@ -59,5 +75,5 @@ func (f *Frame) Function() *object.Function {
 }
 
 func (f *Frame) Code() *object.Code {
-	return f.scope
+	return f.code
 }

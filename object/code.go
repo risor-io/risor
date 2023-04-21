@@ -13,7 +13,6 @@ type Code struct {
 	Name         string
 	IsNamed      bool
 	Parent       *Code
-	Children     []*Code
 	Symbols      *SymbolTable
 	Instructions []op.Code
 	Constants    []Object
@@ -21,9 +20,13 @@ type Code struct {
 	Names        []string
 }
 
-func (s *Code) AddName(name string) uint16 {
-	s.Names = append(s.Names, name)
-	return uint16(len(s.Names) - 1)
+func (c *Code) AddName(name string) uint16 {
+	c.Names = append(c.Names, name)
+	return uint16(len(c.Names) - 1)
+}
+
+func (c *Code) SymbolCount() uint16 {
+	return c.Symbols.Size()
 }
 
 func NewCode(name string) *Code {

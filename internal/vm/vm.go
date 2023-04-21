@@ -61,18 +61,17 @@ func (vm *VM) Run(ctx context.Context) error {
 func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Object) (result object.Object, err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// }()
 
 	// Initialize the call frame with the main function
 	vm.fp++
 	vm.ip++
 	vm.currentFrame = &vm.frames[vm.fp]
-	vm.currentFrame.Init(nil, 0, vm.currentScope.Symbols.Size())
-	vm.currentFrame.scope = vm.main
+	vm.currentFrame.ActivateCode(vm.main)
 
 	// Run the program until finished
 	for vm.ip < len(vm.currentScope.Instructions) {
@@ -94,7 +93,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 		case op.LoadConst:
 			vm.Push(vm.currentScope.Constants[vm.fetch()])
 		case op.LoadFast:
-			vm.Push(vm.currentFrame.locals[vm.fetch()])
+			vm.Push(vm.currentFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
 			vm.Push(vm.globals[vm.fetch()])
 		case op.LoadFree:
@@ -103,7 +102,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 		case op.LoadBuiltin:
 			vm.Push(vm.builtins[vm.fetch()])
 		case op.StoreFast:
-			vm.currentFrame.locals[vm.fetch()] = vm.Pop()
+			vm.currentFrame.Locals()[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
 			vm.globals[vm.fetch()] = vm.Pop()
 		case op.StoreFree:
@@ -133,7 +132,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				return nil, fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
-			locals := frame.Locals()
+			locals := frame.CaptureLocals()
 			vm.Push(object.NewCell(&locals[symbolIndex]))
 		case op.Nil:
 			vm.Push(object.Nil)
@@ -157,26 +156,27 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				vm.tmp[argIndex] = vm.Pop()
 			}
 			obj := vm.Pop()
-			switch obj := obj.(type) {
+			switch fn := obj.(type) {
 			case *object.Builtin:
-				result := obj.Call(ctx, vm.tmp[:argc]...)
+				result := fn.Call(ctx, vm.tmp[:argc]...)
 				vm.Push(result)
 			case *object.Function:
 				vm.fp++
 				frame := &vm.frames[vm.fp]
-				requiredArgsCount := obj.RequiredArgsCount()
-				if requiredArgsCount > argc || argc > len(obj.Parameters()) {
+				paramsCount := len(fn.Parameters())
+				requiredArgsCount := fn.RequiredArgsCount()
+				if requiredArgsCount > argc || argc > paramsCount {
 					return nil, fmt.Errorf("type error: function takes %d arguments (%d given)",
 						requiredArgsCount, argc)
 				}
-				scope := obj.Code()
-				if scope.IsNamed {
-					vm.tmp[argc] = obj
+				code := fn.Code()
+				if code.IsNamed {
+					vm.tmp[paramsCount] = fn
 					argc++
 				}
-				frame.InitWithLocals(obj, vm.ip, vm.tmp[:argc])
+				frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
 				vm.currentFrame = frame
-				vm.currentScope = scope
+				vm.currentScope = code
 				vm.ip = 0
 			default:
 				return nil, fmt.Errorf("object is not callable: %T", obj)
