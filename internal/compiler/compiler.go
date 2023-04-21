@@ -391,10 +391,26 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		paramsIdx[name] = i
 	}
 
-	// Build an array of default values for parameters
+	// Build an array of default values for parameters, supporting only
+	// the basic types of int, string, bool, float, and nil.
 	defaults := make([]object.Object, len(params))
-	for name := range node.Defaults() {
-		defaults[paramsIdx[name]] = object.NewInt(0) // FIXME
+	for name, expr := range node.Defaults() {
+		var value object.Object
+		switch expr := expr.(type) {
+		case *ast.Int:
+			value = object.NewInt(expr.Value())
+		case *ast.String:
+			value = object.NewString(expr.Value())
+		case *ast.Bool:
+			value = object.NewBool(expr.Value())
+		case *ast.Float:
+			value = object.NewFloat(expr.Value())
+		case *ast.Nil:
+			value = object.Nil
+		default:
+			return fmt.Errorf("unsupported default value: %s", expr)
+		}
+		defaults[paramsIdx[name]] = value
 	}
 
 	// After the function's name, we'll add the parameter names to the symbols.

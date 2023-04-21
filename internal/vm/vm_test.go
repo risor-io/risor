@@ -430,14 +430,6 @@ func TestMultipleCases(t *testing.T) {
 		runTests(t, tests)
 	})
 
-	// t.Run("FunctionErrors", func(t *testing.T) {
-	// 	tests := []testCase{
-	// 		{`func add(x, y) { x + y }; add(3)`,
-	// 			object.NewError(errors.New("type error: function takes 2 arguments (1 given)"))},
-	// 	}
-	// 	runTests(t, tests)
-	// })
-
 	t.Run("DataStructures", func(t *testing.T) {
 		tests := []testCase{
 			{`true`, object.True},

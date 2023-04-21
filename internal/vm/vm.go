@@ -164,10 +164,15 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				vm.fp++
 				frame := &vm.frames[vm.fp]
 				paramsCount := len(fn.Parameters())
-				requiredArgsCount := fn.RequiredArgsCount()
-				if requiredArgsCount > argc || argc > paramsCount {
-					return nil, fmt.Errorf("type error: function takes %d arguments (%d given)",
-						requiredArgsCount, argc)
+				if err := checkCallArgs(fn, argc); err != nil {
+					return nil, err
+				}
+				if argc < paramsCount {
+					defaults := fn.Defaults()
+					for i := argc; i < len(defaults); i++ {
+						vm.tmp[i] = defaults[i]
+						fmt.Println("SET DEFAULT", i, defaults[i])
+					}
 				}
 				code := fn.Code()
 				if code.IsNamed {
@@ -315,4 +320,26 @@ func (vm *VM) fetch() uint16 {
 	ip := vm.ip
 	vm.ip++
 	return uint16(vm.currentScope.Instructions[ip])
+}
+
+func checkCallArgs(fn *object.Function, argc int) error {
+
+	// Number of parameters in the function signature
+	paramsCount := len(fn.Parameters())
+
+	// Number of required args when the function is called (those without defaults)
+	requiredArgsCount := fn.RequiredArgsCount()
+
+	// Check if too many or too few arguments were passed
+	if argc > paramsCount || argc < requiredArgsCount {
+		switch paramsCount {
+		case 0:
+			return fmt.Errorf("type error: function takes no arguments (%d given)", argc)
+		case 1:
+			return fmt.Errorf("type error: function takes 1 argument (%d given)", argc)
+		default:
+			return fmt.Errorf("type error: function takes %d arguments (%d given)", paramsCount, argc)
+		}
+	}
+	return nil
 }
