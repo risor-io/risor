@@ -188,6 +188,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compilePostfix(node); err != nil {
 			return err
 		}
+	case *ast.Pipe:
+		if err := c.compilePipe(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -200,6 +204,29 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compilePipe(node *ast.Pipe) error {
+	exprs := node.Expressions()
+	if len(exprs) < 2 {
+		return fmt.Errorf("pipe operator requires at least two expressions")
+	}
+	// Compile the first expression (filling TOS with the initial pipe value)
+	if err := c.compile(exprs[0]); err != nil {
+		return err
+	}
+	// Iterate over the remaining expressions. Each should eval to a function.
+	for i := 1; i < len(exprs); i++ {
+		// Compile the current expression, pushing a function as TOS
+		if err := c.compile(exprs[i]); err != nil {
+			return err
+		}
+		// Swap the function (TOS) with the argument below it on the stack
+		// and then call the function with one argument
+		c.emit(op.Swap, 1)
+		c.emit(op.Call, 1)
+	}
+	return nil
 }
 
 func (c *Compiler) compilePostfix(node *ast.Postfix) error {

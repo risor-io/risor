@@ -46,6 +46,7 @@ const (
 	UnaryNegative
 	UnaryNot
 	UnaryPositive
+	Swap
 )
 
 type BinaryOpType uint16
@@ -134,6 +135,7 @@ func init() {
 		{DeleteSubscr, "DELETE_SUBSCR", 0, nil},
 		{StoreSubscr, "STORE_SUBSCR", 0, nil},
 		{ContainsOp, "CONTAINS_OP", 1, []int{2}},
+		{Swap, "SWAP", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

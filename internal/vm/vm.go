@@ -288,6 +288,8 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 			} else {
 				return nil, fmt.Errorf("object is not a container: %T", container)
 			}
+		case op.Swap:
+			vm.Swap(int(vm.fetch()))
 		case op.Halt:
 			return nil, nil
 		default:
@@ -313,6 +315,14 @@ func (vm *VM) Pop() object.Object {
 func (vm *VM) Push(obj object.Object) {
 	vm.sp++
 	vm.stack[vm.sp] = obj
+}
+
+func (vm *VM) Swap(pos int) {
+	otherIndex := vm.sp - pos
+	tos := vm.stack[vm.sp]
+	other := vm.stack[otherIndex]
+	vm.stack[otherIndex] = tos
+	vm.stack[vm.sp] = other
 }
 
 func (vm *VM) fetch() uint16 {
