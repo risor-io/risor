@@ -47,6 +47,7 @@ const (
 	UnaryNot
 	UnaryPositive
 	Swap
+	BuildString
 )
 
 type BinaryOpType uint16
@@ -136,6 +137,7 @@ func init() {
 		{StoreSubscr, "STORE_SUBSCR", 0, nil},
 		{ContainsOp, "CONTAINS_OP", 1, []int{2}},
 		{Swap, "SWAP", 1, []int{2}},
+		{BuildString, "BUILD_STRING", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

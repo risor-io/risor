@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
@@ -50,11 +51,11 @@ func New(main *object.Code) *VM {
 func (vm *VM) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// }()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
 	vm.ip = 0
@@ -299,6 +300,22 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			}
 		case op.Swap:
 			vm.Swap(int(vm.fetch()))
+		case op.BuildString:
+			count := vm.fetch()
+			items := make([]string, count)
+			for i := uint16(0); i < count; i++ {
+				dst := count - 1 - i
+				obj := vm.Pop()
+				switch obj := obj.(type) {
+				case *object.Error:
+					return obj.Value() // TODO: review this
+				case *object.String:
+					items[dst] = obj.Value()
+				default:
+					items[dst] = obj.Inspect()
+				}
+			}
+			vm.Push(object.NewString(strings.Join(items, "")))
 		case op.Halt:
 			return nil
 		default:

@@ -7,6 +7,7 @@ import (
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/token"
 )
 
 type Compiler struct {
@@ -224,11 +225,55 @@ func (c *Compiler) currentLoop() *object.Loop {
 }
 
 func (c *Compiler) compileString(node *ast.String) error {
+
+	// Is the string a template or a simple string?
 	tmpl := node.Template()
+
+	// Simple strings are just emitted as a constant
 	if tmpl == nil {
 		c.emit(op.LoadConst, c.constant(object.NewString(node.Value())))
 		return nil
 	}
+
+	if len(tmpl.Fragments) > math.MaxUint16 {
+		return fmt.Errorf("string template exceeded max fragment size")
+	}
+
+	var expressionIndex int
+	expressions := node.TemplateExpressions()
+
+	// Emit code that pushes each fragment of the string onto the stack
+	for _, f := range tmpl.Fragments {
+		switch f.IsVariable {
+		case true:
+			expr := expressions[expressionIndex]
+			expressionIndex++
+			// Nil expression should be treated as empty string
+			if expr == nil {
+				c.emit(op.LoadConst, c.constant(object.NewString("")))
+				continue
+			}
+			// Transform the expression into a *ast.Func
+			astFn := ast.NewFunc(
+				token.Token{},
+				nil, // no name
+				nil, // no params
+				nil, // no defaults
+				ast.NewBlock(token.Token{}, []ast.Node{expr}),
+			)
+			// Emit code to push the compiled function as TOS
+			if _, err := c.compileReturnFunc(astFn); err != nil {
+				return err
+			}
+			// Emit code to call the function to build the fragment
+			c.emit(op.Call, 0)
+		case false:
+			// Push the fragment as a constant as TOS
+			c.emit(op.LoadConst, c.constant(object.NewString(f.Value)))
+		}
+	}
+	// Emit a BuildString to concatenate all the fragments
+	c.emit(op.BuildString, uint16(len(tmpl.Fragments)))
 	return nil
 }
 
@@ -420,12 +465,17 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 }
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
+	_, err := c.compileReturnFunc(node)
+	return err
+}
+
+func (c *Compiler) compileReturnFunc(node *ast.Func) (*object.Function, error) {
 
 	// Python cell variables:
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
 	if len(node.Parameters()) > 255 {
-		return fmt.Errorf("function exceeded parameter limit of 255")
+		return nil, fmt.Errorf("function exceeded parameter limit of 255")
 	}
 
 	// The function has an optional name. If it is named, the name will be
@@ -472,7 +522,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		case *ast.Nil:
 			value = object.Nil
 		default:
-			return fmt.Errorf("unsupported default value: %s", expr)
+			return nil, fmt.Errorf("unsupported default value: %s", expr)
 		}
 		defaults[paramsIdx[name]] = value
 	}
@@ -492,7 +542,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	statements := node.Body().Statements()
 	for _, statement := range statements {
 		if err := c.compile(statement); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if len(statements) == 0 {
@@ -533,7 +583,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	if functionName != "" {
 		funcSymbol, err := c.current.Symbols.InsertVariable(functionName)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if c.current.Parent == nil {
 			c.emit(op.StoreGlobal, funcSymbol.Index)
@@ -541,7 +591,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 			c.emit(op.StoreFast, funcSymbol.Index)
 		}
 	}
-	return nil
+	return fn, nil
 }
 
 func (c *Compiler) compileCall(node *ast.Call) error {

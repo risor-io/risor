@@ -3,6 +3,4 @@
 
 a := 10
 
-s := 'foo {a+11} bar { "ab" + "cd" }'
-
-s
+'foo {a+11} bar { "ab" + "cd" }'
