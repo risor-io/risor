@@ -6,4 +6,4 @@ s2 := {2, "a", 2.2}
 
 s1.add(3)
 
-union := s1.union(s2) | sorted
+s1.union(s2) | sorted
