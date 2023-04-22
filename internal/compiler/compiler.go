@@ -10,6 +10,10 @@ import (
 	"github.com/cloudcmds/tamarin/token"
 )
 
+const (
+	MaxArgs = 255
+)
+
 type Compiler struct {
 
 	// The entrypoint code we are compiling. This remains fixed throughout
@@ -62,6 +66,7 @@ func (c *Compiler) Instructions() []op.Code {
 }
 
 func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
+	c.failure = nil
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -278,6 +283,9 @@ func (c *Compiler) compileString(node *ast.String) error {
 }
 
 func (c *Compiler) compilePipe(node *ast.Pipe) error {
+	if c.current.PipeActive {
+		return fmt.Errorf("invalid nested pipe")
+	}
 	exprs := node.Expressions()
 	if len(exprs) < 2 {
 		return fmt.Errorf("pipe operator requires at least two expressions")
@@ -286,7 +294,13 @@ func (c *Compiler) compilePipe(node *ast.Pipe) error {
 	if err := c.compile(exprs[0]); err != nil {
 		return err
 	}
+	// Set the pipe active flag for the remainder of the pipe
+	c.current.PipeActive = true
+	defer func() {
+		c.current.PipeActive = false
+	}()
 	// Iterate over the remaining expressions. Each should eval to a function.
+	// TODO: may need to compile to a partial as well.
 	for i := 1; i < len(exprs); i++ {
 		// Compile the current expression, pushing a function as TOS
 		if err := c.compile(exprs[i]); err != nil {
@@ -381,6 +395,28 @@ func (c *Compiler) compilePrefix(node *ast.Prefix) error {
 	return nil
 }
 
+func (c *Compiler) compileCall(node *ast.Call) error {
+	args := node.Arguments()
+	argc := len(args)
+	if argc > MaxArgs {
+		return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, argc)
+	}
+	if err := c.compile(node.Function()); err != nil {
+		return err
+	}
+	for _, arg := range args {
+		if err := c.compile(arg); err != nil {
+			return err
+		}
+	}
+	if c.current.PipeActive {
+		c.emit(op.Partial, uint16(argc))
+	} else {
+		c.emit(op.Call, uint16(argc))
+	}
+	return nil
+}
+
 func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 	if err := c.compile(node.Object()); err != nil {
 		return err
@@ -393,12 +429,20 @@ func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 	name := method.Function().String()
 	c.emit(op.LoadAttr, c.current.AddName(name))
 	args := method.Arguments()
+	argc := len(args)
+	if argc > MaxArgs {
+		return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, argc)
+	}
 	for _, arg := range args {
 		if err := c.compile(arg); err != nil {
 			return err
 		}
 	}
-	c.emit(op.Call, uint16(len(args)))
+	if c.current.PipeActive {
+		c.emit(op.Partial, uint16(len(args)))
+	} else {
+		c.emit(op.Call, uint16(len(args)))
+	}
 	return nil
 }
 
@@ -592,20 +636,6 @@ func (c *Compiler) compileReturnFunc(node *ast.Func) (*object.Function, error) {
 		}
 	}
 	return fn, nil
-}
-
-func (c *Compiler) compileCall(node *ast.Call) error {
-	args := node.Arguments()
-	if err := c.compile(node.Function()); err != nil {
-		return err
-	}
-	for _, arg := range args {
-		if err := c.compile(arg); err != nil {
-			return err
-		}
-	}
-	c.emit(op.Call, uint16(len(args)))
-	return nil
 }
 
 func (c *Compiler) compileControl(node *ast.Control) error {

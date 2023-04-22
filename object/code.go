@@ -19,6 +19,7 @@ type Code struct {
 	Loops        []*Loop
 	Names        []string
 	Source       string
+	PipeActive   bool
 }
 
 func (c *Code) AddName(name string) uint16 {

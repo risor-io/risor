@@ -41,6 +41,7 @@ const (
 	MAP_ITER      Type = "map_iter"
 	MODULE        Type = "module"
 	NIL           Type = "nil"
+	PARTIAL       Type = "partial"
 	PROXY         Type = "proxy"
 	REGEXP        Type = "regexp"
 	RESULT        Type = "result"

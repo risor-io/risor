@@ -63,7 +63,7 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 	vm.activeFrame = &vm.frames[vm.fp]
 	vm.activeFrame.ActivateCode(vm.main)
 	vm.activeCode = vm.main
-	ctx = object.WithCallFunc(ctx, vm.call)
+	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	err = vm.eval(ctx)
 	return
 }
@@ -167,35 +167,18 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 				vm.tmp[argIndex] = vm.Pop()
 			}
 			obj := vm.Pop()
-			switch fn := obj.(type) {
-			case *object.Builtin:
-				result := fn.Call(ctx, vm.tmp[:argc]...)
-				vm.Push(result)
-			case *object.Function:
-				vm.fp++
-				frame := &vm.frames[vm.fp]
-				paramsCount := len(fn.Parameters())
-				if err := checkCallArgs(fn, argc); err != nil {
-					return err
-				}
-				if argc < paramsCount {
-					defaults := fn.Defaults()
-					for i := argc; i < len(defaults); i++ {
-						vm.tmp[i] = defaults[i]
-					}
-				}
-				code := fn.Code()
-				if code.IsNamed {
-					vm.tmp[paramsCount] = fn
-					argc++
-				}
-				frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
-				vm.activeFrame = frame
-				vm.activeCode = code
-				vm.ip = 0
-			default:
-				return fmt.Errorf("object is not callable: %T", obj)
+			if err := vm.call(ctx, obj, argc); err != nil {
+				return err
 			}
+		case op.Partial:
+			argc := int(vm.fetch())
+			args := make([]object.Object, argc)
+			for i := argc - 1; i >= 0; i-- {
+				args[i] = vm.Pop()
+			}
+			obj := vm.Pop()
+			partial := object.NewPartial(obj, args)
+			vm.Push(partial)
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
@@ -326,6 +309,50 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 	return nil
 }
 
+func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
+	// The arguments are understood to be stored in vm.tmp here
+	args := vm.tmp[:argc]
+	switch fn := fn.(type) {
+	case *object.Builtin:
+		result := fn.Call(ctx, args...)
+		vm.Push(result)
+	case *object.Function:
+		vm.fp++
+		frame := &vm.frames[vm.fp]
+		paramsCount := len(fn.Parameters())
+		if err := checkCallArgs(fn, argc); err != nil {
+			return err
+		}
+		if argc < paramsCount {
+			defaults := fn.Defaults()
+			for i := argc; i < len(defaults); i++ {
+				vm.tmp[i] = defaults[i]
+			}
+		}
+		code := fn.Code()
+		if code.IsNamed {
+			vm.tmp[paramsCount] = fn
+			argc++
+		}
+		frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
+		vm.activeFrame = frame
+		vm.activeCode = code
+		vm.ip = 0
+	case *object.Partial:
+		// Combine the current arguments with the partial's arguments
+		expandedCount := argc + len(fn.Args())
+		if expandedCount > MaxArgs {
+			return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
+		}
+		// We can just append arguments from the partial into vm.tmp
+		copy(vm.tmp[argc:], fn.Args())
+		return vm.call(ctx, fn.Function(), expandedCount)
+	default:
+		return fmt.Errorf("object is not callable: %T", fn)
+	}
+	return nil
+}
+
 func (vm *VM) TOS() (object.Object, bool) {
 	if vm.sp >= 0 {
 		return vm.stack[vm.sp], true
@@ -360,7 +387,7 @@ func (vm *VM) fetch() uint16 {
 
 // Calls a compiled function with the given arguments. This is used internally
 // when a Tamarin object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
-func (vm *VM) call(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+func (vm *VM) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 	// Advance to the next frame
 	vm.fp++
 	frame := &vm.frames[vm.fp]
@@ -417,4 +444,13 @@ func checkCallArgs(fn *object.Function, argc int) error {
 		}
 	}
 	return nil
+}
+
+func concat(a, b []object.Object) []object.Object {
+	aLen := len(a)
+	bLen := len(b)
+	result := make([]object.Object, aLen+bLen)
+	copy(result, a)
+	copy(result[aLen:], b)
+	return result
 }
