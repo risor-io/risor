@@ -424,6 +424,10 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Python cell variables:
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
+	if len(node.Parameters()) > 255 {
+		return fmt.Errorf("function exceeded parameter limit of 255")
+	}
+
 	// The function has an optional name. If it is named, the name will be
 	// stored in the function's own symbol table to support recursive calls.
 	var functionName string

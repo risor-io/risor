@@ -19,7 +19,6 @@ import (
 type Interpreter struct {
 	c    *compiler.Compiler
 	main *object.Code
-	// vm   *vm.VM
 }
 
 func NewInterpreter(builtins []*object.Builtin) *Interpreter {
