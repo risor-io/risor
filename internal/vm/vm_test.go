@@ -438,6 +438,8 @@ func TestMultipleCases(t *testing.T) {
 			{`{"x": 10, "y": 20}["x"]`, object.NewInt(10)},
 			{`3 in [1, 2, 3]`, object.True},
 			{`4 in [1, 2, 3]`, object.False},
+			{`{"foo": "bar"}["foo"]`, object.NewString("bar")},
+			{`{foo: "bar"}["foo"]`, object.NewString("bar")},
 			// {`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
 			// 	[]object.Object{object.NewInt(4), object.NewInt(5)})},
 		}
@@ -473,6 +475,16 @@ func TestMultipleCases(t *testing.T) {
 			{`"hello"[1]`, object.NewString("e")},
 			{`"hello"[-1]`, object.NewString("o")},
 			{`"hello"[-2]`, object.NewString("l")},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("Pipes", func(t *testing.T) {
+		tests := []testCase{
+			{`"hello" | strings.to_upper`, object.NewString("HELLO")},
+			{`"hello" | len`, object.NewInt(5)},
+			{`func() { "hello" }() | len`, object.NewInt(5)},
+			{`["a", "b"] | strings.join(",") | strings.to_upper`, object.NewString("A,B")},
 		}
 		runTests(t, tests)
 	})

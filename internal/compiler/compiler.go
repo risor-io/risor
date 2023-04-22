@@ -485,8 +485,15 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 	items := node.Items()
 	count := len(items)
 	for k, v := range items {
-		if err := c.compile(k); err != nil {
-			return err
+		switch k := k.(type) {
+		case *ast.String:
+			if err := c.compile(k); err != nil {
+				return err
+			}
+		case *ast.Ident:
+			c.emit(op.LoadConst, c.constant(object.NewString(k.String())))
+		default:
+			return fmt.Errorf("invalid map key type: %v", k)
 		}
 		if err := c.compile(v); err != nil {
 			return err
