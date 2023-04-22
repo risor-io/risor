@@ -8,3 +8,4 @@ inc := func(x) {
 i := 100
 
 s := '{inc(i)}'
+s

@@ -18,6 +18,7 @@ type Code struct {
 	Constants    []Object
 	Loops        []*Loop
 	Names        []string
+	Source       string
 }
 
 func (c *Code) AddName(name string) uint16 {

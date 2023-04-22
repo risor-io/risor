@@ -1,6 +1,9 @@
 package object
 
 import (
+	"bytes"
+	"strings"
+
 	"github.com/cloudcmds/tamarin/internal/op"
 )
 
@@ -24,7 +27,33 @@ func (f *Function) Name() string {
 }
 
 func (f *Function) Inspect() string {
-	return "function()"
+	var out bytes.Buffer
+	parameters := make([]string, 0)
+	for i, name := range f.parameters {
+		if def := f.defaults[i]; def != nil {
+			name += "=" + def.Inspect()
+		}
+		parameters = append(parameters, name)
+	}
+	out.WriteString("func")
+	if f.name != "" {
+		out.WriteString(" " + f.name)
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(parameters, ", "))
+	out.WriteString(") {")
+	lines := strings.Split(f.Code().Source, "\n")
+	if len(lines) == 1 {
+		out.WriteString(" " + lines[0] + " }")
+	} else if len(lines) == 0 {
+		out.WriteString(" }")
+	} else {
+		for _, line := range lines {
+			out.WriteString("\n    " + line)
+		}
+		out.WriteString("\n}")
+	}
+	return out.String()
 }
 
 func (f *Function) Instructions() []op.Code {

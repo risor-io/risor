@@ -405,6 +405,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		IsNamed: functionName != "",
 		Parent:  c.CurrentScope(),
 		Symbols: c.current.Symbols.NewChild(),
+		Source:  node.Body().String(),
 	}
 
 	// Setting current here means subsequent calls to compile will add to this
