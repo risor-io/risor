@@ -67,7 +67,9 @@ func (c *Compiler) compile(node ast.Node) error {
 	case *ast.Float:
 		c.emit(op.LoadConst, c.constant(object.NewFloat(node.Value())))
 	case *ast.String:
-		c.emit(op.LoadConst, c.constant(object.NewString(node.Value())))
+		if err := c.compileString(node); err != nil {
+			return err
+		}
 	case *ast.Bool:
 		if node.Value() {
 			c.emit(op.True)
@@ -204,6 +206,15 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return scope.Loops[len(scope.Loops)-1]
+}
+
+func (c *Compiler) compileString(node *ast.String) error {
+	tmpl := node.Template()
+	if tmpl == nil {
+		c.emit(op.LoadConst, c.constant(object.NewString(node.Value())))
+		return nil
+	}
+	return nil
 }
 
 func (c *Compiler) compilePipe(node *ast.Pipe) error {

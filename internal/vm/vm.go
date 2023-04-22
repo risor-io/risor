@@ -16,17 +16,17 @@ const (
 )
 
 type VM struct {
-	ip           int // instruction pointer
-	sp           int // stack pointer
-	fp           int // frame pointer
-	stack        [MaxStackDepth]object.Object
-	frames       [MaxFrameDepth]Frame
-	tmp          [MaxArgs]object.Object
-	currentFrame *Frame
-	main         *object.Code
-	currentScope *object.Code
-	globals      []object.Object
-	builtins     []object.Object
+	ip          int // instruction pointer
+	sp          int // stack pointer
+	fp          int // frame pointer
+	stack       [MaxStackDepth]object.Object
+	frames      [MaxFrameDepth]Frame
+	tmp         [MaxArgs]object.Object
+	activeFrame *Frame
+	activeCode  *object.Code
+	main        *object.Code
+	globals     []object.Object
+	builtins    []object.Object
 }
 
 func NewWithOffset(main *object.Code, ofs int) *VM {
@@ -37,11 +37,8 @@ func NewWithOffset(main *object.Code, ofs int) *VM {
 
 func New(main *object.Code) *VM {
 	vm := &VM{
-		ip:           -1,
-		sp:           -1,
-		fp:           -1,
-		main:         main,
-		currentScope: main,
+		sp:   -1,
+		main: main,
 	}
 	if main.Symbols != nil {
 		vm.globals = main.Symbols.Variables()
@@ -51,62 +48,67 @@ func New(main *object.Code) *VM {
 }
 
 func (vm *VM) Run(ctx context.Context) error {
-	fn := object.NewFunction(object.FunctionOpts{
-		Code: vm.currentScope,
-	})
-	_, err := vm.Eval(ctx, fn, nil)
-	return err
+	vm.ip = 0
+	vm.fp = 0
+	vm.activeFrame = &vm.frames[vm.fp]
+	vm.activeFrame.ActivateCode(vm.main)
+	vm.activeCode = vm.main
+	ctx = object.WithCallFunc(ctx, vm.call)
+	return vm.eval(ctx)
 }
 
-func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Object) (result object.Object, err error) {
+// Evaluate the active code. The caller must initialize the following variables
+// before calling this function:
+//   - vm.ip - instruction pointer within the active code
+//   - vm.fp - frame pointer with the active code already set
+//   - vm.activeCode - the code object to execute
+//   - vm.activeFrame - the active call frame to use
+//
+// Assuming this function returns without error, the result of the evaluation
+// will be on the top of the stack.
+func (vm *VM) eval(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		err = fmt.Errorf("panic: %v", r)
-	// 	}
-	// }()
-
-	// Initialize the call frame with the main function
-	vm.fp++
-	vm.ip++
-	vm.currentFrame = &vm.frames[vm.fp]
-	vm.currentFrame.ActivateCode(vm.main)
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
 
 	// Run the program until finished
-	for vm.ip < len(vm.currentScope.Instructions) {
+	for vm.ip < len(vm.activeCode.Instructions) {
 
 		// The current instruction opcode
-		opcode := vm.currentScope.Instructions[vm.ip]
+		opcode := vm.activeCode.Instructions[vm.ip]
 		vm.ip++
 
 		switch opcode {
 		case op.Nop:
 		case op.LoadAttr:
 			obj := vm.Pop()
-			name := vm.currentScope.Names[vm.fetch()]
+			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return nil, fmt.Errorf("attribute %q not found", name)
+				return fmt.Errorf("attribute %q not found", name)
 			}
 			vm.Push(value)
 		case op.LoadConst:
-			vm.Push(vm.currentScope.Constants[vm.fetch()])
+			vm.Push(vm.activeCode.Constants[vm.fetch()])
 		case op.LoadFast:
-			vm.Push(vm.currentFrame.Locals()[vm.fetch()])
+			vm.Push(vm.activeFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
 			vm.Push(vm.globals[vm.fetch()])
 		case op.LoadFree:
-			freeVars := vm.currentFrame.fn.FreeVars()
+			freeVars := vm.activeFrame.fn.FreeVars()
 			vm.Push(freeVars[vm.fetch()].Value())
 		case op.LoadBuiltin:
 			vm.Push(vm.builtins[vm.fetch()])
 		case op.StoreFast:
-			vm.currentFrame.Locals()[vm.fetch()] = vm.Pop()
+			vm.activeFrame.Locals()[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
 			vm.globals[vm.fetch()] = vm.Pop()
 		case op.StoreFree:
-			freeVars := vm.currentFrame.fn.FreeVars()
+			freeVars := vm.activeFrame.fn.FreeVars()
 			freeVars[vm.fetch()].Set(vm.Pop())
 		case op.LoadClosure:
 			constIndex := vm.fetch()
@@ -118,10 +120,10 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				case *object.Cell:
 					free[i] = obj
 				default:
-					return nil, errors.New("expected cell")
+					return errors.New("expected cell")
 				}
 			}
-			fn := vm.currentScope.Constants[constIndex].(*object.Function)
+			fn := vm.activeCode.Constants[constIndex].(*object.Function)
 			closure := object.NewClosure(fn, fn.Code(), free)
 			vm.Push(closure)
 		case op.MakeCell:
@@ -129,7 +131,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 			framesBack := int(vm.fetch())
 			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
-				return nil, fmt.Errorf("no frame at depth %d", framesBack)
+				return fmt.Errorf("no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
 			locals := frame.CaptureLocals()
@@ -165,7 +167,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				frame := &vm.frames[vm.fp]
 				paramsCount := len(fn.Parameters())
 				if err := checkCallArgs(fn, argc); err != nil {
-					return nil, err
+					return err
 				}
 				if argc < paramsCount {
 					defaults := fn.Defaults()
@@ -179,17 +181,17 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 					argc++
 				}
 				frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
-				vm.currentFrame = frame
-				vm.currentScope = code
+				vm.activeFrame = frame
+				vm.activeCode = code
 				vm.ip = 0
 			default:
-				return nil, fmt.Errorf("object is not callable: %T", obj)
+				return fmt.Errorf("object is not callable: %T", obj)
 			}
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
-			vm.currentFrame = &vm.frames[vm.fp]
-			vm.currentScope = vm.currentFrame.Code()
+			vm.activeFrame = &vm.frames[vm.fp]
+			vm.activeCode = vm.activeFrame.Code()
 			vm.ip = returnAddr
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
@@ -251,11 +253,11 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 			obj := vm.Pop()
 			container, ok := obj.(object.Container)
 			if !ok {
-				return nil, fmt.Errorf("object is not a container: %T", obj)
+				return fmt.Errorf("object is not a container: %T", obj)
 			}
 			result, err := container.GetItem(index)
 			if err != nil {
-				return nil, err.Value()
+				return err.Value()
 			}
 			vm.Push(result)
 		case op.UnaryNegative:
@@ -266,7 +268,7 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 			case *object.Float:
 				vm.Push(object.NewFloat(-obj.Value()))
 			default:
-				return nil, fmt.Errorf("object is not a number: %T", obj)
+				return fmt.Errorf("object is not a number: %T", obj)
 			}
 		case op.UnaryNot:
 			obj := vm.Pop()
@@ -286,17 +288,17 @@ func (vm *VM) Eval(ctx context.Context, fn *object.Function, args []object.Objec
 				}
 				vm.Push(value)
 			} else {
-				return nil, fmt.Errorf("object is not a container: %T", container)
+				return fmt.Errorf("object is not a container: %T", container)
 			}
 		case op.Swap:
 			vm.Swap(int(vm.fetch()))
 		case op.Halt:
-			return nil, nil
+			return nil
 		default:
-			return nil, fmt.Errorf("unknown opcode: %d", opcode)
+			return fmt.Errorf("unknown opcode: %d", opcode)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 func (vm *VM) TOS() (object.Object, bool) {
@@ -328,7 +330,46 @@ func (vm *VM) Swap(pos int) {
 func (vm *VM) fetch() uint16 {
 	ip := vm.ip
 	vm.ip++
-	return uint16(vm.currentScope.Instructions[ip])
+	return uint16(vm.activeCode.Instructions[ip])
+}
+
+// Calls a compiled function with the given arguments. This is used internally
+// when a Tamarin object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
+func (vm *VM) call(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+	// Advance to the next frame
+	vm.fp++
+	frame := &vm.frames[vm.fp]
+	// Check that the argument count is appropriate
+	paramsCount := len(fn.Parameters())
+	argc := len(args)
+	if err := checkCallArgs(fn, argc); err != nil {
+		return nil, err
+	}
+	// Assemble frame local variables in vm.tmp. The local variable order is:
+	// 1. Function parameters
+	// 2. Function name (if the function is named)
+	copy(vm.tmp[:argc], args)
+	if argc < paramsCount {
+		defaults := fn.Defaults()
+		for i := argc; i < len(defaults); i++ {
+			vm.tmp[i] = defaults[i]
+		}
+	}
+	code := fn.Code()
+	if code.IsNamed {
+		vm.tmp[paramsCount] = fn
+		argc++
+	}
+	// Activate this new frame with the function code and local variables
+	frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
+	vm.activeFrame = frame
+	vm.activeCode = code
+	vm.ip = 0
+	// Evaluate the function code then return the result from TOS
+	if err := vm.eval(ctx); err != nil {
+		return nil, err
+	}
+	return vm.Pop(), nil
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {
