@@ -47,7 +47,15 @@ func New(main *object.Code) *VM {
 	return vm
 }
 
-func (vm *VM) Run(ctx context.Context) error {
+func (vm *VM) Run(ctx context.Context) (err error) {
+
+	// Translate any panic into an error so the caller has a good guarantee
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
 	vm.ip = 0
 	vm.fp = 0
 	vm.activeFrame = &vm.frames[vm.fp]
@@ -68,20 +76,18 @@ func (vm *VM) Run(ctx context.Context) error {
 // will be on the top of the stack.
 func (vm *VM) eval(ctx context.Context) (err error) {
 
-	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
-
-	// Run the program until finished
+	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
 
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
+
+		// Advance the instruction pointer to the next instruction. Note that
+		// this is done before we actually execute the current instruction, so
+		// relative jump instructions will need to take this into account.
 		vm.ip++
 
+		// Dispatch the instruction
 		switch opcode {
 		case op.Nop:
 		case op.LoadAttr:
