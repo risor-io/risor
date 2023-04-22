@@ -5,8 +5,8 @@ import (
 )
 
 type Loop struct {
-	ContinuePos []uint16
-	BreakPos    []uint16
+	ContinuePos []int
+	BreakPos    []int
 }
 
 type Code struct {

@@ -56,6 +56,7 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 		}
 	}()
 
+	// Activate the "main" entrypoint code in frame 0 and then run it
 	vm.ip = 0
 	vm.fp = 0
 	vm.activeFrame = &vm.frames[vm.fp]

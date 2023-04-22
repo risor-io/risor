@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
@@ -9,56 +10,70 @@ import (
 )
 
 type Compiler struct {
-	main     *object.Code
-	current  *object.Code
-	startPos int
+
+	// The entrypoint code we are compiling. This remains fixed throughout
+	// the compilation process.
+	main *object.Code
+
+	// The current code we are compiling into. This changes as we enter
+	// and leave functions.
+	current *object.Code
+
+	// Set on a compilation error
+	failure error
 }
 
+// Options used to configure compilation
 type Options struct {
+
+	// Builtins that should be available during compilation. The name in the
+	// map is the name the builtin will be available as in the code.
 	Builtins map[string]object.Object
-	Name     string
-	Code     *object.Code
+
+	// Name to be given to the code we are compiling
+	Name string
+
+	// Optional code object to append to
+	Code *object.Code
 }
 
 func New(opts Options) *Compiler {
+	// By default we create a new, empty code object to compile into. However
+	// if the caller supplied an existing code object we will append to that.
+	// This especially supports the REPL where compilation is incremental.
 	var main *object.Code
 	if opts.Code != nil {
 		main = opts.Code
 	} else {
 		main = &object.Code{Name: opts.Name, Symbols: object.NewSymbolTable()}
 	}
+	// Insert builtins into the symbol table, including the objects themselves
 	for name, builtin := range opts.Builtins {
 		if _, err := main.Symbols.InsertBuiltin(name, builtin); err != nil {
 			panic(fmt.Sprintf("failed to insert builtin %s: %s", name, err))
 		}
 	}
-	return &Compiler{main: main, current: main, startPos: len(main.Instructions)}
-}
-
-func (c *Compiler) CurrentScope() *object.Code {
-	return c.current
+	return &Compiler{main: main, current: main}
 }
 
 func (c *Compiler) Instructions() []op.Code {
 	return c.main.Instructions
 }
 
-func (c *Compiler) NewInstructions() []op.Code {
-	if c.startPos > len(c.main.Instructions) {
-		return nil
-	}
-	return c.main.Instructions[c.startPos:]
-}
-
 func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
+	}
+	// Check for failures that happened that aren't propagated up the call
+	// stack. Some errors are difficult to propagate without bloating the code.
+	if c.failure != nil {
+		return nil, c.failure
 	}
 	return c.main, nil
 }
 
 func (c *Compiler) compile(node ast.Node) error {
-	scope := c.CurrentScope()
+	code := c.current
 	switch node := node.(type) {
 	case *ast.Nil:
 		c.emit(op.Nil)
@@ -91,9 +106,9 @@ func (c *Compiler) compile(node ast.Node) error {
 			}
 		}
 	case *ast.Block:
-		scope.Symbols = scope.Symbols.NewBlock()
+		code.Symbols = code.Symbols.NewBlock()
 		defer func() {
-			scope.Symbols = scope.Symbols.Parent()
+			code.Symbols = code.Symbols.Parent()
 		}()
 		for _, stmt := range node.Statements() {
 			if err := c.compile(stmt); err != nil {
@@ -105,7 +120,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
-		sym, err := scope.Symbols.InsertVariable(name)
+		sym, err := code.Symbols.InsertVariable(name)
 		if err != nil {
 			return err
 		}
@@ -120,7 +135,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 	case *ast.Ident:
 		name := node.Literal()
-		sym, found := scope.Symbols.Lookup(name)
+		sym, found := code.Symbols.Lookup(name)
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
@@ -201,11 +216,11 @@ func (c *Compiler) compile(node ast.Node) error {
 }
 
 func (c *Compiler) currentLoop() *object.Loop {
-	scope := c.CurrentScope()
-	if len(scope.Loops) == 0 {
+	code := c.current
+	if len(code.Loops) == 0 {
 		return nil
 	}
-	return scope.Loops[len(scope.Loops)-1]
+	return code.Loops[len(code.Loops)-1]
 }
 
 func (c *Compiler) compileString(node *ast.String) error {
@@ -363,18 +378,24 @@ func (c *Compiler) compileIndex(node *ast.Index) error {
 }
 
 func (c *Compiler) compileList(node *ast.List) error {
-	for _, expr := range node.Items() {
+	items := node.Items()
+	count := len(items)
+	if count > math.MaxUint16 {
+		return fmt.Errorf("list literal exceeds max size")
+	}
+	for _, expr := range items {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
 	}
-	// TODO: error on too many items
-	c.emit(op.BuildList, uint16(len(node.Items())))
+	c.emit(op.BuildList, uint16(count))
 	return nil
 }
 
 func (c *Compiler) compileMap(node *ast.Map) error {
-	for k, v := range node.Items() {
+	items := node.Items()
+	count := len(items)
+	for k, v := range items {
 		if err := c.compile(k); err != nil {
 			return err
 		}
@@ -382,19 +403,19 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 			return err
 		}
 	}
-	// TODO: error on too many items
-	c.emit(op.BuildMap, uint16(len(node.Items())))
+	c.emit(op.BuildMap, uint16(count))
 	return nil
 }
 
 func (c *Compiler) compileSet(node *ast.Set) error {
-	for _, expr := range node.Items() {
+	items := node.Items()
+	count := len(items)
+	for _, expr := range items {
 		if err := c.compile(expr); err != nil {
 			return err
 		}
 	}
-	// TODO: error on too many items
-	c.emit(op.BuildSet, uint16(len(node.Items())))
+	c.emit(op.BuildSet, uint16(count))
 	return nil
 }
 
@@ -414,7 +435,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	code := &object.Code{
 		Name:    functionName,
 		IsNamed: functionName != "",
-		Parent:  c.CurrentScope(),
+		Parent:  c.current,
 		Symbols: c.current.Symbols.NewChild(),
 		Source:  node.Body().String(),
 	}
@@ -504,7 +525,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	}
 
 	// If the function was named, we store it as a named variable in the current
-	// scope. Otherwise, we just leave it on the stack.
+	// code. Otherwise, we just leave it on the stack.
 	if functionName != "" {
 		funcSymbol, err := c.current.Symbols.InsertVariable(functionName)
 		if err != nil {
@@ -554,10 +575,10 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 	}
 	if literal == "break" {
 		position := c.emit(op.JumpForward, 9999)
-		loop.BreakPos = append(loop.BreakPos, uint16(position))
+		loop.BreakPos = append(loop.BreakPos, position)
 	} else {
 		position := c.emit(op.JumpBackward, 9999)
-		loop.ContinuePos = append(loop.ContinuePos, uint16(position))
+		loop.ContinuePos = append(loop.ContinuePos, position)
 	}
 	return nil
 }
@@ -638,31 +659,41 @@ func (c *Compiler) startLoop() *object.Loop {
 }
 
 func (c *Compiler) endLoop() {
-	scope := c.current
-	scope.Loops = scope.Loops[:len(scope.Loops)-1]
+	code := c.current
+	code.Loops = code.Loops[:len(code.Loops)-1]
 }
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
-	scope := c.current
-	scope.Symbols = scope.Symbols.NewBlock()
+	code := c.current
+	code.Symbols = code.Symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
-		scope.Symbols = scope.Symbols.Parent()
+		code.Symbols = code.Symbols.Parent()
 	}()
-	startPos := uint16(len(c.Instructions()))
+	startPos := len(c.Instructions())
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
-	c.emit(op.JumpBackward, c.calculateDelta(startPos))
+	delta, err := c.calculateDelta(startPos)
+	if err != nil {
+		return err
+	}
+	c.emit(op.JumpBackward, delta)
 	nopPos := c.emit(op.Nop)
 	for _, pos := range loop.BreakPos {
-		delta := uint16(nopPos) - pos
-		c.changeOperand(pos, delta)
+		delta := nopPos - pos
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("loop size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
 	}
 	for _, pos := range loop.ContinuePos {
-		delta := pos - uint16(startPos)
-		c.changeOperand(pos, delta)
+		delta := pos - startPos
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("loop size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
 	}
 	return nil
 }
@@ -681,26 +712,40 @@ func (c *Compiler) compileIf(node *ast.If) error {
 		jumpForwardPos := c.emit(op.JumpForward, 9999)
 		// Update PopJumpForwardIfFalse to point to this alternative,
 		// so that the alternative is executed if the condition is false
-		delta := c.calculateDelta(jumpIfFalsePos)
+		delta, err := c.calculateDelta(jumpIfFalsePos)
+		if err != nil {
+			return err
+		}
 		c.changeOperand(jumpIfFalsePos, delta)
 		if err := c.compile(alternative); err != nil {
 			return err
 		}
-		c.changeOperand(jumpForwardPos, c.calculateDelta(jumpForwardPos))
+		delta, err = c.calculateDelta(jumpForwardPos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(jumpForwardPos, delta)
 	} else {
-		delta := c.calculateDelta(jumpIfFalsePos)
+		delta, err := c.calculateDelta(jumpIfFalsePos)
+		if err != nil {
+			return err
+		}
 		c.changeOperand(jumpIfFalsePos, delta)
 	}
 	return nil
 }
 
-func (c *Compiler) calculateDelta(pos uint16) uint16 {
-	// TODO: error on overflow
-	return uint16(len(c.CurrentScope().Instructions)) - pos
+func (c *Compiler) calculateDelta(pos int) (uint16, error) {
+	instrCount := len(c.current.Instructions)
+	delta := instrCount - pos
+	if delta > math.MaxUint16 {
+		return 0, fmt.Errorf("jump destination too far away")
+	}
+	return uint16(delta), nil
 }
 
-func (c *Compiler) changeOperand(pos, operand uint16) {
-	c.CurrentScope().Instructions[pos+1] = op.Code(operand)
+func (c *Compiler) changeOperand(instructionIndex int, operand uint16) {
+	c.current.Instructions[instructionIndex+1] = op.Code(operand)
 }
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
@@ -750,21 +795,21 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 }
 
 func (c *Compiler) constant(obj object.Object) uint16 {
-	scope := c.current
-	scope.Constants = append(scope.Constants, obj)
-	// TODO: error if > 65535
-	return uint16(len(scope.Constants) - 1)
+	code := c.current
+	if len(code.Constants) >= math.MaxUint16 {
+		c.failure = fmt.Errorf("number of constants exceeded limits")
+		return 0
+	}
+	code.Constants = append(code.Constants, obj)
+	return uint16(len(code.Constants) - 1)
 }
 
-func (c *Compiler) emit(opcode op.Code, operands ...uint16) uint16 {
-	// info := op.GetInfo(opcode)
-	// fmt.Printf("EMIT %2d %-25s %v %p\n", opcode, info.Name, operands, c.current)
+func (c *Compiler) emit(opcode op.Code, operands ...uint16) int {
 	inst := MakeInstruction(opcode, operands...)
-	// return c.instruction(inst)
-	scope := c.CurrentScope()
-	pos := len(scope.Instructions)
-	scope.Instructions = append(scope.Instructions, inst...)
-	return uint16(pos)
+	code := c.current
+	pos := len(code.Instructions)
+	code.Instructions = append(code.Instructions, inst...)
+	return pos
 }
 
 func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
