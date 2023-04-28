@@ -50,6 +50,9 @@ const (
 	BuildString
 	Partial
 	Range
+	Slice
+	Length
+	Copy
 )
 
 type BinaryOpType uint16
@@ -142,6 +145,9 @@ func init() {
 		{BuildString, "BUILD_STRING", 1, []int{2}},
 		{Partial, "PARTIAL", 1, []int{2}},
 		{Range, "RANGE", 0, nil},
+		{Slice, "SLICE", 0, nil},
+		{Length, "LENGTH", 0, nil},
+		{Copy, "COPY", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

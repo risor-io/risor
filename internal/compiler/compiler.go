@@ -223,6 +223,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileRange(node); err != nil {
 			return err
 		}
+	case *ast.Slice:
+		if err := c.compileSlice(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -235,6 +239,31 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) compileSlice(node *ast.Slice) error {
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	to := node.ToIndex()
+	if to == nil {
+		c.emit(op.Copy, 0)
+		c.emit(op.Length)
+	} else {
+		if err := c.compile(to); err != nil {
+			return err
+		}
+	}
+	from := node.FromIndex()
+	if from == nil {
+		c.emit(op.LoadConst, c.constant(object.NewInt(0)))
+	} else {
+		if err := c.compile(from); err != nil {
+			return err
+		}
+	}
+	c.emit(op.Slice)
+	return nil
 }
 
 func (c *Compiler) compileRange(node *ast.Range) error {

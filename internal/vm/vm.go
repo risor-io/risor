@@ -306,6 +306,28 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 				return fmt.Errorf("object is not a container: %T", container)
 			}
 			vm.Push(container.Iter())
+		case op.Slice:
+			start := vm.Pop()
+			stop := vm.Pop()
+			container, ok := vm.Pop().(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", container)
+			}
+			slice := object.Slice{Start: start, Stop: stop}
+			result, err := container.GetSlice(slice)
+			if err != nil {
+				return err.Value()
+			}
+			vm.Push(result)
+		case op.Length:
+			container, ok := vm.Pop().(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", container)
+			}
+			vm.Push(container.Len())
+		case op.Copy:
+			offset := vm.fetch()
+			vm.Push(vm.stack[vm.sp-int(offset)])
 		case op.Halt:
 			return nil
 		default:
