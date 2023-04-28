@@ -405,6 +405,17 @@ func TestMultipleCases(t *testing.T) {
 		runTests(t, tests)
 	})
 
+	t.Run("Control", func(t *testing.T) {
+		tests := []testCase{
+			{`x := 1; if x > 5 { 99 } else { 100 }`, object.NewInt(100)},
+			{`x := 1; if x > 0 { 99 } else { 100 }`, object.NewInt(99)},
+			{`x := 1; y := x > 0 ? 77 : 88; y`, object.NewInt(77)},
+			{`x := (1 > 2) ? 77 : 88; x`, object.NewInt(88)},
+			{`x := (2 > 1) ? 77 : 88; x`, object.NewInt(77)},
+		}
+		runTests(t, tests)
+	})
+
 	t.Run("Builtins", func(t *testing.T) {
 		tests := []testCase{
 			{`len("hello")`, object.NewInt(5)},

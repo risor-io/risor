@@ -215,6 +215,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compilePipe(node); err != nil {
 			return err
 		}
+	case *ast.Ternary:
+		if err := c.compileTernary(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -227,6 +231,40 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) compileTernary(node *ast.Ternary) error {
+	// evaluate the condition and then conditionally jump to the false case
+	if err := c.compile(node.Condition()); err != nil {
+		return err
+	}
+	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, 9999)
+
+	// true case execution, then jump over false case
+	if err := c.compile(node.IfTrue()); err != nil {
+		return err
+	}
+	trueCaseEndPos := c.emit(op.JumpForward, 9999)
+
+	// set the jump amount to reach the beginning of the false case
+	falseCaseDelta, err := c.calculateDelta(jumpIfFalsePos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(jumpIfFalsePos, falseCaseDelta)
+
+	// false case execution
+	if err := c.compile(node.IfFalse()); err != nil {
+		return err
+	}
+
+	// set the jump amount for the end of the true case
+	endDelta, err := c.calculateDelta(trueCaseEndPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(trueCaseEndPos, endDelta)
+	return nil
 }
 
 func (c *Compiler) compileString(node *ast.String) error {
