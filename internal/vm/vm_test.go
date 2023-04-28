@@ -453,6 +453,7 @@ func TestMultipleCases(t *testing.T) {
 			{`{foo: "bar"}["foo"]`, object.NewString("bar")},
 			{`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
 				[]object.Object{object.NewInt(4), object.NewInt(5)})},
+			{`range [1]`, object.NewListIter(object.NewList([]object.Object{object.NewInt(1)}))},
 		}
 		runTests(t, tests)
 	})

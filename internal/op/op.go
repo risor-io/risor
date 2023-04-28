@@ -49,6 +49,7 @@ const (
 	Swap
 	BuildString
 	Partial
+	Range
 )
 
 type BinaryOpType uint16
@@ -140,6 +141,7 @@ func init() {
 		{Swap, "SWAP", 1, []int{2}},
 		{BuildString, "BUILD_STRING", 1, []int{2}},
 		{Partial, "PARTIAL", 1, []int{2}},
+		{Range, "RANGE", 0, nil},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

@@ -300,6 +300,12 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 				}
 			}
 			vm.Push(object.NewString(strings.Join(items, "")))
+		case op.Range:
+			container, ok := vm.Pop().(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", container)
+			}
+			vm.Push(container.Iter())
 		case op.Halt:
 			return nil
 		default:

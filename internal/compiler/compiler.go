@@ -219,6 +219,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileTernary(node); err != nil {
 			return err
 		}
+	case *ast.Range:
+		if err := c.compileRange(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -231,6 +235,14 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) compileRange(node *ast.Range) error {
+	if err := c.compile(node.Container()); err != nil {
+		return err
+	}
+	c.emit(op.Range)
+	return nil
 }
 
 func (c *Compiler) compileTernary(node *ast.Ternary) error {
