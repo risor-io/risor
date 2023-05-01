@@ -78,7 +78,7 @@ func TestFreeVar(t *testing.T) {
 			Index: 0,
 			Value: NewInt(42),
 		},
-		Code:  ScopeFree,
+		Scope: ScopeFree,
 		Depth: 1,
 	}
 	require.Equal(t, exp, res)

@@ -214,23 +214,24 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("contains", object.NewBuiltin("contains", Contains, m))
-	m.Register("count", object.NewBuiltin("count", Count, m))
-	m.Register("has_prefix", object.NewBuiltin("has_prefix", HasPrefix, m))
-	m.Register("has_suffix", object.NewBuiltin("has_suffix", HasSuffix, m))
-	m.Register("compare", object.NewBuiltin("compare", Compare, m))
-	m.Register("join", object.NewBuiltin("join", Join, m))
-	m.Register("split", object.NewBuiltin("split", Split, m))
-	m.Register("fields", object.NewBuiltin("fields", Fields, m))
-	m.Register("index", object.NewBuiltin("index", Index, m))
-	m.Register("last_index", object.NewBuiltin("last_index", LastIndex, m))
-	m.Register("replace_all", object.NewBuiltin("replace_all", ReplaceAll, m))
-	m.Register("to_lower", object.NewBuiltin("to_lower", ToLower, m))
-	m.Register("to_upper", object.NewBuiltin("to_upper", ToUpper, m))
-	m.Register("trim", object.NewBuiltin("trim", Trim, m))
-	m.Register("trim_prefix", object.NewBuiltin("trim_prefix", TrimPrefix, m))
-	m.Register("trim_suffix", object.NewBuiltin("trim_suffix", TrimSuffix, m))
-	m.Register("trim_space", object.NewBuiltin("trim_space", TrimSpace, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"contains":    object.NewBuiltin("contains", Contains),
+		"count":       object.NewBuiltin("count", Count),
+		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),
+		"has_suffix":  object.NewBuiltin("has_suffix", HasSuffix),
+		"compare":     object.NewBuiltin("compare", Compare),
+		"join":        object.NewBuiltin("join", Join),
+		"split":       object.NewBuiltin("split", Split),
+		"fields":      object.NewBuiltin("fields", Fields),
+		"index":       object.NewBuiltin("index", Index),
+		"last_index":  object.NewBuiltin("last_index", LastIndex),
+		"replace_all": object.NewBuiltin("replace_all", ReplaceAll),
+		"to_lower":    object.NewBuiltin("to_lower", ToLower),
+		"to_upper":    object.NewBuiltin("to_upper", ToUpper),
+		"trim":        object.NewBuiltin("trim", Trim),
+		"trim_prefix": object.NewBuiltin("trim_prefix", TrimPrefix),
+		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
+		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
+	})
 	return m
 }

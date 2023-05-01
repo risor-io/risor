@@ -41,8 +41,9 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("v4", object.NewBuiltin("v4", V4, m))
-	m.Register("v5", object.NewBuiltin("v5", V5, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"v4": object.NewBuiltin("v4", V4),
+		"v5": object.NewBuiltin("v5", V5),
+	})
 	return m
 }

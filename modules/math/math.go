@@ -338,26 +338,27 @@ func Round(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("abs", object.NewBuiltin("abs", Abs, m))
-	m.Register("sqrt", object.NewBuiltin("sqrt", Sqrt, m))
-	m.Register("min", object.NewBuiltin("min", Min, m))
-	m.Register("max", object.NewBuiltin("max", Max, m))
-	m.Register("floor", object.NewBuiltin("floor", Floor, m))
-	m.Register("ceil", object.NewBuiltin("ceil", Ceil, m))
-	m.Register("sin", object.NewBuiltin("sin", Sin, m))
-	m.Register("cos", object.NewBuiltin("cos", Cos, m))
-	m.Register("tan", object.NewBuiltin("tan", Tan, m))
-	m.Register("mod", object.NewBuiltin("mod", Mod, m))
-	m.Register("log", object.NewBuiltin("log", Log, m))
-	m.Register("log10", object.NewBuiltin("log10", Log10, m))
-	m.Register("log2", object.NewBuiltin("log2", Log2, m))
-	m.Register("pow", object.NewBuiltin("pow", Pow, m))
-	m.Register("pow10", object.NewBuiltin("pow10", Pow10, m))
-	m.Register("is_inf", object.NewBuiltin("is_inf", IsInf, m))
-	m.Register("round", object.NewBuiltin("round", Round, m))
-	m.Register("sum", object.NewBuiltin("sum", Sum, m))
-	m.Register("PI", object.NewFloat(math.Pi))
-	m.Register("E", object.NewFloat(math.E))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"abs":    object.NewBuiltin("abs", Abs),
+		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
+		"min":    object.NewBuiltin("min", Min),
+		"max":    object.NewBuiltin("max", Max),
+		"floor":  object.NewBuiltin("floor", Floor),
+		"ceil":   object.NewBuiltin("ceil", Ceil),
+		"sin":    object.NewBuiltin("sin", Sin),
+		"cos":    object.NewBuiltin("cos", Cos),
+		"tan":    object.NewBuiltin("tan", Tan),
+		"mod":    object.NewBuiltin("mod", Mod),
+		"log":    object.NewBuiltin("log", Log),
+		"log10":  object.NewBuiltin("log10", Log10),
+		"log2":   object.NewBuiltin("log2", Log2),
+		"pow":    object.NewBuiltin("pow", Pow),
+		"pow10":  object.NewBuiltin("pow10", Pow10),
+		"is_inf": object.NewBuiltin("is_inf", IsInf),
+		"round":  object.NewBuiltin("round", Round),
+		"sum":    object.NewBuiltin("sum", Sum),
+		"PI":     object.NewFloat(math.Pi),
+		"E":      object.NewFloat(math.E),
+	})
 	return m
 }

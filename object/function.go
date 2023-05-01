@@ -14,7 +14,7 @@ type Function struct {
 	parameters    []string
 	defaults      []Object
 	defaultsCount int
-	scope         *Code
+	code          *Code
 	freeVars      []*Cell
 }
 
@@ -57,7 +57,7 @@ func (f *Function) Inspect() string {
 }
 
 func (f *Function) Instructions() []op.Code {
-	return f.scope.Instructions
+	return f.code.Instructions
 }
 
 func (f *Function) FreeVars() []*Cell {
@@ -65,7 +65,7 @@ func (f *Function) FreeVars() []*Cell {
 }
 
 func (f *Function) Code() *Code {
-	return f.scope
+	return f.code
 }
 
 func (f *Function) Parameters() []string {
@@ -81,7 +81,7 @@ func (f *Function) RequiredArgsCount() int {
 }
 
 func (f *Function) LocalsCount() int {
-	return int(f.scope.Symbols.Size())
+	return int(f.code.Symbols.Size())
 }
 
 type FunctionOpts struct {
@@ -103,13 +103,13 @@ func NewFunction(opts FunctionOpts) *Function {
 		parameters:    opts.ParameterNames,
 		defaults:      opts.Defaults,
 		defaultsCount: defaultsCount,
-		scope:         opts.Code,
+		code:          opts.Code,
 	}
 }
 
 func NewClosure(
 	fn *Function,
-	scope *Code,
+	code *Code,
 	freeVars []*Cell,
 ) *Function {
 	return &Function{
@@ -117,7 +117,7 @@ func NewClosure(
 		parameters:    fn.parameters,
 		defaults:      fn.defaults,
 		defaultsCount: fn.defaultsCount,
-		scope:         scope,
+		code:          code,
 		freeVars:      freeVars,
 	}
 }

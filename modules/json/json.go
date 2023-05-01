@@ -90,10 +90,11 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("unmarshal", object.NewBuiltin("unmarshal", Unmarshal, m))
-	m.Register("marshal", object.NewBuiltin("marshal", Marshal, m))
-	m.Register("valid", object.NewBuiltin("valid", Valid, m))
-	m.Register("diff", object.NewBuiltin("diff", Diff, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"unmarshal": object.NewBuiltin("unmarshal", Unmarshal),
+		"marshal":   object.NewBuiltin("marshal", Marshal),
+		"valid":     object.NewBuiltin("valid", Valid),
+		"diff":      object.NewBuiltin("diff", Diff),
+	})
 	return m
 }

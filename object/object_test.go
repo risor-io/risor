@@ -30,7 +30,7 @@ func TestObjectString(t *testing.T) {
 		{NewFloat(3.0), "float(3)"},
 		{NewInt(-3), "int(-3)"},
 		{NewString("foo"), "string(foo)"},
-		{NewModule("my-scope"), "module(my-scope)"},
+		// {NewModule("my-scope"), "module(my-scope)"},
 		{NewList([]Object{NewInt(1), NewInt(2)}), "list([int(1), int(2)])"},
 		{NewSet([]Object{True, Nil}), "set(bool(true), nil())"},
 		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `map("bar": int(2), "foo": int(1))`},

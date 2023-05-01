@@ -27,7 +27,8 @@ func Connect(ctx context.Context, args ...object.Object) object.Object {
 
 // Module returns the `pgx` module object
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("connect", object.NewBuiltin("connect", Connect, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"connect": object.NewBuiltin("connect", Connect),
+	})
 	return m
 }

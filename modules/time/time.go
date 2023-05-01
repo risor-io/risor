@@ -55,24 +55,25 @@ func Sleep(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("now", object.NewBuiltin("now", Now, m))
-	m.Register("parse", object.NewBuiltin("parse", Parse, m))
-	m.Register("sleep", object.NewBuiltin("sleep", Sleep, m))
-	m.Register("ANSIC", object.NewString(time.ANSIC))
-	m.Register("UnixDate", object.NewString(time.UnixDate))
-	m.Register("RubyDate", object.NewString(time.RubyDate))
-	m.Register("RFC822", object.NewString(time.RFC822))
-	m.Register("RFC822Z", object.NewString(time.RFC822Z))
-	m.Register("RFC850", object.NewString(time.RFC850))
-	m.Register("RFC1123", object.NewString(time.RFC1123))
-	m.Register("RFC1123Z", object.NewString(time.RFC1123Z))
-	m.Register("RFC3339", object.NewString(time.RFC3339))
-	m.Register("RFC3339Nano", object.NewString(time.RFC3339Nano))
-	m.Register("Kitchen", object.NewString(time.Kitchen))
-	m.Register("Stamp", object.NewString(time.Stamp))
-	m.Register("StampMilli", object.NewString(time.StampMilli))
-	m.Register("StampMicro", object.NewString(time.StampMicro))
-	m.Register("StampNano", object.NewString(time.StampNano))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"now":         object.NewBuiltin("now", Now),
+		"parse":       object.NewBuiltin("parse", Parse),
+		"sleep":       object.NewBuiltin("sleep", Sleep),
+		"ANSIC":       object.NewString(time.ANSIC),
+		"UnixDate":    object.NewString(time.UnixDate),
+		"RubyDate":    object.NewString(time.RubyDate),
+		"RFC822":      object.NewString(time.RFC822),
+		"RFC822Z":     object.NewString(time.RFC822Z),
+		"RFC850":      object.NewString(time.RFC850),
+		"RFC1123":     object.NewString(time.RFC1123),
+		"RFC1123Z":    object.NewString(time.RFC1123Z),
+		"RFC3339":     object.NewString(time.RFC3339),
+		"RFC3339Nano": object.NewString(time.RFC3339Nano),
+		"Kitchen":     object.NewString(time.Kitchen),
+		"Stamp":       object.NewString(time.Stamp),
+		"StampMilli":  object.NewString(time.StampMilli),
+		"StampMicro":  object.NewString(time.StampMicro),
+		"StampNano":   object.NewString(time.StampNano),
+	})
 	return m
 }

@@ -24,7 +24,7 @@ type Symbol struct {
 
 type Resolution struct {
 	Symbol *Symbol
-	Code   ScopeName
+	Scope  ScopeName
 	Depth  int
 }
 
@@ -149,7 +149,7 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 		} else {
 			scope = ScopeLocal
 		}
-		return &Resolution{Symbol: s, Code: scope, Depth: 0}, true
+		return &Resolution{Symbol: s, Scope: scope, Depth: 0}, true
 	}
 	// Check if the symbol was previously found to be a "free" variable
 	if rs, ok := t.free[name]; ok {
@@ -167,18 +167,18 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 	t.accessed[name] = true
 	// Check if this is a global or a builtin. These are simple in that we don't
 	// care about their depth and their scope always stays unchanged.
-	if rs.Code == ScopeGlobal || rs.Code == ScopeBuiltin {
+	if rs.Scope == ScopeGlobal || rs.Scope == ScopeBuiltin {
 		return rs, true
 	}
 	// Determine if this is a free variable which is defined in an outer scope.
 	// Locals may stil be defined in a parent table if this is a block.
-	scope := rs.Code
+	scope := rs.Scope
 	depth := rs.Depth
 	if !t.isBlock {
 		depth++
 		scope = ScopeFree
 	}
-	resolution := &Resolution{Symbol: rs.Symbol, Code: scope, Depth: depth}
+	resolution := &Resolution{Symbol: rs.Symbol, Scope: scope, Depth: depth}
 	if scope == ScopeFree {
 		t.free[name] = resolution
 	}

@@ -76,12 +76,13 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("float", object.NewBuiltin("float", Float, m))
-	m.Register("int", object.NewBuiltin("int", Int, m))
-	m.Register("intn", object.NewBuiltin("intn", IntN, m))
-	m.Register("norm_float", object.NewBuiltin("norm_float", NormFloat, m))
-	m.Register("exp_float", object.NewBuiltin("exp_float", ExpFloat, m))
-	m.Register("shuffle", object.NewBuiltin("shuffle", Shuffle, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"float":      object.NewBuiltin("float", Float),
+		"int":        object.NewBuiltin("int", Int),
+		"intn":       object.NewBuiltin("intn", IntN),
+		"norm_float": object.NewBuiltin("norm_float", NormFloat),
+		"exp_float":  object.NewBuiltin("exp_float", ExpFloat),
+		"shuffle":    object.NewBuiltin("shuffle", Shuffle),
+	})
 	return m
 }

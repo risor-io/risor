@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/op"
+	modMath "github.com/cloudcmds/tamarin/modules/math"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -328,6 +329,18 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 		case op.Copy:
 			offset := vm.fetch()
 			vm.Push(vm.stack[vm.sp-int(offset)])
+		case op.Import:
+			name, ok := vm.Pop().(*object.String)
+			if !ok {
+				return fmt.Errorf("object is not a string: %T", name)
+			}
+			if name.Value() == "math" {
+				vm.Push(modMath.Module())
+				fmt.Println("IMPORTED MATH")
+			} else {
+				vm.Push(object.Nil)
+				fmt.Println("IMPORTED OTHER", name.String())
+			}
 		case op.Halt:
 			return nil
 		default:

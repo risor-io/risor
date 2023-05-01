@@ -145,7 +145,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
-		switch sym.Code {
+		switch sym.Scope {
 		case object.ScopeGlobal:
 			c.emit(op.LoadGlobal, sym.Symbol.Index)
 		case object.ScopeLocal:
@@ -227,6 +227,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileSlice(node); err != nil {
 			return err
 		}
+	case *ast.Import:
+		if err := c.compileImport(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -239,6 +243,22 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) compileImport(node *ast.Import) error {
+	name := node.Module().String()
+	c.emit(op.LoadConst, c.constant(object.NewString(name)))
+	c.emit(op.Import)
+	sym, err := c.current.Symbols.InsertVariable(name)
+	if err != nil {
+		return err
+	}
+	if c.current.Parent == nil {
+		c.emit(op.StoreGlobal, sym.Index)
+	} else {
+		c.emit(op.StoreFast, sym.Index)
+	}
+	return nil
 }
 
 func (c *Compiler) compileSlice(node *ast.Slice) error {
@@ -400,7 +420,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
 	// Push variable as TOS
-	switch sym.Code {
+	switch sym.Scope {
 	case object.ScopeGlobal:
 		c.emit(op.LoadGlobal, sym.Symbol.Index)
 	case object.ScopeLocal:
@@ -422,7 +442,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	// Run increment or decrement as an Add BinaryOp
 	c.emit(op.BinaryOp, uint16(op.Add))
 	// Store TOS in LHS
-	switch sym.Code {
+	switch sym.Scope {
 	case object.ScopeGlobal:
 		c.emit(op.StoreGlobal, sym.Symbol.Index)
 	case object.ScopeLocal:
@@ -763,7 +783,7 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		switch sym.Code {
+		switch sym.Scope {
 		case object.ScopeGlobal:
 			c.emit(op.StoreGlobal, sym.Symbol.Index)
 		case object.ScopeLocal:
@@ -776,7 +796,7 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		return nil
 	}
 	// Push LHS as TOS
-	switch sym.Code {
+	switch sym.Scope {
 	case object.ScopeGlobal:
 		c.emit(op.LoadGlobal, sym.Symbol.Index)
 	case object.ScopeLocal:
@@ -802,7 +822,7 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.BinaryOp, uint16(op.Divide))
 	}
 	// Store TOS in LHS
-	switch sym.Code {
+	switch sym.Scope {
 	case object.ScopeGlobal:
 		c.emit(op.StoreGlobal, sym.Symbol.Index)
 	case object.ScopeLocal:

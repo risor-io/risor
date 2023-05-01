@@ -80,10 +80,11 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewModule(Name)
-	m.Register("atoi", object.NewBuiltin("atoi", Atoi, m))
-	m.Register("parse_bool", object.NewBuiltin("parse_bool", ParseBool, m))
-	m.Register("parse_float", object.NewBuiltin("parse_float", ParseFloat, m))
-	m.Register("parse_int", object.NewBuiltin("parse_int", ParseInt, m))
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"atoi":        object.NewBuiltin("atoi", Atoi),
+		"parse_bool":  object.NewBuiltin("parse_bool", ParseBool),
+		"parse_float": object.NewBuiltin("parse_float", ParseFloat),
+		"parse_int":   object.NewBuiltin("parse_int", ParseInt),
+	})
 	return m
 }

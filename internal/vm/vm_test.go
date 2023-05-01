@@ -500,6 +500,13 @@ func TestMultipleCases(t *testing.T) {
 		}
 		runTests(t, tests)
 	})
+
+	t.Run("Imports", func(t *testing.T) {
+		tests := []testCase{
+			// {`import math`, object.NewModule("math")},
+		}
+		runTests(t, tests)
+	})
 }
 
 type testCase struct {

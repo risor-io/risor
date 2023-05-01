@@ -53,6 +53,7 @@ const (
 	Slice
 	Length
 	Copy
+	Import
 )
 
 type BinaryOpType uint16
@@ -148,6 +149,7 @@ func init() {
 		{Slice, "SLICE", 0, nil},
 		{Length, "LENGTH", 0, nil},
 		{Copy, "COPY", 1, []int{2}},
+		{Import, "IMPORT", 0, nil},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{
