@@ -3,6 +3,7 @@ package vm
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/importer"
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
@@ -46,14 +47,22 @@ func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, err
 		return nil, err
 	}
 	pos := len(i.c.Instructions())
-	_, err = i.c.Compile(ast)
-	if err != nil {
+
+	if _, err = i.c.Compile(ast); err != nil {
 		return nil, err
 	}
-	v := NewWithOffset(i.main, pos)
+
+	v := New(Options{
+		Main:              i.main,
+		InstructionOffset: pos,
+		Importer: importer.NewLocalImporter(importer.LocalImporterOptions{
+			SourceDir: ".",
+		}),
+	})
 	if err := v.Run(ctx); err != nil {
 		return nil, err
 	}
+
 	result, exists := v.TOS()
 	if exists {
 		return result, nil

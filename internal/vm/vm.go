@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudcmds/tamarin/importer"
 	"github.com/cloudcmds/tamarin/internal/op"
-	modMath "github.com/cloudcmds/tamarin/modules/math"
 	"github.com/cloudcmds/tamarin/object"
 )
 
@@ -16,6 +16,12 @@ const (
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
 )
+
+type Options struct {
+	Main              *object.Code
+	InstructionOffset int
+	Importer          importer.Importer
+}
 
 type VM struct {
 	ip          int // instruction pointer
@@ -29,22 +35,25 @@ type VM struct {
 	main        *object.Code
 	globals     []object.Object
 	builtins    []object.Object
+	importer    importer.Importer
+	modules     map[string]*object.Module
 }
 
-func NewWithOffset(main *object.Code, ofs int) *VM {
-	v := New(main)
-	v.ip = ofs - 1
-	return v
-}
-
-func New(main *object.Code) *VM {
-	vm := &VM{
-		sp:   -1,
-		main: main,
+func New(opts Options) *VM {
+	ipOffset := 0
+	if opts.InstructionOffset > 0 {
+		ipOffset = opts.InstructionOffset
 	}
-	if main.Symbols != nil {
-		vm.globals = main.Symbols.Variables()
-		vm.builtins = main.Symbols.Builtins()
+	vm := &VM{
+		sp:       -1,
+		ip:       ipOffset,
+		main:     opts.Main,
+		importer: opts.Importer,
+		modules:  map[string]*object.Module{},
+	}
+	if opts.Main != nil && opts.Main.Symbols != nil {
+		vm.globals = opts.Main.Symbols.Variables()
+		vm.builtins = opts.Main.Symbols.Builtins()
 	}
 	return vm
 }
@@ -59,7 +68,6 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 	}()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
-	vm.ip = 0
 	vm.fp = 0
 	vm.activeFrame = &vm.frames[vm.fp]
 	vm.activeFrame.ActivateCode(vm.main)
@@ -80,11 +88,15 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 // will be on the top of the stack.
 func (vm *VM) eval(ctx context.Context) (err error) {
 
+	// fmt.Println("eval; ip @ ", vm.ip)
+
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
 
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
+
+		fmt.Println("ip", vm.ip)
 
 		// Advance the instruction pointer to the next instruction. Note that
 		// this is done before we actually execute the current instruction, so
@@ -334,20 +346,51 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			if !ok {
 				return fmt.Errorf("object is not a string: %T", name)
 			}
-			if name.Value() == "math" {
-				vm.Push(modMath.Module())
-				fmt.Println("IMPORTED MATH")
-			} else {
-				vm.Push(object.Nil)
-				fmt.Println("IMPORTED OTHER", name.String())
+			module, err := vm.loadModule(ctx, name.Value())
+			if err != nil {
+				return err
 			}
+			vm.Push(module)
 		case op.Halt:
 			return nil
 		default:
 			return fmt.Errorf("unknown opcode: %d", opcode)
 		}
 	}
+
+	// If we reach this point and a return address is set, go there. This can
+	// happen when importing a module completes, for example.
+	if vm.activeFrame.returnAddr > 0 {
+		fmt.Println("Deactivating module", vm.activeFrame.returnAddr)
+		vm.fp--
+		vm.ip = vm.activeFrame.returnAddr
+		vm.activeFrame = &vm.frames[vm.fp]
+		vm.activeCode = vm.activeFrame.code
+		return nil
+	}
 	return nil
+}
+
+func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, error) {
+	if module, ok := vm.modules[name]; ok {
+		return module, nil
+	}
+	if vm.importer == nil {
+		return nil, fmt.Errorf("imports are disabled")
+	}
+	module, err := vm.importer.Import(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	code := module.Code()
+	vm.fp++
+	frame := &vm.frames[vm.fp]
+	frame.ActivateCode(code)
+	frame.SetReturnAddr(vm.ip)
+	fmt.Println("Activated module", name)
+	vm.ip = 0
+	vm.modules[name] = module
+	return module, nil
 }
 
 func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {

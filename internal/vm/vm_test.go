@@ -30,11 +30,11 @@ func TestAdd(t *testing.T) {
 		op.BinaryOp,
 		op.Code(op.Add),
 	}
-	vm := New(&object.Code{
+	vm := New(Options{Main: &object.Code{
 		Constants:    constants,
 		Instructions: code,
 		Symbols:      object.NewSymbolTable(),
-	})
+	}})
 	err := vm.Run(ctx)
 	require.Nil(t, err)
 
@@ -71,7 +71,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int64(12), c2.Value())
 
-	vm := New(main)
+	vm := New(Options{Main: main})
 	require.Nil(t, vm.Run(ctx))
 
 	tos, ok := vm.TOS()
@@ -96,7 +96,7 @@ func TestConditional(t *testing.T) {
 	main, err := c.Compile(program)
 	require.Nil(t, err)
 
-	vm := New(main)
+	vm := New(Options{Main: main})
 	require.Nil(t, vm.Run(ctx))
 
 	tos, ok := vm.TOS()

@@ -51,6 +51,10 @@ func (f *Frame) ActivateFunction(fn *object.Function, returnAddr int, localValue
 	}
 }
 
+func (f *Frame) SetReturnAddr(addr int) {
+	f.returnAddr = addr
+}
+
 func (f *Frame) Locals() []object.Object {
 	return f.locals
 }

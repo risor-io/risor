@@ -164,6 +164,10 @@ func execute(ctx context.Context, code string, interp *vm.Interpreter) (object.O
 		color.Red(err.Error())
 		return nil, err
 	}
+	if result == nil {
+		fmt.Println("nil result")
+		return object.Nil, nil
+	}
 	switch result := result.(type) {
 	case *object.Error:
 		color.Red(result.Value().Error())

@@ -3,6 +3,7 @@ package vm
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/importer"
 	"github.com/cloudcmds/tamarin/internal/compiler"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
 	modMath "github.com/cloudcmds/tamarin/modules/math"
@@ -46,7 +47,13 @@ func Run(ctx context.Context, code string) (object.Object, error) {
 		return nil, err
 	}
 
-	vm := New(mainScope)
+	vm := New(Options{
+		Main: mainScope,
+		Importer: importer.NewLocalImporter(importer.LocalImporterOptions{
+			SourceDir:  ".",
+			Extensions: []string{".tm"},
+		}),
+	})
 	if err := vm.Run(ctx); err != nil {
 		return nil, err
 	}
