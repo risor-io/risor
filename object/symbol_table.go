@@ -211,6 +211,14 @@ func (t *SymbolTable) Parent() *SymbolTable {
 	return t.parent
 }
 
+func (t *SymbolTable) Root() *SymbolTable {
+	current := t
+	for current.parent != nil {
+		current = current.parent
+	}
+	return current
+}
+
 func (t *SymbolTable) LocalTable() *SymbolTable {
 	current := t
 	for current.isBlock {

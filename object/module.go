@@ -7,10 +7,8 @@ import (
 )
 
 type Module struct {
-	name     string
-	code     *Code
-	globals  []Object // main.Symbols.Variables()
-	builtins []Object // main.Symbols.Builtins()
+	name string
+	code *Code
 }
 
 func (m *Module) Type() Type {
@@ -28,12 +26,11 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	}
 	switch resolution.Scope {
 	case ScopeBuiltin:
-		return m.builtins[resolution.Symbol.Index], true
+		return m.code.Builtins()[resolution.Symbol.Index], true
 	case ScopeGlobal:
-		return m.globals[resolution.Symbol.Index], true
+		return m.code.Globals()[resolution.Symbol.Index], true
 	default:
 		panic("module attribute resolution scope not builtin or global")
-		return nil, false
 	}
 }
 
@@ -83,16 +80,10 @@ func (m *Module) Equals(other Object) Object {
 	return False
 }
 
-// func (m *Module) Register(name string, obj Object) {
-// 	m.attrs[name] = obj
-// }
-
 func NewModule(name string, code *Code) *Module {
 	return &Module{
-		name:     name,
-		code:     code,
-		globals:  code.Symbols.Variables(),
-		builtins: code.Symbols.Builtins(),
+		name: name,
+		code: code,
 	}
 }
 
@@ -102,9 +93,7 @@ func NewBuiltinsModule(name string, contents map[string]Object) *Module {
 		code.Symbols.InsertBuiltin(name, obj)
 	}
 	return &Module{
-		name:     name,
-		code:     code,
-		globals:  code.Symbols.Variables(),
-		builtins: code.Symbols.Builtins(),
+		name: name,
+		code: code,
 	}
 }

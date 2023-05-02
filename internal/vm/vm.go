@@ -33,27 +33,21 @@ type VM struct {
 	activeFrame *Frame
 	activeCode  *object.Code
 	main        *object.Code
-	globals     []object.Object
-	builtins    []object.Object
 	importer    importer.Importer
 	modules     map[string]*object.Module
 }
 
 func New(opts Options) *VM {
-	ipOffset := 0
+	instructionOffset := 0
 	if opts.InstructionOffset > 0 {
-		ipOffset = opts.InstructionOffset
+		instructionOffset = opts.InstructionOffset
 	}
 	vm := &VM{
 		sp:       -1,
-		ip:       ipOffset,
+		ip:       instructionOffset,
 		main:     opts.Main,
 		importer: opts.Importer,
 		modules:  map[string]*object.Module{},
-	}
-	if opts.Main != nil && opts.Main.Symbols != nil {
-		vm.globals = opts.Main.Symbols.Variables()
-		vm.builtins = opts.Main.Symbols.Builtins()
 	}
 	return vm
 }
@@ -61,11 +55,11 @@ func New(opts Options) *VM {
 func (vm *VM) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// }()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
 	vm.fp = 0
@@ -88,15 +82,13 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 // will be on the top of the stack.
 func (vm *VM) eval(ctx context.Context) (err error) {
 
-	// fmt.Println("eval; ip @ ", vm.ip)
-
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
 
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
 
-		fmt.Println("ip", vm.ip)
+		// fmt.Println("ip", vm.ip, op.GetInfo(opcode).Name)
 
 		// Advance the instruction pointer to the next instruction. Note that
 		// this is done before we actually execute the current instruction, so
@@ -119,16 +111,16 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 		case op.LoadFast:
 			vm.Push(vm.activeFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
-			vm.Push(vm.globals[vm.fetch()])
+			vm.Push(vm.activeCode.Globals()[vm.fetch()])
 		case op.LoadFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			vm.Push(freeVars[vm.fetch()].Value())
 		case op.LoadBuiltin:
-			vm.Push(vm.builtins[vm.fetch()])
+			vm.Push(vm.activeCode.Builtins()[vm.fetch()])
 		case op.StoreFast:
 			vm.activeFrame.Locals()[vm.fetch()] = vm.Pop()
 		case op.StoreGlobal:
-			vm.globals[vm.fetch()] = vm.Pop()
+			vm.activeCode.Globals()[vm.fetch()] = vm.Pop()
 		case op.StoreFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			freeVars[vm.fetch()].Set(vm.Pop())
@@ -357,17 +349,6 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			return fmt.Errorf("unknown opcode: %d", opcode)
 		}
 	}
-
-	// If we reach this point and a return address is set, go there. This can
-	// happen when importing a module completes, for example.
-	if vm.activeFrame.returnAddr > 0 {
-		fmt.Println("Deactivating module", vm.activeFrame.returnAddr)
-		vm.fp--
-		vm.ip = vm.activeFrame.returnAddr
-		vm.activeFrame = &vm.frames[vm.fp]
-		vm.activeCode = vm.activeFrame.code
-		return nil
-	}
 	return nil
 }
 
@@ -378,17 +359,34 @@ func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, erro
 	if vm.importer == nil {
 		return nil, fmt.Errorf("imports are disabled")
 	}
+	// Load and compile the module code
 	module, err := vm.importer.Import(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 	code := module.Code()
+
+	// Allocate a new frame to evaluate the module code
 	vm.fp++
 	frame := &vm.frames[vm.fp]
 	frame.ActivateCode(code)
 	frame.SetReturnAddr(vm.ip)
-	fmt.Println("Activated module", name)
+	vm.activeFrame = &vm.frames[vm.fp]
+	vm.activeCode = vm.activeFrame.code
 	vm.ip = 0
+
+	// Evaluate the module code
+	if err := vm.eval(ctx); err != nil {
+		return nil, err
+	}
+
+	// Resume the previous frame
+	vm.fp--
+	vm.ip = vm.activeFrame.returnAddr
+	vm.activeFrame = &vm.frames[vm.fp]
+	vm.activeCode = vm.activeFrame.code
+
+	// Cache the module
 	vm.modules[name] = module
 	return module, nil
 }
@@ -528,13 +526,4 @@ func checkCallArgs(fn *object.Function, argc int) error {
 		}
 	}
 	return nil
-}
-
-func concat(a, b []object.Object) []object.Object {
-	aLen := len(a)
-	bLen := len(b)
-	result := make([]object.Object, aLen+bLen)
-	copy(result, a)
-	copy(result[aLen:], b)
-	return result
 }
