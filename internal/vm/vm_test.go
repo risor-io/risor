@@ -183,6 +183,54 @@ func TestCall(t *testing.T) {
 	require.Equal(t, object.NewInt(53), result)
 }
 
+func TestSwitch1(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 2
+	switch x {
+		case 1:
+			99
+		case 2:
+			42
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(42), result)
+}
+
+func TestSwitch2(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 1
+	switch x {
+		case 1:
+			99
+		case 2:
+			42
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(99), result)
+}
+
+func TestSwitch3(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 3
+	switch x {
+		case 1:
+			99
+		case 2:
+			42
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.Nil, result)
+}
+
 func TestStr(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
@@ -412,6 +460,13 @@ func TestMultipleCases(t *testing.T) {
 			{`x := 1; y := x > 0 ? 77 : 88; y`, object.NewInt(77)},
 			{`x := (1 > 2) ? 77 : 88; x`, object.NewInt(88)},
 			{`x := (2 > 1) ? 77 : 88; x`, object.NewInt(77)},
+			{`x := 1; switch x { case 1: 99; case 2: 100 }`, object.NewInt(99)},
+			{`x := 2; switch x { case 1: 99; case 2: 100 }`, object.NewInt(100)},
+			{`x := 3; switch x { case 1: 99; default: 42 case 2: 100 }`, object.NewInt(42)},
+			{`x := 3; switch x { case 1: 99; case 2: 100 }`, object.Nil},
+			{`x := 3; switch x { case 1, 3: 99; case 2: 100 }`, object.NewInt(99)},
+			{`x := 3; switch x { case 1: 99; case 2, 4-1: 100 }`, object.NewInt(100)},
+			{`x := 3; switch bool(x) { case true: "wow" }`, object.NewString("wow")},
 		}
 		runTests(t, tests)
 	})
@@ -432,11 +487,17 @@ func TestMultipleCases(t *testing.T) {
 	})
 
 	t.Run("Functions", func(t *testing.T) {
+		closure := `
+z := 10
+y := func(x, inc=100) { x + z + inc }
+y(3)
+`
 		tests := []testCase{
 			{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
 			{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
 			{`func inc(x, amount=1) { x + amount }; inc(3)`, object.NewInt(4)},
 			{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
+			{closure, object.NewInt(113)},
 		}
 		runTests(t, tests)
 	})
@@ -503,7 +564,7 @@ func TestMultipleCases(t *testing.T) {
 
 	t.Run("Imports", func(t *testing.T) {
 		tests := []testCase{
-			// {`import math`, object.NewModule("math")},
+			// {`import strings; strings`, object.NewModule("strings", nil)},
 		}
 		runTests(t, tests)
 	})

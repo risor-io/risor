@@ -231,6 +231,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileImport(node); err != nil {
 			return err
 		}
+	case *ast.Switch:
+		if err := c.compileSwitch(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -243,6 +247,92 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) compileSwitch(node *ast.Switch) error {
+	// Compile the switch expression
+	if err := c.compile(node.Value()); err != nil {
+		return err
+	}
+
+	choices := node.Choices()
+
+	// Emit jump positions for each case
+	var caseJumpPositions []int
+	defaultJumpPos := -1
+
+	for i, choice := range choices {
+		if choice.IsDefault() {
+			defaultJumpPos = i
+			continue
+		}
+		for _, expr := range choice.Expressions() {
+			// Duplicate the switch value for each case comparison
+			c.emit(op.Copy, 0)
+			// Compile the case expression
+			if err := c.compile(expr); err != nil {
+				return err
+			}
+			// Emit the CompareOp equal comparison
+			c.emit(op.CompareOp, uint16(op.Equal))
+			// Emit PopJumpForwardIfTrue and store its position
+			jumpPos := c.emit(op.PopJumpForwardIfTrue, 9999)
+			caseJumpPositions = append(caseJumpPositions, jumpPos)
+		}
+	}
+
+	jumpDefaultPos := c.emit(op.JumpForward, 9999)
+
+	// Update case jump positions and compile case blocks
+	var offset int
+	var endBlockPosits []int
+	for i, choice := range choices {
+		if i == defaultJumpPos {
+			continue
+		}
+		for range choice.Expressions() {
+			delta, err := c.calculateDelta(caseJumpPositions[offset])
+			if err != nil {
+				return err
+			}
+			c.changeOperand(caseJumpPositions[offset], delta)
+			offset++
+		}
+		if err := c.compile(choice.Block()); err != nil {
+			return err
+		}
+		endBlockPosits = append(endBlockPosits, c.emit(op.JumpForward, 9999))
+	}
+
+	delta, err := c.calculateDelta(jumpDefaultPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(jumpDefaultPos, delta)
+
+	// Compile the default case block if it exists
+	if defaultJumpPos != -1 {
+		if err := c.compile(choices[defaultJumpPos].Block()); err != nil {
+			return err
+		}
+	} else {
+		c.emit(op.Nil)
+	}
+
+	// Update end block jump positions
+	for _, pos := range endBlockPosits {
+		delta, err := c.calculateDelta(pos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(pos, delta)
+	}
+
+	c.emit(op.Swap, 1)
+
+	// Remove the duplicated switch value from the stack
+	c.emit(op.PopTop)
+	return nil
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {

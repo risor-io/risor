@@ -615,6 +615,15 @@ func (p *Parser) parseSwitch() ast.Expression {
 			if p.curTokenIs(token.CASE) || p.curTokenIs(token.DEFAULT) || p.curTokenIs(token.RBRACE) {
 				break
 			}
+			if p.peekTokenIs(token.CASE) || p.peekTokenIs(token.DEFAULT) || p.peekTokenIs(token.RBRACE) {
+				p.nextToken()
+				break
+			}
+			if !p.peekTokenIs(token.EOF) {
+				p.nextToken()
+			} else {
+				break
+			}
 		}
 		block := ast.NewBlock(blockFirstToken, blockStatements)
 		if isDefaultCase {

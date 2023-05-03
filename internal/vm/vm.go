@@ -343,6 +343,8 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 				return err
 			}
 			vm.Push(module)
+		case op.PopTop:
+			vm.Pop()
 		case op.Halt:
 			return nil
 		default:
@@ -410,6 +412,7 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 			for i := argc; i < len(defaults); i++ {
 				vm.tmp[i] = defaults[i]
 			}
+			argc = paramsCount
 		}
 		code := fn.Code()
 		if code.IsNamed {
