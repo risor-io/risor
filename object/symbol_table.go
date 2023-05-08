@@ -137,6 +137,16 @@ func (t *SymbolTable) Get(name string) (*Symbol, bool) {
 	return s, ok
 }
 
+func (t *SymbolTable) IsGlobal() bool {
+	if t.parent == nil {
+		return true
+	}
+	if t.isBlock {
+		return t.parent.IsGlobal()
+	}
+	return false
+}
+
 func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 	// Check if the symbol is defined directly in this table
 	if s, ok := t.symbols[name]; ok {
@@ -144,7 +154,7 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 		var scope ScopeName
 		if t.IsBuiltin(name) {
 			scope = ScopeBuiltin
-		} else if t.parent == nil {
+		} else if t.IsGlobal() {
 			scope = ScopeGlobal
 		} else {
 			scope = ScopeLocal

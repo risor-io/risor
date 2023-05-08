@@ -157,16 +157,10 @@ func TestLoop(t *testing.T) {
 
 func TestForLoop2(t *testing.T) {
 	ctx := context.Background()
-	result, err := Run(ctx, `
-	for y := 0; y < 5; y++ {
-		a := 42
-		y++
-	}
-	y
-	`)
+	result, err := Run(ctx, `for y := 0; y < 5; y++ { y }`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
-	require.Equal(t, object.NewInt(5), result)
+	require.Equal(t, object.NewInt(4), result)
 }
 
 func TestAssign(t *testing.T) {
@@ -200,11 +194,12 @@ func TestCall(t *testing.T) {
 func TestSwitch1(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
-	x := 2
+	x := 3
 	switch x {
 		case 1:
-			99
 		case 2:
+			21
+		case 3:
 			42
 	}
 	`)
@@ -243,6 +238,28 @@ func TestSwitch3(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
+}
+
+func TestSwitch4(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 3
+	switch x { default: 99 }
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(99), result)
+}
+
+func TestSwitch5(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 3
+	switch x { default: 99 case 3: x; x-1 }
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(2), result)
 }
 
 func TestStr(t *testing.T) {

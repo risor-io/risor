@@ -476,11 +476,10 @@ func TestIncompleThings(t *testing.T) {
 
 func TestSwitch(t *testing.T) {
 	input := `switch val {
-   case 1:
+	case 1:
+	default:
       x
-   default:
-      y
-	  x = x + 1
+	  x
 }`
 	program, err := Parse(input)
 	require.Nil(t, err)

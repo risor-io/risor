@@ -353,8 +353,13 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 			c.changeOperand(caseJumpPositions[offset], delta)
 			offset++
 		}
-		if err := c.compile(choice.Block()); err != nil {
-			return err
+		if choice.Block() == nil {
+			// Empty case block
+			c.emit(op.Nil)
+		} else {
+			if err := c.compile(choice.Block()); err != nil {
+				return err
+			}
 		}
 		endBlockPosits = append(endBlockPosits, c.emit(op.JumpForward, 9999))
 	}
@@ -564,7 +569,18 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
-	// The value being operated on is already TOS. Push integer 1 or -1 as new TOS.
+	// Push the named variable onto the stack
+	switch sym.Scope {
+	case object.ScopeGlobal:
+		c.emit(op.LoadGlobal, sym.Symbol.Index)
+	case object.ScopeLocal:
+		c.emit(op.LoadFast, sym.Symbol.Index)
+	case object.ScopeFree:
+		c.emit(op.LoadFree, sym.Symbol.Index)
+	case object.ScopeBuiltin:
+		return fmt.Errorf("cannot assign to builtin: %s", name)
+	}
+	// Push the integer amount to the stack (1 or -1)
 	operator := node.Operator()
 	if operator == "++" {
 		c.emit(op.LoadConst, c.constant(object.NewInt(1)))
@@ -973,7 +989,14 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	if node.IsSimpleLoop() {
 		return c.compileSimpleFor(node)
 	}
-	fmt.Println("NOT SIMPLE")
+
+	code := c.current
+	code.Symbols = code.Symbols.NewBlock()
+	loop := c.startLoop()
+	defer func() {
+		c.endLoop()
+		code.Symbols = code.Symbols.Parent()
+	}()
 
 	// Compile the init statement if present
 	if node.Init() != nil {
@@ -986,39 +1009,60 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	loopStart := c.currentPosition()
 
 	// Compile the condition expression if present
+	var conditionJumpPos int
 	if node.Condition() != nil {
 		if err := c.compile(node.Condition()); err != nil {
 			return err
 		}
 		// Emit a jump to execute if the condition fails
-		conditionJumpPos := c.emit(op.PopJumpForwardIfFalse, 9999)
+		conditionJumpPos = c.emit(op.PopJumpForwardIfFalse, 9999)
+	}
 
-		// Compile the loop body
-		if err := c.compile(node.Consequence()); err != nil {
+	// Compile the loop body
+	if err := c.compile(node.Consequence()); err != nil {
+		return err
+	}
+
+	// Compile the post statement if present
+	if node.Post() != nil {
+		if err := c.compile(node.Post()); err != nil {
 			return err
 		}
+		// TODO: what if the expression pushed a value?
+	}
 
-		// Compile the post statement if present
-		if node.Post() != nil {
-			if err := c.compile(node.Post()); err != nil {
-				return err
-			}
-			// TODO: what if the expression pushed a value?
-		}
+	// Jump back to the loop start
+	delta, err := c.calculateDelta(loopStart)
+	if err != nil {
+		return err
+	}
+	c.emit(op.JumpBackward, delta)
 
-		// Jump back to the loop start
-		delta, err := c.calculateDelta(loopStart)
-		if err != nil {
-			return err
-		}
-		c.emit(op.JumpBackward, delta)
-
-		// Update the condition jump position
+	// Update the condition jump position
+	if conditionJumpPos != 0 {
 		delta, err = c.calculateDelta(conditionJumpPos)
 		if err != nil {
 			return err
 		}
 		c.changeOperand(conditionJumpPos, delta)
+	}
+
+	// Update breaks to jump to this point
+	for _, pos := range loop.BreakPos {
+		delta, err = c.calculateDelta(conditionJumpPos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+
+	// Update continues to jump to the loop start
+	for _, pos := range loop.ContinuePos {
+		delta := pos - loopStart
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("loop size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
 	}
 
 	return nil
