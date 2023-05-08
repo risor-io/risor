@@ -418,7 +418,7 @@ func (s *String) TrimSpace() Object {
 }
 
 func (s *String) Len() *Int {
-	return NewInt(int64(len(s.value)))
+	return NewInt(int64(len([]rune(s.value))))
 }
 
 func (s *String) Iter() Iterator {

@@ -155,6 +155,20 @@ func TestLoop(t *testing.T) {
 	require.Equal(t, object.NewInt(11), result)
 }
 
+func TestForLoop2(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	for y := 0; y < 5; y++ {
+		a := 42
+		y++
+	}
+	y
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(5), result)
+}
+
 func TestAssign(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
@@ -482,6 +496,17 @@ func TestMultipleCases(t *testing.T) {
 			{`"hi".contains("h")`, object.True},
 			{`"hi".contains("x")`, object.False},
 			{`sprintf("%d-%d", 1, 2)`, object.NewString("1-2")},
+		}
+		runTests(t, tests)
+	})
+
+	t.Run("Assignment", func(t *testing.T) {
+		tests := []testCase{
+			{`a, b := [3, 4]; a`, object.NewInt(3)},
+			{`a, b := [3, 4]; b`, object.NewInt(4)},
+			{`a, b := "ᛛᛥ"; a`, object.NewString("ᛛ")},
+			{`a, b := {42, 43}; a in [42, 43]`, object.True},
+			{`a, b := {foo: 1, bar: 2}; a in ["foo", "bar"]`, object.True},
 		}
 		runTests(t, tests)
 	})

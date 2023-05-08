@@ -81,7 +81,7 @@ func (iter *SetIter) Next() (IteratorEntry, bool) {
 	if !ok {
 		return nil, false
 	}
-	return NewEntry(value, True), true
+	return NewEntry(value, True).WithKeyAsPrimary(), true
 }
 
 func NewSetIter(set *Set) *SetIter {

@@ -81,7 +81,7 @@ func (iter *MapIter) Next() (IteratorEntry, bool) {
 	if !ok {
 		return nil, false
 	}
-	return NewEntry(NewString(key), value), true
+	return NewEntry(NewString(key), value).WithKeyAsPrimary(), true
 }
 
 func NewMapIter(m *Map) *MapIter {

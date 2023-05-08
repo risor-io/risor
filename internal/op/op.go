@@ -9,14 +9,18 @@ const (
 	BuildList
 	BuildMap
 	BuildSet
+	BuildString
 	Call
 	CompareOp
 	ContainsOp
+	Copy
 	DeleteSubscr
 	False
 	Halt
+	Import
 	JumpBackward
 	JumpForward
+	Length
 	LoadAttr
 	LoadBuiltin
 	LoadClosure
@@ -27,6 +31,7 @@ const (
 	LoadName
 	MakeCell
 	Nil
+	Partial
 	PopJumpBackwardIfFalse
 	PopJumpBackwardIfTrue
 	PopJumpForwardIfFalse
@@ -34,26 +39,22 @@ const (
 	PopTop
 	Print
 	PushNil
+	Range
 	ReturnValue
+	Slice
 	StoreAttr
 	StoreFast
 	StoreFree
 	StoreGlobal
 	StoreName
 	StoreSubscr
+	Swap
 	True
 	UnaryInvert
 	UnaryNegative
 	UnaryNot
 	UnaryPositive
-	Swap
-	BuildString
-	Partial
-	Range
-	Slice
-	Length
-	Copy
-	Import
+	Unpack
 )
 
 type BinaryOpType uint16
@@ -150,6 +151,7 @@ func init() {
 		{Length, "LENGTH", 0, nil},
 		{Copy, "COPY", 1, []int{2}},
 		{Import, "IMPORT", 0, nil},
+		{Unpack, "UNPACK", 1, []int{2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{

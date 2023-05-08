@@ -95,6 +95,7 @@ type IteratorEntry interface {
 	Object
 	Key() Object
 	Value() Object
+	Primary() Object
 }
 
 // Iterator is an interface used to iterate over a container.

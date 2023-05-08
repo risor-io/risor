@@ -235,6 +235,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileSwitch(node); err != nil {
 			return err
 		}
+	case *ast.MultiVar:
+		if err := c.compileMultiVar(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("unknown ast node type: %T", node))
 	}
@@ -247,6 +251,57 @@ func (c *Compiler) currentLoop() *object.Loop {
 		return nil
 	}
 	return code.Loops[len(code.Loops)-1]
+}
+
+func (c *Compiler) currentPosition() int {
+	return len(c.Instructions())
+}
+
+func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
+	names, expr := node.Value()
+	if len(names) > math.MaxUint16 {
+		return fmt.Errorf("too many variables in multi-variable assignment")
+	}
+	// Compile the RHS value
+	if err := c.compile(expr); err != nil {
+		return err
+	}
+	// Emit the Unpack opcode to unpack the tuple-like object onto the stack
+	c.emit(op.Unpack, uint16(len(names)))
+	// Iterate through the names in reverse order and assign the values
+	if node.IsWalrus() {
+		for i := len(names) - 1; i >= 0; i-- {
+			name := names[i]
+			sym, err := c.current.Symbols.InsertVariable(name)
+			if err != nil {
+				return err
+			}
+			if c.current.Parent == nil {
+				c.emit(op.StoreGlobal, sym.Index)
+			} else {
+				c.emit(op.StoreFast, sym.Index)
+			}
+		}
+		return nil
+	}
+	for i := len(names) - 1; i >= 0; i-- {
+		name := names[i]
+		sym, found := c.current.Symbols.Lookup(name)
+		if !found {
+			return fmt.Errorf("undefined variable: %s", name)
+		}
+		switch sym.Scope {
+		case object.ScopeGlobal:
+			c.emit(op.StoreGlobal, sym.Symbol.Index)
+		case object.ScopeLocal:
+			c.emit(op.StoreFast, sym.Symbol.Index)
+		case object.ScopeFree:
+			c.emit(op.StoreFree, sym.Symbol.Index)
+		case object.ScopeBuiltin:
+			c.emit(op.LoadBuiltin, sym.Symbol.Index)
+		}
+	}
+	return nil
 }
 
 func (c *Compiler) compileSwitch(node *ast.Switch) error {
@@ -509,18 +564,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
-	// Push variable as TOS
-	switch sym.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Symbol.Index)
-	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Symbol.Index)
-	case object.ScopeFree:
-		c.emit(op.LoadFree, sym.Symbol.Index)
-	case object.ScopeBuiltin:
-		return fmt.Errorf("invalid operation on builtin: %s", name)
-	}
-	// Push integer 1 or -1 as TOS
+	// The value being operated on is already TOS. Push integer 1 or -1 as new TOS.
 	operator := node.Operator()
 	if operator == "++" {
 		c.emit(op.LoadConst, c.constant(object.NewInt(1)))
@@ -929,6 +973,54 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	if node.IsSimpleLoop() {
 		return c.compileSimpleFor(node)
 	}
+	fmt.Println("NOT SIMPLE")
+
+	// Compile the init statement if present
+	if node.Init() != nil {
+		if err := c.compile(node.Init()); err != nil {
+			return err
+		}
+	}
+
+	// Mark the position of the loop start
+	loopStart := c.currentPosition()
+
+	// Compile the condition expression if present
+	if node.Condition() != nil {
+		if err := c.compile(node.Condition()); err != nil {
+			return err
+		}
+		// Emit a jump to execute if the condition fails
+		conditionJumpPos := c.emit(op.PopJumpForwardIfFalse, 9999)
+
+		// Compile the loop body
+		if err := c.compile(node.Consequence()); err != nil {
+			return err
+		}
+
+		// Compile the post statement if present
+		if node.Post() != nil {
+			if err := c.compile(node.Post()); err != nil {
+				return err
+			}
+			// TODO: what if the expression pushed a value?
+		}
+
+		// Jump back to the loop start
+		delta, err := c.calculateDelta(loopStart)
+		if err != nil {
+			return err
+		}
+		c.emit(op.JumpBackward, delta)
+
+		// Update the condition jump position
+		delta, err = c.calculateDelta(conditionJumpPos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(conditionJumpPos, delta)
+	}
+
 	return nil
 }
 

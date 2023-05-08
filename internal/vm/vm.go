@@ -345,6 +345,25 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			vm.Push(module)
 		case op.PopTop:
 			vm.Pop()
+		case op.Unpack:
+			obj := vm.Pop()
+			nameCount := int64(vm.fetch())
+			container, ok := obj.(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", obj)
+			}
+			containerSize := container.Len().Value()
+			if containerSize != nameCount {
+				return fmt.Errorf("unpack count mismatch: %d != %d", containerSize, nameCount)
+			}
+			iter := container.Iter()
+			for {
+				obj, ok := iter.Next()
+				if !ok {
+					break
+				}
+				vm.Push(obj.Primary())
+			}
 		case op.Halt:
 			return nil
 		default:
