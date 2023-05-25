@@ -18,8 +18,8 @@ import (
 )
 
 type (
-	prefixParseFn  func() ast.Expression
-	infixParseFn   func(ast.Expression) ast.Expression
+	prefixParseFn  func() ast.Node
+	infixParseFn   func(ast.Node) ast.Expression
 	postfixParseFn func() ast.Expression
 )
 
@@ -440,7 +440,7 @@ func (p *Parser) parseContinue() *ast.Control {
 	return stmt
 }
 
-func (p *Parser) parseExpressionStatement() ast.Expression {
+func (p *Parser) parseExpressionStatement() ast.Node {
 	expr := p.parseExpression(LOWEST)
 	if expr == nil {
 		p.setTokenError(p.curToken, "invalid syntax")
@@ -453,7 +453,7 @@ func (p *Parser) parseExpressionStatement() ast.Expression {
 	return expr
 }
 
-func (p *Parser) parseExpression(precedence int) ast.Expression {
+func (p *Parser) parseExpression(precedence int) ast.Node {
 	if p.curToken.Type == token.EOF || p.err != nil {
 		return nil
 	}
@@ -485,7 +485,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
-func (p *Parser) illegalToken() ast.Expression {
+func (p *Parser) illegalToken() ast.Node {
 	p.setError(NewParserError(ErrorOpts{
 		ErrType:       "parse error",
 		Message:       fmt.Sprintf("illegal token %s", p.curToken.Literal),
@@ -497,7 +497,7 @@ func (p *Parser) illegalToken() ast.Expression {
 	return nil
 }
 
-func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) ast.Expression {
+func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) ast.Node {
 	p.setError(NewParserError(ErrorOpts{
 		ErrType:       "parse error",
 		Message:       fmt.Sprintf(msg, args...),
@@ -509,11 +509,11 @@ func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) a
 	return nil
 }
 
-func (p *Parser) parseIdent() ast.Expression {
+func (p *Parser) parseIdent() ast.Node {
 	return ast.NewIdent(p.curToken)
 }
 
-func (p *Parser) parseInt() ast.Expression {
+func (p *Parser) parseInt() ast.Node {
 	tok, lit := p.curToken, p.curToken.Literal
 	var value int64
 	var err error
@@ -538,7 +538,7 @@ func (p *Parser) parseInt() ast.Expression {
 	return ast.NewInt(tok, value)
 }
 
-func (p *Parser) parseFloat() ast.Expression {
+func (p *Parser) parseFloat() ast.Node {
 	tok, lit := p.curToken, p.curToken.Literal
 	value, err := strconv.ParseFloat(lit, 64)
 	if err != nil {
@@ -555,7 +555,7 @@ func (p *Parser) parseFloat() ast.Expression {
 	return ast.NewFloat(tok, value)
 }
 
-func (p *Parser) parseSwitch() ast.Expression {
+func (p *Parser) parseSwitch() ast.Node {
 	switchToken := p.curToken
 	p.nextToken()
 	switchValue := p.parseExpression(LOWEST)
@@ -655,7 +655,7 @@ func (p *Parser) parseSwitch() ast.Expression {
 	return ast.NewSwitch(switchToken, switchValue, cases)
 }
 
-func (p *Parser) parseImport() ast.Expression {
+func (p *Parser) parseImport() ast.Node {
 	importToken := p.curToken
 	if !p.expectPeek("an import statement", token.IDENT) {
 		return nil
@@ -663,15 +663,15 @@ func (p *Parser) parseImport() ast.Expression {
 	return ast.NewImport(importToken, ast.NewIdent(p.curToken))
 }
 
-func (p *Parser) parseBoolean() ast.Expression {
+func (p *Parser) parseBoolean() ast.Node {
 	return ast.NewBool(p.curToken, p.curTokenIs(token.TRUE))
 }
 
-func (p *Parser) parseNil() ast.Expression {
+func (p *Parser) parseNil() ast.Node {
 	return ast.NewNil(p.curToken)
 }
 
-func (p *Parser) parsePrefixExpr() ast.Expression {
+func (p *Parser) parsePrefixExpr() ast.Node {
 	operator := p.curToken
 	p.nextToken()
 	right := p.parseExpression(PREFIX)
@@ -682,7 +682,7 @@ func (p *Parser) parsePrefixExpr() ast.Expression {
 	return ast.NewPrefix(operator, right)
 }
 
-func (p *Parser) parseNewline() ast.Expression {
+func (p *Parser) parseNewline() ast.Node {
 	p.nextToken()
 	return nil
 }
@@ -729,7 +729,7 @@ func (p *Parser) parseTernary(condition ast.Expression) ast.Expression {
 	return ast.NewTernary(firstToken, condition, ifTrue, ifFalse)
 }
 
-func (p *Parser) parseGroupedExpr() ast.Expression {
+func (p *Parser) parseGroupedExpr() ast.Node {
 	p.nextToken()
 	exp := p.parseExpression(LOWEST)
 	if !p.expectPeek("grouped expression", token.RPAREN) {
@@ -739,7 +739,7 @@ func (p *Parser) parseGroupedExpr() ast.Expression {
 }
 
 // Parses an entire if, else if, else block. Else-ifs are handled recursively.
-func (p *Parser) parseIf() ast.Expression {
+func (p *Parser) parseIf() ast.Node {
 	ifToken := p.curToken
 	p.nextToken() // move past the "if"
 	cond := p.parseExpression(LOWEST)
@@ -774,7 +774,7 @@ func (p *Parser) parseIf() ast.Expression {
 	return ast.NewIf(ifToken, cond, consequence, alternative)
 }
 
-func (p *Parser) parseFor() ast.Expression {
+func (p *Parser) parseFor() ast.Node {
 	forToken := p.curToken
 	// Check for simple form: "for { ... }"
 	if p.peekTokenIs(token.LBRACE) {
@@ -861,7 +861,7 @@ func (p *Parser) parseBlock() *ast.Block {
 	return ast.NewBlock(lbrace, statements)
 }
 
-func (p *Parser) parseFunc() ast.Expression {
+func (p *Parser) parseFunc() ast.Node {
 	funcToken := p.curToken
 	var ident *ast.Ident
 	if p.peekTokenIs(token.IDENT) { // Read optional function name
@@ -918,7 +918,7 @@ func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
 	return defaults, params
 }
 
-func (p *Parser) parseString() ast.Expression {
+func (p *Parser) parseString() ast.Node {
 	strToken := p.curToken
 	if strToken.Type == token.BACKTICK || strToken.Type == token.STRING {
 		return ast.NewString(strToken)
@@ -961,7 +961,7 @@ func (p *Parser) parseString() ast.Expression {
 	return ast.NewTemplatedString(strToken, tmpl, exprs)
 }
 
-func (p *Parser) parseList() ast.Expression {
+func (p *Parser) parseList() ast.Node {
 	bracket := p.curToken
 	items := p.parseExprList(token.RBRACKET)
 	return ast.NewList(bracket, items)
@@ -1122,7 +1122,7 @@ func (p *Parser) parseIn(left ast.Expression) ast.Expression {
 	return ast.NewIn(inToken, left, right)
 }
 
-func (p *Parser) parseRange() ast.Expression {
+func (p *Parser) parseRange() ast.Node {
 	rangeToken := p.curToken
 	if err := p.nextTokenWithError(); err != nil {
 		return nil
@@ -1135,7 +1135,7 @@ func (p *Parser) parseRange() ast.Expression {
 	return ast.NewRange(rangeToken, container)
 }
 
-func (p *Parser) parseMapOrSet() ast.Expression {
+func (p *Parser) parseMapOrSet() ast.Node {
 	firstToken := p.curToken
 	for p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextTokenWithError(); err != nil {

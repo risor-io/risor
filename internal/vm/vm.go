@@ -88,7 +88,7 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
 
-		// fmt.Println("ip", vm.ip, op.GetInfo(opcode).Name)
+		fmt.Println("ip", vm.ip, op.GetInfo(opcode).Name)
 
 		// Advance the instruction pointer to the next instruction. Note that
 		// this is done before we actually execute the current instruction, so
@@ -362,6 +362,23 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 				if !ok {
 					break
 				}
+				vm.Push(obj.Primary())
+			}
+		case op.GetIter:
+			obj := vm.Pop()
+			container, ok := obj.(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", obj)
+			}
+			vm.Push(container.Iter())
+		case op.ForIter:
+			jumpAmount := vm.fetch()
+			iter := vm.Pop().(object.Iterator)
+			obj, ok := iter.Next()
+			if !ok {
+				vm.ip += int(jumpAmount)
+			} else {
+				vm.Push(iter)
 				vm.Push(obj.Primary())
 			}
 		case op.Halt:

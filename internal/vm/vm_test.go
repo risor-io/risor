@@ -163,6 +163,21 @@ func TestForLoop2(t *testing.T) {
 	require.Equal(t, object.NewInt(4), result)
 }
 
+func TestForRange(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := [1, 2.3, "hello", true]
+	output := []
+	for i := range x {
+		i
+	}
+	output
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(0), result)
+}
+
 func TestAssign(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `

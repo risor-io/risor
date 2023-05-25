@@ -18,18 +18,13 @@ func printMultiError(err error) {
 	}
 }
 
-func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
+func testVarStatement(t *testing.T, s *ast.Var, name string) bool {
 	t.Helper()
 	if s.Literal() != "var" {
 		t.Errorf("s.Literal not 'var'. got %q", s.Literal())
 		return false
 	}
-	varStmt, ok := s.(*ast.Var)
-	if !ok {
-		t.Errorf("s not *ast.Var. got=%T", s)
-		return false
-	}
-	varName, _ := varStmt.Value()
+	varName, _ := s.Value()
 	if varName != name {
 		t.Errorf("s.Name not '%s'. got=%s", name, varName)
 		return false
@@ -37,18 +32,13 @@ func testVarStatement(t *testing.T, s ast.Statement, name string) bool {
 	return true
 }
 
-func testConstStatement(t *testing.T, s ast.Statement, name string) bool {
+func testConstStatement(t *testing.T, s *ast.Const, name string) bool {
 	t.Helper()
 	if s.Literal() != "const" {
 		t.Errorf("s.Literal not 'const'. got %q", s.Literal())
 		return false
 	}
-	stmt, ok := s.(*ast.Const)
-	if !ok {
-		t.Errorf("s not *ast.Var. got=%T", s)
-		return false
-	}
-	constName, _ := stmt.Value()
+	constName, _ := s.Value()
 	if constName != name {
 		t.Errorf("s.Name not '%s'. got=%s", name, constName)
 		return false

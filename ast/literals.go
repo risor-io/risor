@@ -1,0 +1,284 @@
+package ast
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+
+	"github.com/cloudcmds/tamarin/tmpl"
+	"github.com/cloudcmds/tamarin/token"
+)
+
+// Int holds an integer number
+type Int struct {
+	token token.Token // the token containing the number
+	value int64       // the value of the int
+}
+
+func NewInt(token token.Token, value int64) *Int {
+	return &Int{token: token, value: value}
+}
+
+func (i *Int) ExpressionNode() {}
+
+func (i *Int) Token() token.Token { return i.token }
+
+func (i *Int) Literal() string { return i.token.Literal }
+
+func (i *Int) Value() int64 { return i.value }
+
+func (i *Int) String() string { return i.token.Literal }
+
+// Float holds a floating point number
+type Float struct {
+	token token.Token // the token containing the number
+	value float64     // the value of the float
+}
+
+func NewFloat(token token.Token, value float64) *Float {
+	return &Float{token: token, value: value}
+}
+
+func (f *Float) ExpressionNode() {}
+
+func (f *Float) Token() token.Token { return f.token }
+
+func (f *Float) Literal() string { return f.token.Literal }
+
+func (f *Float) Value() float64 { return f.value }
+
+func (f *Float) String() string { return f.token.Literal }
+
+// Nil represents a literal nil
+type Nil struct {
+	token token.Token // token containing "nil"
+}
+
+func NewNil(token token.Token) *Nil {
+	return &Nil{token: token}
+}
+
+func (n *Nil) ExpressionNode() {}
+
+func (n *Nil) Token() token.Token { return n.token }
+
+func (n *Nil) Literal() string { return n.token.Literal }
+
+func (n *Nil) String() string { return n.token.Literal }
+
+// Bool holds the boolean "true" or "false"
+type Bool struct {
+	// Token holds the actual token
+	token token.Token
+
+	// value stores the bools' value: true, or false.
+	value bool
+}
+
+func NewBool(token token.Token, value bool) *Bool {
+	return &Bool{token: token, value: value}
+}
+
+func (b *Bool) ExpressionNode() {}
+
+func (b *Bool) Token() token.Token { return b.token }
+
+func (b *Bool) Literal() string { return b.token.Literal }
+
+func (b *Bool) Value() bool { return b.value }
+
+func (b *Bool) String() string { return b.token.Literal }
+
+// Func holds a function definition.
+type Func struct {
+	token token.Token
+
+	name *Ident
+
+	// parameters is the list of parameters the function receives.
+	parameters []*Ident
+
+	// defaults holds any default values for arguments which aren't specified.
+	defaults map[string]Expression
+
+	// body contains the set of statements within the function.
+	body *Block
+}
+
+func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[string]Expression, body *Block) *Func {
+	return &Func{
+		token:      token,
+		name:       name,
+		parameters: parameters,
+		defaults:   defaults,
+		body:       body,
+	}
+}
+
+func (f *Func) ExpressionNode() {}
+
+func (f *Func) Token() token.Token { return f.token }
+
+func (f *Func) Literal() string { return f.token.Literal }
+
+func (f *Func) Name() *Ident { return f.name }
+
+func (f *Func) Parameters() []*Ident { return f.parameters }
+
+func (f *Func) ParameterNames() []string {
+	names := make([]string, 0, len(f.parameters))
+	for _, p := range f.parameters {
+		names = append(names, p.value)
+	}
+	return names
+}
+
+func (f *Func) Defaults() map[string]Expression { return f.defaults }
+
+func (f *Func) Body() *Block { return f.body }
+
+func (f *Func) String() string {
+	var out bytes.Buffer
+	params := make([]string, 0)
+	for _, p := range f.parameters {
+		params = append(params, p.value)
+	}
+	out.WriteString(f.Literal())
+	if f.name != nil {
+		out.WriteString(" " + f.name.value)
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(f.body.String())
+	return out.String()
+}
+
+// String holds a string
+type String struct {
+	// Token is the token
+	token token.Token
+
+	// value is the value of the string.
+	value string
+
+	// template is the templatized version of the string, if any
+	template *tmpl.Template
+
+	exprs []Expression
+}
+
+func NewString(tok token.Token) *String {
+	return &String{token: tok, value: tok.Literal}
+}
+
+func NewTemplatedString(tok token.Token, template *tmpl.Template, exprs []Expression) *String {
+	return &String{token: tok, value: tok.Literal, template: template, exprs: exprs}
+}
+
+func (s *String) ExpressionNode() {}
+
+func (s *String) Token() token.Token { return s.token }
+
+func (s *String) Literal() string { return s.token.Literal }
+
+func (s *String) Value() string { return s.value }
+
+func (s *String) Template() *tmpl.Template { return s.template }
+
+func (s *String) TemplateExpressions() []Expression { return s.exprs }
+
+func (s *String) String() string { return fmt.Sprintf("%q", s.token.Literal) }
+
+// List holds an inline list
+type List struct {
+	// Token is the token
+	token token.Token
+
+	// items holds the members of the list.
+	items []Expression
+}
+
+func NewList(tok token.Token, items []Expression) *List {
+	return &List{token: tok, items: items}
+}
+
+func (l *List) ExpressionNode() {}
+
+func (l *List) Token() token.Token { return l.token }
+
+func (l *List) Literal() string { return l.token.Literal }
+
+func (l *List) Items() []Expression { return l.items }
+
+func (l *List) String() string {
+	var out bytes.Buffer
+	elements := make([]string, 0)
+	for _, el := range l.items {
+		elements = append(elements, el.String())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
+
+// Map holds a map
+type Map struct {
+	token token.Token               // the '{' token
+	items map[Expression]Expression // items in the map
+}
+
+func NewMap(token token.Token, items map[Expression]Expression) *Map {
+	return &Map{token: token, items: items}
+}
+
+func (m *Map) ExpressionNode() {}
+
+func (m *Map) Token() token.Token { return m.token }
+
+func (m *Map) Literal() string { return m.token.Literal }
+
+func (m *Map) Items() map[Expression]Expression { return m.items }
+
+func (m *Map) String() string {
+	var out bytes.Buffer
+	pairs := make([]string, 0)
+	for key, value := range m.items {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+	return out.String()
+}
+
+// Set holds a set definition
+type Set struct {
+	token token.Token  // the '{' token
+	items []Expression // items in the set
+}
+
+func NewSet(token token.Token, items []Expression) *Set {
+	return &Set{token: token, items: items}
+}
+
+func (s *Set) ExpressionNode() {}
+
+func (s *Set) Token() token.Token { return s.token }
+
+func (s *Set) Literal() string { return s.token.Literal }
+
+func (s *Set) Items() []Expression { return s.items }
+
+func (s *Set) String() string {
+	var out bytes.Buffer
+	items := make([]string, 0, len(s.items))
+	for _, key := range s.items {
+		items = append(items, key.String())
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(items, ", "))
+	out.WriteString("}")
+	return out.String()
+}

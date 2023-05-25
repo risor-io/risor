@@ -985,9 +985,68 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	return nil
 }
 
+func (c *Compiler) compileForRange(forNode *ast.For, name string, rangeNode *ast.Range) error {
+
+	if err := c.compile(rangeNode.Container()); err != nil {
+		return err
+	}
+	c.emit(op.GetIter)
+
+	code := c.current
+	code.Symbols = code.Symbols.NewBlock()
+	c.startLoop()
+	defer func() {
+		c.endLoop()
+		code.Symbols = code.Symbols.Parent()
+	}()
+
+	iterPos := c.emit(op.ForIter, 0)
+
+	// assign the current value of the iterator to the loop variable
+	sym, err := code.Symbols.InsertVariable(name)
+	if err != nil {
+		return err
+	}
+	if code.Symbols.IsGlobal() {
+		c.emit(op.StoreGlobal, sym.Index)
+	} else {
+		c.emit(op.StoreFast, sym.Index)
+	}
+
+	// compile the body of the loop
+	if err := c.compile(forNode.Consequence()); err != nil {
+		return err
+	}
+	// c.emit(op.PopTop)
+
+	// jump back to the start of the loop
+	delta, err := c.calculateDelta(iterPos)
+	if err != nil {
+		return err
+	}
+	c.emit(op.JumpBackward, delta)
+
+	delta, err = c.calculateDelta(iterPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(iterPos, delta)
+
+	return nil
+}
+
 func (c *Compiler) compileFor(node *ast.For) error {
 	if node.IsSimpleLoop() {
 		return c.compileSimpleFor(node)
+	}
+	if node.Init() == nil && node.Post() == nil {
+		varExpr, ok := node.Condition().(*ast.Var)
+		if ok {
+			name, rhs := varExpr.Value()
+			if rangeNode, ok := rhs.(*ast.Range); ok {
+				return c.compileForRange(node, name, rangeNode)
+			}
+		}
 	}
 
 	code := c.current
