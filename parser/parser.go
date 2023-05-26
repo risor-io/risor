@@ -123,20 +123,17 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 
 	// Register infix functions
-
 	p.registerInfix(token.ASSIGN, p.parseAssign)
 	p.registerInfix(token.ASTERISK_EQUALS, p.parseAssign)
 	p.registerInfix(token.MINUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.PLUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
-
 	p.registerInfix(token.IN, p.parseIn)
 	p.registerInfix(token.LBRACKET, p.parseIndex)
 	p.registerInfix(token.LPAREN, p.parseCall)
 	p.registerInfix(token.PERIOD, p.parseGetAttr)
 	p.registerInfix(token.PIPE, p.parsePipe)
 	p.registerInfix(token.QUESTION, p.parseTernary)
-
 	p.registerInfix(token.AND, p.parseInfixExpr)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpr)
 	p.registerInfix(token.EQ, p.parseInfixExpr)
@@ -528,6 +525,10 @@ func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) a
 }
 
 func (p *Parser) parseIdent() ast.Node {
+	if p.curToken.Literal == "" {
+		p.setTokenError(p.curToken, "invalid identifier")
+		return nil
+	}
 	return ast.NewIdent(p.curToken)
 }
 
@@ -638,24 +639,26 @@ func (p *Parser) parseSwitch() ast.Node {
 		blockFirstToken := p.curToken
 		var blockStatements []ast.Node
 		for {
-			stmt := p.parseStatement()
-			if p.err != nil {
-				return nil
-			}
-			if stmt != nil {
-				blockStatements = append(blockStatements, stmt)
-			}
+			// Skip over newlines and semicolons
 			for p.curTokenIs(token.NEWLINE) || p.curTokenIs(token.SEMICOLON) {
 				if err := p.nextTokenWithError(); err != nil {
 					return nil
 				}
 			}
-			if p.curTokenIs(token.CASE) || p.curTokenIs(token.DEFAULT) || p.curTokenIs(token.RBRACE) {
+			// Any of these tokens indicate the end of the current case
+			if p.curTokenIs(token.CASE) ||
+				p.curTokenIs(token.DEFAULT) ||
+				p.curTokenIs(token.RBRACE) ||
+				p.curTokenIs(token.EOF) {
 				break
 			}
-			if p.peekTokenIs(token.CASE) || p.peekTokenIs(token.DEFAULT) || p.peekTokenIs(token.RBRACE) {
-				p.nextToken()
-				break
+			// Parse one statement
+			if s := p.parseStatement(); s != nil {
+				blockStatements = append(blockStatements, s)
+			}
+			// Move to the token just beyond the statement
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
 			}
 		}
 		block := ast.NewBlock(blockFirstToken, blockStatements)

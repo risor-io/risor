@@ -1235,11 +1235,23 @@ func (c *Compiler) compileIf(node *ast.If) error {
 		}
 		c.changeOperand(jumpForwardPos, delta)
 	} else {
+		// Jump forward to skip the alternative by default
+		jumpForwardPos := c.emit(op.JumpForward, 9999)
+		// Update PopJumpForwardIfFalse to point to this alternative,
+		// so that the alternative is executed if the condition is false
 		delta, err := c.calculateDelta(jumpIfFalsePos)
 		if err != nil {
 			return err
 		}
 		c.changeOperand(jumpIfFalsePos, delta)
+		// This allows ifs to be used as expressions. If the if check fails and
+		// there is no alternative, the result of the if expression is nil.
+		c.emit(op.Nil)
+		delta, err = c.calculateDelta(jumpForwardPos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(jumpForwardPos, delta)
 	}
 	return nil
 }

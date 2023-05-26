@@ -396,6 +396,25 @@ func TestIntegers(t *testing.T) {
 	}
 }
 
+func TestInvalidIntegers(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"42.foo()", "invalid decimal literal: 42.f"},
+		{"12ab", "invalid decimal literal: 12a"},
+		{"0x1aZ", "invalid decimal literal: 0x1aZ"},
+		{"0b01017", "invalid decimal literal: 0b01017"},
+	}
+	for _, tt := range tests {
+		l := New(tt.input)
+		tok, err := l.NextToken()
+		fmt.Println(tok, err)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expected, err.Error())
+	}
+}
+
 // Test that the shebang-line is handled specially.
 func TestShebang(t *testing.T) {
 	input := `#!/bin/monkey
@@ -632,6 +651,48 @@ func TestStringTypes(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, tt.expectedType, tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
+		})
+	}
+}
+
+func TestIdentifiers(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{"abc", token.IDENT, "abc"},
+		{"a1_", token.IDENT, "a1_"},
+		{"__c__", token.IDENT, "__c__"},
+		{" d-f ", token.IDENT, "d"},
+		{" in ", token.IN, "in"},
+		{"  ", token.EOF, ""},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			tok, err := l.NextToken()
+			require.Nil(t, err)
+			require.Equal(t, tt.expectedType, tok.Type)
+			require.Equal(t, tt.expectedLiteral, tok.Literal)
+		})
+	}
+}
+
+func TestInvalidIdentifiers(t *testing.T) {
+	tests := []struct {
+		input string
+		err   string
+	}{
+		{"⺶", "invalid identifier: ⺶"},
+		{"foo⺶bar", "invalid identifier: foo⺶"},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			_, err := l.NextToken()
+			require.NotNil(t, err)
+			require.Equal(t, tt.err, err.Error())
 		})
 	}
 }
