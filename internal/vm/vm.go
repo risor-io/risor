@@ -88,7 +88,7 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
 
-		fmt.Println("ip", vm.ip, op.GetInfo(opcode).Name)
+		// fmt.Println("ip", vm.ip, op.GetInfo(opcode).Name, "sp", vm.sp)
 
 		// Advance the instruction pointer to the next instruction. Note that
 		// this is done before we actually execute the current instruction, so
@@ -376,7 +376,8 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			iter := vm.Pop().(object.Iterator)
 			obj, ok := iter.Next()
 			if !ok {
-				vm.ip += int(jumpAmount)
+				base := vm.ip - 2
+				vm.ip = base + int(jumpAmount)
 			} else {
 				vm.Push(iter)
 				vm.Push(obj.Primary())

@@ -106,9 +106,26 @@ func (c *Compiler) compile(node ast.Node) error {
 			return err
 		}
 	case *ast.Program:
-		for _, stmt := range node.Statements() {
-			if err := c.compile(stmt); err != nil {
-				return err
+		statements := node.Statements()
+		count := len(statements)
+		if count == 0 {
+			// Guarantee that the program evaluates to a value
+			c.emit(op.Nil)
+		} else {
+			for i, stmt := range statements {
+				if err := c.compile(stmt); err != nil {
+					return err
+				}
+				if i < count-1 {
+					if stmt.IsExpression() {
+						c.emit(op.PopTop)
+					}
+				}
+			}
+			// Guarantee that the program evaluates to a value
+			lastStatement := statements[count-1]
+			if !lastStatement.IsExpression() {
+				c.emit(op.Nil)
 			}
 		}
 	case *ast.Block:
@@ -116,9 +133,26 @@ func (c *Compiler) compile(node ast.Node) error {
 		defer func() {
 			code.Symbols = code.Symbols.Parent()
 		}()
-		for _, stmt := range node.Statements() {
-			if err := c.compile(stmt); err != nil {
-				return err
+		statements := node.Statements()
+		count := len(statements)
+		if count == 0 {
+			// Guarantee that the block evaluates to a value
+			c.emit(op.Nil)
+		} else {
+			for i, stmt := range statements {
+				if err := c.compile(stmt); err != nil {
+					return err
+				}
+				if i < count-1 {
+					if stmt.IsExpression() {
+						c.emit(op.PopTop)
+					}
+				}
+			}
+			// Guarantee that the block evaluates to a value
+			lastStatement := statements[count-1]
+			if !lastStatement.IsExpression() {
+				c.emit(op.Nil)
 			}
 		}
 	case *ast.Var:
@@ -838,18 +872,13 @@ func (c *Compiler) compileReturnFunc(node *ast.Func) (*object.Function, error) {
 		code.Symbols.InsertVariable(functionName)
 	}
 
-	// Compile the function code
-	statements := node.Body().Statements()
-	for _, statement := range statements {
-		if err := c.compile(statement); err != nil {
-			return nil, err
-		}
+	// Compile the function body
+	body := node.Body()
+	if err := c.compile(body); err != nil {
+		return nil, err
 	}
-	if len(statements) == 0 {
-		c.emit(op.Nil)
-		c.emit(op.ReturnValue, 1)
-	} else if _, ok := statements[len(statements)-1].(*ast.Control); !ok {
-		c.emit(op.ReturnValue, 1)
+	if !body.EndsWithReturn() {
+		c.emit(op.ReturnValue)
 	}
 
 	// We're done compiling the function, so switch back to compiling the parent
@@ -903,7 +932,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		c.emit(op.ReturnValue, 1)
+		c.emit(op.ReturnValue)
 		return nil
 	}
 	loop := c.currentLoop()
@@ -1017,7 +1046,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, name string, rangeNode *ast
 	if err := c.compile(forNode.Consequence()); err != nil {
 		return err
 	}
-	// c.emit(op.PopTop)
+	c.emit(op.PopTop)
 
 	// jump back to the start of the loop
 	delta, err := c.calculateDelta(iterPos)
@@ -1081,13 +1110,18 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
+	c.emit(op.PopTop)
 
 	// Compile the post statement if present
 	if node.Post() != nil {
-		if err := c.compile(node.Post()); err != nil {
+		post := node.Post()
+		if err := c.compile(post); err != nil {
 			return err
 		}
-		// TODO: what if the expression pushed a value?
+		// If the post statement is an expression, pop the value so its ignored
+		if post.IsExpression() {
+			c.emit(op.PopTop)
+		}
 	}
 
 	// Jump back to the loop start

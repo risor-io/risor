@@ -157,7 +157,7 @@ func TestLoop(t *testing.T) {
 
 func TestForLoop2(t *testing.T) {
 	ctx := context.Background()
-	result, err := Run(ctx, `for y := 0; y < 5; y++ { y }`)
+	result, err := Run(ctx, `x := 0; for y := 0; y < 5; y++ { x = y }; x`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(4), result)
@@ -169,13 +169,114 @@ func TestForRange(t *testing.T) {
 	x := [1, 2.3, "hello", true]
 	output := []
 	for i := range x {
-		i
+		1 + 2
+		3 + 4
 	}
-	output
+	99
 	`)
 	require.Nil(t, err)
 	require.NotNil(t, result)
-	require.Equal(t, object.NewInt(0), result)
+	require.Equal(t, object.NewInt(99), result)
+}
+
+func TestStackPopping1(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := []
+	for i := 0; i < 4; i++ {
+		1
+		2
+		3
+		4
+		x.append(i)
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(0),
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), result)
+}
+
+func TestStackPopping2(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	for i := range [1, 2, 3] {
+		1
+		2
+		3
+		4
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestStackPopping3(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 99
+	for i := 0; i < 4; x {
+		i++
+		1
+		2
+		3
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestStackPopping4(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 77
+	for i := 0; i < 4; x {
+		i++
+		1
+		2
+		3
+		4
+		if i > 0 {
+			break // loop once
+		}
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestStackPopping5(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := 77
+	if x > 0 {
+		99 
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.NewInt(99), result)
+}
+
+func TestStackPopping6(t *testing.T) {
+	ctx := context.Background()
+	result, err := Run(ctx, `
+	x := -1
+	if x > 0 {
+		99 
+	}
+	`)
+	require.Nil(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, object.Nil, result)
 }
 
 func TestAssign(t *testing.T) {
@@ -432,9 +533,9 @@ func TestClosureIncrementer(t *testing.T) {
 	ctx := context.Background()
 	result, err := Run(ctx, `
 	f := func(x) {
-		func() { x++ }
+		func() { x++; x }
 	}
-	incrementer := f(1)
+	incrementer := f(0)
 	incrementer() // 1
 	incrementer() // 2
 	incrementer() // 3

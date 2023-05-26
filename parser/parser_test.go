@@ -26,9 +26,10 @@ func TestVarStatements(t *testing.T) {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		stmt := program.First()
+		stmt, ok := program.First().(*ast.Var)
+		require.True(t, ok)
 		testVarStatement(t, stmt, tt.ident)
-		name, val := stmt.(*ast.Var).Value()
+		name, val := stmt.Value()
 		testLiteralExpression(t, val, tt.value)
 		require.Equal(t, tt.ident, name)
 	}
@@ -85,11 +86,12 @@ func TestConst(t *testing.T) {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		stmt := program.First()
+		stmt, ok := program.First().(*ast.Const)
+		require.True(t, ok)
 		if !testConstStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
-		name, val := stmt.(*ast.Const).Value()
+		name, val := stmt.Value()
 		require.Equal(t, tt.expectedIdentifier, name)
 		if !testLiteralExpression(t, val, tt.expectedValue) {
 			return
@@ -325,9 +327,9 @@ func TestCall(t *testing.T) {
 	}
 	args := expr.Arguments()
 	require.Len(t, args, 3)
-	testLiteralExpression(t, args[0], 1)
-	testInfixExpression(t, args[1], 2, "*", 3)
-	testInfixExpression(t, args[2], 4, "+", 5)
+	testLiteralExpression(t, args[0].(ast.Expression), 1)
+	testInfixExpression(t, args[1].(ast.Expression), 2, "*", 3)
+	testInfixExpression(t, args[2].(ast.Expression), 4, "+", 5)
 }
 
 func TestString(t *testing.T) {

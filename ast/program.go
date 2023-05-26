@@ -23,6 +23,8 @@ func (p *Program) Token() token.Token {
 	return token.Token{}
 }
 
+func (p *Program) IsExpression() bool { return false }
+
 func (p *Program) Literal() string { return p.Token().Literal }
 
 func (p *Program) Statements() []Node { return p.statements }

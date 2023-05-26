@@ -21,6 +21,8 @@ func NewIdent(token token.Token) *Ident {
 
 func (i *Ident) ExpressionNode() {}
 
+func (i *Ident) IsExpression() bool { return true }
+
 func (i *Ident) Token() token.Token { return i.token }
 
 func (i *Ident) Literal() string { return i.value }
@@ -44,6 +46,8 @@ func NewPrefix(token token.Token, right Expression) *Prefix {
 }
 
 func (p *Prefix) ExpressionNode() {}
+
+func (p *Prefix) IsExpression() bool { return true }
 
 func (p *Prefix) Token() token.Token { return p.token }
 
@@ -83,6 +87,8 @@ func NewInfix(token token.Token, left Expression, operator string, right Express
 
 func (i *Infix) ExpressionNode() {}
 
+func (i *Infix) IsExpression() bool { return true }
+
 func (i *Infix) Token() token.Token { return i.token }
 
 func (i *Infix) Literal() string { return i.token.Literal }
@@ -103,34 +109,6 @@ func (i *Infix) String() string {
 	return out.String()
 }
 
-// Postfix defines a postfix expression like "x++".
-type Postfix struct {
-	token token.Token
-	// operator holds the postfix token, e.g. ++
-	operator string
-}
-
-func NewPostfix(token token.Token, operator string) *Postfix {
-	return &Postfix{token: token, operator: operator}
-}
-
-func (p *Postfix) ExpressionNode() {}
-
-func (p *Postfix) Token() token.Token { return p.token }
-
-func (p *Postfix) Literal() string { return p.token.Literal }
-
-func (p *Postfix) Operator() string { return p.operator }
-
-func (p *Postfix) String() string {
-	var out bytes.Buffer
-	out.WriteString("(")
-	out.WriteString(p.token.Literal)
-	out.WriteString(p.operator)
-	out.WriteString(")")
-	return out.String()
-}
-
 // If holds an if statement.
 type If struct {
 	token       token.Token // the "if" token
@@ -144,6 +122,8 @@ func NewIf(token token.Token, condition Expression, consequence *Block, alternat
 }
 
 func (i *If) ExpressionNode() {}
+
+func (i *If) IsExpression() bool { return true }
 
 func (i *If) Token() token.Token { return i.token }
 
@@ -189,6 +169,8 @@ func NewTernary(token token.Token, condition Expression, ifTrue Expression, ifFa
 
 func (t *Ternary) ExpressionNode() {}
 
+func (t *Ternary) IsExpression() bool { return true }
+
 func (t *Ternary) Token() token.Token { return t.token }
 
 func (t *Ternary) Literal() string { return t.token.Literal }
@@ -213,16 +195,18 @@ func (t *Ternary) String() string {
 
 // Call holds the invocation of a method.
 type Call struct {
-	token     token.Token  // the '(' token
-	function  Expression   // the function being called
-	arguments []Expression // the arguments supplied to the call
+	token     token.Token // the '(' token
+	function  Expression  // the function being called
+	arguments []Node      // the arguments supplied to the call
 }
 
-func NewCall(token token.Token, function Expression, arguments []Expression) *Call {
+func NewCall(token token.Token, function Expression, arguments []Node) *Call {
 	return &Call{token: token, function: function, arguments: arguments}
 }
 
 func (c *Call) ExpressionNode() {}
+
+func (c *Call) IsExpression() bool { return true }
 
 func (c *Call) Token() token.Token { return c.token }
 
@@ -230,7 +214,7 @@ func (c *Call) Literal() string { return c.token.Literal }
 
 func (c *Call) Function() Expression { return c.function }
 
-func (c *Call) Arguments() []Expression { return c.arguments }
+func (c *Call) Arguments() []Node { return c.arguments }
 
 func (c *Call) String() string {
 	var out bytes.Buffer
@@ -262,6 +246,8 @@ func NewGetAttr(token token.Token, object Expression, attribute *Ident) *GetAttr
 
 func (e *GetAttr) ExpressionNode() {}
 
+func (e *GetAttr) IsExpression() bool { return true }
+
 func (e *GetAttr) Token() token.Token { return e.token }
 
 func (e *GetAttr) Literal() string { return e.token.Literal }
@@ -291,6 +277,8 @@ func NewPipe(token token.Token, exprs []Expression) *Pipe {
 }
 
 func (p *Pipe) ExpressionNode() {}
+
+func (p *Pipe) IsExpression() bool { return true }
 
 func (p *Pipe) Token() token.Token { return p.token }
 
@@ -322,6 +310,8 @@ func NewObjectCall(token token.Token, object Expression, call Expression) *Objec
 }
 
 func (c *ObjectCall) ExpressionNode() {}
+
+func (c *ObjectCall) IsExpression() bool { return true }
 
 func (c *ObjectCall) Token() token.Token { return c.token }
 
@@ -355,6 +345,8 @@ func NewIndex(token token.Token, left Expression, index Expression) *Index {
 }
 
 func (i *Index) ExpressionNode() {}
+
+func (i *Index) IsExpression() bool { return true }
 
 func (i *Index) Token() token.Token { return i.token }
 
@@ -393,6 +385,8 @@ func NewSlice(token token.Token, left Expression, fromIndex Expression, toIndex 
 }
 
 func (i *Slice) ExpressionNode() {}
+
+func (i *Slice) IsExpression() bool { return true }
 
 func (i *Slice) Token() token.Token { return i.token }
 
@@ -444,6 +438,8 @@ func NewDefaultCase(token token.Token, block *Block) *Case {
 
 func (c *Case) ExpressionNode() {}
 
+func (c *Case) IsExpression() bool { return true }
+
 func (c *Case) Token() token.Token { return c.token }
 
 func (c *Case) Literal() string { return c.token.Literal }
@@ -490,6 +486,8 @@ func NewSwitch(token token.Token, value Expression, choices []*Case) *Switch {
 
 func (s *Switch) ExpressionNode() {}
 
+func (s *Switch) IsExpression() bool { return true }
+
 func (s *Switch) Token() token.Token { return s.token }
 
 func (s *Switch) Literal() string { return s.token.Literal }
@@ -526,6 +524,8 @@ func NewIn(token token.Token, left Expression, right Expression) *In {
 
 func (i *In) ExpressionNode() {}
 
+func (i *In) IsExpression() bool { return true }
+
 func (i *In) Token() token.Token { return i.token }
 
 func (i *In) Literal() string { return i.token.Literal }
@@ -539,5 +539,33 @@ func (i *In) String() string {
 	out.WriteString(i.left.String())
 	out.WriteString(" in ")
 	out.WriteString(i.right.String())
+	return out.String()
+}
+
+// Range is used to iterator over a container
+type Range struct {
+	token     token.Token // the "range" token
+	container Node        // the container to iterate over
+}
+
+func NewRange(token token.Token, container Node) *Range {
+	return &Range{token: token, container: container}
+}
+
+func (r *Range) ExpressionNode() {}
+
+func (r *Range) IsExpression() bool { return true }
+
+func (r *Range) Token() token.Token { return r.token }
+
+func (r *Range) Literal() string { return r.token.Literal }
+
+func (r *Range) Container() Node { return r.container }
+
+func (r *Range) String() string {
+	var out bytes.Buffer
+	out.WriteString(r.Literal())
+	out.WriteString(" ")
+	out.WriteString(r.container.String())
 	return out.String()
 }

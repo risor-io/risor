@@ -141,7 +141,7 @@ func init() {
 		{PopTop, "POP_TOP", 0, nil},
 		{Print, "PRINT", 0, nil},
 		{Range, "RANGE", 0, nil},
-		{ReturnValue, "RETURN_VALUE", 1, []int{2}},
+		{ReturnValue, "RETURN_VALUE", 0, nil},
 		{Slice, "SLICE", 0, nil},
 		{StoreAttr, "STORE_ATTR", 1, []int{2}},
 		{StoreFast, "STORE_FAST", 1, []int{2}},

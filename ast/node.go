@@ -16,6 +16,19 @@ type Node interface {
 	// String returns a human friendly representation of the Node. This should
 	// be similar to the original source code, but not necessarily identical.
 	String() string
+
+	// IsExpression returns true if this Node evalutes to a value.
+	IsExpression() bool
+}
+
+// Statement represents a snippet of Tamarin code that causes a side effect, but
+// does not evaluate to a value.
+type Statement interface {
+	// Node is embedded here to indicate that all statements are AST nodes.
+	Node
+
+	// StatementNode signals that this Node is a statement.
+	StatementNode()
 }
 
 // Expression represents a snippet of Tamarin code that evaluates to a value.

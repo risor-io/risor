@@ -30,6 +30,10 @@ func NewDeclaration(token token.Token, name *Ident, value Expression) *Var {
 	return &Var{token: token, name: name, value: value, isWalrus: true}
 }
 
+func (s *Var) StatementNode() {}
+
+func (s *Var) IsExpression() bool { return false }
+
 func (s *Var) Token() token.Token { return s.token }
 
 func (s *Var) Literal() string { return s.token.Literal }
@@ -67,6 +71,10 @@ type MultiVar struct {
 func NewMultiVar(token token.Token, names []*Ident, value Expression, isWalrus bool) *MultiVar {
 	return &MultiVar{token: token, names: names, value: value, isWalrus: isWalrus}
 }
+
+func (s *MultiVar) StatementNode() {}
+
+func (s *MultiVar) IsExpression() bool { return false }
 
 func (s *MultiVar) Token() token.Token { return s.token }
 
@@ -109,6 +117,10 @@ func NewConst(token token.Token, name *Ident, value Expression) *Const {
 	return &Const{token: token, name: name, value: value}
 }
 
+func (c *Const) StatementNode() {}
+
+func (c *Const) IsExpression() bool { return false }
+
 func (c *Const) Token() token.Token { return c.token }
 
 func (c *Const) Literal() string { return c.token.Literal }
@@ -136,11 +148,19 @@ func NewControl(token token.Token, value Expression) *Control {
 	return &Control{token: token, value: value}
 }
 
+func (c *Control) StatementNode() {}
+
+func (c *Control) IsExpression() bool { return false }
+
 func (c *Control) Token() token.Token { return c.token }
 
 func (c *Control) Literal() string { return c.token.Literal }
 
 func (c *Control) Value() Expression { return c.value }
+
+func (c *Control) IsReturn() bool {
+	return c.token.Type == token.RETURN
+}
 
 func (c *Control) String() string {
 	var out bytes.Buffer
@@ -163,11 +183,27 @@ func NewBlock(token token.Token, statements []Node) *Block {
 	return &Block{token: token, statements: statements}
 }
 
+func (b *Block) StatementNode() {}
+
+func (b *Block) IsExpression() bool { return false }
+
 func (b *Block) Token() token.Token { return b.token }
 
 func (b *Block) Literal() string { return b.token.Literal }
 
 func (b *Block) Statements() []Node { return b.statements }
+
+func (b *Block) EndsWithReturn() bool {
+	count := len(b.statements)
+	if count == 0 {
+		return false
+	}
+	last := b.statements[count-1]
+	if cntrl, ok := last.(*Control); ok {
+		return cntrl.IsReturn()
+	}
+	return false
+}
 
 func (b *Block) String() string {
 	var out bytes.Buffer
@@ -196,16 +232,20 @@ type For struct {
 
 	// Statement which is executed after each execution of the block
 	// (and only if the block was executed).
-	post Expression
+	post Node
 }
 
 func NewSimpleFor(token token.Token, consequence *Block) *For {
 	return &For{token: token, consequence: consequence}
 }
 
-func NewFor(token token.Token, condition Node, consequence *Block, init Node, post Expression) *For {
+func NewFor(token token.Token, condition Node, consequence *Block, init Node, post Node) *For {
 	return &For{token: token, condition: condition, consequence: consequence, init: init, post: post}
 }
+
+func (f *For) StatementNode() {}
+
+func (f *For) IsExpression() bool { return false }
 
 func (f *For) Token() token.Token { return f.token }
 
@@ -239,7 +279,7 @@ func (f *For) Consequence() *Block { return f.consequence }
 
 func (f *For) Init() Node { return f.init }
 
-func (f *For) Post() Expression { return f.post }
+func (f *For) Post() Node { return f.post }
 
 func (f *For) String() string {
 	var out bytes.Buffer
@@ -287,6 +327,10 @@ func NewAssignIndex(operator token.Token, index *Index, value Expression) *Assig
 	return &Assign{token: operator, index: index, operator: operator.Literal, value: value}
 }
 
+func (a *Assign) StatementNode() {}
+
+func (a *Assign) IsExpression() bool { return false }
+
 func (a *Assign) Token() token.Token { return a.token }
 
 func (a *Assign) Literal() string { return a.token.Literal }
@@ -321,6 +365,10 @@ func NewImport(token token.Token, name *Ident) *Import {
 	return &Import{token: token, name: name}
 }
 
+func (i *Import) StatementNode() {}
+
+func (i *Import) IsExpression() bool { return false }
+
 func (i *Import) Token() token.Token { return i.token }
 
 func (i *Import) Literal() string { return i.token.Literal }
@@ -335,26 +383,32 @@ func (i *Import) String() string {
 	return out.String()
 }
 
-// Range is used to iterator over a container
-type Range struct {
-	token     token.Token // the "range" token
-	container Expression  // the container to iterate over
+// Postfix defines a postfix expression like "x++".
+type Postfix struct {
+	token token.Token
+	// operator holds the postfix token, e.g. ++
+	operator string
 }
 
-func NewRange(token token.Token, container Expression) *Range {
-	return &Range{token: token, container: container}
+func NewPostfix(token token.Token, operator string) *Postfix {
+	return &Postfix{token: token, operator: operator}
 }
 
-func (r *Range) Token() token.Token { return r.token }
+func (p *Postfix) StatementNode() {}
 
-func (r *Range) Literal() string { return r.token.Literal }
+func (p *Postfix) IsExpression() bool { return false }
 
-func (r *Range) Container() Expression { return r.container }
+func (p *Postfix) Token() token.Token { return p.token }
 
-func (r *Range) String() string {
+func (p *Postfix) Literal() string { return p.token.Literal }
+
+func (p *Postfix) Operator() string { return p.operator }
+
+func (p *Postfix) String() string {
 	var out bytes.Buffer
-	out.WriteString(r.Literal())
-	out.WriteString(" ")
-	out.WriteString(r.container.String())
+	out.WriteString("(")
+	out.WriteString(p.token.Literal)
+	out.WriteString(p.operator)
+	out.WriteString(")")
 	return out.String()
 }

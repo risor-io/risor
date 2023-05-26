@@ -21,6 +21,8 @@ func NewInt(token token.Token, value int64) *Int {
 
 func (i *Int) ExpressionNode() {}
 
+func (i *Int) IsExpression() bool { return true }
+
 func (i *Int) Token() token.Token { return i.token }
 
 func (i *Int) Literal() string { return i.token.Literal }
@@ -41,6 +43,8 @@ func NewFloat(token token.Token, value float64) *Float {
 
 func (f *Float) ExpressionNode() {}
 
+func (f *Float) IsExpression() bool { return true }
+
 func (f *Float) Token() token.Token { return f.token }
 
 func (f *Float) Literal() string { return f.token.Literal }
@@ -59,6 +63,8 @@ func NewNil(token token.Token) *Nil {
 }
 
 func (n *Nil) ExpressionNode() {}
+
+func (n *Nil) IsExpression() bool { return true }
 
 func (n *Nil) Token() token.Token { return n.token }
 
@@ -80,6 +86,8 @@ func NewBool(token token.Token, value bool) *Bool {
 }
 
 func (b *Bool) ExpressionNode() {}
+
+func (b *Bool) IsExpression() bool { return true }
 
 func (b *Bool) Token() token.Token { return b.token }
 
@@ -116,6 +124,8 @@ func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[s
 }
 
 func (f *Func) ExpressionNode() {}
+
+func (f *Func) IsExpression() bool { return f.name == nil }
 
 func (f *Func) Token() token.Token { return f.token }
 
@@ -178,6 +188,8 @@ func NewTemplatedString(tok token.Token, template *tmpl.Template, exprs []Expres
 
 func (s *String) ExpressionNode() {}
 
+func (s *String) IsExpression() bool { return true }
+
 func (s *String) Token() token.Token { return s.token }
 
 func (s *String) Literal() string { return s.token.Literal }
@@ -204,6 +216,8 @@ func NewList(tok token.Token, items []Expression) *List {
 }
 
 func (l *List) ExpressionNode() {}
+
+func (l *List) IsExpression() bool { return true }
 
 func (l *List) Token() token.Token { return l.token }
 
@@ -235,6 +249,8 @@ func NewMap(token token.Token, items map[Expression]Expression) *Map {
 
 func (m *Map) ExpressionNode() {}
 
+func (m *Map) IsExpression() bool { return true }
+
 func (m *Map) Token() token.Token { return m.token }
 
 func (m *Map) Literal() string { return m.token.Literal }
@@ -264,6 +280,8 @@ func NewSet(token token.Token, items []Expression) *Set {
 }
 
 func (s *Set) ExpressionNode() {}
+
+func (s *Set) IsExpression() bool { return true }
 
 func (s *Set) Token() token.Token { return s.token }
 

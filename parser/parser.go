@@ -19,8 +19,8 @@ import (
 
 type (
 	prefixParseFn  func() ast.Node
-	infixParseFn   func(ast.Node) ast.Expression
-	postfixParseFn func() ast.Expression
+	infixParseFn   func(ast.Node) ast.Node
+	postfixParseFn func() ast.Statement
 )
 
 // Parse is a shortcut that can be used to parse the given Tamarin source code.
@@ -123,35 +123,38 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 
 	// Register infix functions
-	p.registerInfix(token.AND, p.parseInfixExpr)
+
 	p.registerInfix(token.ASSIGN, p.parseAssign)
 	p.registerInfix(token.ASTERISK_EQUALS, p.parseAssign)
+	p.registerInfix(token.MINUS_EQUALS, p.parseAssign)
+	p.registerInfix(token.PLUS_EQUALS, p.parseAssign)
+	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
+
+	p.registerInfix(token.IN, p.parseIn)
+	p.registerInfix(token.LBRACKET, p.parseIndex)
+	p.registerInfix(token.LPAREN, p.parseCall)
+	p.registerInfix(token.PERIOD, p.parseGetAttr)
+	p.registerInfix(token.PIPE, p.parsePipe)
+	p.registerInfix(token.QUESTION, p.parseTernary)
+
+	p.registerInfix(token.AND, p.parseInfixExpr)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpr)
 	p.registerInfix(token.EQ, p.parseInfixExpr)
 	p.registerInfix(token.GT_EQUALS, p.parseInfixExpr)
 	p.registerInfix(token.GT, p.parseInfixExpr)
-	p.registerInfix(token.LBRACKET, p.parseIndex)
-	p.registerInfix(token.LPAREN, p.parseCall)
 	p.registerInfix(token.LT_EQUALS, p.parseInfixExpr)
 	p.registerInfix(token.LT, p.parseInfixExpr)
-	p.registerInfix(token.MINUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.MINUS, p.parseInfixExpr)
 	p.registerInfix(token.MOD, p.parseInfixExpr)
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpr)
 	p.registerInfix(token.OR, p.parseInfixExpr)
-	p.registerInfix(token.PERIOD, p.parseGetAttr)
-	p.registerInfix(token.PIPE, p.parsePipe)
-	p.registerInfix(token.PLUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.PLUS, p.parseInfixExpr)
 	p.registerInfix(token.POW, p.parseInfixExpr)
-	p.registerInfix(token.QUESTION, p.parseTernary)
-	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
 	p.registerInfix(token.SLASH, p.parseInfixExpr)
-	p.registerInfix(token.IN, p.parseIn)
 
 	// Register postfix functions
-	p.registerPostfix(token.MINUS_MINUS, p.parsePostfixExpr)
-	p.registerPostfix(token.PLUS_PLUS, p.parsePostfixExpr)
+	p.registerPostfix(token.MINUS_MINUS, p.parsePostfix)
+	p.registerPostfix(token.PLUS_PLUS, p.parsePostfix)
 	return p
 }
 
@@ -441,7 +444,7 @@ func (p *Parser) parseContinue() *ast.Control {
 }
 
 func (p *Parser) parseExpressionStatement() ast.Node {
-	expr := p.parseExpression(LOWEST)
+	expr := p.parseNode(LOWEST)
 	if expr == nil {
 		p.setTokenError(p.curToken, "invalid syntax")
 	}
@@ -453,13 +456,13 @@ func (p *Parser) parseExpressionStatement() ast.Node {
 	return expr
 }
 
-func (p *Parser) parseExpression(precedence int) ast.Node {
+func (p *Parser) parseNode(precedence int) ast.Node {
 	if p.curToken.Type == token.EOF || p.err != nil {
 		return nil
 	}
 	postfix := p.postfixParseFns[p.curToken.Type]
 	if postfix != nil {
-		return (postfix())
+		return postfix()
 	}
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
@@ -483,6 +486,21 @@ func (p *Parser) parseExpression(precedence int) ast.Node {
 	}
 	p.eatNewlines()
 	return leftExp
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	node := p.parseNode(precedence)
+	if node == nil {
+		return nil
+	}
+	if p.err != nil {
+		return nil
+	}
+	if expr, ok := node.(ast.Expression); ok {
+		return expr
+	}
+	p.setTokenError(p.prevToken, "expected expression")
+	return nil
 }
 
 func (p *Parser) illegalToken() ast.Node {
@@ -687,11 +705,16 @@ func (p *Parser) parseNewline() ast.Node {
 	return nil
 }
 
-func (p *Parser) parsePostfixExpr() ast.Expression {
+func (p *Parser) parsePostfix() ast.Statement {
 	return ast.NewPostfix(p.prevToken, p.curToken.Literal)
 }
 
-func (p *Parser) parseInfixExpr(left ast.Expression) ast.Expression {
+func (p *Parser) parseInfixExpr(leftNode ast.Node) ast.Node {
+	left, ok := leftNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid expression")
+		return nil
+	}
 	firstToken := p.curToken
 	precedence := p.curPrecedence()
 	p.nextToken()
@@ -703,7 +726,12 @@ func (p *Parser) parseInfixExpr(left ast.Expression) ast.Expression {
 	return ast.NewInfix(firstToken, left, firstToken.Literal, right)
 }
 
-func (p *Parser) parseTernary(condition ast.Expression) ast.Expression {
+func (p *Parser) parseTernary(conditionNode ast.Node) ast.Node {
+	condition, ok := conditionNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid ternary expression")
+		return nil
+	}
 	if p.tern {
 		p.setTokenError(p.curToken, "nested ternary expression detected")
 		return nil
@@ -793,14 +821,6 @@ func (p *Parser) parseFor() ast.Node {
 		p.nextToken()
 		return nil
 	}
-	// v, ok := firstExpr.(*ast.Var)
-	// if ok {
-	// 	vs, vv := v.Value()
-	// 	rng, ok := vv.(*ast.Range)
-	// 	if ok {
-	// 		fmt.Println("FIRST:", vs, rng, reflect.TypeOf(rng))
-	// 	}
-	// }
 	// Check for while loop form: "for condition { ... }"
 	if p.peekTokenIs(token.LBRACE) {
 		p.nextToken()
@@ -815,19 +835,19 @@ func (p *Parser) parseFor() ast.Node {
 		return nil
 	}
 	p.nextToken() // move past the ";"
-	condition := p.parseExpression(LOWEST)
+	condition := p.parseNode(LOWEST)
 	if !p.expectPeek("for loop", token.SEMICOLON) {
 		return nil
 	}
 	if !p.expectPeek("for loop", token.IDENT) {
 		return nil
 	}
-	var postExpr ast.Expression
+	var postExpr ast.Node
 	if p.peekTokenIs(token.PLUS_PLUS) || p.peekTokenIs(token.MINUS_MINUS) {
 		p.nextToken()
-		postExpr = p.parsePostfixExpr()
+		postExpr = p.parsePostfix()
 	} else {
-		postExpr = p.parseExpression(LOWEST)
+		postExpr = p.parseNode(LOWEST)
 	}
 	if postExpr == nil {
 		return nil
@@ -1012,7 +1032,57 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 	return list
 }
 
-func (p *Parser) parseIndex(left ast.Expression) ast.Expression {
+func (p *Parser) parseNodeList(end token.Type) []ast.Node {
+	list := make([]ast.Node, 0)
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+	for p.peekTokenIs(token.NEWLINE) {
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
+	}
+	p.nextToken()
+	expr := p.parseNode(LOWEST)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid syntax in list expression")
+		return nil
+	}
+	list = append(list, expr)
+	for p.peekTokenIs(token.COMMA) {
+		// move to the comma
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
+		// advance across any extra newlines
+		for p.peekTokenIs(token.NEWLINE) {
+			if err := p.nextTokenWithError(); err != nil {
+				return nil
+			}
+		}
+		// check if the list has ended after the newlines
+		if p.peekTokenIs(end) {
+			break
+		}
+		// move to the next expression
+		if err := p.nextTokenWithError(); err != nil {
+			return nil
+		}
+		list = append(list, p.parseNode(LOWEST))
+	}
+	if !p.expectPeek("a node list", end) {
+		return nil
+	}
+	return list
+}
+
+func (p *Parser) parseIndex(leftNode ast.Node) ast.Node {
+	left, ok := leftNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid index expression")
+		return nil
+	}
 	indexToken := p.curToken
 	var firstIndex, secondIndex ast.Expression
 	if !p.peekTokenIs(token.COLON) {
@@ -1038,7 +1108,7 @@ func (p *Parser) parseIndex(left ast.Expression) ast.Expression {
 	return ast.NewSlice(indexToken, left, firstIndex, secondIndex)
 }
 
-func (p *Parser) parseAssign(name ast.Expression) ast.Expression {
+func (p *Parser) parseAssign(name ast.Node) ast.Node {
 	operator := p.curToken
 	var ident *ast.Ident
 	var index *ast.Index
@@ -1071,16 +1141,26 @@ func (p *Parser) parseAssign(name ast.Expression) ast.Expression {
 	return ast.NewAssign(operator, ident, right)
 }
 
-func (p *Parser) parseCall(function ast.Expression) ast.Expression {
+func (p *Parser) parseCall(functionNode ast.Node) ast.Node {
+	function, ok := functionNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid call expression")
+		return nil
+	}
 	callToken := p.curToken
-	arguments := p.parseExprList(token.RPAREN)
+	arguments := p.parseNodeList(token.RPAREN)
 	if arguments == nil {
 		return nil
 	}
 	return ast.NewCall(callToken, function, arguments)
 }
 
-func (p *Parser) parsePipe(first ast.Expression) ast.Expression {
+func (p *Parser) parsePipe(firstNode ast.Node) ast.Node {
+	first, ok := firstNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid pipe expression")
+		return nil
+	}
 	pipeToken := p.curToken
 	exprs := []ast.Expression{first}
 	for {
@@ -1109,7 +1189,12 @@ func (p *Parser) parsePipe(first ast.Expression) ast.Expression {
 	return ast.NewPipe(pipeToken, exprs)
 }
 
-func (p *Parser) parseIn(left ast.Expression) ast.Expression {
+func (p *Parser) parseIn(leftNode ast.Node) ast.Node {
+	left, ok := leftNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid in expression")
+		return nil
+	}
 	inToken := p.curToken
 	if err := p.nextTokenWithError(); err != nil {
 		return nil
@@ -1232,7 +1317,12 @@ func (p *Parser) parseKeyValue() (ast.Expression, ast.Expression) {
 	return key, value
 }
 
-func (p *Parser) parseGetAttr(obj ast.Expression) ast.Expression {
+func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
+	obj, ok := objNode.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid attribute expression")
+		return nil
+	}
 	period := p.curToken
 	p.nextToken()
 	p.eatNewlines()
@@ -1243,8 +1333,13 @@ func (p *Parser) parseGetAttr(obj ast.Expression) ast.Expression {
 	name := p.parseIdent().(*ast.Ident)
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()
-		callExpr := p.parseCall(name)
-		return ast.NewObjectCall(period, obj, callExpr)
+		callNode := p.parseCall(name)
+		call, ok := callNode.(ast.Expression)
+		if !ok {
+			p.setTokenError(p.curToken, "invalid attribute expression")
+			return nil
+		}
+		return ast.NewObjectCall(period, obj, call)
 	}
 	return ast.NewGetAttr(period, obj, name)
 }

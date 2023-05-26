@@ -96,3 +96,29 @@
              58 RETURN_VALUE
 
 ------------------------------------------------------
+
+def testit():
+    { 1: 2 }
+    { 1: 2 }
+    { 1: 2 }
+    return 7
+
+ 17           0 RESUME                   0
+
+ 18           2 LOAD_CONST               1 (1)
+              4 LOAD_CONST               2 (2)
+              6 BUILD_MAP                1
+              8 POP_TOP
+
+ 19          10 LOAD_CONST               1 (1)
+             12 LOAD_CONST               2 (2)
+             14 BUILD_MAP                1
+             16 POP_TOP
+
+ 20          18 LOAD_CONST               1 (1)
+             20 LOAD_CONST               2 (2)
+             22 BUILD_MAP                1
+             24 POP_TOP
+
+ 21          26 LOAD_CONST               3 (7)
+             28 RETURN_VALUE
