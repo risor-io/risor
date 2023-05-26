@@ -175,19 +175,20 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 	case *ast.Ident:
 		name := node.Literal()
-		sym, found := code.Symbols.Lookup(name)
+		resolution, found := code.Symbols.Lookup(name)
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
-		switch sym.Scope {
+		sym := resolution.Symbol
+		switch resolution.Scope {
 		case object.ScopeGlobal:
-			c.emit(op.LoadGlobal, sym.Symbol.Index)
+			c.emit(op.LoadGlobal, sym.Index)
 		case object.ScopeLocal:
-			c.emit(op.LoadFast, sym.Symbol.Index)
+			c.emit(op.LoadFast, sym.Index)
 		case object.ScopeFree:
-			c.emit(op.LoadFree, sym.Symbol.Index)
+			c.emit(op.LoadFree, sym.Index)
 		case object.ScopeBuiltin:
-			c.emit(op.LoadBuiltin, sym.Symbol.Index)
+			c.emit(op.LoadBuiltin, sym.Index)
 		}
 	case *ast.For:
 		if err := c.compileFor(node); err != nil {
@@ -320,19 +321,20 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 	}
 	for i := len(names) - 1; i >= 0; i-- {
 		name := names[i]
-		sym, found := c.current.Symbols.Lookup(name)
+		resolution, found := c.current.Symbols.Lookup(name)
 		if !found {
 			return fmt.Errorf("undefined variable: %s", name)
 		}
-		switch sym.Scope {
+		sym := resolution.Symbol
+		switch resolution.Scope {
 		case object.ScopeGlobal:
-			c.emit(op.StoreGlobal, sym.Symbol.Index)
+			c.emit(op.StoreGlobal, sym.Index)
 		case object.ScopeLocal:
-			c.emit(op.StoreFast, sym.Symbol.Index)
+			c.emit(op.StoreFast, sym.Index)
 		case object.ScopeFree:
-			c.emit(op.StoreFree, sym.Symbol.Index)
+			c.emit(op.StoreFree, sym.Index)
 		case object.ScopeBuiltin:
-			c.emit(op.LoadBuiltin, sym.Symbol.Index)
+			c.emit(op.LoadBuiltin, sym.Index)
 		}
 	}
 	return nil
@@ -433,7 +435,7 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 	name := node.Module().String()
 	c.emit(op.LoadConst, c.constant(object.NewString(name)))
 	c.emit(op.Import)
-	sym, err := c.current.Symbols.InsertVariable(name)
+	sym, err := c.current.Symbols.InsertConstant(name)
 	if err != nil {
 		return err
 	}
@@ -599,18 +601,19 @@ func (c *Compiler) compilePipe(node *ast.Pipe) error {
 
 func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	name := node.Literal()
-	sym, found := c.current.Symbols.Lookup(name)
+	resolution, found := c.current.Symbols.Lookup(name)
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
 	}
+	sym := resolution.Symbol
 	// Push the named variable onto the stack
-	switch sym.Scope {
+	switch resolution.Scope {
 	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Symbol.Index)
+		c.emit(op.LoadGlobal, sym.Index)
 	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Symbol.Index)
+		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.LoadFree, sym.Symbol.Index)
+		c.emit(op.LoadFree, sym.Index)
 	case object.ScopeBuiltin:
 		return fmt.Errorf("cannot assign to builtin: %s", name)
 	}
@@ -626,13 +629,13 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	// Run increment or decrement as an Add BinaryOp
 	c.emit(op.BinaryOp, uint16(op.Add))
 	// Store TOS in LHS
-	switch sym.Scope {
+	switch resolution.Scope {
 	case object.ScopeGlobal:
-		c.emit(op.StoreGlobal, sym.Symbol.Index)
+		c.emit(op.StoreGlobal, sym.Index)
 	case object.ScopeLocal:
-		c.emit(op.StoreFast, sym.Symbol.Index)
+		c.emit(op.StoreFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.StoreFree, sym.Symbol.Index)
+		c.emit(op.StoreFree, sym.Index)
 	}
 	return nil
 }
@@ -642,7 +645,7 @@ func (c *Compiler) compileConst(node *ast.Const) error {
 	if err := c.compile(expr); err != nil {
 		return err
 	}
-	sym, err := c.current.Symbols.InsertVariable(name)
+	sym, err := c.current.Symbols.InsertConstant(name)
 	if err != nil {
 		return err
 	}
@@ -869,7 +872,7 @@ func (c *Compiler) compileReturnFunc(node *ast.Func) (*object.Function, error) {
 	// calls to the function. Later when we create the function object, we'll
 	// add the object value to the table.
 	if code.IsNamed {
-		code.Symbols.InsertVariable(functionName)
+		code.Symbols.InsertConstant(functionName)
 	}
 
 	// Compile the function body
@@ -910,7 +913,7 @@ func (c *Compiler) compileReturnFunc(node *ast.Func) (*object.Function, error) {
 	// If the function was named, we store it as a named variable in the current
 	// code. Otherwise, we just leave it on the stack.
 	if functionName != "" {
-		funcSymbol, err := c.current.Symbols.InsertVariable(functionName)
+		funcSymbol, err := c.current.Symbols.InsertConstant(functionName)
 		if err != nil {
 			return nil, err
 		}
@@ -954,36 +957,40 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 
 func (c *Compiler) compileAssign(node *ast.Assign) error {
 	name := node.Name()
-	sym, found := c.current.Symbols.Lookup(name)
+	resolution, found := c.current.Symbols.Lookup(name)
 	if !found {
 		return fmt.Errorf("undefined variable: %s", name)
+	}
+	sym := resolution.Symbol
+	if sym.IsConstant {
+		return fmt.Errorf("cannot assign to constant: %s", name)
 	}
 	if node.Operator() == "=" {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		switch sym.Scope {
+		switch resolution.Scope {
 		case object.ScopeGlobal:
-			c.emit(op.StoreGlobal, sym.Symbol.Index)
+			c.emit(op.StoreGlobal, sym.Index)
 		case object.ScopeLocal:
-			c.emit(op.StoreFast, sym.Symbol.Index)
+			c.emit(op.StoreFast, sym.Index)
 		case object.ScopeFree:
-			c.emit(op.StoreFree, sym.Symbol.Index)
+			c.emit(op.StoreFree, sym.Index)
 		case object.ScopeBuiltin:
-			c.emit(op.LoadBuiltin, sym.Symbol.Index)
+			c.emit(op.LoadBuiltin, sym.Index)
 		}
 		return nil
 	}
 	// Push LHS as TOS
-	switch sym.Scope {
+	switch resolution.Scope {
 	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Symbol.Index)
+		c.emit(op.LoadGlobal, sym.Index)
 	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Symbol.Index)
+		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.LoadFree, sym.Symbol.Index)
+		c.emit(op.LoadFree, sym.Index)
 	case object.ScopeBuiltin:
-		c.emit(op.LoadBuiltin, sym.Symbol.Index)
+		c.emit(op.LoadBuiltin, sym.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -1001,15 +1008,15 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.BinaryOp, uint16(op.Divide))
 	}
 	// Store TOS in LHS
-	switch sym.Scope {
+	switch resolution.Scope {
 	case object.ScopeGlobal:
-		c.emit(op.StoreGlobal, sym.Symbol.Index)
+		c.emit(op.StoreGlobal, sym.Index)
 	case object.ScopeLocal:
-		c.emit(op.StoreFast, sym.Symbol.Index)
+		c.emit(op.StoreFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.StoreFree, sym.Symbol.Index)
+		c.emit(op.StoreFree, sym.Index)
 	case object.ScopeBuiltin:
-		c.emit(op.LoadBuiltin, sym.Symbol.Index)
+		c.emit(op.LoadBuiltin, sym.Index)
 	}
 	return nil
 }

@@ -89,3 +89,20 @@ func TestFreeVar(t *testing.T) {
 
 	require.Len(t, outerFunc.Free(), 0)
 }
+
+func TestConstant(t *testing.T) {
+	main := NewSymbolTable()
+	outerFunc := main.NewChild()
+	innerFunc := outerFunc.NewChild()
+
+	outerFunc.InsertConstant("a", NewInt(42))
+	outerFunc.InsertVariable("b", NewInt(42))
+
+	resolution, found := innerFunc.Lookup("a")
+	require.True(t, found)
+	require.True(t, resolution.Symbol.IsConstant)
+
+	resolution, found = innerFunc.Lookup("b")
+	require.True(t, found)
+	require.False(t, resolution.Symbol.IsConstant)
+}

@@ -17,9 +17,10 @@ const (
 )
 
 type Symbol struct {
-	Name  string
-	Index uint16
-	Value Object
+	Name       string
+	Index      uint16
+	Value      Object
+	IsConstant bool
 }
 
 type Resolution struct {
@@ -67,6 +68,15 @@ func (t *SymbolTable) claimIndex(value Object) (uint16, error) {
 	}
 	t.values = append(t.values, value)
 	return uint16(priorCount), nil
+}
+
+func (t *SymbolTable) InsertConstant(name string, value ...Object) (*Symbol, error) {
+	sym, err := t.InsertVariable(name, value...)
+	if err != nil {
+		return nil, err
+	}
+	sym.IsConstant = true
+	return sym, nil
 }
 
 func (t *SymbolTable) InsertVariable(name string, value ...Object) (*Symbol, error) {
