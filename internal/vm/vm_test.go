@@ -2,7 +2,6 @@ package vm
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/cloudcmds/tamarin/internal/compiler"
@@ -13,9 +12,6 @@ import (
 )
 
 func TestAdd(t *testing.T) {
-
-	ctx := context.Background()
-
 	constants := []object.Object{
 		object.NewInt(3),
 		object.NewInt(4),
@@ -35,7 +31,7 @@ func TestAdd(t *testing.T) {
 		Instructions: code,
 		Symbols:      object.NewSymbolTable(),
 	}})
-	err := vm.Run(ctx)
+	err := vm.Run(context.Background())
 	require.Nil(t, err)
 
 	tos, ok := vm.TOS()
@@ -43,12 +39,7 @@ func TestAdd(t *testing.T) {
 	require.Equal(t, object.NewInt(7), tos)
 }
 
-// https://opensource.com/article/18/4/introduction-python-bytecode
-
 func TestAddCompilationAndExecution(t *testing.T) {
-
-	ctx := context.Background()
-
 	program, err := parser.Parse(`
 	x := 11
 	y := 12
@@ -72,7 +63,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.Equal(t, int64(12), c2.Value())
 
 	vm := New(Options{Main: main})
-	require.Nil(t, vm.Run(ctx))
+	require.Nil(t, vm.Run(context.Background()))
 
 	tos, ok := vm.TOS()
 	require.True(t, ok)
@@ -80,9 +71,6 @@ func TestAddCompilationAndExecution(t *testing.T) {
 }
 
 func TestConditional(t *testing.T) {
-
-	ctx := context.Background()
-
 	program, err := parser.Parse(`
 	x := 20
 	if x > 10 {
@@ -97,7 +85,7 @@ func TestConditional(t *testing.T) {
 	require.Nil(t, err)
 
 	vm := New(Options{Main: main})
-	require.Nil(t, vm.Run(ctx))
+	require.Nil(t, vm.Run(context.Background()))
 
 	tos, ok := vm.TOS()
 	require.True(t, ok)
@@ -105,8 +93,7 @@ func TestConditional(t *testing.T) {
 }
 
 func TestConditional3(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 5
 	y := 10
 	if x > 1 {
@@ -116,13 +103,11 @@ func TestConditional3(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(10), result)
 }
 
 func TestConditional4(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 5
 	y := 22
 	z := 33
@@ -134,13 +119,11 @@ func TestConditional4(t *testing.T) {
 	x
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(33), result)
 }
 
 func TestLoop(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	y := 0
 	for {
 		y = y + 1
@@ -151,21 +134,18 @@ func TestLoop(t *testing.T) {
 	y
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(11), result)
 }
 
 func TestForLoop2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `x := 0; for y := 0; y < 5; y++ { x = y }; x`)
+	result, err := Run(context.Background(),
+		`x := 0; for y := 0; y < 5; y++ { x = y }; x`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(4), result)
 }
 
-func TestForRange(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestForRange1(t *testing.T) {
+	result, err := Run(context.Background(), `
 	x := [1, 2.3, "hello", true]
 	output := []
 	for i := range x {
@@ -175,13 +155,91 @@ func TestForRange(t *testing.T) {
 	99
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
 
+func TestForRange2(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for _, value := range [5,6,7] {
+		x = value
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(7), result)
+}
+
+func TestForRange3(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x, y := [0, 0]
+	for i, value := range [5, 6, 7] {
+		x = i      // should go up to 2
+		y = value  // should go up to 7
+	}
+	[x, y]
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(2),
+		object.NewInt(7),
+	}), result)
+}
+
+func TestForRange4(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for i := range ["a", "b", "c"] { x = i }
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestForRange5(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for range ["a", "b", "c"] { x++ }
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), result)
+}
+
+func TestForRange6(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	r := range { "a", "b" }
+	for r { x++ }
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestForRange7(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := nil
+	y := nil
+	count := 0
+	f := func() { range [ "a", "b", "c" ] }
+	for i, value := f() {
+		x = i      // should count 0, 1, 2
+		y = value  // should go "a", "b", "c"
+		count++
+	}
+	[x, y, count]
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(2),
+		object.NewString("c"),
+		object.NewInt(3),
+	}), result)
+}
+
 func TestStackPopping1(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := []
 	for i := 0; i < 4; i++ {
 		1
@@ -193,7 +251,6 @@ func TestStackPopping1(t *testing.T) {
 	x
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewInt(0),
 		object.NewInt(1),
@@ -203,8 +260,7 @@ func TestStackPopping1(t *testing.T) {
 }
 
 func TestStackPopping2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	for i := range [1, 2, 3] {
 		1
 		2
@@ -213,13 +269,11 @@ func TestStackPopping2(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
 }
 
-func TestStackPopping3(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestStackBehavior1(t *testing.T) {
+	result, err := Run(context.Background(), `
 	x := 99
 	for i := 0; i < 4; x {
 		i++
@@ -229,13 +283,11 @@ func TestStackPopping3(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
 }
 
-func TestStackPopping4(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestStackBehavior2(t *testing.T) {
+	result, err := Run(context.Background(), `
 	x := 77
 	for i := 0; i < 4; x {
 		i++
@@ -249,39 +301,33 @@ func TestStackPopping4(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
 }
 
-func TestStackPopping5(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestStackBehavior3(t *testing.T) {
+	result, err := Run(context.Background(), `
 	x := 77
 	if x > 0 {
 		99 
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
 
-func TestStackPopping6(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestStackBehavior4(t *testing.T) {
+	result, err := Run(context.Background(), `
 	x := -1
 	if x > 0 {
 		99 
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
 }
 
-func TestAssign(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestAssignmentOperators(t *testing.T) {
+	result, err := Run(context.Background(), `
 	y := 99
 	y  = 3
 	y += 6
@@ -289,27 +335,22 @@ func TestAssign(t *testing.T) {
 	y *= 2
 	y
 	`)
-	fmt.Println(result, err)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(2), result)
 }
 
-func TestCall(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestFunctionCall(t *testing.T) {
+	result, err := Run(context.Background(), `
 	f := func(x) { 42 + x }
 	v := f(1)
 	v + 10
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(53), result)
 }
 
 func TestSwitch1(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 3
 	switch x {
 		case 1:
@@ -320,13 +361,11 @@ func TestSwitch1(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(42), result)
 }
 
 func TestSwitch2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 1
 	switch x {
 		case 1:
@@ -336,13 +375,11 @@ func TestSwitch2(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
 
 func TestSwitch3(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 3
 	switch x {
 		case 1:
@@ -352,62 +389,51 @@ func TestSwitch3(t *testing.T) {
 	}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.Nil, result)
 }
 
 func TestSwitch4(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 3
 	switch x { default: 99 }
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
 
 func TestSwitch5(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 3
 	switch x { default: 99 case 3: x; x-1 }
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(2), result)
 }
 
 func TestStr(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	s := "hello"
 	s
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewString("hello"), result)
 }
 
 func TestStrLen(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	s := "hello"
 	len(s)
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(5), result)
 }
 
-func TestList(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestList1(t *testing.T) {
+	result, err := Run(context.Background(), `
 	l := [1, 2, 3]
 	l
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewInt(1),
 		object.NewInt(2),
@@ -416,14 +442,11 @@ func TestList(t *testing.T) {
 }
 
 func TestList2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	plusOne := func(x) { x + 1 }
-	l := [plusOne(0), 4-2, plusOne(2)]
-	l
+	[plusOne(0), 4-2, plusOne(2)]
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewInt(1),
 		object.NewInt(2),
@@ -432,13 +455,10 @@ func TestList2(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
-	m := {"a": 1, "b": 4-2}
-	m
+	result, err := Run(context.Background(), `
+	{"a": 1, "b": 4-2}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewMap(map[string]object.Object{
 		"a": object.NewInt(1),
 		"b": object.NewInt(2),
@@ -446,13 +466,10 @@ func TestMap(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
-	s := {"a", 4-1}
-	s
+	result, err := Run(context.Background(), `
+	{"a", 4-1}
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewSet([]object.Object{
 		object.NewString("a"),
 		object.NewInt(3),
@@ -460,8 +477,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestNonLocal(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	y := 3
 	z := 99
 	f := func() { y = 4 }
@@ -469,13 +485,11 @@ func TestNonLocal(t *testing.T) {
 	y
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(4), result)
 }
 
 func TestFrameLocals1(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 1
 	f := func(x) {
 		x = 99
@@ -484,13 +498,11 @@ func TestFrameLocals1(t *testing.T) {
 	x
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(1), result)
 }
 
 func TestFrameLocals2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	x := 1
 	f := func(y) {
 		x = 99
@@ -499,39 +511,33 @@ func TestFrameLocals2(t *testing.T) {
 	x
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(99), result)
 }
 
 func TestMapKeys(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	m := {"a": 1, "b": 2}
 	keys(m)
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewString("a"),
 		object.NewString("b"),
 	}), result)
 }
 
-func TestClosureSimple(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestClosure(t *testing.T) {
+	result, err := Run(context.Background(), `
 	f := func(x) { func() { x } }
 	closure := f(22)
 	closure()
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(22), result)
 }
 
 func TestClosureIncrementer(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+	result, err := Run(context.Background(), `
 	f := func(x) {
 		func() { x++; x }
 	}
@@ -541,13 +547,11 @@ func TestClosureIncrementer(t *testing.T) {
 	incrementer() // 3
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(3), result)
 }
 
-func TestRecursive(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestRecursiveExample1(t *testing.T) {
+	result, err := Run(context.Background(), `
 	func twoexp(n) {
 		if n == 0 {
 			return 1
@@ -558,13 +562,11 @@ func TestRecursive(t *testing.T) {
 	twoexp(4)
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(16), result)
 }
 
-func TestRecursive2(t *testing.T) {
-	ctx := context.Background()
-	result, err := Run(ctx, `
+func TestRecursiveExample2(t *testing.T) {
+	result, err := Run(context.Background(), `
 	func twoexp(n) {
 		a := 1
 		b := 2
@@ -578,8 +580,22 @@ func TestRecursive2(t *testing.T) {
 	twoexp(4)
 	`)
 	require.Nil(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, object.NewInt(16), result)
+}
+
+func TestConstant(t *testing.T) {
+	_, err := Run(context.Background(), `const x = 1; x = 2`)
+	require.NotNil(t, err)
+	require.Equal(t, "cannot assign to constant: x", err.Error())
+}
+
+func TestConstantFunction(t *testing.T) {
+	_, err := Run(context.Background(), `
+	func add(x, y) { x + y }
+	add = "bloop"
+	`)
+	require.NotNil(t, err)
+	require.Equal(t, "cannot assign to constant: add", err.Error())
 }
 
 func TestMultipleCases(t *testing.T) {
@@ -690,6 +706,12 @@ y(3)
 			{`!!false`, object.False},
 			{`!0`, object.True},
 			{`!5`, object.False},
+			{`![]`, object.True},
+			{`![1]`, object.False},
+			{`!{}`, object.True},
+			{`!{1}`, object.False},
+			{`!""`, object.True},
+			{`!"a"`, object.False},
 		}
 		runTests(t, tests)
 	})

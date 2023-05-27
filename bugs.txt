@@ -4,12 +4,11 @@
 3. Ternaries - DONE
 4. For loop variants - PARTIAL (range not working)
 5. Slices - DONE
-6. Constants
+6. Constants - DONE
 7. Switch statements - DONE
 8. The "in" keyword - DONE
 9. The "range" - PARTIAL - (for loop use may not work?)
 10. Error propagation behavior
 11. Assigning a module attribute `math.BAR = "NO"`
-12. Is "1 2 3" a valid line? - YES, DONE
 
 TODO: test nested loops w/ breaks and continues

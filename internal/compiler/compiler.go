@@ -12,6 +12,10 @@ import (
 
 const (
 	MaxArgs = 255
+
+	// Placeholder is a temporary value written during compilation, which is
+	// always replaced before compilation is complete.
+	Placeholder = uint16(9999)
 )
 
 type Compiler struct {
@@ -367,12 +371,12 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 			// Emit the CompareOp equal comparison
 			c.emit(op.CompareOp, uint16(op.Equal))
 			// Emit PopJumpForwardIfTrue and store its position
-			jumpPos := c.emit(op.PopJumpForwardIfTrue, 9999)
+			jumpPos := c.emit(op.PopJumpForwardIfTrue, Placeholder)
 			caseJumpPositions = append(caseJumpPositions, jumpPos)
 		}
 	}
 
-	jumpDefaultPos := c.emit(op.JumpForward, 9999)
+	jumpDefaultPos := c.emit(op.JumpForward, Placeholder)
 
 	// Update case jump positions and compile case blocks
 	var offset int
@@ -397,7 +401,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 				return err
 			}
 		}
-		endBlockPosits = append(endBlockPosits, c.emit(op.JumpForward, 9999))
+		endBlockPosits = append(endBlockPosits, c.emit(op.JumpForward, Placeholder))
 	}
 
 	delta, err := c.calculateDelta(jumpDefaultPos)
@@ -485,13 +489,13 @@ func (c *Compiler) compileTernary(node *ast.Ternary) error {
 	if err := c.compile(node.Condition()); err != nil {
 		return err
 	}
-	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, 9999)
+	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, Placeholder)
 
 	// true case execution, then jump over false case
 	if err := c.compile(node.IfTrue()); err != nil {
 		return err
 	}
-	trueCaseEndPos := c.emit(op.JumpForward, 9999)
+	trueCaseEndPos := c.emit(op.JumpForward, Placeholder)
 
 	// set the jump amount to reach the beginning of the false case
 	falseCaseDelta, err := c.calculateDelta(jumpIfFalsePos)
@@ -946,10 +950,10 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		return fmt.Errorf("continue outside of loop")
 	}
 	if literal == "break" {
-		position := c.emit(op.JumpForward, 9999)
+		position := c.emit(op.JumpForward, Placeholder)
 		loop.BreakPos = append(loop.BreakPos, position)
 	} else {
-		position := c.emit(op.JumpBackward, 9999)
+		position := c.emit(op.JumpBackward, Placeholder)
 		loop.ContinuePos = append(loop.ContinuePos, position)
 	}
 	return nil
@@ -1021,11 +1025,12 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	return nil
 }
 
-func (c *Compiler) compileForRange(forNode *ast.For, name string, rangeNode *ast.Range) error {
+func (c *Compiler) compileForRange(forNode *ast.For, names []string, container ast.Node) error {
 
-	if err := c.compile(rangeNode.Container()); err != nil {
+	if err := c.compile(container); err != nil {
 		return err
 	}
+	// Get an iterator for the container at TOS
 	c.emit(op.GetIter)
 
 	code := c.current
@@ -1036,17 +1041,19 @@ func (c *Compiler) compileForRange(forNode *ast.For, name string, rangeNode *ast
 		code.Symbols = code.Symbols.Parent()
 	}()
 
-	iterPos := c.emit(op.ForIter, 0)
+	iterPos := c.emit(op.ForIter, 0, uint16(len(names)))
 
 	// assign the current value of the iterator to the loop variable
-	sym, err := code.Symbols.InsertVariable(name)
-	if err != nil {
-		return err
-	}
-	if code.Symbols.IsGlobal() {
-		c.emit(op.StoreGlobal, sym.Index)
-	} else {
-		c.emit(op.StoreFast, sym.Index)
+	for _, name := range names {
+		sym, err := code.Symbols.InsertVariable(name)
+		if err != nil {
+			return err
+		}
+		if code.Symbols.IsGlobal() {
+			c.emit(op.StoreGlobal, sym.Index)
+		} else {
+			c.emit(op.StoreFast, sym.Index)
+		}
 	}
 
 	// compile the body of the loop
@@ -1072,19 +1079,41 @@ func (c *Compiler) compileForRange(forNode *ast.For, name string, rangeNode *ast
 }
 
 func (c *Compiler) compileFor(node *ast.For) error {
+
+	// Simple loop e.g. `for { ... }`
 	if node.IsSimpleLoop() {
 		return c.compileSimpleFor(node)
 	}
+
+	// For-Range loop e.g. `for i, value := range container { ... }`
 	if node.Init() == nil && node.Post() == nil {
-		varExpr, ok := node.Condition().(*ast.Var)
-		if ok {
-			name, rhs := varExpr.Value()
+		cond := node.Condition()
+		switch cond := cond.(type) {
+		case *ast.Var:
+			name, rhs := cond.Value()
 			if rangeNode, ok := rhs.(*ast.Range); ok {
-				return c.compileForRange(node, name, rangeNode)
+				return c.compileForRange(node, []string{name}, rangeNode.Container())
+			} else {
+				return c.compileForRange(node, []string{name}, rhs)
 			}
+		case *ast.MultiVar:
+			names, rhs := cond.Value()
+			if len(names) != 2 {
+				return fmt.Errorf("invalid for loop")
+			}
+			if rangeNode, ok := rhs.(*ast.Range); ok {
+				return c.compileForRange(node, names, rangeNode.Container())
+			} else {
+				return c.compileForRange(node, names, rhs)
+			}
+		case *ast.Range:
+			return c.compileForRange(node, nil, cond.Container())
+		default:
+			return c.compileForRange(node, nil, cond)
 		}
 	}
 
+	// For-Condition loop e.g. `for i := 0; i < 10; i++ { ... }`
 	code := c.current
 	code.Symbols = code.Symbols.NewBlock()
 	loop := c.startLoop()
@@ -1110,7 +1139,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 			return err
 		}
 		// Emit a jump to execute if the condition fails
-		conditionJumpPos = c.emit(op.PopJumpForwardIfFalse, 9999)
+		conditionJumpPos = c.emit(op.PopJumpForwardIfFalse, Placeholder)
 	}
 
 	// Compile the loop body
@@ -1218,14 +1247,14 @@ func (c *Compiler) compileIf(node *ast.If) error {
 	if err := c.compile(node.Condition()); err != nil {
 		return err
 	}
-	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, 9999)
+	jumpIfFalsePos := c.emit(op.PopJumpForwardIfFalse, Placeholder)
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
 	alternative := node.Alternative()
 	if alternative != nil {
 		// Jump forward to skip the alternative by default
-		jumpForwardPos := c.emit(op.JumpForward, 9999)
+		jumpForwardPos := c.emit(op.JumpForward, Placeholder)
 		// Update PopJumpForwardIfFalse to point to this alternative,
 		// so that the alternative is executed if the condition is false
 		delta, err := c.calculateDelta(jumpIfFalsePos)
@@ -1243,7 +1272,7 @@ func (c *Compiler) compileIf(node *ast.If) error {
 		c.changeOperand(jumpForwardPos, delta)
 	} else {
 		// Jump forward to skip the alternative by default
-		jumpForwardPos := c.emit(op.JumpForward, 9999)
+		jumpForwardPos := c.emit(op.JumpForward, Placeholder)
 		// Update PopJumpForwardIfFalse to point to this alternative,
 		// so that the alternative is executed if the condition is false
 		delta, err := c.calculateDelta(jumpIfFalsePos)

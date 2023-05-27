@@ -20,6 +20,10 @@ func (iter *ListIter) Inspect() string {
 	return fmt.Sprintf("list_iter(%s)", iter.l.Inspect())
 }
 
+func (iter *ListIter) String() string {
+	return iter.Inspect()
+}
+
 func (iter *ListIter) Interface() interface{} {
 	var entries []map[string]interface{}
 	for {

@@ -21,6 +21,10 @@ func (iter *SetIter) Inspect() string {
 	return fmt.Sprintf("set_iter(%s)", iter.set.Inspect())
 }
 
+func (iter *SetIter) String() string {
+	return iter.Inspect()
+}
+
 func (iter *SetIter) Interface() interface{} {
 	var entries []map[string]interface{}
 	for {

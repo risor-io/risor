@@ -366,21 +366,32 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			}
 		case op.GetIter:
 			obj := vm.Pop()
-			container, ok := obj.(object.Container)
-			if !ok {
-				return fmt.Errorf("object is not a container: %T", obj)
+			switch obj := obj.(type) {
+			case object.Container:
+				vm.Push(obj.Iter())
+			case object.Iterator:
+				vm.Push(obj)
+			default:
+				return fmt.Errorf("object is not iterable: %T", obj)
 			}
-			vm.Push(container.Iter())
 		case op.ForIter:
+			base := vm.ip - 1
 			jumpAmount := vm.fetch()
+			nameCount := vm.fetch()
 			iter := vm.Pop().(object.Iterator)
 			obj, ok := iter.Next()
 			if !ok {
-				base := vm.ip - 2
 				vm.ip = base + int(jumpAmount)
 			} else {
 				vm.Push(iter)
-				vm.Push(obj.Primary())
+				if nameCount == 1 {
+					vm.Push(obj.Key())
+				} else if nameCount == 2 {
+					vm.Push(obj.Value())
+					vm.Push(obj.Key())
+				} else if nameCount != 0 {
+					return fmt.Errorf("invalid iteration")
+				}
 			}
 		case op.Halt:
 			return nil

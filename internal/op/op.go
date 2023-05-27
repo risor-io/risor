@@ -155,7 +155,7 @@ func init() {
 		{UnaryNot, "UNARY_NOT", 0, nil},
 		{UnaryPositive, "UNARY_POSITIVE", 0, nil},
 		{Unpack, "UNPACK", 1, []int{2}},
-		{ForIter, "FOR_ITER", 1, []int{2}},
+		{ForIter, "FOR_ITER", 2, []int{2, 2}},
 	}
 	for _, o := range ops {
 		OperandCount[o.op] = Info{
