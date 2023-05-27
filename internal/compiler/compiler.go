@@ -959,7 +959,32 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 	return nil
 }
 
+func (c *Compiler) compileSetItem(node *ast.Assign) error {
+	// StoreSubscr / STORE_SUBSCR
+	// Implements TOS1[TOS] = TOS2.
+	//
+	// x[0] = 99
+	// 1. Push node.Value()  (99)
+	// 2. Push index.Left()  (x)
+	// 3. Push index.Index() (0)
+	index := node.Index()
+	if err := c.compile(node.Value()); err != nil {
+		return err
+	}
+	if err := c.compile(index.Left()); err != nil {
+		return err
+	}
+	if err := c.compile(index.Index()); err != nil {
+		return err
+	}
+	c.emit(op.StoreSubscr)
+	return nil
+}
+
 func (c *Compiler) compileAssign(node *ast.Assign) error {
+	if node.Index() != nil {
+		return c.compileSetItem(node)
+	}
 	name := node.Name()
 	resolution, found := c.current.Symbols.Lookup(name)
 	if !found {

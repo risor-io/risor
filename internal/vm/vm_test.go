@@ -252,6 +252,19 @@ func TestIterator(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestIndexing(t *testing.T) {
+	tests := []testCase{
+		{`x := [1, 2]; x[0] = 9; x[0]`, object.NewInt(9)},
+		{`x := [1, 2]; x[-1] = 9; x[1]`, object.NewInt(9)},
+		{`x := {a: 1}; x["a"] = 9; x["a"]`, object.NewInt(9)},
+		{`x := {a: 1}; x["b"] = 9; x["b"]`, object.NewInt(9)},
+		{`x := { 1 }; x[1]`, object.True},
+		{`x := { 1 }; x[2]`, object.False},
+		{`x := "ab"; x[0] = "X"; x`, object.NewString("Xb")},
+	}
+	runTests(t, tests)
+}
+
 func TestStackPopping1(t *testing.T) {
 	result, err := Run(context.Background(), `
 	x := []

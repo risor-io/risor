@@ -246,17 +246,28 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			}
 			vm.Push(object.NewSet(items))
 		case op.BinarySubscr:
-			index := vm.Pop()
-			obj := vm.Pop()
-			container, ok := obj.(object.Container)
+			idx := vm.Pop()
+			lhs := vm.Pop()
+			container, ok := lhs.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", obj)
+				return fmt.Errorf("object is not a container: %T", lhs)
 			}
-			result, err := container.GetItem(index)
+			result, err := container.GetItem(idx)
 			if err != nil {
 				return err.Value()
 			}
 			vm.Push(result)
+		case op.StoreSubscr:
+			idx := vm.Pop()
+			lhs := vm.Pop()
+			rhs := vm.Pop()
+			container, ok := lhs.(object.Container)
+			if !ok {
+				return fmt.Errorf("object is not a container: %T", lhs)
+			}
+			if err := container.SetItem(idx, rhs); err != nil {
+				return err.Value()
+			}
 		case op.UnaryNegative:
 			obj := vm.Pop()
 			switch obj := obj.(type) {

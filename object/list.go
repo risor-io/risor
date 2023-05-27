@@ -534,7 +534,16 @@ func (ls *List) SetItem(key, value Object) *Error {
 
 // DelItem implements the del [key] operator for a container type.
 func (ls *List) DelItem(key Object) *Error {
-	return Errorf("list does not support del operator")
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return Errorf("type error: list index must be an int (got %s)", key.Type())
+	}
+	idx, err := ResolveIndex(indexObj.value, int64(len(ls.items)))
+	if err != nil {
+		return Errorf(err.Error())
+	}
+	ls.items = append(ls.items[:idx], ls.items[idx+1:]...)
+	return nil
 }
 
 // Contains returns true if the given item is found in this container.
