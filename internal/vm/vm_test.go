@@ -238,6 +238,20 @@ func TestForRange7(t *testing.T) {
 	}), result)
 }
 
+func TestIterator(t *testing.T) {
+	tests := []testCase{
+		{`range { 33, 44, 55 }.next().key`, object.NewInt(33)},
+		{`range { 33, 44, 55 }.next().value`, object.True},
+		{`range [ 33, 44, 55 ].next().key`, object.NewInt(0)},
+		{`range [ 33, 44, 55 ].next().value`, object.NewInt(33)},
+		{`range "abcd".next().key`, object.NewInt(0)},
+		{`range "abcd".next().value`, object.NewString("a")},
+		{`range { a: 33, b: 44 }.next().key`, object.NewString("a")},
+		{`range { a: 33, b: 44 }.next().value`, object.NewInt(33)},
+	}
+	runTests(t, tests)
+}
+
 func TestStackPopping1(t *testing.T) {
 	result, err := Run(context.Background(), `
 	x := []
