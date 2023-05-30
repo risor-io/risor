@@ -498,8 +498,10 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 		return arg.Keys()
 	case *object.List:
 		return arg.Keys()
+	case *object.Set:
+		return arg.List()
 	default:
-		return object.Errorf("type error: keys() argument must be a map or list (%s given)", arg.Type())
+		return object.Errorf("type error: keys() argument must be a map, list, or set (%s given)", arg.Type())
 	}
 }
 

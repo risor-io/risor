@@ -518,9 +518,7 @@ func TestNonLocal(t *testing.T) {
 func TestFrameLocals1(t *testing.T) {
 	result, err := Run(context.Background(), `
 	x := 1
-	f := func(x) {
-		x = 99
-	}
+	f := func(x) { x = 99 }
 	f(4)
 	x
 	`)
@@ -531,9 +529,7 @@ func TestFrameLocals1(t *testing.T) {
 func TestFrameLocals2(t *testing.T) {
 	result, err := Run(context.Background(), `
 	x := 1
-	f := func(y) {
-		x = 99
-	}
+	f := func(y) { x = 99 }
 	f(4)
 	x
 	`)
@@ -625,83 +621,218 @@ func TestConstantFunction(t *testing.T) {
 	require.Equal(t, "cannot assign to constant: add", err.Error())
 }
 
-func TestMultipleCases(t *testing.T) {
+func TestArithmetic(t *testing.T) {
+	tests := []testCase{
+		{`1 + 2`, object.NewInt(3)},
+		{`1 + 2 + 3`, object.NewInt(6)},
+		{`1 + 2 * 3`, object.NewInt(7)},
+		{`(1 + 2) * 3`, object.NewInt(9)},
+		{`5 - 3`, object.NewInt(2)},
+		{`12 / 4`, object.NewInt(3)},
+		{`3 * (4 + 2)`, object.NewInt(18)},
+		{`1.5 + 1.5`, object.NewFloat(3.0)},
+		{`1.5 + 2`, object.NewFloat(3.5)},
+		{`2 + 1.5`, object.NewFloat(3.5)},
+		{`2 ** 3`, object.NewInt(8)},
+		{`2.0 ** 3.0`, object.NewFloat(8.0)},
+		{`1 % 3`, object.NewInt(1)},
+		{`3 % 3`, object.NewInt(0)},
+		{`11 % 3`, object.NewInt(2)},
+		{`-11`, object.NewInt(-11)},
+		{`x := -11; -x`, object.NewInt(11)},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Arithmetic", func(t *testing.T) {
-		tests := []testCase{
-			{`1 + 2`, object.NewInt(3)},
-			{`1 + 2 + 3`, object.NewInt(6)},
-			{`1 + 2 * 3`, object.NewInt(7)},
-			{`(1 + 2) * 3`, object.NewInt(9)},
-			{`5 - 3`, object.NewInt(2)},
-			{`12 / 4`, object.NewInt(3)},
-			{`3 * (4 + 2)`, object.NewInt(18)},
-			{`1.5 + 1.5`, object.NewFloat(3.0)},
-			{`1.5 + 2`, object.NewFloat(3.5)},
-			{`2 + 1.5`, object.NewFloat(3.5)},
-		}
-		runTests(t, tests)
-	})
+func TestNumericComparisons(t *testing.T) {
+	tests := []testCase{
+		// Integers
+		{`3 < 5`, object.True},
+		{`3 <= 5`, object.True},
+		{`3 > 5`, object.False},
+		{`3 >= 5`, object.False},
+		{`3 == 5`, object.False},
+		{`3 != 5`, object.True},
+		{`2 < 2`, object.False},
+		{`2 <= 2`, object.True},
+		{`2 > 2`, object.False},
+		{`2 >= 2`, object.True},
+		{`2 == 2`, object.True},
+		{`2 != 2`, object.False},
+		// Mixed integers and floats
+		{`3.0 < 5`, object.True},
+		{`3.0 <= 5`, object.True},
+		{`3.0 > 5`, object.False},
+		{`3.0 >= 5`, object.False},
+		{`3.0 == 5`, object.False},
+		{`3.0 != 5`, object.True},
+		{`2.0 < 2`, object.False},
+		{`2.0 <= 2`, object.True},
+		{`2.0 > 2`, object.False},
+		{`2.0 >= 2`, object.True},
+		{`2.0 == 2`, object.True},
+		{`2.0 != 2`, object.False},
+		// Floats
+		{`3.0 < 5.0`, object.True},
+		{`3.0 <= 5.0`, object.True},
+		{`3.0 > 5.0`, object.False},
+		{`3.0 >= 5.0`, object.False},
+		{`3.0 == 5.0`, object.False},
+		{`3.0 != 5.0`, object.True},
+		{`2.0 < 2.0`, object.False},
+		{`2.0 <= 2.0`, object.True},
+		{`2.0 > 2.0`, object.False},
+		{`2.0 >= 2.0`, object.True},
+		{`2.0 == 2.0`, object.True},
+		{`2.0 != 2.0`, object.False},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Control", func(t *testing.T) {
-		tests := []testCase{
-			{`x := 1; if x > 5 { 99 } else { 100 }`, object.NewInt(100)},
-			{`x := 1; if x > 0 { 99 } else { 100 }`, object.NewInt(99)},
-			{`x := 1; y := x > 0 ? 77 : 88; y`, object.NewInt(77)},
-			{`x := (1 > 2) ? 77 : 88; x`, object.NewInt(88)},
-			{`x := (2 > 1) ? 77 : 88; x`, object.NewInt(77)},
-			{`x := 1; switch x { case 1: 99; case 2: 100 }`, object.NewInt(99)},
-			{`x := 2; switch x { case 1: 99; case 2: 100 }`, object.NewInt(100)},
-			{`x := 3; switch x { case 1: 99; default: 42 case 2: 100 }`, object.NewInt(42)},
-			{`x := 3; switch x { case 1: 99; case 2: 100 }`, object.Nil},
-			{`x := 3; switch x { case 1, 3: 99; case 2: 100 }`, object.NewInt(99)},
-			{`x := 3; switch x { case 1: 99; case 2, 4-1: 100 }`, object.NewInt(100)},
-			{`x := 3; switch bool(x) { case true: "wow" }`, object.NewString("wow")},
-		}
-		runTests(t, tests)
-	})
+func TestBooleanComparisons(t *testing.T) {
+	tests := []testCase{
+		{`!true`, object.False},
+		{`!false`, object.True},
+		{`!!true`, object.True},
+		{`!!false`, object.False},
+		{`false == false`, object.True},
+		{`false == true`, object.False},
+		{`false != false`, object.False},
+		{`false != true`, object.True},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Builtins", func(t *testing.T) {
-		tests := []testCase{
-			{`len("hello")`, object.NewInt(5)},
-			{`len([1, 2, 3])`, object.NewInt(3)},
-			{`len({"a": 1})`, object.NewInt(1)},
-			{`keys({"a": 1})`, object.NewList([]object.Object{object.NewString("a")})},
-			{`type(3.14159)`, object.NewString("float")},
-			{`type("hi".contains)`, object.NewString("builtin")},
-			{`"hi".contains("h")`, object.True},
-			{`"hi".contains("x")`, object.False},
-			{`sprintf("%d-%d", 1, 2)`, object.NewString("1-2")},
-		}
-		runTests(t, tests)
-	})
+func TestTruthiness(t *testing.T) {
+	tests := []testCase{
+		{`!0`, object.True},
+		{`!5`, object.False},
+		{`![]`, object.True},
+		{`![1]`, object.False},
+		{`!{}`, object.True},
+		{`!{1}`, object.False},
+		{`!""`, object.True},
+		{`!"a"`, object.False},
+		{`bool(0)`, object.False},
+		{`bool(5)`, object.True},
+		{`bool([])`, object.False},
+		{`bool([1])`, object.True},
+		{`bool({})`, object.False},
+		{`bool({1})`, object.True},
+		{`bool({foo: 1})`, object.True},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Assignment", func(t *testing.T) {
-		tests := []testCase{
-			{`a, b := [3, 4]; a`, object.NewInt(3)},
-			{`a, b := [3, 4]; b`, object.NewInt(4)},
-			{`a, b := "ᛛᛥ"; a`, object.NewString("ᛛ")},
-			{`a, b := {42, 43}; a in [42, 43]`, object.True},
-			{`a, b := {foo: 1, bar: 2}; a in ["foo", "bar"]`, object.True},
-		}
-		runTests(t, tests)
-	})
+func TestControlFlow(t *testing.T) {
+	tests := []testCase{
+		{`if false { 3 }`, object.Nil},
+		{`if true { 3 }`, object.NewInt(3)},
+		{`if false { 3 } else { 4 }`, object.NewInt(4)},
+		{`if true { 3 } else { 4 }`, object.NewInt(3)},
+		{`if false { 3 } else if false { 4 } else { 5 }`, object.NewInt(5)},
+		{`if true { 3 } else if false { 4 } else { 5 }`, object.NewInt(3)},
+		{`if false { 3 } else if true { 4 } else { 5 }`, object.NewInt(4)},
+		{`x := 1; if x > 5 { 99 } else { 100 }`, object.NewInt(100)},
+		{`x := 1; if x > 0 { 99 } else { 100 }`, object.NewInt(99)},
+		{`x := 1; y := x > 0 ? 77 : 88; y`, object.NewInt(77)},
+		{`x := (1 > 2) ? 77 : 88; x`, object.NewInt(88)},
+		{`x := (2 > 1) ? 77 : 88; x`, object.NewInt(77)},
+		{`x := 1; switch x { case 1: 99; case 2: 100 }`, object.NewInt(99)},
+		{`switch 2 { case 1: 99; case 2: 100 }`, object.NewInt(100)},
+		{`switch 3 { case 1: 99; default: 42 case 2: 100 }`, object.NewInt(42)},
+		{`switch 3 { case 1: 99; case 2: 100 }`, object.Nil},
+		{`switch 3 { case 1, 3: 99; case 2: 100 }`, object.NewInt(99)},
+		{`switch 3 { case 1: 99; case 2, 4-1: 100 }`, object.NewInt(100)},
+		{`x := 3; switch bool(x) { case true: "wow" }`, object.NewString("wow")},
+		{`x := 0; switch bool(x) { case true: "wow" }`, object.Nil},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Functions", func(t *testing.T) {
-		closure := `
+func TestLength(t *testing.T) {
+	tests := []testCase{
+		{`len("hello")`, object.NewInt(5)},
+		{`len([1, 2, 3])`, object.NewInt(3)},
+		{`len({"abc": 1})`, object.NewInt(1)},
+		{`len({"abc"})`, object.NewInt(1)},
+		{`len("ᛛᛥ")`, object.NewInt(2)},
+	}
+	runTests(t, tests)
+}
+
+func TestBuiltins(t *testing.T) {
+	tests := []testCase{
+		{`len("hello")`, object.NewInt(5)},
+		{`keys({"a": 1})`, object.NewList([]object.Object{
+			object.NewString("a"),
+		})},
+		{`type(3.14159)`, object.NewString("float")},
+		{`type("hi".contains)`, object.NewString("builtin")},
+		{`sprintf("%d-%d", 1, 2)`, object.NewString("1-2")},
+		{`int("99")`, object.NewInt(99)},
+		{`float("2.5")`, object.NewFloat(2.5)},
+		{`string(99)`, object.NewString("99")},
+		{`string(2.5)`, object.NewString("2.5")},
+		{`ord("a")`, object.NewInt(97)},
+		{`chr(97)`, object.NewString("a")},
+		{`iter("abc").next().value`, object.NewString("a")},
+		{`reversed("abc")`, object.NewString("cba")},
+		{`reversed([1, 2, 3])`, object.NewList([]object.Object{
+			object.NewInt(3),
+			object.NewInt(2),
+			object.NewInt(1),
+		})},
+		{`sorted([3, -2, 2])`, object.NewList([]object.Object{
+			object.NewInt(-2),
+			object.NewInt(2),
+			object.NewInt(3),
+		})},
+		{`any([])`, object.False},
+		{`any([0, false, {}])`, object.False},
+		{`any([0, false, {foo: 42}])`, object.True},
+		{`all([])`, object.True},
+		{`all([1, false, {foo: 42}])`, object.False},
+		{`all([1, true, {foo: 42}])`, object.True},
+	}
+	runTests(t, tests)
+}
+
+func TestMultiVarAssignment(t *testing.T) {
+	tests := []testCase{
+		{`a, b := [3, 4]; a`, object.NewInt(3)},
+		{`a, b := [3, 4]; b`, object.NewInt(4)},
+		{`a, b, c := [3, 4, 5]; a`, object.NewInt(3)},
+		{`a, b, c := [3, 4, 5]; b`, object.NewInt(4)},
+		{`a, b, c := [3, 4, 5]; c`, object.NewInt(5)},
+		{`a, b := "ᛛᛥ"; a`, object.NewString("ᛛ")},
+		{`a, b := "ᛛᛥ"; b`, object.NewString("ᛥ")},
+		// Set and map keys are sorted by default so we can rely on that:
+		{`a, b := {42, 43}; a`, object.NewInt(42)},
+		{`a, b := {42, 43}; b`, object.NewInt(43)},
+		{`a, b := {foo: 1, bar: 2}; a`, object.NewString("bar")},
+		{`a, b := {foo: 1, bar: 2}; b`, object.NewString("foo")},
+	}
+	runTests(t, tests)
+}
+
+func TestFunctions(t *testing.T) {
+	closure := `
 z := 10
 y := func(x, inc=100) { x + z + inc }
 y(3)
 `
-		tests := []testCase{
-			{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
-			{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
-			{`func inc(x, amount=1) { x + amount }; inc(3)`, object.NewInt(4)},
-			{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
-			{closure, object.NewInt(113)},
-		}
-		runTests(t, tests)
-	})
+	tests := []testCase{
+		{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
+		{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
+		{`func inc(x, amount=1) { x + amount }; inc(3)`, object.NewInt(4)},
+		{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
+		{closure, object.NewInt(113)},
+	}
+	runTests(t, tests)
+}
+
+func TestMultipleCases(t *testing.T) {
 
 	t.Run("DataStructures", func(t *testing.T) {
 		tests := []testCase{
@@ -716,29 +847,6 @@ y(3)
 			{`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
 				[]object.Object{object.NewInt(4), object.NewInt(5)})},
 			{`range [1]`, object.NewListIter(object.NewList([]object.Object{object.NewInt(1)}))},
-		}
-		runTests(t, tests)
-	})
-
-	t.Run("ComparisonAndBoolean", func(t *testing.T) {
-		tests := []testCase{
-			{`3 < 5`, object.True},
-			{`10 > 5`, object.True},
-			{`3 <= 5`, object.True},
-			{`10 == 5`, object.False},
-			{`10 != 5`, object.True},
-			{`!true`, object.False},
-			{`!false`, object.True},
-			{`!!true`, object.True},
-			{`!!false`, object.False},
-			{`!0`, object.True},
-			{`!5`, object.False},
-			{`![]`, object.True},
-			{`![1]`, object.False},
-			{`!{}`, object.True},
-			{`!{1}`, object.False},
-			{`!""`, object.True},
-			{`!"a"`, object.False},
 		}
 		runTests(t, tests)
 	})

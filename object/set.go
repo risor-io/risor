@@ -192,11 +192,7 @@ func (s *Set) Difference(other *Set) *Set {
 }
 
 func (s *Set) List() *List {
-	l := &List{items: make([]Object, 0, len(s.items))}
-	for _, item := range s.items {
-		l.items = append(l.items, item)
-	}
-	return l
+	return &List{items: s.SortedItems()}
 }
 
 func (s *Set) Equals(other Object) Object {
