@@ -24,9 +24,15 @@ type Symbol struct {
 }
 
 type Resolution struct {
-	Symbol *Symbol
-	Scope  ScopeName
-	Depth  int
+	Symbol    *Symbol
+	Scope     ScopeName
+	Depth     int
+	FreeIndex int
+}
+
+func (r *Resolution) String() string {
+	return fmt.Sprintf("resolution(symbol: %s scope: %s depth: %d)",
+		r.Symbol.Name, r.Scope, r.Depth)
 }
 
 type SymbolTable struct {
@@ -38,6 +44,7 @@ type SymbolTable struct {
 	free      map[string]*Resolution
 	values    []Object
 	isBlock   bool
+	freeCount int
 }
 
 func (t *SymbolTable) NewChild() *SymbolTable {
@@ -201,6 +208,8 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 	resolution := &Resolution{Symbol: rs.Symbol, Scope: scope, Depth: depth}
 	if scope == ScopeFree {
 		t.free[name] = resolution
+		resolution.FreeIndex = t.freeCount
+		t.freeCount++
 	}
 	return resolution, true
 }
@@ -260,9 +269,9 @@ func (t *SymbolTable) Builtins() []Object {
 }
 
 func (t *SymbolTable) Free() []*Resolution {
-	result := make([]*Resolution, 0, len(t.free))
+	result := make([]*Resolution, len(t.free))
 	for _, rs := range t.free {
-		result = append(result, rs)
+		result[rs.FreeIndex] = rs
 	}
 	return result
 }

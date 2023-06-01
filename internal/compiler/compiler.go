@@ -190,7 +190,7 @@ func (c *Compiler) compile(node ast.Node) error {
 		case object.ScopeLocal:
 			c.emit(op.LoadFast, sym.Index)
 		case object.ScopeFree:
-			c.emit(op.LoadFree, sym.Index)
+			c.emit(op.LoadFree, uint16(resolution.FreeIndex))
 		case object.ScopeBuiltin:
 			c.emit(op.LoadBuiltin, sym.Index)
 		}
@@ -617,7 +617,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	case object.ScopeLocal:
 		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.LoadFree, sym.Index)
+		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
 	case object.ScopeBuiltin:
 		return fmt.Errorf("cannot assign to builtin: %s", name)
 	}
@@ -1017,7 +1017,7 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	case object.ScopeLocal:
 		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
-		c.emit(op.LoadFree, sym.Index)
+		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
 	case object.ScopeBuiltin:
 		c.emit(op.LoadBuiltin, sym.Index)
 	}

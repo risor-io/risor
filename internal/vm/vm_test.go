@@ -573,6 +573,22 @@ func TestClosureIncrementer(t *testing.T) {
 	require.Equal(t, object.NewInt(3), result)
 }
 
+func TestClosureOverLocal(t *testing.T) {
+	result, err := Run(context.Background(), `
+	var testValue = 100
+	func getint() {
+		var foo = testValue + 1
+		func inner() {
+			foo
+		}
+		return inner
+	}
+	getint()()
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(101), result)
+}
+
 func TestRecursiveExample1(t *testing.T) {
 	result, err := Run(context.Background(), `
 	func twoexp(n) {

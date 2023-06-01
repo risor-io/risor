@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/cloudcmds/tamarin/internal/op"
@@ -54,6 +55,13 @@ func (f *Function) Inspect() string {
 		out.WriteString("\n}")
 	}
 	return out.String()
+}
+
+func (f *Function) String() string {
+	if f.name != "" {
+		return fmt.Sprintf("func %s() { ... }", f.name)
+	}
+	return "func() { ... }"
 }
 
 func (f *Function) Instructions() []op.Code {
