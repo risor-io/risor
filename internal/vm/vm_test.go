@@ -935,6 +935,8 @@ func TestStrings(t *testing.T) {
 		{`"hello"[1]`, object.NewString("e")},
 		{`"hello"[-1]`, object.NewString("o")},
 		{`"hello"[-2]`, object.NewString("l")},
+		{`a := 1; b := "ok"; '{a + 1}-{b | strings.to_upper}'`, object.NewString("2-OK")},
+		{`func(a, b) { return 'A: {a} B: {b}' }("hi", "bye")`, object.NewString("A: hi B: bye")},
 	}
 	runTests(t, tests)
 }

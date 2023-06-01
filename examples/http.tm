@@ -11,6 +11,8 @@ resp := fetch("https://httpbin.org/post", {
     headers: {
         "Content-Type": "application/json",
     },
-}).json().unwrap()
+}).unwrap()
 
-print("response:\n", resp)
+print(resp)
+
+print("response:\n", resp.json().unwrap())
