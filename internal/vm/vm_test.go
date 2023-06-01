@@ -956,6 +956,82 @@ func TestPipes(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestQuicksort(t *testing.T) {
+	result, err := Run(context.Background(), `
+	func quicksort(arr) {
+		if len(arr) < 2 {
+			return arr
+		} else {
+			pivot := arr[0]
+			less := arr[1:].filter(func(x) { x <= pivot })
+			more := arr[1:].filter(func(x) { x > pivot })
+			return quicksort(less) + [pivot] + quicksort(more)
+		}
+	}
+	quicksort([10, 5, 2, 3])
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList(
+		[]object.Object{
+			object.NewInt(2),
+			object.NewInt(3),
+			object.NewInt(5),
+			object.NewInt(10),
+		}), result)
+}
+
+func TestLoopBreak(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for i := 0; i < 10; i++ {
+		if i == 3 { break }
+		x = i
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestLoopContinue(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for i := 0; i < 10; i++ {
+		if i > 3 { continue }
+		x = i
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), result)
+}
+
+func TestRangeLoopBreak(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for i := range [0, 1, 2, 3, 4] {
+		if i == 3 { break }
+		x = i
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestRangeLoopContinue(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for i := range [0, 1, 2, 3, 4] {
+		if i > 3 { continue }
+		x = i
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), result)
+}
+
 func TestImports(t *testing.T) {
 	tests := []testCase{
 		// {`import strings; strings`, object.NewModule("strings", nil)},

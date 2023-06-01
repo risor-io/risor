@@ -3,6 +3,7 @@ package compiler
 import (
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/cloudcmds/tamarin/ast"
 	"github.com/cloudcmds/tamarin/internal/op"
@@ -57,7 +58,8 @@ func New(opts Options) *Compiler {
 		main = &object.Code{Name: opts.Name, Symbols: object.NewSymbolTable()}
 	}
 	// Insert builtins into the symbol table, including the objects themselves
-	for name, builtin := range opts.Builtins {
+	for _, name := range sortedKeys(opts.Builtins) {
+		builtin := opts.Builtins[name]
 		if _, err := main.Symbols.InsertBuiltin(name, builtin); err != nil {
 			panic(fmt.Sprintf("failed to insert builtin %s: %s", name, err))
 		}
@@ -65,8 +67,12 @@ func New(opts Options) *Compiler {
 	return &Compiler{main: main, current: main}
 }
 
-func (c *Compiler) Instructions() []op.Code {
+func (c *Compiler) MainInstructions() []op.Code {
 	return c.main.Instructions
+}
+
+func (c *Compiler) CurrentInstructions() []op.Code {
+	return c.current.Instructions
 }
 
 func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
@@ -293,7 +299,7 @@ func (c *Compiler) currentLoop() *object.Loop {
 }
 
 func (c *Compiler) currentPosition() int {
-	return len(c.Instructions())
+	return len(c.CurrentInstructions())
 }
 
 func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
@@ -953,7 +959,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		position := c.emit(op.JumpForward, Placeholder)
 		loop.BreakPos = append(loop.BreakPos, position)
 	} else {
-		position := c.emit(op.JumpBackward, Placeholder)
+		position := c.emit(op.JumpForward, Placeholder)
 		loop.ContinuePos = append(loop.ContinuePos, position)
 	}
 	return nil
@@ -1060,7 +1066,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 
 	code := c.current
 	code.Symbols = code.Symbols.NewBlock()
-	c.startLoop()
+	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
 		code.Symbols = code.Symbols.Parent()
@@ -1092,13 +1098,32 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	if err != nil {
 		return err
 	}
-	c.emit(op.JumpBackward, delta)
+	jumpBackPos := c.emit(op.JumpBackward, delta)
 
+	// update the ForIter instruction to jump "here" when done
 	delta, err = c.calculateDelta(iterPos)
 	if err != nil {
 		return err
 	}
 	c.changeOperand(iterPos, delta)
+
+	// Update breaks to jump to this point
+	for _, pos := range loop.BreakPos {
+		delta, err = c.calculateDelta(pos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+
+	// Update continues
+	for _, pos := range loop.ContinuePos {
+		delta := jumpBackPos - pos
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("loop size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
 
 	return nil
 }
@@ -1173,6 +1198,10 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	}
 	c.emit(op.PopTop)
 
+	// This is where "continue" statements should jump to so that they pick
+	// up the "post" statement if there is one before going back to the beginning.
+	continueDst := len(c.current.Instructions)
+
 	// Compile the post statement if present
 	if node.Post() != nil {
 		post := node.Post()
@@ -1203,16 +1232,16 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 	// Update breaks to jump to this point
 	for _, pos := range loop.BreakPos {
-		delta, err = c.calculateDelta(conditionJumpPos)
+		delta, err = c.calculateDelta(pos)
 		if err != nil {
 			return err
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
 
-	// Update continues to jump to the loop start
+	// Update continues to jump to the post statement
 	for _, pos := range loop.ContinuePos {
-		delta := pos - loopStart
+		delta := continueDst - pos
 		if delta > math.MaxUint16 {
 			return fmt.Errorf("loop size exceeded limits")
 		}
@@ -1241,7 +1270,7 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 		c.endLoop()
 		code.Symbols = code.Symbols.Parent()
 	}()
-	startPos := len(c.Instructions())
+	startPos := len(c.CurrentInstructions())
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
@@ -1249,7 +1278,7 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	if err != nil {
 		return err
 	}
-	c.emit(op.JumpBackward, delta)
+	jumpBackPos := c.emit(op.JumpBackward, delta)
 	nopPos := c.emit(op.Nop)
 	for _, pos := range loop.BreakPos {
 		delta := nopPos - pos
@@ -1259,7 +1288,7 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 		c.changeOperand(pos, uint16(delta))
 	}
 	for _, pos := range loop.ContinuePos {
-		delta := pos - startPos
+		delta := jumpBackPos - pos
 		if delta > math.MaxUint16 {
 			return fmt.Errorf("loop size exceeded limits")
 		}
@@ -1390,6 +1419,7 @@ func (c *Compiler) emit(opcode op.Code, operands ...uint16) int {
 	inst := MakeInstruction(opcode, operands...)
 	code := c.current
 	pos := len(code.Instructions)
+	// fmt.Println("EMIT", len(code.Instructions), op.GetInfo(opcode).Name, operands)
 	code.Instructions = append(code.Instructions, inst...)
 	return pos
 }
@@ -1407,6 +1437,15 @@ func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 		offset++
 	}
 	return instruction
+}
+
+func sortedKeys(objects map[string]object.Object) []string {
+	keys := make([]string, 0, len(objects))
+	for k := range objects {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // func ReadInstruction(data []uint16) (op.Code, []int, []byte) {

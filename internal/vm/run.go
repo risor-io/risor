@@ -52,6 +52,7 @@ func Run(ctx context.Context, code string) (object.Object, error) {
 		Importer: importer.NewLocalImporter(importer.LocalImporterOptions{
 			SourceDir:  ".",
 			Extensions: []string{".tm"},
+			Builtins:   builtins,
 		}),
 	})
 	if err := vm.Run(ctx); err != nil {
