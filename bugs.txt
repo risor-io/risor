@@ -8,8 +8,9 @@
 7. Switch statements - DONE
 8. The "in" keyword - DONE
 9. The "range" - DONE
-10. Error propagation behavior
+10. Error propagation behavior - DONE
 11. Assigning a module attribute `math.BAR = "NO"`
 12. SetItem - DONE
+13. String templates?
 
 TODO: test nested loops w/ breaks and continues

@@ -15,13 +15,13 @@
 //     sum += i
 // }
 
-var x, y = [99, 100]
+x, y := [99, 100]
 print("x:", x, "y:", y)
 
 // r := range [41, 42, 43]
 d := {one: 1, two: 2, three: 3}
 
-for k := range d {
-    print("k:", k)
+for k, v := range d {
+    print("k:", k, "v:", v)
 }
 

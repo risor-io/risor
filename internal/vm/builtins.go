@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/cloudcmds/tamarin/arg"
 	"github.com/cloudcmds/tamarin/internal/httputil"
@@ -20,18 +19,11 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
 		return err
 	}
-	switch arg := args[0].(type) {
-	case *object.String:
-		return object.NewInt(int64(utf8.RuneCountInString(arg.Value())))
-	case *object.List:
-		return object.NewInt(int64(len(arg.Value())))
-	case *object.Set:
-		return object.NewInt(int64(len(arg.Value())))
-	case *object.Map:
-		return object.NewInt(int64(len(arg.Value())))
-	default:
+	container, ok := args[0].(object.Container)
+	if !ok {
 		return object.Errorf("type error: len() argument is unsupported (%s given)", args[0].Type())
 	}
+	return container.Len()
 }
 
 func Sprintf(ctx context.Context, args ...object.Object) object.Object {
@@ -595,47 +587,61 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	for _, arg := range args[1:] {
 		goArgs = append(goArgs, arg.Interface())
 	}
+	// TODO: research capturing the call stack
 	return object.Errorf(msg.Value(), goArgs...)
 }
 
 func Try(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
-	if nArgs < 1 || nArgs > 2 {
-		return object.NewArgsRangeError("try", 1, 2, len(args))
+	if nArgs < 1 {
+		return object.Errorf("type error: try() expected at least 1 argument (%d given)", nArgs)
 	}
-	handleErr := func(arg object.Object, err *object.Error) object.Object {
+	tryIt := func(arg object.Object) (object.Object, error) {
 		switch obj := arg.(type) {
 		case *object.Function:
 			callFunc, found := object.GetCallFunc(ctx)
 			if !found {
-				return object.Errorf("eval error: context did not contain a call function")
+				return nil, fmt.Errorf("eval error: context did not contain a call function")
 			}
-			result, err := callFunc(ctx, obj, []object.Object{err.Message()})
+			result, err := callFunc(ctx, obj, nil)
 			if err != nil {
-				return object.Errorf(err.Error())
+				return nil, err
 			}
-			return result
+			switch result := result.(type) {
+			case *object.Result:
+				if result.IsErr() {
+					return nil, result.UnwrapErr().Value()
+				}
+				return result.Unwrap(), nil
+			case *object.Error:
+				return nil, result.Value()
+			default:
+				return result, nil
+			}
+		case *object.Builtin:
+			result := obj.Call(ctx, nil)
+			switch result := result.(type) {
+			case *object.Result:
+				if result.IsErr() {
+					return nil, result.UnwrapErr().Value()
+				}
+				return result.Unwrap(), nil
+			case *object.Error:
+				return nil, result.Value()
+			default:
+				return result, nil
+			}
 		default:
-			return obj
+			return obj, nil
 		}
 	}
-	switch obj := args[0].(type) {
-	case *object.Error:
-		if nArgs == 2 {
-			return handleErr(args[1], obj)
+	for _, arg := range args {
+		result, err := tryIt(arg)
+		if err == nil {
+			return result
 		}
-		return object.Nil
-	case *object.Result:
-		if obj.IsErr() {
-			if nArgs == 2 {
-				return handleErr(args[1], obj.UnwrapErr())
-			}
-			return object.Nil
-		}
-		return obj.Unwrap()
-	default:
-		return obj
 	}
+	return object.Nil
 }
 
 func Iter(ctx context.Context, args ...object.Object) object.Object {

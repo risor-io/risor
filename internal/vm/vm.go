@@ -15,6 +15,7 @@ const (
 	MaxArgs       = 255
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
+	StopSignal    = -1
 )
 
 type Options struct {
@@ -190,6 +191,11 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			vm.activeFrame = &vm.frames[vm.fp]
 			vm.activeCode = vm.activeFrame.Code()
 			vm.ip = returnAddr
+			if returnAddr == StopSignal {
+				// If StopSignal is found as the return address, it means the
+				// current eval call should stop.
+				return nil
+			}
 		case op.PopJumpForwardIfTrue:
 			tos := vm.Pop()
 			delta := int(vm.fetch()) - 2
@@ -428,6 +434,7 @@ func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, erro
 	code := module.Code()
 
 	// Allocate a new frame to evaluate the module code
+	baseFrame := vm.fp
 	vm.fp++
 	frame := &vm.frames[vm.fp]
 	frame.ActivateCode(code)
@@ -438,6 +445,11 @@ func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, erro
 
 	// Evaluate the module code
 	if err := vm.eval(ctx); err != nil {
+		// Unwind the stack
+		vm.fp = baseFrame
+		vm.activeFrame = &vm.frames[vm.fp]
+		vm.activeCode = vm.activeFrame.code
+		vm.ip = frame.returnAddr
 		return nil, err
 	}
 
@@ -458,6 +470,9 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 	switch fn := fn.(type) {
 	case *object.Builtin:
 		result := fn.Call(ctx, args...)
+		if err, ok := result.(*object.Error); ok {
+			return err.Value()
+		}
 		vm.Push(result)
 	case *object.Function:
 		vm.fp++
@@ -532,6 +547,8 @@ func (vm *VM) fetch() uint16 {
 // Calls a compiled function with the given arguments. This is used internally
 // when a Tamarin object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
 func (vm *VM) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+	baseFrame := vm.fp
+	baseIP := vm.ip
 	// Advance to the next frame
 	vm.fp++
 	frame := &vm.frames[vm.fp]
@@ -557,15 +574,22 @@ func (vm *VM) callFunction(ctx context.Context, fn *object.Function, args []obje
 		argc++
 	}
 	// Activate this new frame with the function code and local variables
-	frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
+	frame.ActivateFunction(fn, StopSignal, vm.tmp[:argc])
 	vm.activeFrame = frame
 	vm.activeCode = code
 	vm.ip = 0
 	// Evaluate the function code then return the result from TOS
 	if err := vm.eval(ctx); err != nil {
+		// Unwind the stack
+		vm.fp = baseFrame
+		vm.activeFrame = &vm.frames[vm.fp]
+		vm.activeCode = vm.activeFrame.code
+		vm.ip = baseIP
 		return nil, err
 	}
-	return vm.Pop(), nil
+	vm.ip = baseIP
+	value := vm.Pop()
+	return value, nil
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {

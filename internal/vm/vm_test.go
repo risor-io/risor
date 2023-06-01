@@ -621,6 +621,24 @@ func TestConstantFunction(t *testing.T) {
 	require.Equal(t, "cannot assign to constant: add", err.Error())
 }
 
+func TestStatementsNilValue(t *testing.T) {
+	// The result value of a statement is always nil
+	tests := []testCase{
+		{`x := 0`, object.Nil},
+		{`x := 0; x++`, object.Nil},
+		{`x := 0; x--`, object.Nil},
+		{`x := 0; x += 1`, object.Nil},
+		{`x := 0; x -= 1`, object.Nil},
+		{`const x = 0`, object.Nil},
+		{`var x = 0`, object.Nil},
+		{`x, y := [0, 0]`, object.Nil},
+		{`x := [1]; x[0] = 2`, object.Nil},
+		{`for i := 0; i < 10; i++ { 42 }`, object.Nil},
+		{`x := 0; for i := 0; i < 10; i++ { x = i }`, object.Nil},
+	}
+	runTests(t, tests)
+}
+
 func TestArithmetic(t *testing.T) {
 	tests := []testCase{
 		{`1 + 2`, object.NewInt(3)},
@@ -689,8 +707,10 @@ func TestNumericComparisons(t *testing.T) {
 	runTests(t, tests)
 }
 
-func TestBooleanComparisons(t *testing.T) {
+func TestBooleans(t *testing.T) {
 	tests := []testCase{
+		{`true`, object.True},
+		{`false`, object.False},
 		{`!true`, object.False},
 		{`!false`, object.True},
 		{`!!true`, object.True},
@@ -699,6 +719,12 @@ func TestBooleanComparisons(t *testing.T) {
 		{`false == true`, object.False},
 		{`false != false`, object.False},
 		{`false != true`, object.True},
+		{`true == true`, object.True},
+		{`true == false`, object.False},
+		{`true != true`, object.False},
+		{`true != false`, object.True},
+		{`type(true)`, object.NewString("bool")},
+		{`type(false)`, object.NewString("bool")},
 	}
 	runTests(t, tests)
 }
@@ -752,6 +778,9 @@ func TestControlFlow(t *testing.T) {
 
 func TestLength(t *testing.T) {
 	tests := []testCase{
+		{`len("")`, object.NewInt(0)},
+		{`len([])`, object.NewInt(0)},
+		{`len({})`, object.NewInt(0)},
 		{`len("hello")`, object.NewInt(5)},
 		{`len([1, 2, 3])`, object.NewInt(3)},
 		{`len({"abc": 1})`, object.NewInt(1)},
@@ -798,6 +827,34 @@ func TestBuiltins(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestTry(t *testing.T) {
+	tests := []testCase{
+		{`try(1)`, object.NewInt(1)},
+		{`try(1, 2)`, object.NewInt(1)},
+		{`try(func() { error("oops") }, "nope")`, object.NewString("nope")},
+		{`try(func() { error("oops") }, func() { error("oops") })`, object.Nil},
+		{`try(func() { error("oops") }, func() { error("oops") }, 1)`, object.NewInt(1)},
+		{`try(func() { err("oops") }, func() { err("oops") }, 1)`, object.NewInt(1)},
+		{`try(2, func() { err("oops") }, func() { err("oops") }, 1)`, object.NewInt(2)},
+		{`try(func() { err("oops") }, 2, func() { err("oops") }, 1)`, object.NewInt(2)},
+		{`try(func() { return err("oops") }, func() { return err("oops") }, 1)`, object.NewInt(1)},
+		{`x := 0; y := 0; z := try(func() {
+			x = 11
+			error("oops")
+			x = 12
+		  }, func() {
+			y = 21
+			return err("oops")
+			y = 22
+		  }, 33); [x, y, z]`, object.NewList([]object.Object{
+			object.NewInt(11),
+			object.NewInt(21),
+			object.NewInt(33),
+		})},
+	}
+	runTests(t, tests)
+}
+
 func TestMultiVarAssignment(t *testing.T) {
 	tests := []testCase{
 		{`a, b := [3, 4]; a`, object.NewInt(3)},
@@ -807,7 +864,6 @@ func TestMultiVarAssignment(t *testing.T) {
 		{`a, b, c := [3, 4, 5]; c`, object.NewInt(5)},
 		{`a, b := "ᛛᛥ"; a`, object.NewString("ᛛ")},
 		{`a, b := "ᛛᛥ"; b`, object.NewString("ᛥ")},
-		// Set and map keys are sorted by default so we can rely on that:
 		{`a, b := {42, 43}; a`, object.NewInt(42)},
 		{`a, b := {42, 43}; b`, object.NewInt(43)},
 		{`a, b := {foo: 1, bar: 2}; a`, object.NewString("bar")},
@@ -817,72 +873,76 @@ func TestMultiVarAssignment(t *testing.T) {
 }
 
 func TestFunctions(t *testing.T) {
-	closure := `
-z := 10
-y := func(x, inc=100) { x + z + inc }
-y(3)
-`
 	tests := []testCase{
 		{`func add(x, y) { x + y }; add(3, 4)`, object.NewInt(7)},
 		{`func add(x, y) { x + y }; add(3, 4) + 5`, object.NewInt(12)},
 		{`func inc(x, amount=1) { x + amount }; inc(3)`, object.NewInt(4)},
 		{`func factorial(n) { if (n == 1) { return 1 } else { return n * factorial(n - 1) } }; factorial(5)`, object.NewInt(120)},
-		{closure, object.NewInt(113)},
+		{`z := 10; y := func(x, inc=100) { x + z + inc }; y(3)`, object.NewInt(113)},
+		{`func(x="a", y="b") { x + y }()`, object.NewString("ab")},
+		{`func(x="a", y="b") { x + y + "c" }()`, object.NewString("abc")},
+		{`func(x="a", y="b") { x + y + "c" }("W")`, object.NewString("Wbc")},
+		{`func(x="a", y="b") { x + y + "c" }("W", "X")`, object.NewString("WXc")},
+		{`func(x="a", y="b") { return "X"; x + y + "c" }()`, object.NewString("X")},
+		{`x := 1; func() { y := 10; x + y }()`, object.NewInt(11)},
+		{`x := 1; func() { func() { y := 10; x + y } }()()`, object.NewInt(11)},
 	}
 	runTests(t, tests)
 }
 
-func TestMultipleCases(t *testing.T) {
+func TestContainers(t *testing.T) {
+	tests := []testCase{
+		{`true`, object.True},
+		{`[1,2,3][2]`, object.NewInt(3)},
+		{`"hello"[1]`, object.NewString("e")},
+		{`{"x": 10, "y": 20}["x"]`, object.NewInt(10)},
+		{`3 in [1, 2, 3]`, object.True},
+		{`4 in [1, 2, 3]`, object.False},
+		{`{"foo": "bar"}["foo"]`, object.NewString("bar")},
+		{`{foo: "bar"}["foo"]`, object.NewString("bar")},
+		{`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
+			[]object.Object{object.NewInt(4), object.NewInt(5)})},
+		{`range [1]`, object.NewListIter(object.NewList([]object.Object{object.NewInt(1)}))},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("DataStructures", func(t *testing.T) {
-		tests := []testCase{
-			{`true`, object.True},
-			{`[1,2,3][2]`, object.NewInt(3)},
-			{`"hello"[1]`, object.NewString("e")},
-			{`{"x": 10, "y": 20}["x"]`, object.NewInt(10)},
-			{`3 in [1, 2, 3]`, object.True},
-			{`4 in [1, 2, 3]`, object.False},
-			{`{"foo": "bar"}["foo"]`, object.NewString("bar")},
-			{`{foo: "bar"}["foo"]`, object.NewString("bar")},
-			{`[1, 2, 3, 4, 5].filter(func(x) { x > 3 })`, object.NewList(
-				[]object.Object{object.NewInt(4), object.NewInt(5)})},
-			{`range [1]`, object.NewListIter(object.NewList([]object.Object{object.NewInt(1)}))},
-		}
-		runTests(t, tests)
-	})
+func TestStrings(t *testing.T) {
+	tests := []testCase{
+		{`"hello" + " " + "world"`, object.NewString("hello world")},
+		{`"hello".contains("e")`, object.True},
+		{`"hello".contains("x")`, object.False},
+		{`"hello".contains("ello")`, object.True},
+		{`"hello".contains("ellx")`, object.False},
+		{`"hello".contains("")`, object.True},
+		{`"hello"[0]`, object.NewString("h")},
+		{`"hello"[1]`, object.NewString("e")},
+		{`"hello"[-1]`, object.NewString("o")},
+		{`"hello"[-2]`, object.NewString("l")},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Strings", func(t *testing.T) {
-		tests := []testCase{
-			{`"hello" + " " + "world"`, object.NewString("hello world")},
-			{`"hello".contains("e")`, object.True},
-			{`"hello".contains("x")`, object.False},
-			{`"hello".contains("ello")`, object.True},
-			{`"hello".contains("ellx")`, object.False},
-			{`"hello".contains("")`, object.True},
-			{`"hello"[0]`, object.NewString("h")},
-			{`"hello"[1]`, object.NewString("e")},
-			{`"hello"[-1]`, object.NewString("o")},
-			{`"hello"[-2]`, object.NewString("l")},
-		}
-		runTests(t, tests)
-	})
+func TestPipes(t *testing.T) {
+	tests := []testCase{
+		{`"hello" | strings.to_upper`, object.NewString("HELLO")},
+		{`"hello" | len`, object.NewInt(5)},
+		{`func() { "hello" }() | len`, object.NewInt(5)},
+		{`["a", "b"] | strings.join(",") | strings.to_upper`, object.NewString("A,B")},
+		{`func() { "a" } | call`, object.NewString("a")},
+		{`"abc" | getattr("to_upper") | call`, object.NewString("ABC")},
+		{`"abc" | func(s) { s.to_upper() }`, object.NewString("ABC")},
+		{`[11, 12, 3] | math.max`, object.NewFloat(12)},
+		{`"42" | json.unmarshal`, object.NewOkResult(object.NewFloat(42))},
+	}
+	runTests(t, tests)
+}
 
-	t.Run("Pipes", func(t *testing.T) {
-		tests := []testCase{
-			{`"hello" | strings.to_upper`, object.NewString("HELLO")},
-			{`"hello" | len`, object.NewInt(5)},
-			{`func() { "hello" }() | len`, object.NewInt(5)},
-			{`["a", "b"] | strings.join(",") | strings.to_upper`, object.NewString("A,B")},
-		}
-		runTests(t, tests)
-	})
-
-	t.Run("Imports", func(t *testing.T) {
-		tests := []testCase{
-			// {`import strings; strings`, object.NewModule("strings", nil)},
-		}
-		runTests(t, tests)
-	})
+func TestImports(t *testing.T) {
+	tests := []testCase{
+		// {`import strings; strings`, object.NewModule("strings", nil)},
+	}
+	runTests(t, tests)
 }
 
 type testCase struct {
