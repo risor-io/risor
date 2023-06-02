@@ -1032,6 +1032,66 @@ func TestRangeLoopContinue(t *testing.T) {
 	require.Equal(t, object.NewInt(3), result)
 }
 
+func TestSimpleLoopBreak(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	for {
+		x++
+		if x == 2 { break }
+		print(math.max([1, 2, 3])) // inject some extra instructions
+	}
+	x
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(2), result)
+}
+
+func TestNestedLoops(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x, y, z := [0, 0, 0]
+	for {
+		x++ // This should execute 3 times total
+		if x == 3 { break }
+		// We should reach this point twice, with x as 1 then 2
+		for i := range [0, 1, 2, 3] {
+			y++ // This should execute 8 times total
+			if i > 1 { continue }
+			// We should reach this point 4 times total
+			for h := 0; h < 10; h++ {
+				z++ // This should execute 16 times total (4 times per inner loop)
+				if h == 3 { break }
+			}
+		}
+	}
+	[x, y, z]
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(3),
+		object.NewInt(8),
+		object.NewInt(16),
+	}), result)
+}
+
+func TestSimpleLoopContinue(t *testing.T) {
+	result, err := Run(context.Background(), `
+	x := 0
+	y := 0
+	for {
+		x++
+		if x < 2 { continue }
+		// We'll reach here on x in [2, 3, 4, 5, 6]
+		if x > 5 { break }
+		// We'll reach here on x in [2, 3, 4, 5]; so y should increment 4 times
+		y++
+		print(math.max([1, 2, 3])) // inject some extra instructions
+	}
+	y
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), result)
+}
+
 func TestImports(t *testing.T) {
 	tests := []testCase{
 		// {`import strings; strings`, object.NewModule("strings", nil)},
