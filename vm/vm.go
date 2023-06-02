@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/cloudcmds/tamarin/importer"
-	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 const (

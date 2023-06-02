@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 // Int wraps int64 and implements Object and Hashable interfaces.

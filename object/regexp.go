@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 // Regexp wraps regexp.Regexp and implements the Object interface.

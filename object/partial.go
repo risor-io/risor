@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 // Partial is a partially applied function

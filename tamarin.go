@@ -8,10 +8,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/cloudcmds/tamarin/internal/vm"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 	"github.com/cloudcmds/tamarin/repl"
+	"github.com/cloudcmds/tamarin/vm"
 	"github.com/fatih/color"
 )
 

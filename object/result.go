@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 // Result contains one of: an "ok" value or an "err" value

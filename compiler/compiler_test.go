@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 	"github.com/stretchr/testify/require"
 )
 

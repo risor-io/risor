@@ -10,7 +10,7 @@ import (
 	"unicode"
 
 	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/internal/httputil"
+	"github.com/cloudcmds/tamarin/httputil"
 	"github.com/cloudcmds/tamarin/object"
 )
 

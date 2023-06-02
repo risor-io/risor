@@ -3,7 +3,7 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 type Module struct {

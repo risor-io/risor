@@ -16,7 +16,7 @@
 // name of the object type, such as "STRING" or "FLOAT".
 package object
 
-import "github.com/cloudcmds/tamarin/internal/op"
+import "github.com/cloudcmds/tamarin/op"
 
 // Type defines the type of an object.
 type Type string

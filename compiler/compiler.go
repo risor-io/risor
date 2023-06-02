@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/op"
 	"github.com/cloudcmds/tamarin/token"
 )
 

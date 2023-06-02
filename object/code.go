@@ -1,7 +1,7 @@
 package object
 
 import (
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 type Loop struct {

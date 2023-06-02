@@ -3,8 +3,8 @@ package vm
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/internal/op"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 func compare(opType op.CompareOpType, a, b object.Object) object.Object {

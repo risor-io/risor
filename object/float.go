@@ -5,7 +5,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 // Float wraps float64 and implements Object and Hashable interfaces.

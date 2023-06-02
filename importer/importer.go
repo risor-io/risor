@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cloudcmds/tamarin/internal/compiler"
+	"github.com/cloudcmds/tamarin/compiler"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
 )

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/internal/vm"
 	"github.com/cloudcmds/tamarin/object"
 	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/vm"
 	"github.com/stretchr/testify/require"
 )
 

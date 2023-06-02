@@ -3,8 +3,8 @@ package vm
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/compiler"
 	"github.com/cloudcmds/tamarin/importer"
-	"github.com/cloudcmds/tamarin/internal/compiler"
 	modJson "github.com/cloudcmds/tamarin/modules/json"
 	modMath "github.com/cloudcmds/tamarin/modules/math"
 	modPgx "github.com/cloudcmds/tamarin/modules/pgx"

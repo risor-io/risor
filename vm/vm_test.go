@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/internal/compiler"
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/compiler"
 	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/op"
 	"github.com/cloudcmds/tamarin/parser"
 	"github.com/stretchr/testify/require"
 )

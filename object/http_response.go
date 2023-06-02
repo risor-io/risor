@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/cloudcmds/tamarin/internal/op"
+	"github.com/cloudcmds/tamarin/op"
 )
 
 const TenMB = 1024 * 1024 * 10
