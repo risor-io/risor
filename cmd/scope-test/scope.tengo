@@ -1,8 +1,0 @@
-
-
-x := 12
-if x > 50 {
-    x := 20
-    fmt.println("new x:", x)
-}
-fmt.println("old x:", x)
