@@ -2,12 +2,10 @@ package math
 
 import (
 	"context"
-	"fmt"
 	"math"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Name of this module
@@ -339,37 +337,28 @@ func Round(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(math.Round(x))
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"abs":    object.NewBuiltin("abs", Abs),
+		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
+		"min":    object.NewBuiltin("min", Min),
+		"max":    object.NewBuiltin("max", Max),
+		"floor":  object.NewBuiltin("floor", Floor),
+		"ceil":   object.NewBuiltin("ceil", Ceil),
+		"sin":    object.NewBuiltin("sin", Sin),
+		"cos":    object.NewBuiltin("cos", Cos),
+		"tan":    object.NewBuiltin("tan", Tan),
+		"mod":    object.NewBuiltin("mod", Mod),
+		"log":    object.NewBuiltin("log", Log),
+		"log10":  object.NewBuiltin("log10", Log10),
+		"log2":   object.NewBuiltin("log2", Log2),
+		"pow":    object.NewBuiltin("pow", Pow),
+		"pow10":  object.NewBuiltin("pow10", Pow10),
+		"is_inf": object.NewBuiltin("is_inf", IsInf),
+		"round":  object.NewBuiltin("round", Round),
+		"sum":    object.NewBuiltin("sum", Sum),
+		"PI":     object.NewFloat(math.Pi),
+		"E":      object.NewFloat(math.E),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("abs", Abs, m),
-		object.NewBuiltin("sqrt", Sqrt, m),
-		object.NewBuiltin("min", Min, m),
-		object.NewBuiltin("max", Max, m),
-		object.NewBuiltin("floor", Floor, m),
-		object.NewBuiltin("ceil", Ceil, m),
-		object.NewBuiltin("sin", Sin, m),
-		object.NewBuiltin("cos", Cos, m),
-		object.NewBuiltin("tan", Tan, m),
-		object.NewBuiltin("mod", Mod, m),
-		object.NewBuiltin("log", Log, m),
-		object.NewBuiltin("log10", Log10, m),
-		object.NewBuiltin("log2", Log2, m),
-		object.NewBuiltin("pow", Pow, m),
-		object.NewBuiltin("pow10", Pow10, m),
-		object.NewBuiltin("is_inf", IsInf, m),
-		object.NewBuiltin("round", Round, m),
-		object.NewBuiltin("sum", Sum, m),
-	}); err != nil {
-		return nil, err
-	}
-	s.Declare("PI", object.NewFloat(math.Pi), true)
-	s.Declare("E", object.NewFloat(math.E), true)
-	return m, nil
+	return m
 }

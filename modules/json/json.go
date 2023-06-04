@@ -3,11 +3,9 @@ package json
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/wI2L/jsondiff"
 )
 
@@ -24,13 +22,13 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var obj interface{}
 	if err := json.Unmarshal([]byte(s.Value()), &obj); err != nil {
-		return object.NewErrResult(object.Errorf("value error: json.unmarshal failed with: %s", object.NewError(err)))
+		return object.Errorf("value error: json.unmarshal failed with: %s", object.NewError(err))
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
-		return object.NewErrResult(object.Errorf("type error: json.unmarshal failed"))
+		return object.Errorf("type error: json.unmarshal failed")
 	}
-	return object.NewOkResult(scriptObj)
+	return scriptObj
 }
 
 func Marshal(ctx context.Context, args ...object.Object) object.Object {
@@ -39,13 +37,13 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	obj := args[0].Interface()
 	if err, ok := obj.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	b, err := json.Marshal(obj)
 	if err != nil {
-		return object.NewErrResult(object.Errorf("value error: json.marshal failed with: %s", object.NewError(err)))
+		return object.Errorf("value error: json.marshal failed with: %s", object.NewError(err))
 	}
-	return object.NewOkResult(object.NewString(string(b)))
+	return object.NewString(string(b))
 }
 
 func Valid(ctx context.Context, args ...object.Object) object.Object {
@@ -65,47 +63,38 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 	}
 	a := args[0].Interface()
 	if err, ok := a.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	b := args[1].Interface()
 	if err, ok := b.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	aBytes, err := json.Marshal(a)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	bBytes, err := json.Marshal(b)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	patch, err := jsondiff.CompareJSON(aBytes, bBytes)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	unmarshalArgs := []object.Object{object.NewString(string(patchJSON))}
 	return Unmarshal(ctx, unmarshalArgs...)
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"unmarshal": object.NewBuiltin("unmarshal", Unmarshal),
+		"marshal":   object.NewBuiltin("marshal", Marshal),
+		"valid":     object.NewBuiltin("valid", Valid),
+		"diff":      object.NewBuiltin("diff", Diff),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("unmarshal", Unmarshal, m),
-		object.NewBuiltin("marshal", Marshal, m),
-		object.NewBuiltin("valid", Valid, m),
-		object.NewBuiltin("diff", Diff, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return m
 }

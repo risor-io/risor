@@ -2,4 +2,4 @@
 // expected value: "a\\ntest\\tstring\\\\"
 // expected type: string
 
-raw := `a\ntest\tstring\\`
+`a\ntest\tstring\\`

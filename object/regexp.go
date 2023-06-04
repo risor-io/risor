@@ -3,6 +3,8 @@ package object
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // Regexp wraps regexp.Regexp and implements the Object interface.
@@ -65,6 +67,10 @@ func (r *Regexp) Equals(other Object) Object {
 
 func (r *Regexp) IsTruthy() bool {
 	return true
+}
+
+func (r *Regexp) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for regexp: %v", opType))
 }
 
 func NewRegexp(re *regexp.Regexp) *Regexp {

@@ -1,3 +1,5 @@
+cmd/cli/cli
+.vscode
 monkey
 monkey-*
 tamarin

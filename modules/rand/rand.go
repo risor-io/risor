@@ -4,12 +4,10 @@ import (
 	"context"
 	crand "crypto/rand"
 	"encoding/binary"
-	"fmt"
 	"math/rand"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Name of this module
@@ -77,23 +75,14 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 	return ls
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"float":      object.NewBuiltin("float", Float),
+		"int":        object.NewBuiltin("int", Int),
+		"intn":       object.NewBuiltin("intn", IntN),
+		"norm_float": object.NewBuiltin("norm_float", NormFloat),
+		"exp_float":  object.NewBuiltin("exp_float", ExpFloat),
+		"shuffle":    object.NewBuiltin("shuffle", Shuffle),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("float", Float, m),
-		object.NewBuiltin("int", Int, m),
-		object.NewBuiltin("intn", IntN, m),
-		object.NewBuiltin("norm_float", NormFloat, m),
-		object.NewBuiltin("exp_float", ExpFloat, m),
-		object.NewBuiltin("shuffle", Shuffle, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return m
 }

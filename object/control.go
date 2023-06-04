@@ -1,6 +1,10 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
+)
 
 // Control is used internally during evaluation of "break", "continue", and
 // "return" statements.
@@ -54,6 +58,10 @@ func (c *Control) Equals(other Object) Object {
 
 func (c *Control) IsTruthy() bool {
 	return true
+}
+
+func (c *Control) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for control: %v", opType))
 }
 
 func NewReturn(value Object) *Control {

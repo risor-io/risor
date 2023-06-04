@@ -2,11 +2,9 @@ package strings
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Name of this module
@@ -215,34 +213,25 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	return s.TrimSpace()
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"contains":    object.NewBuiltin("contains", Contains),
+		"count":       object.NewBuiltin("count", Count),
+		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),
+		"has_suffix":  object.NewBuiltin("has_suffix", HasSuffix),
+		"compare":     object.NewBuiltin("compare", Compare),
+		"join":        object.NewBuiltin("join", Join),
+		"split":       object.NewBuiltin("split", Split),
+		"fields":      object.NewBuiltin("fields", Fields),
+		"index":       object.NewBuiltin("index", Index),
+		"last_index":  object.NewBuiltin("last_index", LastIndex),
+		"replace_all": object.NewBuiltin("replace_all", ReplaceAll),
+		"to_lower":    object.NewBuiltin("to_lower", ToLower),
+		"to_upper":    object.NewBuiltin("to_upper", ToUpper),
+		"trim":        object.NewBuiltin("trim", Trim),
+		"trim_prefix": object.NewBuiltin("trim_prefix", TrimPrefix),
+		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
+		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("contains", Contains, m),
-		object.NewBuiltin("count", Count, m),
-		object.NewBuiltin("has_prefix", HasPrefix, m),
-		object.NewBuiltin("has_suffix", HasSuffix, m),
-		object.NewBuiltin("compare", Compare, m),
-		object.NewBuiltin("join", Join, m),
-		object.NewBuiltin("split", Split, m),
-		object.NewBuiltin("fields", Fields, m),
-		object.NewBuiltin("index", Index, m),
-		object.NewBuiltin("last_index", LastIndex, m),
-		object.NewBuiltin("replace_all", ReplaceAll, m),
-		object.NewBuiltin("to_lower", ToLower, m),
-		object.NewBuiltin("to_upper", ToUpper, m),
-		object.NewBuiltin("trim", Trim, m),
-		object.NewBuiltin("trim_prefix", TrimPrefix, m),
-		object.NewBuiltin("trim_suffix", TrimSuffix, m),
-		object.NewBuiltin("trim_space", TrimSpace, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return m
 }

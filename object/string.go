@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type String struct {
@@ -234,6 +236,24 @@ func (s *String) IsTruthy() bool {
 	return s.value != ""
 }
 
+func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
+	switch right := right.(type) {
+	case *String:
+		return s.runOperationString(opType, right)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+	}
+}
+
+func (s *String) runOperationString(opType op.BinaryOpType, right *String) Object {
+	switch opType {
+	case op.Add:
+		return NewString(s.value + right.value)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+	}
+}
+
 func (s *String) Reversed() *String {
 	runes := []rune(s.value)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -266,11 +286,39 @@ func (s *String) GetSlice(slice Slice) (Object, *Error) {
 }
 
 func (s *String) SetItem(key, value Object) *Error {
-	return Errorf("eval error: string does not support set item")
+	runes := []rune(s.value)
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return Errorf("index error: index must be an int (got %s)", key.Type())
+	}
+	index, err := ResolveIndex(indexObj.value, int64(len(runes)))
+	if err != nil {
+		return Errorf(err.Error())
+	}
+	valueStr, ok := value.(*String)
+	if !ok {
+		return Errorf("index error: value must be a string (got %s)", value.Type())
+	}
+	if len(valueStr.value) != 1 {
+		return Errorf("index error: value must be a string of length 1 (got %d)", len(valueStr.value))
+	}
+	runes[index] = []rune(valueStr.value)[0]
+	s.value = string(runes)
+	return nil
 }
 
 func (s *String) DelItem(key Object) *Error {
-	return Errorf("eval error: string does not support del item")
+	runes := []rune(s.value)
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return Errorf("index error: index must be an int (got %s)", key.Type())
+	}
+	index, err := ResolveIndex(indexObj.value, int64(len(runes)))
+	if err != nil {
+		return Errorf(err.Error())
+	}
+	s.value = string(append(runes[:index], runes[index+1:]...))
+	return nil
 }
 
 func (s *String) Contains(obj Object) *Bool {
@@ -398,7 +446,7 @@ func (s *String) TrimSpace() Object {
 }
 
 func (s *String) Len() *Int {
-	return NewInt(int64(len(s.value)))
+	return NewInt(int64(len([]rune(s.value))))
 }
 
 func (s *String) Iter() Iterator {

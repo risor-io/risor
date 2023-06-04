@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type Map struct {
@@ -325,6 +327,10 @@ func (m *Map) Equals(other Object) Object {
 		}
 	}
 	return True
+}
+
+func (m *Map) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for map: %v", opType))
 }
 
 func (m *Map) GetItem(key Object) (Object, *Error) {

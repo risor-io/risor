@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type SetIter struct {
@@ -17,6 +19,10 @@ func (iter *SetIter) Type() Type {
 
 func (iter *SetIter) Inspect() string {
 	return fmt.Sprintf("set_iter(%s)", iter.set.Inspect())
+}
+
+func (iter *SetIter) String() string {
+	return iter.Inspect()
 }
 
 func (iter *SetIter) Interface() interface{} {
@@ -64,6 +70,10 @@ func (iter *SetIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.keys))
 }
 
+func (iter *SetIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for set_iter: %v", opType))
+}
+
 func (iter *SetIter) Next() (IteratorEntry, bool) {
 	hashKeys := iter.keys
 	if iter.pos >= int64(len(hashKeys)) {
@@ -75,7 +85,7 @@ func (iter *SetIter) Next() (IteratorEntry, bool) {
 	if !ok {
 		return nil, false
 	}
-	return NewEntry(value, True), true
+	return NewEntry(value, True).WithKeyAsPrimary(), true
 }
 
 func NewSetIter(set *Set) *SetIter {

@@ -8,10 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/exec"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/cloudcmds/tamarin/v2/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,14 +79,7 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	result, err := exec.Execute(ctx, exec.Opts{
-		Input:    string(input),
-		Importer: &evaluator.SimpleImporter{},
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return vm.Run(ctx, string(input))
 }
 
 func listTestFiles() []string {

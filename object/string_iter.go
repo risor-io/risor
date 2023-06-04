@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type StringIter struct {
@@ -17,6 +19,10 @@ func (iter *StringIter) Type() Type {
 
 func (iter *StringIter) Inspect() string {
 	return fmt.Sprintf("string_iter(%s)", iter.s.Inspect())
+}
+
+func (iter *StringIter) String() string {
+	return iter.Inspect()
 }
 
 func (iter *StringIter) Interface() interface{} {
@@ -72,6 +78,10 @@ func (iter *StringIter) Next() (IteratorEntry, bool) {
 	entry := NewEntry(NewInt(iter.pos), NewString(string(r)))
 	iter.pos++
 	return entry, true
+}
+
+func (iter *StringIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for string_iter: %v", opType))
 }
 
 func NewStringIter(s *String) *StringIter {

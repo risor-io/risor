@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // BuiltinFunction holds the type of a built-in function.
@@ -96,6 +98,10 @@ func (b *Builtin) Equals(other Object) Object {
 
 func (b *Builtin) IsTruthy() bool {
 	return b.fn != nil
+}
+
+func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for builtin: %v", opType))
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // List of objects
@@ -220,7 +222,8 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	var numParameters int
 	switch obj := fn.(type) {
 	case *Builtin:
-		numParameters = 1
+		// numParameters = 1
+		return Errorf("todo")
 	case *Function:
 		numParameters = len(obj.parameters)
 	default:
@@ -229,6 +232,7 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	if numParameters < 1 || numParameters > 2 {
 		return Errorf("type error: list.map() received an incompatible function")
 	}
+	compiledFunc := fn.(*Function)
 	var index Int
 	mapArgs := make([]Object, 2)
 	result := make([]Object, 0, len(ls.items))
@@ -236,11 +240,15 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 		index.value = int64(i)
 		mapArgs[0] = &index
 		mapArgs[1] = value
+		var err error
 		var outputValue Object
 		if numParameters == 1 {
-			outputValue = callFunc(ctx, nil, fn, mapArgs[1:])
+			outputValue, err = callFunc(ctx, compiledFunc, mapArgs[1:])
 		} else {
-			outputValue = callFunc(ctx, nil, fn, mapArgs)
+			outputValue, err = callFunc(ctx, compiledFunc, mapArgs)
+		}
+		if err != nil {
+			return Errorf(err.Error())
 		}
 		if IsError(outputValue) {
 			return outputValue
@@ -265,7 +273,10 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 	var result []Object
 	for _, value := range ls.items {
 		filterArgs[0] = value
-		decision := callFunc(ctx, nil, fn, filterArgs)
+		decision, err := callFunc(ctx, fn.(*Function), filterArgs)
+		if err != nil {
+			return Errorf(err.Error())
+		}
 		if IsError(decision) {
 			return decision
 		}
@@ -290,7 +301,10 @@ func (ls *List) Each(ctx context.Context, fn Object) Object {
 	eachArgs := make([]Object, 1)
 	for _, value := range ls.items {
 		eachArgs[0] = value
-		result := callFunc(ctx, nil, fn, eachArgs)
+		result, err := callFunc(ctx, fn.(*Function), eachArgs)
+		if err != nil {
+			return Errorf(err.Error())
+		}
 		if IsError(result) {
 			return result
 		}
@@ -520,7 +534,16 @@ func (ls *List) SetItem(key, value Object) *Error {
 
 // DelItem implements the del [key] operator for a container type.
 func (ls *List) DelItem(key Object) *Error {
-	return Errorf("list does not support del operator")
+	indexObj, ok := key.(*Int)
+	if !ok {
+		return Errorf("type error: list index must be an int (got %s)", key.Type())
+	}
+	idx, err := ResolveIndex(indexObj.value, int64(len(ls.items)))
+	if err != nil {
+		return Errorf(err.Error())
+	}
+	ls.items = append(ls.items[:idx], ls.items[idx+1:]...)
+	return nil
 }
 
 // Contains returns true if the given item is found in this container.
@@ -540,6 +563,29 @@ func (ls *List) Len() *Int {
 
 func (ls *List) Iter() Iterator {
 	return NewListIter(ls)
+}
+
+func (ls *List) RunOperation(opType op.BinaryOpType, right Object) Object {
+	switch right := right.(type) {
+	case *List:
+		return ls.runOperationList(opType, right)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+			opType, right.Type()))
+	}
+}
+
+func (ls *List) runOperationList(opType op.BinaryOpType, right *List) Object {
+	switch opType {
+	case op.Add:
+		combined := make([]Object, len(ls.items)+len(right.items))
+		copy(combined, ls.items)
+		copy(combined[len(ls.items):], right.items)
+		return NewList(combined)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+			opType, right.Type()))
+	}
 }
 
 func NewList(items []Object) *List {

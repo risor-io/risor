@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type MapIter struct {
@@ -17,6 +19,10 @@ func (iter *MapIter) Type() Type {
 
 func (iter *MapIter) Inspect() string {
 	return fmt.Sprintf("map_iter(%s)", iter.m.Inspect())
+}
+
+func (iter *MapIter) String() string {
+	return iter.Inspect()
 }
 
 func (iter *MapIter) Interface() interface{} {
@@ -64,6 +70,10 @@ func (iter *MapIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.keys))
 }
 
+func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for map_iter: %v", opType))
+}
+
 func (iter *MapIter) Next() (IteratorEntry, bool) {
 	keys := iter.keys
 	if iter.pos >= int64(len(keys)) {
@@ -75,7 +85,7 @@ func (iter *MapIter) Next() (IteratorEntry, bool) {
 	if !ok {
 		return nil, false
 	}
-	return NewEntry(NewString(key), value), true
+	return NewEntry(NewString(key), value).WithKeyAsPrimary(), true
 }
 
 func NewMapIter(m *Map) *MapIter {

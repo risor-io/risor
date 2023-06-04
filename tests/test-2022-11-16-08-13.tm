@@ -4,18 +4,11 @@
 
 var s = "\"hello\""
 var j = json.unmarshal(s)
-assert(type(j) == "result")
-assert(j.is_ok())
-assert(!j.is_err())
+assert(type(j) == "string")
+assert(j == "hello")
 
-var v = j.unwrap()
-assert(type(v) == "string")
-assert(v == "hello")
+s = json.marshal("hello")
+assert(type(s) == "string")
+assert(s == "\"hello\"")
 
-s = json.marshal(v)
-assert(type(s) == "result")
-assert(j.is_ok())
-assert(!j.is_err())
-
-assert(s.unwrap() == "\"hello\"")
-s.unwrap()
+s

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/ast"
+	"github.com/cloudcmds/tamarin/v2/token"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,11 +24,13 @@ func TestVarStatements(t *testing.T) {
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)
+		fmt.Println(err)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		stmt := program.First()
+		stmt, ok := program.First().(*ast.Var)
+		require.True(t, ok)
 		testVarStatement(t, stmt, tt.ident)
-		name, val := stmt.(*ast.Var).Value()
+		name, val := stmt.Value()
 		testLiteralExpression(t, val, tt.value)
 		require.Equal(t, tt.ident, name)
 	}
@@ -85,11 +87,12 @@ func TestConst(t *testing.T) {
 		program, err := Parse(tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		stmt := program.First()
+		stmt, ok := program.First().(*ast.Const)
+		require.True(t, ok)
 		if !testConstStatement(t, stmt, tt.expectedIdentifier) {
 			return
 		}
-		name, val := stmt.(*ast.Const).Value()
+		name, val := stmt.Value()
 		require.Equal(t, tt.expectedIdentifier, name)
 		if !testLiteralExpression(t, val, tt.expectedValue) {
 			return
@@ -325,9 +328,9 @@ func TestCall(t *testing.T) {
 	}
 	args := expr.Arguments()
 	require.Len(t, args, 3)
-	testLiteralExpression(t, args[0], 1)
-	testInfixExpression(t, args[1], 2, "*", 3)
-	testInfixExpression(t, args[2], 4, "+", 5)
+	testLiteralExpression(t, args[0].(ast.Expression), 1)
+	testInfixExpression(t, args[1].(ast.Expression), 2, "*", 3)
+	testInfixExpression(t, args[2].(ast.Expression), 4, "+", 5)
 }
 
 func TestString(t *testing.T) {
@@ -476,11 +479,10 @@ func TestIncompleThings(t *testing.T) {
 
 func TestSwitch(t *testing.T) {
 	input := `switch val {
-   case 1:
+	case 1:
+	default:
       x
-   default:
-      y
-	  x = x + 1
+	  x
 }`
 	program, err := Parse(input)
 	require.Nil(t, err)
@@ -810,6 +812,16 @@ func FuzzParse(f *testing.F) {
 		`'foo {x + 1}'`,
 		`x.func(x=1, y=2).bar`,
 		`0A=`,
+		`"hi" | strings.to_lower | strings.to_upper`,
+		`math.PI * 2.0`,
+		`{x: 1, y: 2, z: 3} | keys`,
+		`{1, "hi"} | len`,
+		`for i := 0; i < 10; i++ { x += i }`,
+		`x := 1; for i := range [1, 2, 3] { print(x + i) }`,
+		`[1] in {1, 2, 3}`,
+		`f := func(x) { func() { x + 1 } }; f(1)`,
+		`switch x { case 1: 1 case 2: 2 default: 3 }`,
+		`x["foo"][1:3]`,
 	}
 	for _, tc := range testcases {
 		f.Add(tc) // Use f.Add to provide a seed corpus
@@ -834,6 +846,8 @@ func TestBadInputs(t *testing.T) {
 		{"range", `parse error: invalid range expression`},
 		{"in", `parse error: invalid syntax (unexpected "in")`},
 		{"x in", `parse error: invalid in expression`},
+		{"switch x { case 1: \xf5\xf51 case 2: 2 default: 3 }", `syntax error: invalid identifier: �`},
+		{"switch x { case 1: 1 case 2: 2 defaultIIIIIII: 3 }", "parse error: invalid syntax (unexpected \":\")"},
 	}
 	for _, tt := range tests {
 		program, err := Parse(tt.input)

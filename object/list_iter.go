@@ -3,6 +3,8 @@ package object
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type ListIter struct {
@@ -16,6 +18,10 @@ func (iter *ListIter) Type() Type {
 
 func (iter *ListIter) Inspect() string {
 	return fmt.Sprintf("list_iter(%s)", iter.l.Inspect())
+}
+
+func (iter *ListIter) String() string {
+	return iter.Inspect()
 }
 
 func (iter *ListIter) Interface() interface{} {
@@ -61,6 +67,10 @@ func (iter *ListIter) GetAttr(name string) (Object, bool) {
 
 func (iter *ListIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.l.items))
+}
+
+func (iter *ListIter) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for list_iter: %v", opType))
 }
 
 func (iter *ListIter) Next() (IteratorEntry, bool) {

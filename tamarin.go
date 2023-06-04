@@ -1,16 +1,3 @@
-// Package main is the entry point for the Tamarin CLI.
-// A path to a Tamarin script should be provided as an
-// argument to the program.
-//
-// Example:
-//
-//	$ cd path/to/tamarin
-//	$ go build
-//	$ ./tamarin ./examples/math.tm
-//
-// Tamarin may also be imported into another Go program
-// to be used as a library. View the exec package for
-// documentation on using Tamarin as a library.
 package main
 
 import (
@@ -19,20 +6,20 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"time"
 
-	"github.com/cloudcmds/tamarin/evaluator"
-	"github.com/cloudcmds/tamarin/exec"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
-	"github.com/cloudcmds/tamarin/repl"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/cloudcmds/tamarin/v2/repl"
+	"github.com/cloudcmds/tamarin/v2/vm"
 	"github.com/fatih/color"
 )
 
 func main() {
-	var noColor bool
+	var noColor, showTiming bool
 	var profilerOutputPath, code, breakpoints string
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
+	flag.BoolVar(&showTiming, "timing", false, "Show timing information")
 	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
 	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
@@ -54,11 +41,8 @@ func main() {
 	}
 
 	ctx := context.Background()
-	globalScope := scope.New(scope.Opts{Name: "global"})
-	if err := exec.AutoImport(globalScope, nil, nil); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-		os.Exit(1)
-	}
+
+	interp := vm.NewInterpreter(nil)
 
 	// Input can only come from one source
 	nArgs := len(flag.Args())
@@ -67,7 +51,7 @@ func main() {
 		os.Exit(1)
 	} else if nArgs == 0 && len(code) == 0 {
 		// Run REPL
-		if err := repl.Run(ctx, globalScope); err != nil {
+		if err := repl.Run(ctx, interp); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 			os.Exit(1)
 		}
@@ -90,24 +74,9 @@ func main() {
 		input = string(bytes)
 	}
 
-	var breaks []evaluator.Breakpoint
-	if len(breakpoints) > 0 {
-		breaks, err = evaluator.ParseBreakpoints(breakpoints)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-			os.Exit(1)
-		}
-	}
+	start := time.Now()
 
-	// Execute the script
-	result, err := exec.Execute(ctx, exec.Opts{
-		Input:             string(input),
-		Scope:             globalScope,
-		DisableAutoImport: true,
-		File:              filename,
-		Importer:          &evaluator.SimpleImporter{},
-		Breakpoints:       breaks,
-	})
+	result, err := vm.Run(ctx, string(input))
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {
@@ -118,8 +87,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Print the result
-	if result != object.Nil {
-		fmt.Println(result.Inspect())
+	if showTiming {
+		fmt.Printf("%.03f\n", time.Since(start).Seconds())
+	} else {
+		// Print the result
+		if result != object.Nil {
+			fmt.Println(result.Inspect())
+		}
 	}
 }

@@ -16,36 +16,40 @@
 // name of the object type, such as "STRING" or "FLOAT".
 package object
 
+import "github.com/cloudcmds/tamarin/v2/op"
+
 // Type defines the type of an object.
 type Type string
 
 // Type constants
 const (
-	INT           Type = "int"
-	FLOAT         Type = "float"
 	BOOL          Type = "bool"
-	NIL           Type = "nil"
-	ERROR         Type = "error"
-	FUNCTION      Type = "function"
-	STRING        Type = "string"
 	BUILTIN       Type = "builtin"
-	LIST          Type = "list"
-	MAP           Type = "map"
-	FILE          Type = "file"
-	REGEXP        Type = "regexp"
-	SET           Type = "set"
-	MODULE        Type = "module"
-	RESULT        Type = "result"
-	HTTP_RESPONSE Type = "http_response"
-	DB_CONNECTION Type = "db_connection"
-	TIME          Type = "time"
-	PROXY         Type = "proxy"
+	CELL          Type = "cell"
 	CONTROL       Type = "control"
-	STRING_ITER   Type = "string_iter"
-	LIST_ITER     Type = "list_iter"
-	MAP_ITER      Type = "map_iter"
-	SET_ITER      Type = "set_iter"
+	DB_CONNECTION Type = "db_connection"
+	ERROR         Type = "error"
+	FILE          Type = "file"
+	FLOAT         Type = "float"
+	FUNCTION      Type = "function"
+	HTTP_RESPONSE Type = "http_response"
+	INT           Type = "int"
 	ITER_ENTRY    Type = "iter_entry"
+	LIST          Type = "list"
+	LIST_ITER     Type = "list_iter"
+	MAP           Type = "map"
+	MAP_ITER      Type = "map_iter"
+	MODULE        Type = "module"
+	NIL           Type = "nil"
+	PARTIAL       Type = "partial"
+	PROXY         Type = "proxy"
+	REGEXP        Type = "regexp"
+	RESULT        Type = "result"
+	SET           Type = "set"
+	SET_ITER      Type = "set_iter"
+	STRING        Type = "string"
+	STRING_ITER   Type = "string_iter"
+	TIME          Type = "time"
 )
 
 var (
@@ -74,6 +78,10 @@ type Object interface {
 
 	// IsTruthy returns true if the object is considered "truthy".
 	IsTruthy() bool
+
+	// RunOperation runs an operation on this object with the given
+	// right-hand side object.
+	RunOperation(opType op.BinaryOpType, right Object) Object
 }
 
 // Slice is used to specify a range or slice of items in a container.
@@ -87,6 +95,7 @@ type IteratorEntry interface {
 	Object
 	Key() Object
 	Value() Object
+	Primary() Object
 }
 
 // Iterator is an interface used to iterate over a container.

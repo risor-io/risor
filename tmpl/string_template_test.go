@@ -3,7 +3,7 @@ package tmpl_test
 import (
 	"testing"
 
-	"github.com/cloudcmds/tamarin/tmpl"
+	"github.com/cloudcmds/tamarin/v2/tmpl"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,10 +1,15 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
+)
 
 type Entry struct {
-	key   Object
-	value Object
+	key     Object
+	value   Object
+	primary Object
 }
 
 func (e *Entry) Type() Type {
@@ -51,12 +56,33 @@ func (e *Entry) IsTruthy() bool {
 	return true
 }
 
+func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for entry: %v", opType))
+}
+
 func (e *Entry) Key() Object {
 	return e.key
 }
 
 func (e *Entry) Value() Object {
 	return e.value
+}
+
+func (e *Entry) Primary() Object {
+	if e.primary != nil {
+		return e.primary
+	}
+	return e.value
+}
+
+func (e *Entry) WithKeyAsPrimary() *Entry {
+	e.primary = e.key
+	return e
+}
+
+func (e *Entry) WithValueAsPrimary() *Entry {
+	e.primary = e.value
+	return e
 }
 
 func NewEntry(key, value Object) *Entry {

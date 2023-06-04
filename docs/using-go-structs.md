@@ -34,7 +34,7 @@ values are handled automatically.
 	// code can call public methods on `svc` and retrieve its public fields.
 	result, err := exec.Execute(ctx, exec.Opts{
 		Input: string(scriptSourceCode),
-		Scope: s,
+		Code: s,
 	})
 ```
 

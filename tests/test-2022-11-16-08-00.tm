@@ -8,4 +8,4 @@ a := [
     "333",
 ]
 
-b := a.map(func(x) { len(x) } )
+a.map(func(x) { len(x) } )

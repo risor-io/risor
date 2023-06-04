@@ -7,7 +7,16 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
+)
+
+type NumberType string
+
+const (
+	NumberTypeInvalid NumberType = "invalid"
+	NumberTypeDecimal NumberType = "decimal"
+	NumberTypeHex     NumberType = "hex"
+	NumberTypeBinary  NumberType = "binary"
 )
 
 // Opts contains Lexer initialization options
@@ -360,13 +369,20 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	case rune(0):
 		tok = l.newToken(token.EOF, "")
 	default:
+		var err error
 		if isDigit(l.ch) {
-			tok = l.readDecimal()
+			tok, err = l.readDecimal()
+			if err != nil {
+				return token.Token{}, err
+			}
 			l.readChar()
 			l.prevToken = tok
 			return tok, nil
 		}
-		ident := l.readIdentifier()
+		ident, err := l.readIdentifier()
+		if err != nil {
+			return token.Token{}, err
+		}
 		tok = l.newToken(token.LookupIdentifier(ident), ident)
 		l.readChar()
 		l.prevToken = tok
@@ -378,21 +394,26 @@ func (l *Lexer) NextToken() (token.Token, error) {
 }
 
 // Read a single identifier
-func (l *Lexer) readIdentifier() string {
+func (l *Lexer) readIdentifier() (string, error) {
 	var runes []rune
 	if isIdentifier(l.ch) {
 		runes = append(runes, l.ch)
+	} else {
+		return "", fmt.Errorf("invalid identifier: %s", string(l.ch))
 	}
 	for isIdentifier(l.peekChar()) {
 		l.readChar()
 		runes = append(runes, l.ch)
 	}
-	return string(runes)
+	if l.peekChar() > unicode.MaxASCII {
+		return "", fmt.Errorf("invalid identifier: %s", string(runes)+string(l.peekChar()))
+	}
+	return string(runes), nil
 }
 
 // Skip white space
 func (l *Lexer) skipWhitespace() {
-	for isWhitespace(l.ch) {
+	for isTabOrSpace(l.ch) {
 		l.readChar()
 	}
 }
@@ -424,43 +445,61 @@ func (l *Lexer) skipMultiLineComment() {
 	l.skipWhitespace()
 }
 
-// Read number. This handles 0x1234 and 0b101010101 too.
-func (l *Lexer) readNumber() string {
+// Read a decimal, hex, or binary number
+func (l *Lexer) readNumber() (NumberType, string, error) {
 	str := string(l.ch)
 	// We usually just accept digits
 	accept := "0123456789"
-	// But if we have `0x` as a prefix we accept hexadecimal instead
+	numberType := NumberTypeDecimal
 	if l.ch == '0' && l.peekChar() == 'x' {
+		// 0x prefix => hexadecimal
 		accept = "0x123456789abcdefABCDEF"
-	}
-	// If we have `0b` as a prefix we accept binary digits only
-	if l.ch == '0' && l.peekChar() == 'b' {
+		numberType = NumberTypeHex
+	} else if l.ch == '0' && l.peekChar() == 'b' {
+		// 0b prefix => binary
 		accept = "b01"
+		numberType = NumberTypeBinary
 	}
 	for strings.Contains(accept, string(l.peekChar())) {
 		l.readChar()
 		str += string(l.ch)
 	}
-	return str
+	trailing := l.peekChar()
+	if unicode.IsLetter(trailing) || unicode.IsNumber(trailing) {
+		return NumberTypeInvalid, "", fmt.Errorf("invalid decimal literal: %s%c", str, trailing)
+	}
+	return numberType, str, nil
 }
 
 // Read an integer or floating point number
-func (l *Lexer) readDecimal() token.Token {
+func (l *Lexer) readDecimal() (token.Token, error) {
 	// Read an integer
-	integer := l.readNumber()
-	// Check for a period which indicates a floating point
-	if l.peekChar() == rune('.') {
-		l.readChar()
-		if isDigit(l.peekChar()) {
-			l.readChar()
-			fraction := l.readNumber()
-			return l.newToken(token.FLOAT, integer+"."+fraction)
-		}
-		// This point is reached if the code looks like a method call on an
-		// integer, e.g. `42.foo`. TODO: figure out how to handle this. For now,
-		// just fall through to create an integer.
+	numberType, integer, err := l.readNumber()
+	if err != nil {
+		return token.Token{}, err
 	}
-	return l.newToken(token.INT, integer)
+	hasDot := l.peekChar() == rune('.')
+	if !hasDot {
+		return l.newToken(token.INT, integer), nil
+	}
+	if numberType != NumberTypeDecimal {
+		return token.Token{}, fmt.Errorf("invalid decimal literal: %s.%c", integer, l.peekChar())
+	}
+	// Read the "."
+	l.readChar()
+	if isDigit(l.peekChar()) {
+		l.readChar()
+		numberType, fraction, err := l.readNumber()
+		if err != nil {
+			return token.Token{}, err
+		}
+		if numberType != NumberTypeDecimal {
+			return token.Token{}, fmt.Errorf("invalid decimal literal: %s.%s", integer, fraction)
+		}
+		return l.newToken(token.FLOAT, integer+"."+fraction), nil
+	}
+	// We reach this point with something like "42.foo"
+	return token.Token{}, fmt.Errorf("invalid decimal literal: %s.%c", integer, l.peekChar())
 }
 
 func (l *Lexer) readString(end rune) (string, error) {
@@ -524,7 +563,7 @@ func isIdentifier(ch rune) bool {
 	return unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '_'
 }
 
-func isWhitespace(ch rune) bool {
+func isTabOrSpace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t')
 	// ch == rune('\r')
 	// ch == rune('\n') ||

@@ -3,3 +3,5 @@
 // expected type: int
 
 var a = 10
+
+a

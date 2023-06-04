@@ -1,5 +1,11 @@
 package object
 
+import (
+	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
+)
+
 type NilType struct{}
 
 func (n *NilType) Type() Type {
@@ -39,4 +45,8 @@ func (n *NilType) Equals(other Object) Object {
 
 func (n *NilType) IsTruthy() bool {
 	return false
+}
+
+func (n *NilType) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for nil: %v", opType))
 }

@@ -3,4 +3,4 @@
 
 a := 10
 
-s := 'foo {a+11} bar "ab"'
+'foo {a+11} bar "ab"'

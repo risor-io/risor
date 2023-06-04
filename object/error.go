@@ -2,6 +2,8 @@ package object
 
 import (
 	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // Error wraps a Go error interface and implements Object.
@@ -67,6 +69,10 @@ func (e *Error) Message() *String {
 
 func (e *Error) GetAttr(name string) (Object, bool) {
 	return nil, false
+}
+
+func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("unsupported operation for error: %v", opType))
 }
 
 func Errorf(format string, a ...interface{}) *Error {

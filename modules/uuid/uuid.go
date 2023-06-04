@@ -2,11 +2,9 @@ package uuid
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/gofrs/uuid"
 )
 
@@ -42,19 +40,10 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(uuid.NewV5(nsID, name).String())
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"v4": object.NewBuiltin("v4", V4),
+		"v5": object.NewBuiltin("v5", V5),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("v4", V4, m),
-		object.NewBuiltin("v5", V5, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return m
 }

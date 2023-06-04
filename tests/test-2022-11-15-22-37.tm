@@ -3,3 +3,5 @@
 // expected type: int
 
 const a = 10
+
+a

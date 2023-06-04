@@ -2,12 +2,10 @@ package strconv
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/scope"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Name of this module
@@ -23,9 +21,9 @@ func Atoi(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.Atoi(s)
 	if err == nil {
-		return object.NewOkResult(object.NewInt(int64(i)))
+		return object.NewInt(int64(i))
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseBool(ctx context.Context, args ...object.Object) object.Object {
@@ -38,9 +36,9 @@ func ParseBool(ctx context.Context, args ...object.Object) object.Object {
 	}
 	b, err := strconv.ParseBool(s)
 	if err == nil {
-		return object.NewOkResult(object.NewBool(b))
+		return object.NewBool(b)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
@@ -53,9 +51,9 @@ func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
 	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err == nil {
-		return object.NewOkResult(object.NewFloat(f))
+		return object.NewFloat(f)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseInt(ctx context.Context, args ...object.Object) object.Object {
@@ -76,26 +74,17 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.ParseInt(s, int(base), int(bitSize))
 	if err == nil {
-		return object.NewOkResult(object.NewInt(i))
+		return object.NewInt(i)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
-func Module(parentScope *scope.Scope) (*object.Module, error) {
-	s := scope.New(scope.Opts{
-		Name:   fmt.Sprintf("module:%s", Name),
-		Parent: parentScope,
+func Module() *object.Module {
+	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+		"atoi":        object.NewBuiltin("atoi", Atoi),
+		"parse_bool":  object.NewBuiltin("parse_bool", ParseBool),
+		"parse_float": object.NewBuiltin("parse_float", ParseFloat),
+		"parse_int":   object.NewBuiltin("parse_int", ParseInt),
 	})
-
-	m := object.NewModule(Name, s)
-
-	if err := s.AddBuiltins([]*object.Builtin{
-		object.NewBuiltin("atoi", Atoi, m),
-		object.NewBuiltin("parse_bool", ParseBool, m),
-		object.NewBuiltin("parse_float", ParseFloat, m),
-		object.NewBuiltin("parse_int", ParseInt, m),
-	}); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return m
 }

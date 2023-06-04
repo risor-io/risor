@@ -1,0 +1,27 @@
+
+TODO:
+
+* Review when Result should be used
+* Assigning a module attribute `math.BAR = "NO"`
+* Review/update Go struct proxies
+* More modules
+* File I/O included by default
+* Update docs for 2.0.0-alpha1
+* Create 2.0.0-alpha1 branch
+
+DONE:
+
+* The "import" keyword
+* Multi-var assignments
+* Ternaries
+* For loop variants
+* Slices
+* Constants
+* Switch statements
+* The "in" keyword
+* The "range"
+* Error propagation behavior
+* SetItem
+* String templates
+* Tests for nested loops with breaks and continues
+* Pull internal packages to the top-level

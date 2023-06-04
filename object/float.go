@@ -2,7 +2,10 @@ package object
 
 import (
 	"fmt"
+	"math"
 	"strconv"
+
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // Float wraps float64 and implements Object and Hashable interfaces.
@@ -50,10 +53,11 @@ func (f *Float) Compare(other Object) (int, error) {
 		}
 		return -1, nil
 	case *Int:
-		if f.value == float64(other.value) {
+		otherFloat := float64(other.value)
+		if f.value == otherFloat {
 			return 0, nil
 		}
-		if f.value > float64(other.value) {
+		if f.value > otherFloat {
 			return 1, nil
 		}
 		return -1, nil
@@ -63,13 +67,13 @@ func (f *Float) Compare(other Object) (int, error) {
 }
 
 func (f *Float) Equals(other Object) Object {
-	switch other.Type() {
-	case INT:
-		if f.value == float64(other.(*Int).value) {
+	switch other := other.(type) {
+	case *Int:
+		if f.value == float64(other.value) {
 			return True
 		}
-	case FLOAT:
-		if f.value == other.(*Float).value {
+	case *Float:
+		if f.value == other.value {
 			return True
 		}
 	}
@@ -78,6 +82,34 @@ func (f *Float) Equals(other Object) Object {
 
 func (f *Float) IsTruthy() bool {
 	return f.value != 0.0
+}
+
+func (f *Float) RunOperation(opType op.BinaryOpType, right Object) Object {
+	switch right := right.(type) {
+	case *Int:
+		return f.runOperationFloat(opType, float64(right.value))
+	case *Float:
+		return f.runOperationFloat(opType, right.value)
+	default:
+		return NewError(fmt.Errorf("unsupported operation for float: %v on type %s", opType, right.Type()))
+	}
+}
+
+func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object {
+	switch opType {
+	case op.Add:
+		return NewFloat(f.value + right)
+	case op.Subtract:
+		return NewFloat(f.value - right)
+	case op.Multiply:
+		return NewFloat(f.value * right)
+	case op.Divide:
+		return NewFloat(f.value / right)
+	case op.Power:
+		return NewFloat(math.Pow(f.value, right))
+	default:
+		return NewError(fmt.Errorf("unsupported operation for float: %v", opType))
+	}
 }
 
 func NewFloat(value float64) *Float {

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/v2/parser"
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/rs/zerolog/log"
 )

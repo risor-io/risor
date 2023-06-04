@@ -1,4 +1,4 @@
-module github.com/cloudcmds/tamarin
+module github.com/cloudcmds/tamarin/v2
 
 go 1.19
 
