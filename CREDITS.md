@@ -1,8 +1,18 @@
-Tamarin was based on the interpreter codebase from Thorsten Ball from his book
+# Credits
+
+- [Thorsten Ball](https://github.com/mrnugget) and his book [Writing an Interpreter in Go](https://interpreterbook.com/).
+- [Steve Kemp](https://github.com/skx) and the work in [github.com/skx/monkey](https://github.com/skx/monkey).
+- [d5](https://github.com/d5) and the benchmarks in [github.com/d5/tengobench](https://github.com/d5/tengobench).
+
+## Background
+
+Tamarin v1 started from the interpreter codebase from Thorsten Ball from his book
 "Writing An Interpreter In Go".
 
 https://interpreterbook.com/
 https://github.com/mrnugget
+
+## Notes
 
 Additionally, the work of Steve Kemp and others in https://github.com/skx/monkey
 was incorporated a starting point. Skx/monkey is MIT licensed with the following:
