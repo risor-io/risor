@@ -14,6 +14,8 @@ Tamarin modules integrate the Go standard library, making it easy to write
 scripts using standard library functions that you're already familiar with as
 a Go developer.
 
+Thanks to the new VM in v2, Tamarin is now **127x faster** than in v1!
+
 ## The Alpha Release of v2.0.0
 
 As of June 2023, the Tamarin v2.0.0 alpha release has entered the testing phase.
@@ -83,6 +85,12 @@ usage information.
 Please visit the [GitHub discussions](https://github.com/cloudcmds/tamarin/discussions)
 page to share thoughts and questions.
 
+## Benchmark
+
+Execution time in seconds for computing the 35th Fibonacci number:
+
+![](bench/fib35.png?raw=true)
+
 ## Feature Overview
 
 - Familiar syntax inspired by Go and Python
@@ -129,6 +137,7 @@ Tamarin is intended to be a community project and you can lend a hand in various
 
 - [Thorsten Ball](https://github.com/mrnugget) and his book [Writing an Interpreter in Go](https://interpreterbook.com/).
 - [Steve Kemp](https://github.com/skx) and the work in [github.com/skx/monkey](https://github.com/skx/monkey).
+- [d5](https://github.com/d5) and the benchmarks in [github.com/d5/tengobench](https://github.com/d5/tengobench).
 
 See more information in [CREDITS](./CREDITS).
 

@@ -1,3 +1,5 @@
+fmt := import("fmt")
+
 fib := func(x) {
 	if x == 0 {
 		return 0
@@ -7,4 +9,4 @@ fib := func(x) {
 	return fib(x-1) + fib(x-2)
 }
 
-fib(35)
+fmt.println(fib(35))
