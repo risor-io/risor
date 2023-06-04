@@ -8,4 +8,4 @@ func fib(x) {
 	return fib(x-1) + fib(x-2)
 }
 
-fib(35)
+print(fib(35))
