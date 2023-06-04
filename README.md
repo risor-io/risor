@@ -86,15 +86,16 @@ Execution time in seconds for computing the 35th Fibonacci number:
 
 ![](bench/fib35.png?raw=true)
 
+_Measured on a Macbook Pro 13-inch, M1, 2020_
+
 ## Contributing
 
-Tamarin is intended to be a community project and you can lend a hand in various ways:
+Tamarin is intended to be a community project. You can lend a hand in various ways:
 
 - Please ask questions and share ideas in [GitHub discussions](https://github.com/cloudcmds/tamarin/discussions)
 - Share Tamarin on any social channels that may appreciate it
-- Let us know about any usage of Tamarin that we can celebrate
-- Leave us a star us on Github
-- Open a pull request with fixes for bugs you find
+- Open GitHub issue or a pull request for any bugs you find
+- Star the project on GitHub
 
 ## Discuss the Project
 
