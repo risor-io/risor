@@ -6,26 +6,21 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cloudcmds/tamarin?style=flat-square)](https://goreportcard.com/report/github.com/cloudcmds/tamarin)
 [![Releases](https://img.shields.io/github/release/cloudcmds/tamarin/all.svg?style=flat-square)](https://github.com/cloudcmds/tamarin/releases)
 
-A fast and flexible embedded scripting language for Go projects. Tamarin code is
-auto-compiled and runs within the lightweight Tamarin Virtual Machine, which is
-written in pure Go.
+A fast and flexible embedded scripting language for Go projects. Tamarin compiles
+scripts to bytecode internally which it then runs on a lightweight Tamarin Virtual
+Machine (VM). Tamarin is written in pure Go.
 
 Tamarin modules integrate the Go standard library, making it easy to write
-scripts using standard library functions that you're already familiar with as
-a Go developer.
+scripts using functions that you're already familiar with as a Go developer.
 
-Thanks to the new VM in v2, Tamarin is now **127x faster** than in v1!
+Thanks to the new VM, **Tamarin v2 is 127x faster than v1!**
 
-## UPDATE: v2.0.0 Alpha Release
+## v2.0.0 Alpha Release
 
 As of June 2023, the Tamarin v2.0.0 alpha release has entered the testing phase.
-I'm **seeking community feedback** before finalizing the exact language semantics
-and feature set for v2 of the language. Please share your thoughts and questions
-on the [discussions page](https://github.com/cloudcmds/tamarin/discussions).
-
-The main change since v1 is the new compiler and virtual machine, which drastically
-improved execution speed. While most language behaviors are unchanged, several
-refinements have been made as well, necessitating the major revision to v2.
+I'm **seeking community feedback** before finalizing the exact language features
+for v2 of the language. Please share your thoughts and questions on the
+[discussions page](https://github.com/cloudcmds/tamarin/discussions).
 
 ## Documentation
 
