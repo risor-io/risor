@@ -309,19 +309,21 @@ func (p *DefaultTypeRegistry) Register(obj interface{}) (*GoType, error) {
 		goType.methods = append(goType.methods, m)
 	}
 	// Discover type fields
-	count := structType.NumField()
-	for i := 0; i < count; i++ {
-		f := structType.Field(i)
-		if !f.IsExported() {
-			continue
+	if structType.Kind() == reflect.Struct {
+		count := structType.NumField()
+		for i := 0; i < count; i++ {
+			f := structType.Field(i)
+			if !f.IsExported() {
+				continue
+			}
+			goField, err := p.processField(f)
+			if err != nil {
+				// return nil, err
+				continue // Log warning?
+			}
+			goType.attrs = append(goType.attrs, goField)
+			goType.fields = append(goType.fields, goField)
 		}
-		goField, err := p.processField(f)
-		if err != nil {
-			// return nil, err
-			continue // Log warning?
-		}
-		goType.attrs = append(goType.attrs, goField)
-		goType.fields = append(goType.fields, goField)
 	}
 	p.types[typ] = goType
 	return goType, nil
