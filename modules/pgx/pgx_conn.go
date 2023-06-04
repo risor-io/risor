@@ -98,7 +98,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	// Start the query
 	rows, err := c.conn.Query(ctx, query, queryArgs...)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	defer rows.Close()
 
@@ -110,7 +110,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			return object.NewErrResult(object.NewError(err))
+			return object.NewError(err)
 		}
 		row := map[string]object.Object{}
 		for colIndex, value := range values {
@@ -123,8 +123,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 				val = object.FromGoType(value)
 			}
 			if val == nil {
-				return object.NewErrResult(
-					object.Errorf("type error: pgx_conn.query() encountered unsupported type: %T", value))
+				return object.Errorf("type error: pgx_conn.query() encountered unsupported type: %T", value)
 			}
 			if val != nil && !object.IsError(val) {
 				row[key] = val
@@ -134,5 +133,5 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 		}
 		results = append(results, object.NewMap(row))
 	}
-	return object.NewOkResult(object.NewList(results))
+	return object.NewList(results)
 }

@@ -21,9 +21,9 @@ func Atoi(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.Atoi(s)
 	if err == nil {
-		return object.NewOkResult(object.NewInt(int64(i)))
+		return object.NewInt(int64(i))
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseBool(ctx context.Context, args ...object.Object) object.Object {
@@ -36,9 +36,9 @@ func ParseBool(ctx context.Context, args ...object.Object) object.Object {
 	}
 	b, err := strconv.ParseBool(s)
 	if err == nil {
-		return object.NewOkResult(object.NewBool(b))
+		return object.NewBool(b)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
@@ -51,9 +51,9 @@ func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
 	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err == nil {
-		return object.NewOkResult(object.NewFloat(f))
+		return object.NewFloat(f)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func ParseInt(ctx context.Context, args ...object.Object) object.Object {
@@ -74,9 +74,9 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	}
 	i, err := strconv.ParseInt(s, int(base), int(bitSize))
 	if err == nil {
-		return object.NewOkResult(object.NewInt(i))
+		return object.NewInt(i)
 	}
-	return object.NewErrResult(object.NewError(err))
+	return object.NewError(err)
 }
 
 func Module() *object.Module {

@@ -20,9 +20,9 @@ func Connect(ctx context.Context, args ...object.Object) object.Object {
 	}
 	conn, err := pgx.Connect(ctx, url.Value())
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
-	return object.NewOkResult(New(ctx, conn))
+	return New(ctx, conn)
 }
 
 // Module returns the `pgx` module object

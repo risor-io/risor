@@ -951,7 +951,7 @@ func TestPipes(t *testing.T) {
 		{`"abc" | getattr("to_upper") | call`, object.NewString("ABC")},
 		{`"abc" | func(s) { s.to_upper() }`, object.NewString("ABC")},
 		{`[11, 12, 3] | math.max`, object.NewFloat(12)},
-		{`"42" | json.unmarshal`, object.NewOkResult(object.NewFloat(42))},
+		{`"42" | json.unmarshal`, object.NewFloat(42)},
 	}
 	runTests(t, tests)
 }

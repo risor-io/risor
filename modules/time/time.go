@@ -32,9 +32,9 @@ func Parse(ctx context.Context, args ...object.Object) object.Object {
 	}
 	t, parseErr := time.Parse(layout, value)
 	if parseErr != nil {
-		return object.NewErrResult(object.NewError(parseErr))
+		return object.NewError(parseErr)
 	}
-	return object.NewOkResult(object.NewTime(t))
+	return object.NewTime(t)
 }
 
 func Sleep(ctx context.Context, args ...object.Object) object.Object {

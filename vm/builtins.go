@@ -317,19 +317,21 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			return errObj
 		}
 	}
-	client := &http.Client{Timeout: 3 * time.Second}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
 	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
 	if errObj != nil {
-		return object.NewErrResult(errObj)
+		return errObj
 	}
 	if timeout != 0 {
 		client.Timeout = timeout
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
-	return object.NewOkResult(object.NewHttpResponse(resp))
+	return object.NewHttpResponse(resp)
 }
 
 // output a string to stdout

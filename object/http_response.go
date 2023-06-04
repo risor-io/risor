@@ -79,26 +79,26 @@ func (r *HttpResponse) readBody(limit int64) error {
 	return nil
 }
 
-func (r *HttpResponse) JSON() *Result {
+func (r *HttpResponse) JSON() Object {
 	if r.bodyErr != nil {
-		return NewErrResult(NewError(r.bodyErr))
+		return NewError(r.bodyErr)
 	}
 	var target interface{}
 	if err := json.Unmarshal(r.body, &target); err != nil {
-		return NewErrResult(NewError(err))
+		return NewError(err)
 	}
 	scriptObj := FromGoType(target)
 	if scriptObj == nil {
-		return NewErrResult(Errorf("eval error: unmarshal failed"))
+		return Errorf("eval error: unmarshal failed")
 	}
-	return NewOkResult(scriptObj)
+	return scriptObj
 }
 
-func (r *HttpResponse) Text() *Result {
+func (r *HttpResponse) Text() Object {
 	if r.bodyErr != nil {
-		return NewErrResult(NewError(r.bodyErr))
+		return NewError(r.bodyErr)
 	}
-	return NewOkResult(NewString(string(r.body)))
+	return NewString(string(r.body))
 }
 
 func (r *HttpResponse) Status() *String {

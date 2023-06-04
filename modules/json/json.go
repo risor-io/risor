@@ -22,13 +22,13 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var obj interface{}
 	if err := json.Unmarshal([]byte(s.Value()), &obj); err != nil {
-		return object.NewErrResult(object.Errorf("value error: json.unmarshal failed with: %s", object.NewError(err)))
+		return object.Errorf("value error: json.unmarshal failed with: %s", object.NewError(err))
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
-		return object.NewErrResult(object.Errorf("type error: json.unmarshal failed"))
+		return object.Errorf("type error: json.unmarshal failed")
 	}
-	return object.NewOkResult(scriptObj)
+	return scriptObj
 }
 
 func Marshal(ctx context.Context, args ...object.Object) object.Object {
@@ -37,13 +37,13 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	obj := args[0].Interface()
 	if err, ok := obj.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	b, err := json.Marshal(obj)
 	if err != nil {
-		return object.NewErrResult(object.Errorf("value error: json.marshal failed with: %s", object.NewError(err)))
+		return object.Errorf("value error: json.marshal failed with: %s", object.NewError(err))
 	}
-	return object.NewOkResult(object.NewString(string(b)))
+	return object.NewString(string(b))
 }
 
 func Valid(ctx context.Context, args ...object.Object) object.Object {
@@ -63,27 +63,27 @@ func Diff(ctx context.Context, args ...object.Object) object.Object {
 	}
 	a := args[0].Interface()
 	if err, ok := a.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	b := args[1].Interface()
 	if err, ok := b.(error); ok {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	aBytes, err := json.Marshal(a)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	bBytes, err := json.Marshal(b)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	patch, err := jsondiff.CompareJSON(aBytes, bBytes)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
-		return object.NewErrResult(object.NewError(err))
+		return object.NewError(err)
 	}
 	unmarshalArgs := []object.Object{object.NewString(string(patchJSON))}
 	return Unmarshal(ctx, unmarshalArgs...)

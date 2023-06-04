@@ -1,12 +1,13 @@
 
 TODO:
 
+* Review when Result should be used
 * Assigning a module attribute `math.BAR = "NO"`
 * Review/update Go struct proxies
-* Create 2.0.0-alpha1 branch
 * More modules
 * File I/O included by default
 * Update docs for 2.0.0-alpha1
+* Create 2.0.0-alpha1 branch
 
 DONE:
 
