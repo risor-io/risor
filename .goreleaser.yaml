@@ -39,7 +39,7 @@ changelog:
       - "^docs:"
       - "^test:"
 brews:
-  - skip_upload: auto
+  - skip_upload: false
     tap:
       owner: cloudcmds
       name: homebrew-tamarin
