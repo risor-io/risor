@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 // Var is a statement that assigns a value to a variable. It may be a

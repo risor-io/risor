@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 // Ident is an expression that refers to a variable by name.

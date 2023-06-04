@@ -3,7 +3,7 @@ package ast
 import (
 	"bytes"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 // Program represents a complete program.

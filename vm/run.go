@@ -3,18 +3,18 @@ package vm
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/compiler"
-	"github.com/cloudcmds/tamarin/importer"
-	modJson "github.com/cloudcmds/tamarin/modules/json"
-	modMath "github.com/cloudcmds/tamarin/modules/math"
-	modPgx "github.com/cloudcmds/tamarin/modules/pgx"
-	modRand "github.com/cloudcmds/tamarin/modules/rand"
-	modStrconv "github.com/cloudcmds/tamarin/modules/strconv"
-	modStrings "github.com/cloudcmds/tamarin/modules/strings"
-	modTime "github.com/cloudcmds/tamarin/modules/time"
-	modUuid "github.com/cloudcmds/tamarin/modules/uuid"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/v2/compiler"
+	"github.com/cloudcmds/tamarin/v2/importer"
+	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
+	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
+	modPgx "github.com/cloudcmds/tamarin/v2/modules/pgx"
+	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
+	modStrconv "github.com/cloudcmds/tamarin/v2/modules/strconv"
+	modStrings "github.com/cloudcmds/tamarin/v2/modules/strings"
+	modTime "github.com/cloudcmds/tamarin/v2/modules/time"
+	modUuid "github.com/cloudcmds/tamarin/v2/modules/uuid"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/parser"
 )
 
 func Run(ctx context.Context, code string) (object.Object, error) {

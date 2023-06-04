@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 const DefaultFrameLocals = 8

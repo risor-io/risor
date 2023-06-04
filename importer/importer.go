@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cloudcmds/tamarin/compiler"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/parser"
+	"github.com/cloudcmds/tamarin/v2/compiler"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/parser"
 )
 
 // Importer is an interface used to import Tamarin code modules

@@ -3,7 +3,7 @@ package ast
 import (
 	"testing"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 func TestString(t *testing.T) {

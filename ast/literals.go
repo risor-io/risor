@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/tmpl"
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/tmpl"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 // Int holds an integer number

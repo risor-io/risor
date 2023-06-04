@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/op"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/op"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )

@@ -9,9 +9,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/httputil"
-	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/httputil"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Len returns the length of a string, list, set, or map

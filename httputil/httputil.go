@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 func NewRequestFromParams(

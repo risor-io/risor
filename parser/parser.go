@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/lexer"
-	"github.com/cloudcmds/tamarin/tmpl"
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/ast"
+	"github.com/cloudcmds/tamarin/v2/lexer"
+	"github.com/cloudcmds/tamarin/v2/tmpl"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 type (

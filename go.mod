@@ -1,4 +1,4 @@
-module github.com/cloudcmds/tamarin
+module github.com/cloudcmds/tamarin/v2
 
 go 1.19
 
@@ -17,7 +17,6 @@ require (
 require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gobeam/stringy v0.0.6 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect

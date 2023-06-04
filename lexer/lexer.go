@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 type NumberType string

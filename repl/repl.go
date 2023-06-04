@@ -9,8 +9,8 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/vm"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/vm"
 	"github.com/fatih/color"
 )
 

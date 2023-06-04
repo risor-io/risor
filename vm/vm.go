@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/importer"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/op"
+	"github.com/cloudcmds/tamarin/v2/importer"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 const (

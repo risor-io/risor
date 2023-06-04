@@ -1,6 +1,6 @@
 package ast
 
-import "github.com/cloudcmds/tamarin/token"
+import "github.com/cloudcmds/tamarin/v2/token"
 
 // Node reresents a portion of the syntax tree. All nodes have a token, which is
 // the token that begins the node. A Node may be an Expression, in which case

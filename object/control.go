@@ -3,7 +3,7 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/op"
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 // Control is used internally during evaluation of "break", "continue", and

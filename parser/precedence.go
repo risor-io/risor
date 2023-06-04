@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/cloudcmds/tamarin/token"
+import "github.com/cloudcmds/tamarin/v2/token"
 
 // Precedence order for operators
 const (

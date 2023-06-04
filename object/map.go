@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/op"
+	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type Map struct {

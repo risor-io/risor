@@ -3,7 +3,7 @@ package pgx
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/jackc/pgx/v5"
 )
 

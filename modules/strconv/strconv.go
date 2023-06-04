@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/cloudcmds/tamarin/arg"
-	"github.com/cloudcmds/tamarin/object"
+	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 // Name of this module

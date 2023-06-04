@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/ast"
+	"github.com/cloudcmds/tamarin/v2/ast"
 	"github.com/hashicorp/go-multierror"
 )
 

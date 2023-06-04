@@ -5,10 +5,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/cloudcmds/tamarin/ast"
-	"github.com/cloudcmds/tamarin/object"
-	"github.com/cloudcmds/tamarin/op"
-	"github.com/cloudcmds/tamarin/token"
+	"github.com/cloudcmds/tamarin/v2/ast"
+	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/cloudcmds/tamarin/v2/token"
 )
 
 const (
