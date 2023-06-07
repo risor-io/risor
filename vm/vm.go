@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"github.com/cloudcmds/tamarin/v2/importer"
 	"github.com/cloudcmds/tamarin/v2/object"
@@ -28,6 +29,7 @@ type VM struct {
 	ip          int // instruction pointer
 	sp          int // stack pointer
 	fp          int // frame pointer
+	halt        int32
 	stack       [MaxStackDepth]object.Object
 	frames      [MaxFrameDepth]Frame
 	tmp         [MaxArgs]object.Object
@@ -56,11 +58,17 @@ func New(opts Options) *VM {
 func (vm *VM) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		err = fmt.Errorf("panic: %v", r)
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	// Halt execution when the context is cancelled
+	go func() {
+		<-ctx.Done()
+		atomic.StoreInt32(&vm.halt, 1)
+	}()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
 	vm.fp = 0
@@ -85,6 +93,10 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
+
+		if atomic.LoadInt32(&vm.halt) == 1 {
+			return ctx.Err()
+		}
 
 		// The current instruction opcode
 		opcode := vm.activeCode.Instructions[vm.ip]
@@ -507,7 +519,7 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 		copy(vm.tmp[argc:], fn.Args())
 		return vm.call(ctx, fn.Function(), expandedCount)
 	default:
-		return fmt.Errorf("object is not callable: %T", fn)
+		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
 	}
 	return nil
 }

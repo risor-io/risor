@@ -483,7 +483,7 @@ func (l *Lexer) readDecimal() (token.Token, error) {
 		return l.newToken(token.INT, integer), nil
 	}
 	if numberType != NumberTypeDecimal {
-		return token.Token{}, fmt.Errorf("invalid decimal literal: %s.%c", integer, l.peekChar())
+		return token.Token{}, fmt.Errorf("invalid decimal literal: %s%s", integer, ".")
 	}
 	// Read the "."
 	l.readChar()

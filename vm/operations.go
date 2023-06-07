@@ -35,17 +35,22 @@ func compare(opType op.CompareOpType, a, b object.Object) object.Object {
 	case op.GreaterThanOrEqual:
 		return object.NewBool(value >= 0)
 	default:
-		panic(fmt.Errorf("unknown comparison operator: %q", opType))
+		panic(fmt.Errorf("unknown comparison operator: %d", opType))
 	}
 }
 
 func binaryOp(opType op.BinaryOpType, a, b object.Object) object.Object {
 	switch opType {
 	case op.And:
-		if a.IsTruthy() && b.IsTruthy() {
+		aTruthy := a.IsTruthy()
+		bTruthy := b.IsTruthy()
+		if aTruthy && bTruthy {
 			return b
+		} else if aTruthy {
+			return b // return b because it's falsy
+		} else {
+			return a // return a because it's falsy
 		}
-		return b
 	case op.Or:
 		if a.IsTruthy() {
 			return a

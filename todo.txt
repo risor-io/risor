@@ -1,13 +1,12 @@
 
 TODO:
 
-* Review when Result should be used
 * Assigning a module attribute `math.BAR = "NO"`
 * Review/update Go struct proxies
 * More modules
 * File I/O included by default
 * Update docs for 2.0.0-alpha1
-* Create 2.0.0-alpha1 branch
+* Switch without top-level expression
 
 DONE:
 
@@ -25,3 +24,4 @@ DONE:
 * String templates
 * Tests for nested loops with breaks and continues
 * Pull internal packages to the top-level
+* Confirm context correctly cancels execution

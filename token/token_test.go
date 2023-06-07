@@ -3,6 +3,8 @@ package token
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Test looking up values succeeds, then fails
@@ -21,4 +23,18 @@ func TestLookup(t *testing.T) {
 			t.Errorf("Lookup of %s failed", key)
 		}
 	}
+}
+
+func TestPosition(t *testing.T) {
+	tok := Token{
+		Type:    IDENT,
+		Literal: "foo",
+		StartPosition: Position{
+			Line:   2,
+			Column: 0,
+		},
+	}
+	// Switches to 1-indexed
+	require.Equal(t, 3, tok.StartPosition.LineNumber())
+	require.Equal(t, 1, tok.StartPosition.ColumnNumber())
 }

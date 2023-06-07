@@ -18,67 +18,85 @@ import (
 )
 
 type Interpreter struct {
-	c        *compiler.Compiler
-	main     *object.Code
-	builtins map[string]object.Object
+	Compiler *compiler.Compiler
+	Main     *object.Code
+	Builtins map[string]object.Object
+	Importer importer.Importer
 }
 
-func NewInterpreter(builtins []*object.Builtin) *Interpreter {
+type InterpreterOpt func(*Interpreter)
 
-	bmap := map[string]object.Object{}
-	for _, b := range GlobalBuiltins() {
-		bmap[b.Key()] = b
+func WithDefaultBuiltins() InterpreterOpt {
+	return func(i *Interpreter) {
+		for _, b := range GlobalBuiltins() {
+			i.Builtins[b.Key()] = b
+		}
 	}
+}
 
-	bmap["math"] = modMath.Module()
-	bmap["json"] = modJson.Module()
-	bmap["strings"] = modStrings.Module()
-	bmap["time"] = modTime.Module()
-	bmap["uuid"] = modUuid.Module()
-	bmap["rand"] = modRand.Module()
-	bmap["strconv"] = modStrconv.Module()
-	bmap["pgx"] = modPgx.Module()
-
-	s := object.NewCode("main")
-
-	c := compiler.New(compiler.Options{
-		Builtins: bmap,
-		Name:     "main",
-		Code:     s,
-	})
-
-	return &Interpreter{
-		c:        c,
-		main:     s,
-		builtins: bmap,
+func WithDefaultModules() InterpreterOpt {
+	return func(i *Interpreter) {
+		i.Builtins["math"] = modMath.Module()
+		i.Builtins["json"] = modJson.Module()
+		i.Builtins["strings"] = modStrings.Module()
+		i.Builtins["time"] = modTime.Module()
+		i.Builtins["uuid"] = modUuid.Module()
+		i.Builtins["rand"] = modRand.Module()
+		i.Builtins["strconv"] = modStrconv.Module()
+		i.Builtins["pgx"] = modPgx.Module()
 	}
+}
+
+func WithImporter(im importer.Importer) InterpreterOpt {
+	return func(i *Interpreter) {
+		i.Importer = im
+	}
+}
+
+func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
+	i := &Interpreter{
+		Main:     object.NewCode("main"),
+		Builtins: map[string]object.Object{},
+	}
+	for _, opt := range opts {
+		opt(i)
+	}
+	return i
 }
 
 func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, error) {
+
+	// Initialize a compiler as needed
+	if i.Compiler == nil {
+		i.Compiler = compiler.New(compiler.Options{
+			Builtins: i.Builtins,
+			Name:     "main",
+			Code:     i.Main,
+		})
+	}
+
+	// Parse the source to create the AST
 	ast, err := parser.Parse(code)
 	if err != nil {
 		return nil, err
 	}
-	pos := len(i.c.MainInstructions())
 
-	if _, err = i.c.Compile(ast); err != nil {
+	// Compile the AST to bytecode, appending to the end of the main code
+	offset := len(i.Compiler.MainInstructions())
+	if _, err = i.Compiler.Compile(ast); err != nil {
 		return nil, err
 	}
 
-	v := New(Options{
-		Main:              i.main,
-		InstructionOffset: pos,
-		Importer: importer.NewLocalImporter(importer.LocalImporterOptions{
-			SourceDir: ".",
-			Builtins:  i.builtins,
-		}),
+	// Evaluate the bytecode in a VM then return the top-of-stack (TOS) value
+	machine := New(Options{
+		Main:              i.Main,
+		InstructionOffset: offset,
+		Importer:          i.Importer,
 	})
-	if err := v.Run(ctx); err != nil {
+	if err := machine.Run(ctx); err != nil {
 		return nil, err
 	}
-
-	result, exists := v.TOS()
-	if exists {
+	if result, exists := machine.TOS(); exists {
 		return result, nil
 	}
 	return object.Nil, nil

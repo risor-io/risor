@@ -11,6 +11,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTokenLineCol(t *testing.T) {
+	code := `
+var x = 5;
+var y = 10;
+	`
+	program, err := Parse(code)
+	require.Nil(t, err)
+
+	statements := program.Statements()
+	require.Len(t, statements, 2)
+
+	stmt1 := statements[0].(*ast.Var)
+	stmt2 := statements[1].(*ast.Var)
+
+	t1 := stmt1.Token()
+	start := t1.StartPosition
+	end := t1.EndPosition
+
+	// Position of the "var" token
+	require.Equal(t, 2, start.LineNumber())
+	require.Equal(t, 1, start.ColumnNumber())
+	require.Equal(t, 2, end.LineNumber())
+	require.Equal(t, 3, end.ColumnNumber())
+
+	t2 := stmt2.Token()
+	start = t2.StartPosition
+	end = t2.EndPosition
+
+	// Position of the "var" token
+	require.Equal(t, 3, start.LineNumber())
+	require.Equal(t, 1, start.ColumnNumber())
+	require.Equal(t, 3, end.LineNumber())
+	require.Equal(t, 3, end.ColumnNumber())
+}
+
 func TestVarStatements(t *testing.T) {
 	tests := []struct {
 		input string

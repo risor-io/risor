@@ -696,3 +696,41 @@ func TestInvalidIdentifiers(t *testing.T) {
 		})
 	}
 }
+
+func TestTokenLineText(t *testing.T) {
+	l := New(` var x = 32; foo = bar
+bar = baz
+`)
+	tok, err := l.NextToken()
+	require.Nil(t, err)
+	fmt.Println(tok)
+
+	line := l.GetTokenLineText(tok)
+	require.Equal(t, " var x = 32; foo = bar", line)
+}
+
+func TestInvalids(t *testing.T) {
+	type test struct {
+		input string
+		err   string
+	}
+	tests := []test{
+		{"\x01", "invalid identifier: \x01"},
+		{"4.f", "invalid decimal literal: 4.f"},
+		{"4a.f", "invalid decimal literal: 4a"},
+		{"0x.1", "invalid decimal literal: 0x."},
+		{"0b.1", "invalid decimal literal: 0b."},
+		{`"foo`, "unterminated string literal"},
+		{"`foo", "unterminated string literal"},
+		{"'foo", "unterminated string literal"},
+		{"~", "unexpected character: '~'"},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			_, err := l.NextToken()
+			require.NotNil(t, err)
+			require.Equal(t, tt.err, err.Error())
+		})
+	}
+}

@@ -1274,6 +1274,7 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	if err := c.compile(node.Consequence()); err != nil {
 		return err
 	}
+	c.emit(op.PopTop)
 	delta, err := c.calculateDelta(startPos)
 	if err != nil {
 		return err
