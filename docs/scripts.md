@@ -1,4 +1,4 @@
-# Scripts
+# Executable Scripts
 
 Tamarin scripts can easily be made directly executable on MacOS and Linux.
 In the steps below, the Tamarin script filename is `myscript`. The full path

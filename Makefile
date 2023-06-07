@@ -26,3 +26,10 @@ postgres:
 test:
 	go test -coverprofile cover.out ./...
 	go tool cover -html=cover.out
+
+.PHONY: mkdocs-serve
+mkdocs-serve:
+	python3 -m venv ./docs/venv
+	. ./docs/venv/bin/activate && \
+	pip3 install -r ./docs/requirements.txt && \
+	mkdocs serve
