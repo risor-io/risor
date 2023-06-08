@@ -417,7 +417,7 @@ func TestInvalidIntegers(t *testing.T) {
 
 // Test that the shebang-line is handled specially.
 func TestShebang(t *testing.T) {
-	input := `#!/bin/monkey
+	input := `#!/bin/tamarin
 10;`
 
 	tests := []struct {

@@ -1,7 +1,5 @@
 cmd/cli/cli
 .vscode
-monkey
-monkey-*
 tamarin
 cpu.out
 node_modules

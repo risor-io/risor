@@ -3,13 +3,14 @@ package vm
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/v2/builtins"
 	"github.com/cloudcmds/tamarin/v2/importer"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
 
 func RunWithDefaults(ctx context.Context, code string) (object.Object, error) {
 
-	builtins := GlobalBuiltins()
+	builtins := builtins.GlobalBuiltins()
 	builtinsMap := map[string]object.Object{}
 	for _, b := range builtins {
 		builtinsMap[b.Key()] = b

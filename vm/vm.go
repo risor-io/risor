@@ -89,7 +89,7 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 //
 // Assuming this function returns without error, the result of the evaluation
 // will be on the top of the stack.
-func (vm *VM) eval(ctx context.Context) (err error) {
+func (vm *VM) eval(ctx context.Context) error {
 
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
@@ -173,12 +173,12 @@ func (vm *VM) eval(ctx context.Context) (err error) {
 			opType := op.CompareOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.Push(compare(opType, a, b))
+			vm.Push(object.Compare(opType, a, b))
 		case op.BinaryOp:
 			opType := op.BinaryOpType(vm.fetch())
 			b := vm.Pop()
 			a := vm.Pop()
-			vm.Push(binaryOp(opType, a, b))
+			vm.Push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {

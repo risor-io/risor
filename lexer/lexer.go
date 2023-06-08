@@ -1,5 +1,5 @@
-// Package lexer contains the code to lex input-programs into a stream
-// of tokens, such that they may be parsed.
+// Package lexer contains the code to lex input programs into a stream
+// of tokens. The stream of tokens can then be parsed into an AST.
 package lexer
 
 import (
