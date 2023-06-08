@@ -44,6 +44,8 @@ var precedences = map[token.Type]int{
 	token.SLASH_EQUALS:    PRODUCT,
 	token.ASTERISK:        PRODUCT,
 	token.ASTERISK_EQUALS: PRODUCT,
+	token.GT_GT:           PRODUCT,
+	token.LT_LT:           PRODUCT,
 	token.POW:             POWER,
 	token.MOD:             MOD,
 	token.AND:             COND,

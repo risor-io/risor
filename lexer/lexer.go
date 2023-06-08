@@ -293,7 +293,11 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newToken(token.ASTERISK, string(l.ch))
 		}
 	case rune('<'):
-		if l.peekChar() == rune('=') {
+		if l.peekChar() == rune('<') {
+			ch := l.ch
+			l.readChar()
+			tok = l.newToken(token.LT_LT, string(ch)+string(l.ch))
+		} else if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
 			tok = l.newToken(token.LT_EQUALS, string(ch)+string(l.ch))
@@ -301,7 +305,11 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newToken(token.LT, string(l.ch))
 		}
 	case rune('>'):
-		if l.peekChar() == rune('=') {
+		if l.peekChar() == rune('>') {
+			ch := l.ch
+			l.readChar()
+			tok = l.newToken(token.GT_GT, string(ch)+string(l.ch))
+		} else if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
 			tok = l.newToken(token.GT_EQUALS, string(ch)+string(l.ch))
