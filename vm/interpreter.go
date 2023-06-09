@@ -69,11 +69,14 @@ func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, err
 
 	// Initialize a compiler as needed
 	if i.compiler == nil {
-		i.compiler = compiler.New(compiler.Options{
-			Builtins: i.builtins,
-			Name:     "main",
-			Code:     i.main,
-		})
+		var err error
+		i.compiler, err = compiler.New(
+			compiler.WithBuiltins(i.builtins),
+			compiler.WithCode(i.main),
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Parse the source to create the AST

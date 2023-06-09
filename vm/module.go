@@ -13,14 +13,15 @@ func CompileModule(name, code string, builtins map[string]object.Object) (*objec
 	if err != nil {
 		return nil, err
 	}
-	c := compiler.New(compiler.Options{
-		Name:     name,
-		Builtins: builtins,
-	})
+	c, err := compiler.New(compiler.WithBuiltins(builtins))
+	if err != nil {
+		return nil, err
+	}
 	main, err := c.Compile(ast)
 	if err != nil {
 		return nil, err
 	}
+	main.Name = name
 	return object.NewModule(name, main), nil
 }
 

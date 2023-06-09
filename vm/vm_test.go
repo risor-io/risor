@@ -48,7 +48,9 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
-	c := compiler.New(compiler.Options{})
+	c, err := compiler.New()
+	require.Nil(t, err)
+
 	main, err := c.Compile(program)
 	require.Nil(t, err)
 
@@ -81,8 +83,7 @@ func TestConditional(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
-	c := compiler.New(compiler.Options{})
-	main, err := c.Compile(program)
+	main, err := compiler.Compile(program)
 	require.Nil(t, err)
 
 	vm := New(Options{Main: main})

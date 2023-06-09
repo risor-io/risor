@@ -50,15 +50,14 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if m, ok := i.modules[name]; ok {
 		return m, nil
 	}
-	mid := fmt.Sprintf("module: %s", name)
 	source, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
 		return nil, fmt.Errorf("module not found: %s", name)
 	}
-	cmp := compiler.New(compiler.Options{
-		Builtins: i.builtins,
-		Name:     mid,
-	})
+	cmp, err := compiler.New(compiler.WithBuiltins(i.builtins))
+	if err != nil {
+		return nil, err
+	}
 	ast, err := parser.Parse(source)
 	if err != nil {
 		return nil, err
@@ -67,6 +66,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if err != nil {
 		return nil, err
 	}
+	code.Name = fmt.Sprintf("module: %s", name)
 	return object.NewModule(name, code), nil
 }
 
