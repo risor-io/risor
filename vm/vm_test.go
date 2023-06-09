@@ -3,6 +3,7 @@ package vm
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/object"
@@ -47,7 +48,9 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
-	c := compiler.New(compiler.Options{})
+	c, err := compiler.New()
+	require.Nil(t, err)
+
 	main, err := c.Compile(program)
 	require.Nil(t, err)
 
@@ -80,8 +83,7 @@ func TestConditional(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
-	c := compiler.New(compiler.Options{})
-	main, err := c.Compile(program)
+	main, err := compiler.Compile(program)
 	require.Nil(t, err)
 
 	vm := New(Options{Main: main})
@@ -93,7 +95,7 @@ func TestConditional(t *testing.T) {
 }
 
 func TestConditional3(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 5
 	y := 10
 	if x > 1 {
@@ -107,7 +109,7 @@ func TestConditional3(t *testing.T) {
 }
 
 func TestConditional4(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 5
 	y := 22
 	z := 33
@@ -123,7 +125,7 @@ func TestConditional4(t *testing.T) {
 }
 
 func TestLoop(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	y := 0
 	for {
 		y = y + 1
@@ -138,14 +140,14 @@ func TestLoop(t *testing.T) {
 }
 
 func TestForLoop2(t *testing.T) {
-	result, err := Run(context.Background(),
+	result, err := run(context.Background(),
 		`x := 0; for y := 0; y < 5; y++ { x = y }; x`)
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(4), result)
 }
 
 func TestForRange1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := [1, 2.3, "hello", true]
 	output := []
 	for i := range x {
@@ -159,7 +161,7 @@ func TestForRange1(t *testing.T) {
 }
 
 func TestForRange2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for _, value := range [5,6,7] {
 		x = value
@@ -171,7 +173,7 @@ func TestForRange2(t *testing.T) {
 }
 
 func TestForRange3(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x, y := [0, 0]
 	for i, value := range [5, 6, 7] {
 		x = i      // should go up to 2
@@ -187,7 +189,7 @@ func TestForRange3(t *testing.T) {
 }
 
 func TestForRange4(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for i := range ["a", "b", "c"] { x = i }
 	x
@@ -197,7 +199,7 @@ func TestForRange4(t *testing.T) {
 }
 
 func TestForRange5(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for range ["a", "b", "c"] { x++ }
 	x
@@ -207,7 +209,7 @@ func TestForRange5(t *testing.T) {
 }
 
 func TestForRange6(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	r := range { "a", "b" }
 	for r { x++ }
@@ -218,7 +220,7 @@ func TestForRange6(t *testing.T) {
 }
 
 func TestForRange7(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := nil
 	y := nil
 	count := 0
@@ -266,7 +268,7 @@ func TestIndexing(t *testing.T) {
 }
 
 func TestStackPopping1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := []
 	for i := 0; i < 4; i++ {
 		1
@@ -287,7 +289,7 @@ func TestStackPopping1(t *testing.T) {
 }
 
 func TestStackPopping2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	for i := range [1, 2, 3] {
 		1
 		2
@@ -300,7 +302,7 @@ func TestStackPopping2(t *testing.T) {
 }
 
 func TestStackBehavior1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 99
 	for i := 0; i < 4; x {
 		i++
@@ -314,7 +316,7 @@ func TestStackBehavior1(t *testing.T) {
 }
 
 func TestStackBehavior2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 77
 	for i := 0; i < 4; x {
 		i++
@@ -332,7 +334,7 @@ func TestStackBehavior2(t *testing.T) {
 }
 
 func TestStackBehavior3(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 77
 	if x > 0 {
 		99 
@@ -343,7 +345,7 @@ func TestStackBehavior3(t *testing.T) {
 }
 
 func TestStackBehavior4(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := -1
 	if x > 0 {
 		99 
@@ -354,7 +356,7 @@ func TestStackBehavior4(t *testing.T) {
 }
 
 func TestAssignmentOperators(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	y := 99
 	y  = 3
 	y += 6
@@ -367,7 +369,7 @@ func TestAssignmentOperators(t *testing.T) {
 }
 
 func TestFunctionCall(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	f := func(x) { 42 + x }
 	v := f(1)
 	v + 10
@@ -377,7 +379,7 @@ func TestFunctionCall(t *testing.T) {
 }
 
 func TestSwitch1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 3
 	switch x {
 		case 1:
@@ -392,7 +394,7 @@ func TestSwitch1(t *testing.T) {
 }
 
 func TestSwitch2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 1
 	switch x {
 		case 1:
@@ -406,7 +408,7 @@ func TestSwitch2(t *testing.T) {
 }
 
 func TestSwitch3(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 3
 	switch x {
 		case 1:
@@ -420,7 +422,7 @@ func TestSwitch3(t *testing.T) {
 }
 
 func TestSwitch4(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 3
 	switch x { default: 99 }
 	`)
@@ -429,7 +431,7 @@ func TestSwitch4(t *testing.T) {
 }
 
 func TestSwitch5(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 3
 	switch x { default: 99 case 3: x; x-1 }
 	`)
@@ -438,7 +440,7 @@ func TestSwitch5(t *testing.T) {
 }
 
 func TestStr(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	s := "hello"
 	s
 	`)
@@ -447,7 +449,7 @@ func TestStr(t *testing.T) {
 }
 
 func TestStrLen(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	s := "hello"
 	len(s)
 	`)
@@ -456,7 +458,7 @@ func TestStrLen(t *testing.T) {
 }
 
 func TestList1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	l := [1, 2, 3]
 	l
 	`)
@@ -469,7 +471,7 @@ func TestList1(t *testing.T) {
 }
 
 func TestList2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	plusOne := func(x) { x + 1 }
 	[plusOne(0), 4-2, plusOne(2)]
 	`)
@@ -482,7 +484,7 @@ func TestList2(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	{"a": 1, "b": 4-2}
 	`)
 	require.Nil(t, err)
@@ -493,7 +495,7 @@ func TestMap(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	{"a", 4-1}
 	`)
 	require.Nil(t, err)
@@ -504,7 +506,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestNonLocal(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	y := 3
 	z := 99
 	f := func() { y = 4 }
@@ -516,7 +518,7 @@ func TestNonLocal(t *testing.T) {
 }
 
 func TestFrameLocals1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 1
 	f := func(x) { x = 99 }
 	f(4)
@@ -527,7 +529,7 @@ func TestFrameLocals1(t *testing.T) {
 }
 
 func TestFrameLocals2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 1
 	f := func(y) { x = 99 }
 	f(4)
@@ -538,7 +540,7 @@ func TestFrameLocals2(t *testing.T) {
 }
 
 func TestMapKeys(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	m := {"a": 1, "b": 2}
 	keys(m)
 	`)
@@ -550,7 +552,7 @@ func TestMapKeys(t *testing.T) {
 }
 
 func TestClosure(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	f := func(x) { func() { x } }
 	closure := f(22)
 	closure()
@@ -560,7 +562,7 @@ func TestClosure(t *testing.T) {
 }
 
 func TestClosureIncrementer(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	f := func(x) {
 		func() { x++; x }
 	}
@@ -574,7 +576,7 @@ func TestClosureIncrementer(t *testing.T) {
 }
 
 func TestClosureOverLocal(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	var testValue = 100
 	func getint() {
 		var foo = testValue + 1
@@ -590,7 +592,7 @@ func TestClosureOverLocal(t *testing.T) {
 }
 
 func TestRecursiveExample1(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	func twoexp(n) {
 		if n == 0 {
 			return 1
@@ -605,7 +607,7 @@ func TestRecursiveExample1(t *testing.T) {
 }
 
 func TestRecursiveExample2(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	func twoexp(n) {
 		a := 1
 		b := 2
@@ -623,13 +625,13 @@ func TestRecursiveExample2(t *testing.T) {
 }
 
 func TestConstant(t *testing.T) {
-	_, err := Run(context.Background(), `const x = 1; x = 2`)
+	_, err := run(context.Background(), `const x = 1; x = 2`)
 	require.NotNil(t, err)
 	require.Equal(t, "cannot assign to constant: x", err.Error())
 }
 
 func TestConstantFunction(t *testing.T) {
-	_, err := Run(context.Background(), `
+	_, err := run(context.Background(), `
 	func add(x, y) { x + y }
 	add = "bloop"
 	`)
@@ -957,7 +959,7 @@ func TestPipes(t *testing.T) {
 }
 
 func TestQuicksort(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	func quicksort(arr) {
 		if len(arr) < 2 {
 			return arr
@@ -981,7 +983,7 @@ func TestQuicksort(t *testing.T) {
 }
 
 func TestLoopBreak(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for i := 0; i < 10; i++ {
 		if i == 3 { break }
@@ -994,7 +996,7 @@ func TestLoopBreak(t *testing.T) {
 }
 
 func TestLoopContinue(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for i := 0; i < 10; i++ {
 		if i > 3 { continue }
@@ -1007,7 +1009,7 @@ func TestLoopContinue(t *testing.T) {
 }
 
 func TestRangeLoopBreak(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for i := range [0, 1, 2, 3, 4] {
 		if i == 3 { break }
@@ -1020,7 +1022,7 @@ func TestRangeLoopBreak(t *testing.T) {
 }
 
 func TestRangeLoopContinue(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for i := range [0, 1, 2, 3, 4] {
 		if i > 3 { continue }
@@ -1033,7 +1035,7 @@ func TestRangeLoopContinue(t *testing.T) {
 }
 
 func TestSimpleLoopBreak(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	for {
 		x++
@@ -1047,7 +1049,7 @@ func TestSimpleLoopBreak(t *testing.T) {
 }
 
 func TestNestedLoops(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x, y, z := [0, 0, 0]
 	for {
 		x++ // This should execute 3 times total
@@ -1074,7 +1076,7 @@ func TestNestedLoops(t *testing.T) {
 }
 
 func TestSimpleLoopContinue(t *testing.T) {
-	result, err := Run(context.Background(), `
+	result, err := run(context.Background(), `
 	x := 0
 	y := 0
 	for {
@@ -1090,6 +1092,60 @@ func TestSimpleLoopContinue(t *testing.T) {
 	`)
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestManyLocals(t *testing.T) {
+	result, err := run(context.Background(), `
+	func example(x) {
+		a := x + 1
+		b := a + 1
+		c := b + 1
+		d := c + 1
+		e := d + 1
+		f := e + 1
+		g := f + 1
+		h := g + 1
+		i := h + 1
+		j := i + 1
+		k := j + 1
+		l := k + 1
+		return l
+	}
+	example(0)
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(12), result)
+}
+
+func TestIncorrectArgCount(t *testing.T) {
+	type testCase struct {
+		input       string
+		expectedErr string
+	}
+	tests := []testCase{
+		{`func ex() { 1 }; ex(1)`, "type error: function takes no arguments (1 given)"},
+		{`func ex(x) { x }; ex()`, "type error: function takes 1 argument (0 given)"},
+		{`func ex(x) { x }; ex(1, 2)`, "type error: function takes 1 argument (2 given)"},
+		{`func ex(x, y) { 1 }; ex()`, "type error: function takes 2 arguments (0 given)"},
+		{`func ex(x, y) { 1 }; ex(0)`, "type error: function takes 2 arguments (1 given)"},
+		{`func ex(x, y) { 1 }; ex(1, 2, 3)`, "type error: function takes 2 arguments (3 given)"},
+		{`func ex() { 1 }; [1, 2].filter(ex)`, "type error: function takes no arguments (1 given)"},
+		{`func ex() { 1 }; "foo" | ex`, "type error: function takes no arguments (1 given)"},
+		{`"foo" | "bar"`, "type error: object is not callable (got string)"},
+	}
+	for _, tt := range tests {
+		_, err := run(context.Background(), tt.input)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expectedErr, err.Error())
+	}
+}
+
+func TestHalt(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+	defer cancel()
+	_, err := run(ctx, `for {}`)
+	require.NotNil(t, err)
+	require.Equal(t, context.DeadlineExceeded, err)
 }
 
 func TestImports(t *testing.T) {
@@ -1110,7 +1166,7 @@ func runTests(t *testing.T, tests []testCase) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Helper()
-			result, err := Run(ctx, tt.input)
+			result, err := run(ctx, tt.input)
 			require.Nil(t, err)
 			require.NotNil(t, result)
 			require.Equal(t, tt.expected, result)

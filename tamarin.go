@@ -42,7 +42,7 @@ func main() {
 
 	ctx := context.Background()
 
-	interp := vm.NewInterpreter(nil)
+	interp := vm.NewInterpreter()
 
 	// Input can only come from one source
 	nArgs := len(flag.Args())
@@ -76,7 +76,7 @@ func main() {
 
 	start := time.Now()
 
-	result, err := vm.Run(ctx, string(input))
+	result, err := vm.RunWithDefaults(ctx, string(input))
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {

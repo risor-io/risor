@@ -9,7 +9,8 @@ import (
 )
 
 func TestNil(t *testing.T) {
-	c := New(Options{})
+	c, err := New()
+	require.Nil(t, err)
 	scope, err := c.Compile(&ast.Nil{})
 	require.Nil(t, err)
 	require.Len(t, scope.Instructions, 1)

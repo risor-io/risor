@@ -1,4 +1,5 @@
-package vm
+// Package builtins defines the default set of builtin functions for Tamarin.
+package builtins
 
 import (
 	"context"

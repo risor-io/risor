@@ -158,15 +158,8 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 // nextToken moves to the next token from the lexer, updating all of
-// prevToken, curToken, and peekToken. Any lexer error is captured but
-// ignored.
-func (p *Parser) nextToken() {
-	p.nextTokenWithError()
-}
-
-// nextToken moves to the next token from the lexer, updating all of
 // prevToken, curToken, and peekToken.
-func (p *Parser) nextTokenWithError() error {
+func (p *Parser) nextToken() error {
 	// If we have an error, we can't move forward
 	if p.err != nil {
 		return p.err
@@ -211,7 +204,7 @@ func (p *Parser) Parse(ctx context.Context) (*ast.Program, error) {
 		if stmt != nil {
 			statements = append(statements, stmt)
 		}
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil, err
 		}
 	}
@@ -425,7 +418,7 @@ func (p *Parser) parseReturn() *ast.Control {
 func (p *Parser) parseBreak() *ast.Control {
 	stmt := ast.NewControl(p.curToken, nil)
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -435,7 +428,7 @@ func (p *Parser) parseBreak() *ast.Control {
 func (p *Parser) parseContinue() *ast.Control {
 	stmt := ast.NewControl(p.curToken, nil)
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -448,7 +441,7 @@ func (p *Parser) parseExpressionStatement() ast.Node {
 		p.setTokenError(p.curToken, "invalid syntax")
 	}
 	for p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -643,7 +636,7 @@ func (p *Parser) parseSwitch() ast.Node {
 		for {
 			// Skip over newlines and semicolons
 			for p.curTokenIs(token.NEWLINE) || p.curTokenIs(token.SEMICOLON) {
-				if err := p.nextTokenWithError(); err != nil {
+				if err := p.nextToken(); err != nil {
 					return nil
 				}
 			}
@@ -659,7 +652,7 @@ func (p *Parser) parseSwitch() ast.Node {
 				blockStatements = append(blockStatements, s)
 			}
 			// Move to the token just beyond the statement
-			if err := p.nextTokenWithError(); err != nil {
+			if err := p.nextToken(); err != nil {
 				return nil
 			}
 		}
@@ -721,7 +714,7 @@ func (p *Parser) parseInfixExpr(leftNode ast.Node) ast.Node {
 		return nil
 	}
 	firstToken := p.curToken
-	precedence := p.curPrecedence()
+	precedence := p.currentPrecedence()
 	p.nextToken()
 	right := p.parseExpression(precedence)
 	if right == nil {
@@ -746,7 +739,7 @@ func (p *Parser) parseTernary(conditionNode ast.Node) ast.Node {
 
 	firstToken := p.curToken // the "?"
 	p.nextToken()            // move past the '?'
-	precedence := p.curPrecedence()
+	precedence := p.currentPrecedence()
 	ifTrue := p.parseExpression(precedence)
 	if ifTrue == nil {
 		p.setTokenError(p.curToken, "invalid syntax in ternary if true expression")
@@ -879,7 +872,7 @@ func (p *Parser) parseBlock() *ast.Block {
 		if s := p.parseStatement(); s != nil {
 			statements = append(statements, s)
 		}
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -923,7 +916,7 @@ func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
 		}
 		ident := ast.NewIdent(p.curToken)
 		params = append(params, ident)
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil, nil
 		}
 		// If there is "=expr" after the name then expr is a default value
@@ -999,7 +992,7 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 		return list
 	}
 	for p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -1012,12 +1005,12 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 	list = append(list, expr)
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 		// advance across any extra newlines
 		for p.peekTokenIs(token.NEWLINE) {
-			if err := p.nextTokenWithError(); err != nil {
+			if err := p.nextToken(); err != nil {
 				return nil
 			}
 		}
@@ -1026,7 +1019,7 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 			break
 		}
 		// move to the next expression
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 		list = append(list, p.parseExpression(LOWEST))
@@ -1044,7 +1037,7 @@ func (p *Parser) parseNodeList(end token.Type) []ast.Node {
 		return list
 	}
 	for p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -1057,12 +1050,12 @@ func (p *Parser) parseNodeList(end token.Type) []ast.Node {
 	list = append(list, expr)
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 		// advance across any extra newlines
 		for p.peekTokenIs(token.NEWLINE) {
-			if err := p.nextTokenWithError(); err != nil {
+			if err := p.nextToken(); err != nil {
 				return nil
 			}
 		}
@@ -1071,7 +1064,7 @@ func (p *Parser) parseNodeList(end token.Type) []ast.Node {
 			break
 		}
 		// move to the next expression
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 		list = append(list, p.parseNode(LOWEST))
@@ -1170,7 +1163,7 @@ func (p *Parser) parsePipe(firstNode ast.Node) ast.Node {
 	exprs := []ast.Expression{first}
 	for {
 		// Move past the pipe operator itself
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 		// Advance across any extra newlines
@@ -1201,7 +1194,7 @@ func (p *Parser) parseIn(leftNode ast.Node) ast.Node {
 		return nil
 	}
 	inToken := p.curToken
-	if err := p.nextTokenWithError(); err != nil {
+	if err := p.nextToken(); err != nil {
 		return nil
 	}
 	right := p.parseExpression(IN)
@@ -1214,7 +1207,7 @@ func (p *Parser) parseIn(leftNode ast.Node) ast.Node {
 
 func (p *Parser) parseRange() ast.Node {
 	rangeToken := p.curToken
-	if err := p.nextTokenWithError(); err != nil {
+	if err := p.nextToken(); err != nil {
 		return nil
 	}
 	container := p.parseExpression(RANGE)
@@ -1228,7 +1221,7 @@ func (p *Parser) parseRange() ast.Node {
 func (p *Parser) parseMapOrSet() ast.Node {
 	firstToken := p.curToken
 	for p.peekTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return nil
 		}
 	}
@@ -1249,7 +1242,7 @@ func (p *Parser) parseMapOrSet() ast.Node {
 				return nil
 			}
 			for p.peekTokenIs(token.NEWLINE) {
-				if err := p.nextTokenWithError(); err != nil {
+				if err := p.nextToken(); err != nil {
 					return nil
 				}
 			}
@@ -1284,12 +1277,12 @@ func (p *Parser) parseMapOrSet() ast.Node {
 			return nil
 		}
 		for p.peekTokenIs(token.NEWLINE) {
-			if err := p.nextTokenWithError(); err != nil {
+			if err := p.nextToken(); err != nil {
 				return nil
 			}
 		}
 		for !p.peekTokenIs(token.RBRACE) {
-			if err := p.nextTokenWithError(); err != nil {
+			if err := p.nextToken(); err != nil {
 				return nil
 			}
 			key := p.parseExpression(LOWEST)
@@ -1299,7 +1292,7 @@ func (p *Parser) parseMapOrSet() ast.Node {
 			}
 			p.nextToken() // move to the comma
 			for p.peekTokenIs(token.NEWLINE) {
-				if err := p.nextTokenWithError(); err != nil {
+				if err := p.nextToken(); err != nil {
 					return nil
 				}
 			}
@@ -1349,18 +1342,18 @@ func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
 	return ast.NewGetAttr(period, obj, name)
 }
 
-// curTokenIs tests if the current token has the given type.
+// curTokenIs returns true if the current token has the given type.
 func (p *Parser) curTokenIs(t token.Type) bool {
 	return p.curToken.Type == t
 }
 
-// peekTokenIs tests if the next token has the given type.
+// peekTokenIs returns true if the next token has the given type.
 func (p *Parser) peekTokenIs(t token.Type) bool {
 	return p.peekToken.Type == t
 }
 
-// expectPeek validates the next token is of the given type,
-// and advances if so.  If it is not an error is stored.
+// expectPeek validates if the next token is of the given type, and advances if
+// it is. If it's a different type, then an error is stored.
 func (p *Parser) expectPeek(context string, t token.Type) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
@@ -1370,7 +1363,7 @@ func (p *Parser) expectPeek(context string, t token.Type) bool {
 	return false
 }
 
-// peekPrecedence looks up the next token precedence.
+// peekPrecedence returns the precedence of the next token.
 func (p *Parser) peekPrecedence() int {
 	if p, ok := precedences[p.peekToken.Type]; ok {
 		return p
@@ -1378,8 +1371,8 @@ func (p *Parser) peekPrecedence() int {
 	return LOWEST
 }
 
-// curPrecedence looks up the current token precedence.
-func (p *Parser) curPrecedence() int {
+// currentPrecedence returns the precedence of the current token.
+func (p *Parser) currentPrecedence() int {
 	if p, ok := precedences[p.curToken.Type]; ok {
 		return p
 	}
@@ -1388,7 +1381,7 @@ func (p *Parser) curPrecedence() int {
 
 func (p *Parser) eatNewlines() {
 	for p.curTokenIs(token.NEWLINE) {
-		if err := p.nextTokenWithError(); err != nil {
+		if err := p.nextToken(); err != nil {
 			return
 		}
 	}

@@ -84,7 +84,7 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 				hasFlt = true
 			}
 		default:
-			return object.Errorf("invalid array item for math.max: %s", val.Type())
+			return object.Errorf("type error: invalid array item for math.max: %s", val.Type())
 		}
 	}
 	if hasFlt {

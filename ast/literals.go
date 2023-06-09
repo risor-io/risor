@@ -9,12 +9,13 @@ import (
 	"github.com/cloudcmds/tamarin/v2/token"
 )
 
-// Int holds an integer number
+// Int is an expression node that holds an integer literal.
 type Int struct {
 	token token.Token // the token containing the number
 	value int64       // the value of the int
 }
 
+// NewInt creates a new Int node.
 func NewInt(token token.Token, value int64) *Int {
 	return &Int{token: token, value: value}
 }
@@ -31,12 +32,13 @@ func (i *Int) Value() int64 { return i.value }
 
 func (i *Int) String() string { return i.token.Literal }
 
-// Float holds a floating point number
+// Float is an expression node that holds a floating point literal.
 type Float struct {
 	token token.Token // the token containing the number
 	value float64     // the value of the float
 }
 
+// NewFloat creates a new Float node.
 func NewFloat(token token.Token, value float64) *Float {
 	return &Float{token: token, value: value}
 }
@@ -53,11 +55,12 @@ func (f *Float) Value() float64 { return f.value }
 
 func (f *Float) String() string { return f.token.Literal }
 
-// Nil represents a literal nil
+// Nil is an expression node that holds a nil literal.
 type Nil struct {
 	token token.Token // token containing "nil"
 }
 
+// NewNil creates a new Nil node.
 func NewNil(token token.Token) *Nil {
 	return &Nil{token: token}
 }
@@ -72,7 +75,7 @@ func (n *Nil) Literal() string { return n.token.Literal }
 
 func (n *Nil) String() string { return n.token.Literal }
 
-// Bool holds the boolean "true" or "false"
+// Bool is an expression node that holds a boolean literal.
 type Bool struct {
 	// Token holds the actual token
 	token token.Token
@@ -81,6 +84,7 @@ type Bool struct {
 	value bool
 }
 
+// NewBool creates a new Bool node.
 func NewBool(token token.Token, value bool) *Bool {
 	return &Bool{token: token, value: value}
 }
@@ -97,7 +101,7 @@ func (b *Bool) Value() bool { return b.value }
 
 func (b *Bool) String() string { return b.token.Literal }
 
-// Func holds a function definition.
+// Func is an expression node that holds a function literal.
 type Func struct {
 	token token.Token
 
@@ -113,6 +117,7 @@ type Func struct {
 	body *Block
 }
 
+// NewFunc creates a new Func node.
 func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[string]Expression, body *Block) *Func {
 	return &Func{
 		token:      token,
@@ -164,7 +169,7 @@ func (f *Func) String() string {
 	return out.String()
 }
 
-// String holds a string
+// String is an expression node that holds a string literal.
 type String struct {
 	// Token is the token
 	token token.Token
@@ -178,10 +183,12 @@ type String struct {
 	exprs []Expression
 }
 
+// NewString creates a new String node.
 func NewString(tok token.Token) *String {
 	return &String{token: tok, value: tok.Literal}
 }
 
+// NewTemplatedString creates a new String node defined by a template.
 func NewTemplatedString(tok token.Token, template *tmpl.Template, exprs []Expression) *String {
 	return &String{token: tok, value: tok.Literal, template: template, exprs: exprs}
 }
@@ -202,7 +209,7 @@ func (s *String) TemplateExpressions() []Expression { return s.exprs }
 
 func (s *String) String() string { return fmt.Sprintf("%q", s.token.Literal) }
 
-// List holds an inline list
+// List is an expression node that builds a list data structure.
 type List struct {
 	// Token is the token
 	token token.Token
@@ -211,6 +218,7 @@ type List struct {
 	items []Expression
 }
 
+// NewList creates a new List node.
 func NewList(tok token.Token, items []Expression) *List {
 	return &List{token: tok, items: items}
 }
@@ -237,12 +245,13 @@ func (l *List) String() string {
 	return out.String()
 }
 
-// Map holds a map
+// Map is an expression node that builds a map data structure.
 type Map struct {
 	token token.Token               // the '{' token
 	items map[Expression]Expression // items in the map
 }
 
+// NewMap creates a new Map node.
 func NewMap(token token.Token, items map[Expression]Expression) *Map {
 	return &Map{token: token, items: items}
 }
@@ -269,12 +278,13 @@ func (m *Map) String() string {
 	return out.String()
 }
 
-// Set holds a set definition
+// Set is an expression node that builds a set data structure.
 type Set struct {
 	token token.Token  // the '{' token
 	items []Expression // items in the set
 }
 
+// NewSet creates a new Set node.
 func NewSet(token token.Token, items []Expression) *Set {
 	return &Set{token: token, items: items}
 }

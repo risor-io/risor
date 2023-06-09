@@ -79,7 +79,7 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	return vm.Run(ctx, string(input))
+	return vm.RunWithDefaults(ctx, string(input))
 }
 
 func listTestFiles() []string {

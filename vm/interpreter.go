@@ -3,6 +3,7 @@ package vm
 import (
 	"context"
 
+	"github.com/cloudcmds/tamarin/v2/builtins"
 	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/importer"
 	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
@@ -18,67 +19,88 @@ import (
 )
 
 type Interpreter struct {
-	c        *compiler.Compiler
+	compiler *compiler.Compiler
 	main     *object.Code
 	builtins map[string]object.Object
+	importer importer.Importer
 }
 
-func NewInterpreter(builtins []*object.Builtin) *Interpreter {
+type InterpreterOpt func(*Interpreter)
 
-	bmap := map[string]object.Object{}
-	for _, b := range GlobalBuiltins() {
-		bmap[b.Key()] = b
+func WithDefaultBuiltins() InterpreterOpt {
+	return func(i *Interpreter) {
+		for _, b := range builtins.GlobalBuiltins() {
+			i.builtins[b.Key()] = b
+		}
 	}
+}
 
-	bmap["math"] = modMath.Module()
-	bmap["json"] = modJson.Module()
-	bmap["strings"] = modStrings.Module()
-	bmap["time"] = modTime.Module()
-	bmap["uuid"] = modUuid.Module()
-	bmap["rand"] = modRand.Module()
-	bmap["strconv"] = modStrconv.Module()
-	bmap["pgx"] = modPgx.Module()
-
-	s := object.NewCode("main")
-
-	c := compiler.New(compiler.Options{
-		Builtins: bmap,
-		Name:     "main",
-		Code:     s,
-	})
-
-	return &Interpreter{
-		c:        c,
-		main:     s,
-		builtins: bmap,
+func WithDefaultModules() InterpreterOpt {
+	return func(i *Interpreter) {
+		i.builtins["math"] = modMath.Module()
+		i.builtins["json"] = modJson.Module()
+		i.builtins["strings"] = modStrings.Module()
+		i.builtins["time"] = modTime.Module()
+		i.builtins["uuid"] = modUuid.Module()
+		i.builtins["rand"] = modRand.Module()
+		i.builtins["strconv"] = modStrconv.Module()
+		i.builtins["pgx"] = modPgx.Module()
 	}
+}
+
+func WithImporter(im importer.Importer) InterpreterOpt {
+	return func(i *Interpreter) {
+		i.importer = im
+	}
+}
+
+func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
+	i := &Interpreter{
+		main:     object.NewCode("main"),
+		builtins: map[string]object.Object{},
+	}
+	for _, opt := range opts {
+		opt(i)
+	}
+	return i
 }
 
 func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, error) {
+
+	// Initialize a compiler as needed
+	if i.compiler == nil {
+		var err error
+		i.compiler, err = compiler.New(
+			compiler.WithBuiltins(i.builtins),
+			compiler.WithCode(i.main),
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Parse the source to create the AST
 	ast, err := parser.Parse(code)
 	if err != nil {
 		return nil, err
 	}
-	pos := len(i.c.MainInstructions())
 
-	if _, err = i.c.Compile(ast); err != nil {
+	// Compile the AST to bytecode, appending to the end of the main code
+	offset := len(i.compiler.MainInstructions())
+	if _, err = i.compiler.Compile(ast); err != nil {
 		return nil, err
 	}
 
-	v := New(Options{
+	// Evaluate the bytecode in a VM then return the top-of-stack (TOS) value
+	machine := New(Options{
 		Main:              i.main,
-		InstructionOffset: pos,
-		Importer: importer.NewLocalImporter(importer.LocalImporterOptions{
-			SourceDir: ".",
-			Builtins:  i.builtins,
-		}),
+		InstructionOffset: offset,
+		Importer:          i.importer,
 	})
-	if err := v.Run(ctx); err != nil {
+	if err := machine.Run(ctx); err != nil {
 		return nil, err
 	}
-
-	result, exists := v.TOS()
-	if exists {
+	if result, exists := machine.TOS(); exists {
 		return result, nil
 	}
 	return object.Nil, nil

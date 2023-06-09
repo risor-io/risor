@@ -1,5 +1,5 @@
-// Package lexer contains the code to lex input-programs into a stream
-// of tokens, such that they may be parsed.
+// Package lexer contains the code to lex input programs into a stream
+// of tokens. The stream of tokens can then be parsed into an AST.
 package lexer
 
 import (
@@ -491,7 +491,7 @@ func (l *Lexer) readDecimal() (token.Token, error) {
 		return l.newToken(token.INT, integer), nil
 	}
 	if numberType != NumberTypeDecimal {
-		return token.Token{}, fmt.Errorf("invalid decimal literal: %s.%c", integer, l.peekChar())
+		return token.Token{}, fmt.Errorf("invalid decimal literal: %s%s", integer, ".")
 	}
 	// Read the "."
 	l.readChar()

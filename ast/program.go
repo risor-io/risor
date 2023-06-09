@@ -6,9 +6,10 @@ import (
 	"github.com/cloudcmds/tamarin/v2/token"
 )
 
-// Program represents a complete program.
+// Program represents a complete Tamarin program, which consists of a series of
+// statements.
 type Program struct {
-	// The set of statements which comprise the program.
+	// The list of statements which comprise the program.
 	statements []Node
 }
 
