@@ -41,7 +41,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddCompilationAndExecution(t *testing.T) {
-	program, err := parser.Parse(`
+	program, err := parser.Parse(context.Background(), `
 	x := 11
 	y := 12
 	x + y
@@ -74,7 +74,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 }
 
 func TestConditional(t *testing.T) {
-	program, err := parser.Parse(`
+	program, err := parser.Parse(context.Background(), `
 	x := 20
 	if x > 10 {
 		x = 99

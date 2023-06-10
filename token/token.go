@@ -1,12 +1,10 @@
-// Package token contains constants which are used when lexing a program.
+// Package token defines the tokens that are produced when lexing Tamarin code.
 package token
 
 // Type describes the type of a token as a string.
 type Type string
 
 // Position points to a particular location in an input string.
-// It helps track offset since the beginning of the input as well
-// as line offsets.
 type Position struct {
 	Value     rune
 	Char      int
@@ -16,15 +14,17 @@ type Position struct {
 	File      string
 }
 
+// LineNumber returns the 1-indexed line number for this position in the input.
 func (p Position) LineNumber() int {
 	return p.Line + 1
 }
 
+// ColumnNumber returns the 1-indexed column number for this position in the input.
 func (p Position) ColumnNumber() int {
 	return p.Column + 1
 }
 
-// Token struct represent the lexer token
+// Token represents one token lexed from the input source code.
 type Token struct {
 	Type          Type
 	Literal       string
@@ -32,7 +32,7 @@ type Token struct {
 	EndPosition   Position
 }
 
-// pre-defined Type
+// Token types
 const (
 	AND             = "&&"
 	ASSIGN          = "="
@@ -100,7 +100,7 @@ const (
 	RANGE           = "RANGE"
 )
 
-// reserved keywords
+// Reserved keywords
 var keywords = map[string]Type{
 	"case":     CASE,
 	"const":    CONST,

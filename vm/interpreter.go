@@ -80,7 +80,7 @@ func (i *Interpreter) Eval(ctx context.Context, code string) (object.Object, err
 	}
 
 	// Parse the source to create the AST
-	ast, err := parser.Parse(code)
+	ast, err := parser.Parse(ctx, code)
 	if err != nil {
 		return nil, err
 	}

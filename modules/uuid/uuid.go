@@ -3,7 +3,7 @@ package uuid
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/gofrs/uuid"
 )

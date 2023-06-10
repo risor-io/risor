@@ -1,4 +1,4 @@
-// Package compiler is used to compile a Tamarin Abstract Syntax Tree (AST) into
+// Package compiler is used to compile an Abstract Syntax Tree (AST) into
 // its corresponding bytecode.
 package compiler
 
@@ -648,7 +648,8 @@ func (c *Compiler) compileString(node *ast.String) error {
 		return nil
 	}
 
-	if len(tmpl.Fragments) > math.MaxUint16 {
+	fragments := tmpl.Fragments()
+	if len(fragments) > math.MaxUint16 {
 		return fmt.Errorf("string template exceeded max fragment size")
 	}
 
@@ -656,8 +657,8 @@ func (c *Compiler) compileString(node *ast.String) error {
 	expressions := node.TemplateExpressions()
 
 	// Emit code that pushes each fragment of the string onto the stack
-	for _, f := range tmpl.Fragments {
-		switch f.IsVariable {
+	for _, f := range fragments {
+		switch f.IsVariable() {
 		case true:
 			expr := expressions[expressionIndex]
 			expressionIndex++
@@ -682,11 +683,11 @@ func (c *Compiler) compileString(node *ast.String) error {
 			c.emit(op.Call, 0)
 		case false:
 			// Push the fragment as a constant as TOS
-			c.emit(op.LoadConst, c.constant(object.NewString(f.Value)))
+			c.emit(op.LoadConst, c.constant(object.NewString(f.Value())))
 		}
 	}
 	// Emit a BuildString to concatenate all the fragments
-	c.emit(op.BuildString, uint16(len(tmpl.Fragments)))
+	c.emit(op.BuildString, uint16(len(fragments)))
 	return nil
 }
 

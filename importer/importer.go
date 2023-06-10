@@ -58,7 +58,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if err != nil {
 		return nil, err
 	}
-	ast, err := parser.Parse(source)
+	ast, err := parser.Parse(ctx, source)
 	if err != nil {
 		return nil, err
 	}

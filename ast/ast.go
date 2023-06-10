@@ -1,4 +1,4 @@
-// Package ast defines abstract syntax tree (AST) types used by Tamarin.
+// Package ast defines abstract syntax tree types that represent Tamarin code.
 package ast
 
 import "github.com/cloudcmds/tamarin/v2/token"

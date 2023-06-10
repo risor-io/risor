@@ -1,24 +1,24 @@
-// Package object defines all available object types in Tamarin.
+// Package object defines the standard set of object types in Tamarin.
 //
-// For external users of Tamarin, most often an object.Object interface
+// For external users of Tamarin, often an object.Object interface
 // will be type asserted to a specific object type, such as *object.Float.
 //
 // For example:
 //
 //	switch obj := obj.(type) {
 //	case *object.String:
-//		// do something with obj.Value
+//		// do something with obj.Value()
 //	case *object.Float:
-//		// do something with obj.Value
+//		// do something with obj.Value()
 //	}
 //
 // The Type() method of each object may also be used to get a string
-// name of the object type, such as "STRING" or "FLOAT".
+// name of the object type, such as "string" or "float".
 package object
 
 import "github.com/cloudcmds/tamarin/v2/op"
 
-// Type defines the type of an object.
+// Type of an object as a string.
 type Type string
 
 // Type constants
@@ -26,8 +26,6 @@ const (
 	BOOL          Type = "bool"
 	BUILTIN       Type = "builtin"
 	CELL          Type = "cell"
-	CONTROL       Type = "control"
-	DB_CONNECTION Type = "db_connection"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"

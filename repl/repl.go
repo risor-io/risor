@@ -1,3 +1,4 @@
+// Package repl implements a read-eval-print-loop for Tamarin.
 package repl
 
 import (

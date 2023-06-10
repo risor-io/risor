@@ -8,8 +8,8 @@ import (
 	"github.com/cloudcmds/tamarin/v2/parser"
 )
 
-func CompileModule(name, code string, builtins map[string]object.Object) (*object.Module, error) {
-	ast, err := parser.Parse(code)
+func CompileModule(ctx context.Context, name, code string, builtins map[string]object.Object) (*object.Module, error) {
+	ast, err := parser.Parse(ctx, code)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func NewSimpleImporter(moduleSource map[string]string, builtins map[string]objec
 
 func (i *SimpleImporter) Import(ctx context.Context, name string) (*object.Module, error) {
 	if code, ok := i.moduleSource[name]; ok {
-		return CompileModule(name, code, i.builtins)
+		return CompileModule(ctx, name, code, i.builtins)
 	}
 	return nil, nil
 }

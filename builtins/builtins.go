@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
-	"github.com/cloudcmds/tamarin/v2/httputil"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/httputil"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
 

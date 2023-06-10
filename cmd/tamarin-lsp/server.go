@@ -30,7 +30,7 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 		linesChangedSinceAST: map[int]bool{},
 	}
 	if params.TextDocument.Text != "" {
-		doc.ast, doc.err = parser.Parse(params.TextDocument.Text)
+		doc.ast, doc.err = parser.Parse(ctx, params.TextDocument.Text)
 		if doc.err != nil {
 			log.Error().Err(doc.err).Msg("parse program failed")
 		} else {
