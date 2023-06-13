@@ -16,11 +16,14 @@ import (
 // *****************************************************************************
 
 func AsString(obj Object) (result string, err *Error) {
-	s, ok := obj.(*String)
-	if !ok {
+	switch obj := obj.(type) {
+	case *String:
+		return obj.value, nil
+	case *BSlice:
+		return string(obj.value), nil
+	default:
 		return "", Errorf("type error: expected a string (got %v)", obj.Type())
 	}
-	return s.value, nil
 }
 
 func AsInt(obj Object) (int64, *Error) {
@@ -74,6 +77,23 @@ func AsSet(obj Object) (*Set, *Error) {
 	return set, nil
 }
 
+func AsBytes(obj Object) ([]byte, *Error) {
+	switch obj := obj.(type) {
+	case *BSlice:
+		return obj.value, nil
+	case *String:
+		return []byte(obj.value), nil
+	case *Int:
+		v := obj.Value()
+		if v < 0 || v > 255 {
+			return nil, Errorf("type error: expected bytes (got out-of-range integer)")
+		}
+		return []byte{byte(v)}, nil
+	default:
+		return nil, Errorf("type error: expected bytes (got %v)", obj.Type())
+	}
+}
+
 // *****************************************************************************
 // Converting types from Go to Tamarin
 // *****************************************************************************
@@ -94,6 +114,8 @@ func FromGoType(obj interface{}) Object {
 		return NewFloat(obj)
 	case string:
 		return NewString(obj)
+	case []byte:
+		return NewBSlice(obj)
 	case bool:
 		if obj {
 			return True
@@ -152,6 +174,7 @@ var (
 	intType         = reflect.TypeOf(int(0))
 	int64Type       = reflect.TypeOf(int64(0))
 	stringType      = reflect.TypeOf("")
+	bytesType       = reflect.TypeOf([]byte{})
 	float32Type     = reflect.TypeOf(float32(0))
 	float64Type     = reflect.TypeOf(float64(0))
 	booleanType     = reflect.TypeOf(false)
@@ -216,6 +239,28 @@ func (c *StringConverter) From(obj interface{}) (Object, error) {
 
 func (c *StringConverter) Type() reflect.Type {
 	return stringType
+}
+
+// BytesConverter converts between []byte and BSlice.
+type BytesConverter struct{}
+
+func (c *BytesConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *BSlice:
+		return obj.value, nil
+	case *String:
+		return []byte(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
+	}
+}
+
+func (c *BytesConverter) From(obj interface{}) (Object, error) {
+	return NewBSlice(obj.([]byte)), nil
+}
+
+func (c *BytesConverter) Type() reflect.Type {
+	return bytesType
 }
 
 // Float64Converter converts between float64 and Float.

@@ -69,6 +69,12 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 				return res
 			}
 		}
+	case *object.BSlice:
+		for _, v := range arg.Value() {
+			if res := set.Add(object.NewInt(int64(v))); object.IsError(res) {
+				return res
+			}
+		}
 	case *object.List:
 		for _, obj := range arg.Value() {
 			if res := set.Add(obj); object.IsError(res) {
@@ -106,6 +112,12 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 		var items []object.Object
 		for _, v := range obj.Value() {
 			items = append(items, object.NewString(string(v)))
+		}
+		return object.NewList(items)
+	case *object.BSlice:
+		var items []object.Object
+		for _, v := range obj.Value() {
+			items = append(items, object.NewInt(int64(v)))
 		}
 		return object.NewList(items)
 	case *object.List:
@@ -176,8 +188,34 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.String:
 		return object.NewString(arg.Value())
+	case *object.BSlice:
+		return object.NewString(string(arg.Value()))
 	default:
 		return object.NewString(args[0].Inspect())
+	}
+}
+
+func BSlice(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: bytes() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewBSlice(nil)
+	}
+	switch arg := args[0].(type) {
+	case *object.BSlice:
+		return arg.Clone()
+	case *object.String:
+		return object.NewBSlice([]byte(arg.Value()))
+	case *object.Int:
+		val := arg.Value()
+		if val < 0 || val > 255 {
+			return object.Errorf("type error: bytes() argument must be in range 0 to 255")
+		}
+		return object.NewBSlice([]byte{byte(val)})
+	default:
+		return object.Errorf("type error: bytes() argument is unsupported (%s given)", args[0].Type())
 	}
 }
 
@@ -254,6 +292,12 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 				return object.True
 			}
 		}
+	case *object.BSlice:
+		for _, val := range arg.Value() {
+			if val != 0 {
+				return object.True
+			}
+		}
 	default:
 		return object.Errorf("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
@@ -274,6 +318,12 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Set:
 		for _, obj := range arg.Value() {
 			if !obj.IsTruthy() {
+				return object.False
+			}
+		}
+	case *object.BSlice:
+		for _, val := range arg.Value() {
+			if val == 0 {
 				return object.False
 			}
 		}
@@ -343,6 +393,8 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 		items = arg.List().Value()
 	case *object.String:
 		items = arg.Runes()
+	case *object.BSlice:
+		items = arg.Integers()
 	default:
 		return object.Errorf("type error: sorted() argument must be a list, map, or set (%s given)", arg.Type())
 	}
@@ -362,6 +414,8 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		return arg.Reversed()
 	case *object.String:
+		return arg.Reversed()
+	case *object.BSlice:
 		return arg.Reversed()
 	default:
 		return object.Errorf("type error: reversed() argument must be an array or string (%s given)", arg.Type())
@@ -443,6 +497,12 @@ func Int(ctx context.Context, args ...object.Object) object.Object {
 			return object.NewInt(i)
 		}
 		return object.Errorf("value error: invalid literal for int(): %q", obj.Value())
+	case *object.BSlice:
+		val := obj.Value()
+		if len(val) != 1 {
+			return object.Errorf("value error: bytes must be exactly one byte long")
+		}
+		return object.NewInt(int64(val[0]))
 	}
 	return object.Errorf("type error: int() argument must be a string, float, or int (%s given)", args[0].Type())
 }
@@ -590,6 +650,7 @@ func Defaults() map[string]object.Object {
 		"any":       object.NewBuiltin("any", Any),
 		"assert":    object.NewBuiltin("assert", Assert),
 		"bool":      object.NewBuiltin("bool", Bool),
+		"bslice":    object.NewBuiltin("bslice", BSlice),
 		"call":      object.NewBuiltin("call", Call),
 		"chr":       object.NewBuiltin("chr", Chr),
 		"delete":    object.NewBuiltin("delete", Delete),

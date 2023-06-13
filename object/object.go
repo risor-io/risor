@@ -25,6 +25,8 @@ type Type string
 const (
 	BOOL          Type = "bool"
 	BUILTIN       Type = "builtin"
+	BSLICE        Type = "bslice"
+	BSLICE_ITER   Type = "bslice_iter"
 	CELL          Type = "cell"
 	ERROR         Type = "error"
 	FILE          Type = "file"

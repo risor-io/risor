@@ -6,6 +6,7 @@ import (
 	"github.com/cloudcmds/tamarin/v2/builtins"
 	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/importer"
+	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
 	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
 	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
 	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
@@ -131,5 +132,6 @@ func defaultModules() map[string]object.Object {
 		"time":    modTime.Module(),
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
+		"bytes":   modBytes.Module(),
 	}
 }

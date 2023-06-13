@@ -1,6 +1,7 @@
 package all
 
 import (
+	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
 	modHttp "github.com/cloudcmds/tamarin/v2/modules/http"
 	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
 	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
@@ -24,6 +25,8 @@ func Defaults() map[string]object.Object {
 		"strconv": modStrconv.Module(),
 		"pgx":     modPgx.Module(),
 		"uuid":    modUuid.Module(),
+		"os":      modOs.Module(),
+		"bytes":   modBytes.Module(),
 	}
 	for k, v := range modHttp.Builtins() {
 		builtins[k] = v
