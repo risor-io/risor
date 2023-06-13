@@ -44,6 +44,14 @@ func WithDefaultModules() Option {
 	}
 }
 
+func WithBuiltins(builtins map[string]object.Object) Option {
+	return func(t *Tamarin) {
+		for k, v := range builtins {
+			t.builtins[k] = v
+		}
+	}
+}
+
 func WithCompiler(c *compiler.Compiler) Option {
 	return func(t *Tamarin) {
 		t.compiler = c
