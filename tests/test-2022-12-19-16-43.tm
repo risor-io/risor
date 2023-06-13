@@ -7,8 +7,6 @@ assert(square(2) == 4)
 
 x := 10
 
-print(square(2))
-
 // This confirms the temporary scope for function execution, which also uses
 // a variable named `x` doesn't update the outer scope's `x` variable.
 x

@@ -22,14 +22,6 @@ const (
 	Placeholder = uint16(math.MaxUint16)
 )
 
-// ICompiler defines an interface for compiling a Tamarin AST into its
-// corresponding bytecode.
-type ICompiler interface {
-
-	// Compile the given AST node and return the compiled code object.
-	Compile(node ast.Node) (*object.Code, error)
-}
-
 // Compiler is used to compile Tamarin AST into its corresponding bytecode.
 // This implements the ICompiler interface.
 type Compiler struct {
@@ -114,7 +106,6 @@ func (c *Compiler) CurrentInstructions() []op.Code {
 }
 
 // Compile the given AST node and return the compiled code object.
-// Implements the ICompiler interface.
 func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
 	c.failure = nil
 	if err := c.compile(node); err != nil {

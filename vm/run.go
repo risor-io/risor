@@ -4,32 +4,45 @@ import (
 	"context"
 
 	"github.com/cloudcmds/tamarin/v2/builtins"
+	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/importer"
+	"github.com/cloudcmds/tamarin/v2/modules/all"
 	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/cloudcmds/tamarin/v2/parser"
 )
 
-func RunWithDefaults(ctx context.Context, code string) (object.Object, error) {
+func run(ctx context.Context, code string) (object.Object, error) {
 
-	builtins := builtins.GlobalBuiltins()
-	builtinsMap := map[string]object.Object{}
-	for _, b := range builtins {
-		builtinsMap[b.Key()] = b
+	builtins := builtins.Defaults()
+	for k, v := range all.Defaults() {
+		builtins[k] = v
 	}
 
-	importerInst := importer.NewLocalImporter(importer.LocalImporterOptions{
+	im := importer.NewLocalImporter(importer.LocalImporterOptions{
 		SourceDir:  ".",
 		Extensions: []string{".tm"},
-		Builtins:   builtinsMap,
+		Builtins:   builtins,
 	})
 
-	interp := NewInterpreter(
-		WithDefaultBuiltins(),
-		WithDefaultModules(),
-		WithImporter(importerInst),
-	)
-	return interp.Eval(ctx, code)
-}
+	// Parse
+	ast, err := parser.Parse(ctx, code)
+	if err != nil {
+		return nil, err
+	}
 
-func run(ctx context.Context, code string) (object.Object, error) {
-	return RunWithDefaults(ctx, code)
+	// Compile
+	main, err := compiler.Compile(ast, compiler.WithBuiltins(builtins))
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute
+	machine := New(main, WithImporter(im))
+	if err := machine.Run(ctx); err != nil {
+		return nil, err
+	}
+	if result, exists := machine.TOS(); exists {
+		return result, nil
+	}
+	return object.Nil, nil
 }

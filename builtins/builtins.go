@@ -4,14 +4,10 @@ package builtins
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"os"
 	"strconv"
-	"time"
 	"unicode"
 
 	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/internal/httputil"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
 
@@ -301,77 +297,6 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 	return object.False
 }
 
-func Fetch(ctx context.Context, args ...object.Object) object.Object {
-	numArgs := len(args)
-	if numArgs < 1 || numArgs > 2 {
-		return object.NewArgsRangeError("fetch", 1, 2, len(args))
-	}
-	urlArg, argErr := object.AsString(args[0])
-	if argErr != nil {
-		return argErr
-	}
-	var errObj *object.Error
-	var params *object.Map
-	if numArgs == 2 {
-		params, errObj = object.AsMap(args[1])
-		if errObj != nil {
-			return errObj
-		}
-	}
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
-	if errObj != nil {
-		return errObj
-	}
-	if timeout != 0 {
-		client.Timeout = timeout
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return object.NewError(err)
-	}
-	return object.NewHttpResponse(resp)
-}
-
-// output a string to stdout
-func Print(ctx context.Context, args ...object.Object) object.Object {
-	values := make([]interface{}, len(args))
-	for i, arg := range args {
-		switch arg := arg.(type) {
-		case *object.String:
-			values[i] = arg.Value()
-		default:
-			values[i] = arg.Inspect()
-		}
-	}
-	fmt.Println(values...)
-	return object.Nil
-}
-
-func Printf(ctx context.Context, args ...object.Object) object.Object {
-	numArgs := len(args)
-	if numArgs < 1 {
-		return object.Errorf("type error: printf() takes 1 or more arguments (%d given)", len(args))
-	}
-	format, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	var values []interface{}
-	for _, arg := range args[1:] {
-		switch arg := arg.(type) {
-		case *object.String:
-			values = append(values, arg.Value())
-		default:
-			values = append(values, arg.Interface())
-		}
-	}
-	fmt.Printf(format, values...)
-	return object.Nil
-}
-
 func Unwrap(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("unwrap", 1, args); err != nil {
 		return err
@@ -659,65 +584,35 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	return container.Iter()
 }
 
-func Exit(ctx context.Context, args ...object.Object) object.Object {
-	nArgs := len(args)
-	if nArgs > 1 {
-		return object.Errorf("type error: exit() expected at most 1 argument (%d given)", nArgs)
+func Defaults() map[string]object.Object {
+	return map[string]object.Object{
+		"all":       object.NewBuiltin("all", All),
+		"any":       object.NewBuiltin("any", Any),
+		"assert":    object.NewBuiltin("assert", Assert),
+		"bool":      object.NewBuiltin("bool", Bool),
+		"call":      object.NewBuiltin("call", Call),
+		"chr":       object.NewBuiltin("chr", Chr),
+		"delete":    object.NewBuiltin("delete", Delete),
+		"err":       object.NewBuiltin("err", Err),
+		"error":     object.NewBuiltin("error", Error),
+		"float":     object.NewBuiltin("float", Float),
+		"getattr":   object.NewBuiltin("getattr", GetAttr),
+		"int":       object.NewBuiltin("int", Int),
+		"iter":      object.NewBuiltin("iter", Iter),
+		"keys":      object.NewBuiltin("keys", Keys),
+		"len":       object.NewBuiltin("len", Len),
+		"list":      object.NewBuiltin("list", List),
+		"map":       object.NewBuiltin("map", Map),
+		"ok":        object.NewBuiltin("ok", Ok),
+		"ord":       object.NewBuiltin("ord", Ord),
+		"reversed":  object.NewBuiltin("reversed", Reversed),
+		"set":       object.NewBuiltin("set", Set),
+		"sorted":    object.NewBuiltin("sorted", Sorted),
+		"sprintf":   object.NewBuiltin("sprintf", Sprintf),
+		"string":    object.NewBuiltin("string", String),
+		"try":       object.NewBuiltin("try", Try),
+		"type":      object.NewBuiltin("type", Type),
+		"unwrap_or": object.NewBuiltin("unwrap_or", UnwrapOr),
+		"unwrap":    object.NewBuiltin("unwrap", Unwrap),
 	}
-	if nArgs == 0 {
-		os.Exit(0)
-	}
-	switch obj := args[0].(type) {
-	case *object.Int:
-		os.Exit(int(obj.Value()))
-	case *object.Error:
-		os.Exit(1)
-	}
-	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
-}
-
-func GlobalBuiltins() []*object.Builtin {
-	type builtin struct {
-		name string
-		fn   object.BuiltinFunction
-	}
-	builtins := []builtin{
-		{"all", All},
-		{"any", Any},
-		{"assert", Assert},
-		{"bool", Bool},
-		{"call", Call},
-		{"chr", Chr},
-		{"delete", Delete},
-		{"err", Err},
-		{"error", Error},
-		{"exit", Exit},
-		{"fetch", Fetch},
-		{"float", Float},
-		{"getattr", GetAttr},
-		{"int", Int},
-		{"iter", Iter},
-		{"keys", Keys},
-		{"len", Len},
-		{"list", List},
-		{"map", Map},
-		{"ok", Ok},
-		{"ord", Ord},
-		{"print", Print},
-		{"printf", Printf},
-		{"reversed", Reversed},
-		{"set", Set},
-		{"sorted", Sorted},
-		{"sprintf", Sprintf},
-		{"string", String},
-		{"type", Type},
-		{"unwrap_or", UnwrapOr},
-		{"unwrap", Unwrap},
-	}
-	var ret []*object.Builtin
-	for _, b := range builtins {
-		ret = append(ret, object.NewBuiltin(b.name, b.fn))
-	}
-	ret = append(ret, object.NewErrorHandler("try", Try))
-	return ret
 }
