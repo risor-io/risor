@@ -28,6 +28,7 @@ const (
 	BSLICE        Type = "bslice"
 	BSLICE_ITER   Type = "bslice_iter"
 	CELL          Type = "cell"
+	CODE          Type = "code"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"

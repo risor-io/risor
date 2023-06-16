@@ -8,8 +8,6 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-const Name = "uuid"
-
 func V4(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("uuid.v4", 0, args); err != nil {
 		return err
@@ -41,9 +39,8 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("uuid", map[string]object.Object{
 		"v4": object.NewBuiltin("v4", V4),
 		"v5": object.NewBuiltin("v5", V5),
 	})
-	return m
 }

@@ -644,6 +644,22 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	return container.Iter()
 }
 
+func CodeObj(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs != 0 {
+		return object.NewArgsError("codeobj", 0, len(args))
+	}
+	codeFunc, found := object.GetCodeFunc(ctx)
+	if !found {
+		return object.Errorf("eval error: context did not contain a code function")
+	}
+	code, err := codeFunc(ctx)
+	if err != nil {
+		return object.Errorf(err.Error())
+	}
+	return object.NewCodeProxy(code)
+}
+
 func Defaults() map[string]object.Object {
 	return map[string]object.Object{
 		"all":       object.NewBuiltin("all", All),
@@ -653,6 +669,7 @@ func Defaults() map[string]object.Object {
 		"bslice":    object.NewBuiltin("bslice", BSlice),
 		"call":      object.NewBuiltin("call", Call),
 		"chr":       object.NewBuiltin("chr", Chr),
+		"codeobj":   object.NewBuiltin("codeobj", CodeObj),
 		"delete":    object.NewBuiltin("delete", Delete),
 		"err":       object.NewBuiltin("err", Err),
 		"error":     object.NewBuiltin("error", Error),

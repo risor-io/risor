@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/cloudcmds/tamarin/v2/importer"
+	"github.com/cloudcmds/tamarin/v2/limits"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/op"
 )
@@ -17,6 +18,7 @@ const (
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
 	StopSignal    = -1
+	MB            = 1024 * 1024
 )
 
 type Options struct {
@@ -38,6 +40,7 @@ type VirtualMachine struct {
 	main        *object.Code
 	importer    importer.Importer
 	modules     map[string]*object.Module
+	limits      *limits.Limits
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -57,6 +60,23 @@ func WithImporter(importer importer.Importer) Option {
 	}
 }
 
+// WithLimits sets the limits for the Virtual Machine.
+func WithLimits(limits *limits.Limits) Option {
+	return func(vm *VirtualMachine) {
+		vm.limits = limits
+	}
+}
+
+func defaultLimits() *limits.Limits {
+	return &limits.Limits{
+		HTTP: limits.HTTP{
+			MaxBodyLength:    10 * MB,
+			MaxContentLength: 10 * MB,
+			Timeout:          10 * 1000,
+		},
+	}
+}
+
 // New creates a new Virtual Machine.
 func New(main *object.Code, options ...Option) *VirtualMachine {
 	vm := &VirtualMachine{
@@ -67,6 +87,9 @@ func New(main *object.Code, options ...Option) *VirtualMachine {
 	}
 	for _, opt := range options {
 		opt(vm)
+	}
+	if vm.limits == nil {
+		vm.limits = defaultLimits()
 	}
 	return vm
 }
@@ -92,6 +115,8 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	vm.activeFrame.ActivateCode(vm.main)
 	vm.activeCode = vm.main
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
+	ctx = object.WithCodeFunc(ctx, vm.codeFunction)
+	ctx = object.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
 	return
 }
@@ -579,6 +604,10 @@ func (vm *VirtualMachine) fetch() uint16 {
 	ip := vm.ip
 	vm.ip++
 	return uint16(vm.activeCode.Instructions[ip])
+}
+
+func (vm *VirtualMachine) codeFunction(ctx context.Context) (*object.Code, error) {
+	return vm.activeCode, nil
 }
 
 // Calls a compiled function with the given arguments. This is used internally

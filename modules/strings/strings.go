@@ -7,9 +7,6 @@ import (
 	"github.com/cloudcmds/tamarin/v2/object"
 )
 
-// Name of this module
-const Name = "strings"
-
 func asString(obj object.Object) (*object.String, *object.Error) {
 	s, ok := obj.(*object.String)
 	if !ok {
@@ -214,7 +211,7 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("strings", map[string]object.Object{
 		"contains":    object.NewBuiltin("contains", Contains),
 		"count":       object.NewBuiltin("count", Count),
 		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),

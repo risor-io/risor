@@ -20,6 +20,15 @@ func (m *Module) Inspect() string {
 }
 
 func (m *Module) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "__name__":
+		return NewString(m.name), true
+	case "__builtins__":
+		builtins := m.code.Builtins()
+		copied := make([]Object, len(builtins))
+		copy(copied, builtins)
+		return NewList(copied), true
+	}
 	resolution, found := m.code.Symbols.Lookup(name)
 	if !found {
 		return nil, false

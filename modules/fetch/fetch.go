@@ -26,21 +26,27 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			return errObj
 		}
 	}
+	limits, ok := object.GetLimits(ctx)
+	if !ok {
+		return object.Errorf("fetch: limits not found in context")
+	}
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: time.Millisecond * time.Duration(limits.Timeout),
 	}
 	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
 	if errObj != nil {
 		return errObj
 	}
 	if timeout != 0 {
-		client.Timeout = timeout
+		if timeout < client.Timeout {
+			client.Timeout = timeout
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return object.NewError(err)
 	}
-	return object.NewHttpResponse(resp)
+	return object.NewHttpResponse(resp, client.Timeout, limits)
 }
 
 func Builtins() map[string]object.Object {

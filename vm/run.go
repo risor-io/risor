@@ -7,9 +7,9 @@ import (
 	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/importer"
 	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
+	modFmt "github.com/cloudcmds/tamarin/v2/modules/fmt"
 	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
 	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
-	"github.com/cloudcmds/tamarin/v2/modules/os"
 	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
 	modStrconv "github.com/cloudcmds/tamarin/v2/modules/strconv"
 	modStrings "github.com/cloudcmds/tamarin/v2/modules/strings"
@@ -21,7 +21,7 @@ import (
 func run(ctx context.Context, code string) (object.Object, error) {
 
 	builtins := builtins.Defaults()
-	for k, v := range os.Builtins() {
+	for k, v := range modFmt.Builtins() {
 		builtins[k] = v
 	}
 	for k, v := range defaultModules() {

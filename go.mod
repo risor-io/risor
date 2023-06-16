@@ -11,7 +11,6 @@ require (
 	github.com/jdbaldry/go-language-server-protocol v0.0.0-20211013214444-3022da0884b2
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.0
-	github.com/wI2L/jsondiff v0.4.0
 )
 
 require (

@@ -1,8 +1,10 @@
 package all
 
 import (
+	modBase64 "github.com/cloudcmds/tamarin/v2/modules/base64"
 	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
-	modHttp "github.com/cloudcmds/tamarin/v2/modules/http"
+	modFetch "github.com/cloudcmds/tamarin/v2/modules/fetch"
+	modFmt "github.com/cloudcmds/tamarin/v2/modules/fmt"
 	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
 	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
 	modOs "github.com/cloudcmds/tamarin/v2/modules/os"
@@ -27,11 +29,13 @@ func Defaults() map[string]object.Object {
 		"uuid":    modUuid.Module(),
 		"os":      modOs.Module(),
 		"bytes":   modBytes.Module(),
+		"base64":  modBase64.Module(),
+		"fmt":     modFmt.Module(),
 	}
-	for k, v := range modHttp.Builtins() {
+	for k, v := range modFetch.Builtins() {
 		builtins[k] = v
 	}
-	for k, v := range modOs.Builtins() {
+	for k, v := range modFmt.Builtins() {
 		builtins[k] = v
 	}
 	return builtins

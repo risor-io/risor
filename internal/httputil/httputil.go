@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -37,11 +38,23 @@ func NewRequestFromParams(
 	}
 
 	if timeoutObj := params.GetWithDefault("timeout", nil); timeoutObj != nil {
-		timeoutFlt, errObj := object.AsFloat(timeoutObj)
+		timeoutInt, errObj := object.AsInt(timeoutObj)
 		if errObj != nil {
 			return nil, 0, errObj
 		}
-		timeout = time.Duration(timeoutFlt*1000) * time.Millisecond
+		timeout = time.Duration(timeoutInt) * time.Millisecond
+	}
+
+	if bodyObj := params.GetWithDefault("body", nil); bodyObj != nil {
+		if reader, ok := bodyObj.(io.Reader); ok {
+			body = reader
+		} else {
+			bodyStr, errObj := object.AsBytes(bodyObj)
+			if errObj != nil {
+				return nil, 0, errObj
+			}
+			body = bytes.NewBuffer(bodyStr)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)

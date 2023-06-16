@@ -15,7 +15,15 @@ import (
 // Type assertion helpers
 // *****************************************************************************
 
-func AsString(obj Object) (result string, err *Error) {
+func AsBool(obj Object) (bool, *Error) {
+	b, ok := obj.(*Bool)
+	if !ok {
+		return false, Errorf("type error: expected a bool (got %v)", obj.Type())
+	}
+	return b.value, nil
+}
+
+func AsString(obj Object) (string, *Error) {
 	switch obj := obj.(type) {
 	case *String:
 		return obj.value, nil
@@ -104,16 +112,28 @@ func FromGoType(obj interface{}) Object {
 		return Nil
 	case int:
 		return NewInt(int64(obj))
+	case int16:
+		return NewInt(int64(obj))
 	case int32:
 		return NewInt(int64(obj))
 	case int64:
 		return NewInt(obj)
+	case uint:
+		return NewInt(int64(obj))
+	case uint16:
+		return NewInt(int64(obj))
+	case uint32:
+		return NewInt(int64(obj))
+	case uint64:
+		return NewInt(int64(obj))
 	case float32:
 		return NewFloat(float64(obj))
 	case float64:
 		return NewFloat(obj)
 	case string:
 		return NewString(obj)
+	case byte:
+		return NewInt(int64(obj))
 	case []byte:
 		return NewBSlice(obj)
 	case bool:
@@ -363,7 +383,7 @@ func (c *MapStringIfaceConverter) Type() reflect.Type {
 	return mapStrIfaceType
 }
 
-// StructConverter converts between a struct and a Hash via JSON marshaling.
+// StructConverter converts between a struct and a Map via JSON marshaling.
 type StructConverter struct {
 	Prototype interface{}
 	AsPointer bool
