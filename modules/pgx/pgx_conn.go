@@ -3,7 +3,9 @@ package pgx
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/op"
 	"github.com/jackc/pgx/v5"
@@ -13,9 +15,10 @@ import (
 const PGX_CONN = object.Type("pgx_conn")
 
 type PgxConn struct {
-	ctx   context.Context
-	conn  *pgx.Conn
-	close chan bool
+	ctx    context.Context
+	conn   *pgx.Conn
+	once   sync.Once
+	closed chan bool
 }
 
 func (c *PgxConn) Type() object.Type {
@@ -48,7 +51,15 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	case "query":
 		return object.NewBuiltin("pgx_conn.query", c.Query), true
 	case "close":
-		return object.NewBuiltin("pgx_conn.close", c.Close), true
+		return object.NewBuiltin("pgx_conn.close", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("pgx_conn.close", 0, args); err != nil {
+				return err
+			}
+			if err := c.Close(); err != nil {
+				return object.NewError(err)
+			}
+			return object.Nil
+		}), true
 	}
 	return nil, false
 }
@@ -57,23 +68,31 @@ func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) obje
 	return object.NewError(fmt.Errorf("unsupported operation for pgx_conn: %v", opType))
 }
 
-func (c *PgxConn) Close(ctx context.Context, args ...object.Object) object.Object {
-	close(c.close)
-	return object.Nil
+func (c *PgxConn) Close() error {
+	var err error
+	c.once.Do(func() {
+		err = c.conn.Close(c.ctx)
+		close(c.closed)
+	})
+	return err
 }
 
 func (c *PgxConn) waitToClose() {
 	go func() {
 		select {
-		case <-c.close:
+		case <-c.closed:
 		case <-c.ctx.Done():
+			c.conn.Close(c.ctx)
 		}
-		c.conn.Close(c.ctx)
 	}()
 }
 
 func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
-	obj := &PgxConn{ctx: ctx, conn: conn, close: make(chan bool)}
+	obj := &PgxConn{
+		ctx:    ctx,
+		conn:   conn,
+		closed: make(chan bool),
+	}
 	obj.waitToClose()
 	return obj
 }

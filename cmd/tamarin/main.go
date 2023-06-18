@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudcmds/tamarin/v2"
+	"github.com/cloudcmds/tamarin/v2/modules/all"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/parser"
 	"github.com/cloudcmds/tamarin/v2/repl"
@@ -76,6 +77,7 @@ func main() {
 
 	result, err := tamarin.Eval(ctx,
 		string(input),
+		tamarin.WithBuiltins(all.Builtins()),
 		tamarin.WithDefaultBuiltins(),
 		tamarin.WithDefaultModules())
 	if err != nil {

@@ -30,7 +30,7 @@ type Option func(*Tamarin)
 
 func WithDefaultBuiltins() Option {
 	return func(t *Tamarin) {
-		for k, v := range builtins.Defaults() {
+		for k, v := range builtins.Builtins() {
 			t.builtins[k] = v
 		}
 	}

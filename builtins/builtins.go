@@ -660,7 +660,7 @@ func CodeObj(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewCodeProxy(code)
 }
 
-func Defaults() map[string]object.Object {
+func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"all":       object.NewBuiltin("all", All),
 		"any":       object.NewBuiltin("any", Any),
@@ -670,7 +670,9 @@ func Defaults() map[string]object.Object {
 		"call":      object.NewBuiltin("call", Call),
 		"chr":       object.NewBuiltin("chr", Chr),
 		"codeobj":   object.NewBuiltin("codeobj", CodeObj),
+		"decode":    object.NewBuiltin("decode", Decode),
 		"delete":    object.NewBuiltin("delete", Delete),
+		"encode":    object.NewBuiltin("encode", Encode),
 		"err":       object.NewBuiltin("err", Err),
 		"error":     object.NewBuiltin("error", Error),
 		"float":     object.NewBuiltin("float", Float),

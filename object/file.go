@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/cloudcmds/tamarin/v2/op"
 )
 
 type File struct {
-	value *os.File
+	ctx    context.Context
+	value  *os.File
+	once   sync.Once
+	closed chan bool
 }
 
 func (f *File) Inspect() string {
@@ -127,7 +131,22 @@ func (f *File) Write(p []byte) (n int, err error) {
 }
 
 func (f *File) Close() error {
-	return f.value.Close()
+	var err error
+	f.once.Do(func() {
+		err = f.value.Close()
+		close(f.closed)
+	})
+	return err
+}
+
+func (f *File) waitToClose() {
+	go func() {
+		select {
+		case <-f.closed:
+		case <-f.ctx.Done():
+			f.value.Close()
+		}
+	}()
 }
 
 func (f *File) Interface() interface{} {
@@ -160,6 +179,12 @@ func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("unsupported operation for file: %v ", opType))
 }
 
-func NewFile(value *os.File) *File {
-	return &File{value: value}
+func NewFile(ctx context.Context, value *os.File) *File {
+	f := &File{
+		ctx:    ctx,
+		value:  value,
+		closed: make(chan bool),
+	}
+	f.waitToClose()
+	return f
 }

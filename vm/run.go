@@ -20,7 +20,7 @@ import (
 
 func run(ctx context.Context, code string) (object.Object, error) {
 
-	builtins := builtins.Defaults()
+	builtins := builtins.Builtins()
 	for k, v := range modFmt.Builtins() {
 		builtins[k] = v
 	}

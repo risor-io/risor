@@ -1,4 +1,4 @@
-package http
+package fetch
 
 import (
 	"context"

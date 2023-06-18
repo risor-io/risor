@@ -94,7 +94,7 @@ func Open(ctx context.Context, args ...object.Object) object.Object {
 	if file, err := os.Open(path); err != nil {
 		return object.NewError(err)
 	} else {
-		return object.NewFile(file)
+		return object.NewFile(ctx, file)
 	}
 }
 
@@ -167,7 +167,7 @@ func Create(ctx context.Context, args ...object.Object) object.Object {
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewFile(file)
+	return object.NewFile(ctx, file)
 }
 
 func Setenv(ctx context.Context, args ...object.Object) object.Object {

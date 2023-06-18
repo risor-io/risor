@@ -3,6 +3,7 @@ package httputil
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -20,6 +21,7 @@ func NewRequestFromParams(
 	var timeout time.Duration
 	var body io.Reader
 	var errObj *object.Error
+	var isJSON bool
 
 	// Simple request configuration with no parameters
 	if params == nil {
@@ -45,6 +47,7 @@ func NewRequestFromParams(
 		timeout = time.Duration(timeoutInt) * time.Millisecond
 	}
 
+	// Set the request body from the "body" or "data" parameters
 	if bodyObj := params.GetWithDefault("body", nil); bodyObj != nil {
 		if reader, ok := bodyObj.(io.Reader); ok {
 			body = reader
@@ -55,6 +58,13 @@ func NewRequestFromParams(
 			}
 			body = bytes.NewBuffer(bodyStr)
 		}
+	} else if dataObj := params.GetWithDefault("data", nil); dataObj != nil {
+		data, err := json.Marshal(dataObj.Interface())
+		if err != nil {
+			return nil, 0, object.NewError(err)
+		}
+		body = bytes.NewBuffer(data)
+		isJSON = true
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
@@ -62,6 +72,7 @@ func NewRequestFromParams(
 		return nil, 0, object.NewError(err)
 	}
 
+	// Add headers to the request
 	if headersObj := params.GetWithDefault("headers", nil); headersObj != nil {
 		headersMap, err := object.AsMap(headersObj)
 		if err != nil {
@@ -84,5 +95,30 @@ func NewRequestFromParams(
 			}
 		}
 	}
+
+	// Automatically set content type if JSON data was supplied
+	if isJSON && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Add query parameters
+	if paramsObj := params.GetWithDefault("params", nil); paramsObj != nil {
+		paramsMap, err := object.AsMap(paramsObj)
+		if err != nil {
+			return nil, 0, err
+		}
+		q := req.URL.Query()
+		for _, k := range paramsMap.StringKeys() {
+			value := paramsMap.Get(k)
+			switch value := value.(type) {
+			case *object.String:
+				q.Add(k, value.Value())
+			default:
+				q.Add(k, value.Inspect())
+			}
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+
 	return req, timeout, nil
 }

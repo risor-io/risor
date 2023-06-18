@@ -11,7 +11,6 @@ import (
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
 	"github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/builtins"
 	"github.com/cloudcmds/tamarin/v2/compiler"
 	"github.com/cloudcmds/tamarin/v2/modules/all"
 	"github.com/cloudcmds/tamarin/v2/object"
@@ -62,10 +61,7 @@ func Run(ctx context.Context) error {
 		return clearLine + ">>> " + accumulate
 	}
 
-	compilerBuiltins := builtins.Defaults()
-	for k, v := range all.Defaults() {
-		compilerBuiltins[k] = v
-	}
+	compilerBuiltins := all.Builtins()
 
 	c, err := compiler.New(compiler.WithBuiltins(compilerBuiltins))
 	if err != nil {
