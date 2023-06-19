@@ -115,3 +115,24 @@ func TestProxy(t *testing.T) {
 	require.Equal(t, "strconv.Atoi: parsing \"not-an-int\": invalid syntax",
 		result.UnwrapErr().Message().Value())
 }
+
+type proxyTestType []string
+
+func (p proxyTestType) Len() int {
+	return len(p)
+}
+
+func TestProxyNonStruct(t *testing.T) {
+
+	reg, err := object.NewTypeRegistry()
+	require.Nil(t, err)
+
+	testObj := proxyTestType{"a", "b", "c"}
+	_, err = reg.Register(testObj)
+	require.Nil(t, err)
+
+	proxyType, found := reg.GetType(proxyTestType{})
+	require.True(t, found)
+	methods := proxyType.Methods()
+	require.Len(t, methods, 1)
+}
