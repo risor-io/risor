@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	atomicgo.dev/keyboard v0.2.8
+	github.com/anthonynsimon/bild v0.13.0
 	github.com/fatih/color v1.13.0
 	github.com/gofrs/uuid v4.3.1+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
@@ -14,11 +15,9 @@ require (
 )
 
 require (
-	github.com/anthonynsimon/bild v0.13.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -27,12 +26,10 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	github.com/spf13/cobra v0.0.5 // indirect
-	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
-	golang.org/x/image v0.0.0-20190703141733-d6a02ce849c9 // indirect
+	golang.org/x/image v0.5.0 // indirect
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
-	golang.org/x/text v0.3.8 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
