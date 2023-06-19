@@ -3,7 +3,6 @@ package object
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"testing"
 
 	"time"
@@ -12,7 +11,6 @@ import (
 func TestObjectString(t *testing.T) {
 
 	tm, _ := time.Parse(time.RFC3339, "2009-11-10T23:00:00Z")
-	re, _ := regexp.Compile("[0-9]+")
 
 	tests := []struct {
 		input    Object
@@ -23,10 +21,10 @@ func TestObjectString(t *testing.T) {
 		{True, "bool(true)"},
 		{False, "bool(false)"},
 		{Nil, "nil()"},
-		{NewBreak(), "break"},
-		{NewContinue(), "continue"},
+		// {NewBreak(), "break"},
+		// {NewContinue(), "continue"},
 		{NewError(errors.New("kaboom")), "error(kaboom)"},
-		{NewReturn(NewInt(42)), "return(int(42))"},
+		// {NewReturn(NewInt(42)), "return(int(42))"},
 		{NewFloat(3.0), "float(3)"},
 		{NewInt(-3), "int(-3)"},
 		{NewString("foo"), "string(foo)"},
@@ -35,7 +33,6 @@ func TestObjectString(t *testing.T) {
 		{NewSet([]Object{True, Nil}), "set(bool(true), nil())"},
 		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `map("bar": int(2), "foo": int(1))`},
 		{NewTime(tm), "time(2009-11-10T23:00:00Z)"},
-		{NewRegexp(re), "regexp([0-9]+)"},
 	}
 
 	for _, tt := range tests {

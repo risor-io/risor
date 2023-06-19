@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	tamarin "github.com/cloudcmds/tamarin/v2"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/parser"
-	"github.com/cloudcmds/tamarin/v2/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,7 +79,9 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	return vm.Run(ctx, string(input))
+	return tamarin.Eval(ctx, input,
+		tamarin.WithDefaultBuiltins(),
+		tamarin.WithDefaultModules())
 }
 
 func listTestFiles() []string {

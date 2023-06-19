@@ -22,10 +22,12 @@ type Var struct {
 	isWalrus bool
 }
 
+// NewVar creates a new Var node.
 func NewVar(token token.Token, name *Ident, value Expression) *Var {
 	return &Var{token: token, name: name, value: value}
 }
 
+// NewDeclaration creates a new Var node that is a declaration.
 func NewDeclaration(token token.Token, name *Ident, value Expression) *Var {
 	return &Var{token: token, name: name, value: value, isWalrus: true}
 }
@@ -106,13 +108,19 @@ func (s *MultiVar) String() string {
 	return out.String()
 }
 
-// Const defines a named constant containing a constant value.
+// Const is a statement that defines a named constant.
 type Const struct {
-	token token.Token // the "const" token
-	name  *Ident      // name of the constant
-	value Expression  // value of the constant
+	// the "const" token
+	token token.Token
+
+	// name of the constant
+	name *Ident
+
+	// value of the constant
+	value Expression
 }
 
+// NewConst creates a new Const node.
 func NewConst(token token.Token, name *Ident, value Expression) *Const {
 	return &Const{token: token, name: name, value: value}
 }
@@ -140,10 +148,14 @@ func (c *Const) String() string {
 
 // Control defines a return, break, or continue statement.
 type Control struct {
-	token token.Token // "return", "break", or "continue"
-	value Expression  // optional value, for return statements
+	// "return", "break", or "continue"
+	token token.Token
+
+	// optional value, for return statements
+	value Expression
 }
 
+// NewControl creates a new Control node.
 func NewControl(token token.Token, value Expression) *Control {
 	return &Control{token: token, value: value}
 }
@@ -172,13 +184,14 @@ func (c *Control) String() string {
 	return out.String()
 }
 
-// Block holds a sequence of statements, which are treated as a group.
-// This may represent the body of a function, loop, or a conditional block.
+// Block is a node that holds a sequence of statements. This is used to
+// represent the body of a function, loop, or a conditional.
 type Block struct {
 	token      token.Token // the opening "{" token
 	statements []Node      // the statements in the block
 }
 
+// NewBlock creates a new Block node.
 func NewBlock(token token.Token, statements []Node) *Block {
 	return &Block{token: token, statements: statements}
 }
@@ -216,7 +229,7 @@ func (b *Block) String() string {
 	return out.String()
 }
 
-// For defines a for loop.
+// For is a statement node that defines a for loop.
 type For struct {
 	token token.Token
 
@@ -235,10 +248,12 @@ type For struct {
 	post Node
 }
 
+// NewSimpleFor creates a new For node with no condition, init, or post.
 func NewSimpleFor(token token.Token, consequence *Block) *For {
 	return &For{token: token, consequence: consequence}
 }
 
+// NewFor creates a new For node.
 func NewFor(token token.Token, condition Node, consequence *Block, init Node, post Node) *For {
 	return &For{token: token, condition: condition, consequence: consequence, init: init, post: post}
 }
@@ -309,8 +324,7 @@ func (f *For) String() string {
 	return out.String()
 }
 
-// Assign is generally used for a simple assignment like "x = y". We also
-// support other operators like "+=", "-=", "*=", and "/=".
+// Assign is a statement node used to describe a variable assignment.
 type Assign struct {
 	token    token.Token
 	name     *Ident // this may be nil, e.g. `[0, 1, 2][0] = 3`
@@ -319,10 +333,12 @@ type Assign struct {
 	value    Expression
 }
 
+// NewAssign creates a new Assign node.
 func NewAssign(operator token.Token, name *Ident, value Expression) *Assign {
 	return &Assign{token: operator, name: name, operator: operator.Literal, value: value}
 }
 
+// NewAssignIndex creates a new Assign node for an index assignment.
 func NewAssignIndex(operator token.Token, index *Index, value Expression) *Assign {
 	return &Assign{token: operator, index: index, operator: operator.Literal, value: value}
 }
@@ -355,12 +371,13 @@ func (a *Assign) String() string {
 	return out.String()
 }
 
-// Import holds an import statement
+// Import is a statement node that describes a module import statement.
 type Import struct {
 	token token.Token // the "import" token
 	name  *Ident      // name of the module to import
 }
 
+// NewImport creates a new Import node.
 func NewImport(token token.Token, name *Ident) *Import {
 	return &Import{token: token, name: name}
 }
@@ -383,13 +400,14 @@ func (i *Import) String() string {
 	return out.String()
 }
 
-// Postfix defines a postfix expression like "x++".
+// Postfix is a statement node that describes a postfix expression like "x++".
 type Postfix struct {
 	token token.Token
 	// operator holds the postfix token, e.g. ++
 	operator string
 }
 
+// NewPostfix creates a new Postfix node.
 func NewPostfix(token token.Token, operator string) *Postfix {
 	return &Postfix{token: token, operator: operator}
 }

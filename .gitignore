@@ -1,8 +1,7 @@
 cmd/cli/cli
 .vscode
-monkey
-monkey-*
-tamarin
+/tamarin
+/cmd/tamarin/tamarin
 cpu.out
 node_modules
 tamarin*.vsix
@@ -15,3 +14,6 @@ profile.out
 dist/
 venv/
 site/
+
+tamarin_v1
+tamarin_v2

@@ -97,14 +97,23 @@ reuse for multiple invocations of an inner function.
 func get_counter(start) {
   return func() {
     start++
+    return start
   }
 }
 
 c := get_counter(5)
 
-print(c()) // prints 5
-print(c()) // prints 6
-print(c()) // prints 7
+print(c())
+print(c())
+print(c())
+```
+
+Output:
+
+```
+5
+6
+7
 ```
 
 ## Conditionals
@@ -113,13 +122,20 @@ Go style conditionals are supported, including `if`, `else if`, and `else` cases
 Parentheses are not required when defining the condition for each case.
 
 ```go
-if age < 13 {
-    print("this is a kid")
-} else if age < 18 {
-    print("this is a young adult")
+x := 0
+if x > 0 {
+  print("x is positive")
+} else if x < 0 {
+  print("x is negative")
 } else {
-	print("this is an adult")
+  print("x is zero")
 }
+```
+
+Output:
+
+```
+x is zero
 ```
 
 ## Switch Statements
@@ -129,14 +145,21 @@ matching case if there is one, and executing the `default` case if one exists
 and no other cases match.
 
 ```go
-switch name {
-case "ben":
-    print("matched ben")
-case "noa":
-    print("matched noa")
-default:
-    print("default")
+day := "Tuesday"
+switch day {
+  case "Monday":
+    print("Start of the work week")
+  case "Tuesday":
+    print("Second day of the work week")
+  default:
+    print("Some other day")
 }
+```
+
+Output:
+
+```
+Second day of the work week
 ```
 
 ## Loops
@@ -162,14 +185,6 @@ for {
 }
 ```
 
-The "condition-only" style loops until the condition evaluates to `false`:
-
-```go
-for a < b {
-	a++
-}
-```
-
 Finally, you may also use the `range` keyword to iterate over the contents of a container:
 
 ```go
@@ -185,9 +200,6 @@ for i, value := range l {
 Pipelines execute a series of function calls, passing each call's output as the
 first argument to the next call. This syntax lends itself to applying one or more
 transformations to input data.
-
-If an error is encountered at any stage in the pipeline, its execution stops early,
-and the error propagates as usual.
 
 Each expression in the pipeline is expected to evaluate to a function or method
 to call. Parentheses may be omitted in each call when the function accepts one
@@ -211,6 +223,8 @@ The examples below are all equivalent and illustrate how values (which may even
 be a function) are passed as the first argument to the next stage.
 
 ```go
+>>> math.max([3, 2, 9, 5])
+9
 >>> [3, 2, 9, 5] | math.max
 9
 >>> math.max | call([3, 2, 9, 5])

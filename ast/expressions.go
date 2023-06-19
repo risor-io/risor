@@ -1,5 +1,3 @@
-// Package ast contains the definitions of the abstract syntax tree that our
-// parser produces and that our interpreter executes.
 package ast
 
 import (
@@ -9,12 +7,13 @@ import (
 	"github.com/cloudcmds/tamarin/v2/token"
 )
 
-// Ident is an expression that refers to a variable by name.
+// Ident is an expression node that refers to a variable by name.
 type Ident struct {
 	token token.Token
 	value string
 }
 
+// NewIdent creates a new Ident node.
 func NewIdent(token token.Token) *Ident {
 	return &Ident{token: token, value: token.Literal}
 }
@@ -41,6 +40,7 @@ type Prefix struct {
 	right Expression
 }
 
+// NewPrefix creates a new Prefix node.
 func NewPrefix(token token.Token, right Expression) *Prefix {
 	return &Prefix{token: token, operator: token.Literal, right: right}
 }
@@ -81,6 +81,7 @@ type Infix struct {
 	right Expression
 }
 
+// NewInfix creates a new Infix node.
 func NewInfix(token token.Token, left Expression, operator string, right Expression) *Infix {
 	return &Infix{token: token, left: left, operator: operator, right: right}
 }
@@ -109,7 +110,7 @@ func (i *Infix) String() string {
 	return out.String()
 }
 
-// If holds an if statement.
+// If is an expression node that represents an if/else expression
 type If struct {
 	token       token.Token // the "if" token
 	condition   Expression  // the condition to be evaluated
@@ -117,6 +118,7 @@ type If struct {
 	alternative *Block      // block to evaluate if the condition is false
 }
 
+// NewIf creates a new If node.
 func NewIf(token token.Token, condition Expression, consequence *Block, alternative *Block) *If {
 	return &If{token: token, condition: condition, consequence: consequence, alternative: alternative}
 }
@@ -148,7 +150,8 @@ func (i *If) String() string {
 	return out.String()
 }
 
-// Ternary holds a ternary expression.
+// Ternary is an expression node that defines a ternary expression and evaluates
+// to one of two values based on a condition.
 type Ternary struct {
 	token token.Token
 
@@ -163,6 +166,7 @@ type Ternary struct {
 	ifFalse Expression
 }
 
+// NewTernary creates a new Ternary node.
 func NewTernary(token token.Token, condition Expression, ifTrue Expression, ifFalse Expression) *Ternary {
 	return &Ternary{token: token, condition: condition, ifTrue: ifTrue, ifFalse: ifFalse}
 }
@@ -193,13 +197,14 @@ func (t *Ternary) String() string {
 	return out.String()
 }
 
-// Call holds the invocation of a method.
+// Call is an expression node that describes the invocation of a function.
 type Call struct {
 	token     token.Token // the '(' token
 	function  Expression  // the function being called
 	arguments []Node      // the arguments supplied to the call
 }
 
+// NewCall creates a new Call node.
 func NewCall(token token.Token, function Expression, arguments []Node) *Call {
 	return &Call{token: token, function: function, arguments: arguments}
 }
@@ -229,7 +234,8 @@ func (c *Call) String() string {
 	return out.String()
 }
 
-// GetAttr
+// GetAttr is an expression node that describes the access of an attribute on
+// an object.
 type GetAttr struct {
 	token token.Token
 
@@ -240,6 +246,7 @@ type GetAttr struct {
 	attribute *Ident
 }
 
+// NewGetAttr creates a new GetAttr node.
 func NewGetAttr(token token.Token, object Expression, attribute *Ident) *GetAttr {
 	return &GetAttr{token: token, object: object, attribute: attribute}
 }
@@ -264,7 +271,8 @@ func (e *GetAttr) String() string {
 	return out.String()
 }
 
-// Pipe holds a series of calls
+// Pipe is an expression node that describes a sequence of transformations
+// applied to an initial value.
 type Pipe struct {
 	token token.Token
 
@@ -272,6 +280,7 @@ type Pipe struct {
 	exprs []Expression
 }
 
+// NewPipe creates a new Pipe node.
 func NewPipe(token token.Token, exprs []Expression) *Pipe {
 	return &Pipe{token: token, exprs: exprs}
 }
@@ -298,13 +307,15 @@ func (p *Pipe) String() string {
 	return out.String()
 }
 
-// ObjectCall is used when calling a method on an object.
+// ObjectCall is an expression node that describes the invocation of a method
+// on an object.
 type ObjectCall struct {
 	token  token.Token
 	object Expression
 	call   Expression
 }
 
+// NewObjectCall creates a new ObjectCall node.
 func NewObjectCall(token token.Token, object Expression, call Expression) *ObjectCall {
 	return &ObjectCall{token: token, object: object, call: call}
 }
@@ -329,17 +340,18 @@ func (c *ObjectCall) String() string {
 	return out.String()
 }
 
-// Index holds an index expression
+// Index as an expression node that describes indexing on an object.
 type Index struct {
 	token token.Token
 
-	// left is the thing being indexed.
+	// left is the container being indexed.
 	left Expression
 
-	// index is the value we're indexing
+	// index is the value used to index the container.
 	index Expression
 }
 
+// NewIndex creates a new Index node.
 func NewIndex(token token.Token, left Expression, index Expression) *Index {
 	return &Index{token: token, left: left, index: index}
 }
@@ -366,7 +378,7 @@ func (i *Index) String() string {
 	return out.String()
 }
 
-// Index holds an index expression
+// Slice is an expression node that describes a slicing operation on an object.
 type Slice struct {
 	token token.Token
 
@@ -380,41 +392,42 @@ type Slice struct {
 	toIndex Expression
 }
 
+// NewSlice creates a new Slice node.
 func NewSlice(token token.Token, left Expression, fromIndex Expression, toIndex Expression) *Slice {
 	return &Slice{token: token, left: left, fromIndex: fromIndex, toIndex: toIndex}
 }
 
-func (i *Slice) ExpressionNode() {}
+func (s *Slice) ExpressionNode() {}
 
-func (i *Slice) IsExpression() bool { return true }
+func (s *Slice) IsExpression() bool { return true }
 
-func (i *Slice) Token() token.Token { return i.token }
+func (s *Slice) Token() token.Token { return s.token }
 
-func (i *Slice) Literal() string { return i.token.Literal }
+func (s *Slice) Literal() string { return s.token.Literal }
 
-func (i *Slice) Left() Expression { return i.left }
+func (s *Slice) Left() Expression { return s.left }
 
-func (i *Slice) FromIndex() Expression { return i.fromIndex }
+func (s *Slice) FromIndex() Expression { return s.fromIndex }
 
-func (i *Slice) ToIndex() Expression { return i.toIndex }
+func (s *Slice) ToIndex() Expression { return s.toIndex }
 
-func (i *Slice) String() string {
+func (s *Slice) String() string {
 	var out bytes.Buffer
 	out.WriteString("(")
-	out.WriteString(i.left.String())
+	out.WriteString(s.left.String())
 	out.WriteString("[")
-	if i.fromIndex != nil {
-		out.WriteString(i.fromIndex.String())
+	if s.fromIndex != nil {
+		out.WriteString(s.fromIndex.String())
 	}
-	if i.toIndex != nil {
+	if s.toIndex != nil {
 		out.WriteString(":")
-		out.WriteString(i.toIndex.String())
+		out.WriteString(s.toIndex.String())
 	}
 	out.WriteString("])")
 	return out.String()
 }
 
-// Case handles the case within a switch statement
+// Case is an expression node that describes one case within a switch expression.
 type Case struct {
 	token token.Token
 
@@ -428,10 +441,12 @@ type Case struct {
 	block *Block
 }
 
+// NewCase creates a new Case node.
 func NewCase(token token.Token, expressions []Expression, block *Block) *Case {
 	return &Case{token: token, expr: expressions, block: block}
 }
 
+// NewDefaultCase represents the default case within a switch expression.
 func NewDefaultCase(token token.Token, block *Block) *Case {
 	return &Case{token: token, isDefault: true, block: block}
 }
@@ -473,13 +488,19 @@ func (c *Case) String() string {
 	return out.String()
 }
 
-// Switch represents a switch statement and its cases
+// Switch is an expression node that describes a switch between multiple cases.
 type Switch struct {
-	token   token.Token // token containing "switch"
-	value   Expression  // the expression to switch on
-	choices []*Case     // switch cases
+	// token containing "switch"
+	token token.Token
+
+	// the expression to switch on
+	value Expression
+
+	// switch cases
+	choices []*Case
 }
 
+// NewSwitch creates a new Switch node.
 func NewSwitch(token token.Token, value Expression, choices []*Case) *Switch {
 	return &Switch{token: token, value: value, choices: choices}
 }
@@ -510,14 +531,14 @@ func (s *Switch) String() string {
 	return out.String()
 }
 
-// In is an expression that evalutes to a boolean and checks if the left
-// expression is contained within the right expression.
+// In is an expression node that checks whether a value is present in a container.
 type In struct {
 	token token.Token
 	left  Expression
 	right Expression
 }
 
+// NewIn creates a new In node.
 func NewIn(token token.Token, left Expression, right Expression) *In {
 	return &In{token: token, left: left, right: right}
 }
@@ -542,12 +563,16 @@ func (i *In) String() string {
 	return out.String()
 }
 
-// Range is used to iterator over a container
+// Range is an expression node that describes iterating over a container.
 type Range struct {
-	token     token.Token // the "range" token
-	container Node        // the container to iterate over
+	// the "range" token
+	token token.Token
+
+	// the container to iterate over
+	container Node
 }
 
+// NewRange creates a new Range node.
 func NewRange(token token.Token, container Node) *Range {
 	return &Range{token: token, container: container}
 }

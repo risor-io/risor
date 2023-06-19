@@ -22,7 +22,7 @@ func TestNil(t *testing.T) {
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -63,7 +63,7 @@ func TestNextToken1(t *testing.T) {
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -236,7 +236,7 @@ break
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			fmt.Println(tok.Literal)
@@ -251,7 +251,7 @@ break
 func TestUnicodeLexer(t *testing.T) {
 	input := `世界`
 	l := New(input)
-	tok, err := l.NextToken()
+	tok, err := l.Next()
 	require.Nil(t, err)
 	if tok.Type != token.IDENT {
 		t.Fatalf("token type wrong, expected=%q, got=%q", token.IDENT, tok.Type)
@@ -273,7 +273,7 @@ func TestString(t *testing.T) {
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -312,7 +312,7 @@ var a = 1; # This is a comment too.
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -354,7 +354,7 @@ var a = 1;
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -385,7 +385,7 @@ func TestIntegers(t *testing.T) {
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -408,7 +408,7 @@ func TestInvalidIntegers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		l := New(tt.input)
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		fmt.Println(tok, err)
 		require.NotNil(t, err)
 		require.Equal(t, tt.expected, err.Error())
@@ -417,7 +417,7 @@ func TestInvalidIntegers(t *testing.T) {
 
 // Test that the shebang-line is handled specially.
 func TestShebang(t *testing.T) {
-	input := `#!/bin/monkey
+	input := `#!/bin/tamarin
 10;`
 
 	tests := []struct {
@@ -431,7 +431,7 @@ func TestShebang(t *testing.T) {
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -481,9 +481,9 @@ var a = "steve\"";
 var c = 3.113;
 .;`
 	l := New(input)
-	tok, _ := l.NextToken()
+	tok, _ := l.Next()
 	for tok.Type != token.EOF {
-		tok, _ = l.NextToken()
+		tok, _ = l.Next()
 	}
 }
 
@@ -518,7 +518,7 @@ baz.qux();
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		require.Nil(t, err)
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
@@ -556,7 +556,7 @@ a = 3/4;`
 	}
 	l := New(input)
 	for i, tt := range tests {
-		tok, _ := l.NextToken()
+		tok, _ := l.Next()
 		if tok.Type != tt.expectedType {
 			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
 		}
@@ -586,7 +586,7 @@ func TestLineNumbers(t *testing.T) {
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			tok, err := l.NextToken()
+			tok, err := l.Next()
 			require.Nil(t, err)
 			require.Equal(t, tt.expectedType, tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
@@ -622,7 +622,7 @@ func TestTokenLengths(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
 			l := New(tt.input)
-			tok, err := l.NextToken()
+			tok, err := l.Next()
 			require.Nil(t, err)
 			require.Equal(t, tt.expectedType, tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
@@ -647,7 +647,7 @@ func TestStringTypes(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
 			l := New(tt.input)
-			tok, err := l.NextToken()
+			tok, err := l.Next()
 			require.Nil(t, err)
 			require.Equal(t, tt.expectedType, tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
@@ -671,7 +671,7 @@ func TestIdentifiers(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
 			l := New(tt.input)
-			tok, err := l.NextToken()
+			tok, err := l.Next()
 			require.Nil(t, err)
 			require.Equal(t, tt.expectedType, tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
@@ -690,7 +690,45 @@ func TestInvalidIdentifiers(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
 			l := New(tt.input)
-			_, err := l.NextToken()
+			_, err := l.Next()
+			require.NotNil(t, err)
+			require.Equal(t, tt.err, err.Error())
+		})
+	}
+}
+
+func TestTokenLineText(t *testing.T) {
+	l := New(` var x = 32; foo = bar
+bar = baz
+`)
+	tok, err := l.Next()
+	require.Nil(t, err)
+	fmt.Println(tok)
+
+	line := l.GetLineText(tok)
+	require.Equal(t, " var x = 32; foo = bar", line)
+}
+
+func TestInvalids(t *testing.T) {
+	type test struct {
+		input string
+		err   string
+	}
+	tests := []test{
+		{"\x01", "invalid identifier: \x01"},
+		{"4.f", "invalid decimal literal: 4.f"},
+		{"4a.f", "invalid decimal literal: 4a"},
+		{"0x.1", "invalid decimal literal: 0x."},
+		{"0b.1", "invalid decimal literal: 0b."},
+		{`"foo`, "unterminated string literal"},
+		{"`foo", "unterminated string literal"},
+		{"'foo", "unterminated string literal"},
+		{"~", "unexpected character: '~'"},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			_, err := l.Next()
 			require.NotNil(t, err)
 			require.Equal(t, tt.err, err.Error())
 		})

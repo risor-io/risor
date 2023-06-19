@@ -11,6 +11,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTokenLineCol(t *testing.T) {
+	code := `
+var x = 5;
+var y = 10;
+	`
+	program, err := Parse(context.Background(), code)
+	require.Nil(t, err)
+
+	statements := program.Statements()
+	require.Len(t, statements, 2)
+
+	stmt1 := statements[0].(*ast.Var)
+	stmt2 := statements[1].(*ast.Var)
+
+	t1 := stmt1.Token()
+	start := t1.StartPosition
+	end := t1.EndPosition
+
+	// Position of the "var" token
+	require.Equal(t, 2, start.LineNumber())
+	require.Equal(t, 1, start.ColumnNumber())
+	require.Equal(t, 2, end.LineNumber())
+	require.Equal(t, 3, end.ColumnNumber())
+
+	t2 := stmt2.Token()
+	start = t2.StartPosition
+	end = t2.EndPosition
+
+	// Position of the "var" token
+	require.Equal(t, 3, start.LineNumber())
+	require.Equal(t, 1, start.ColumnNumber())
+	require.Equal(t, 3, end.LineNumber())
+	require.Equal(t, 3, end.ColumnNumber())
+}
+
 func TestVarStatements(t *testing.T) {
 	tests := []struct {
 		input string
@@ -23,7 +58,7 @@ func TestVarStatements(t *testing.T) {
 		{"var foobar=y;", "foobar", "y"},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		fmt.Println(err)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
@@ -41,7 +76,7 @@ func TestDeclareStatements(t *testing.T) {
 	var x = foo.bar()
 	y := foo.bar()
 	`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	printMultiError(err)
 	require.Nil(t, err)
 	statements := program.Statements()
@@ -64,7 +99,7 @@ func TestBadVarConstStatement(t *testing.T) {
 		{"const x;", "parse error: unexpected ; while parsing const statement (expected =)"},
 	}
 	for _, tt := range inputs {
-		_, err := Parse(tt.input)
+		_, err := Parse(context.Background(), tt.input)
 		require.NotNil(t, err)
 		e, ok := err.(ParserError)
 		require.True(t, ok)
@@ -84,7 +119,7 @@ func TestConst(t *testing.T) {
 		{"const foobar=y;", "foobar", "y"},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		stmt, ok := program.First().(*ast.Const)
@@ -112,7 +147,7 @@ func TestControl(t *testing.T) {
 		{"break;", "break"},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		control, ok := program.First().(*ast.Control)
@@ -122,7 +157,7 @@ func TestControl(t *testing.T) {
 }
 
 func TestIdent(t *testing.T) {
-	program, err := Parse("foobar;")
+	program, err := Parse(context.Background(), "foobar;")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	ident, ok := program.First().(*ast.Ident)
@@ -142,7 +177,7 @@ func TestInt(t *testing.T) {
 		{"9876543210", 9876543210},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		integer, ok := program.First().(*ast.Int)
@@ -161,7 +196,7 @@ func TestBool(t *testing.T) {
 		{"false", false},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		exp, ok := program.First().(*ast.Bool)
@@ -182,7 +217,7 @@ func TestPrefix(t *testing.T) {
 		{"!false", "!", false},
 	}
 	for _, tt := range prefixTests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		exp, ok := program.First().(*ast.Prefix)
@@ -214,7 +249,7 @@ func TestParsingInfixExpression(t *testing.T) {
 		{"false==false", false, "==", false},
 	}
 	for _, tt := range infixTests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		expr, ok := program.First().(ast.Expression)
@@ -255,7 +290,7 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"add(a*b[2], b[1], 2 * [1,2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		actual := program.String()
 		require.Equal(t, tt.expected, actual)
@@ -263,7 +298,7 @@ func TestOperatorPrecedence(t *testing.T) {
 }
 
 func TestIf(t *testing.T) {
-	program, err := Parse("if x < y { x }")
+	program, err := Parse(context.Background(), "if x < y { x }")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	exp, ok := program.First().(*ast.If)
@@ -279,7 +314,7 @@ func TestIf(t *testing.T) {
 }
 
 func TestFunc(t *testing.T) {
-	program, err := Parse("func f(x, y=3) { x + y; }")
+	program, err := Parse(context.Background(), "func f(x, y=3) { x + y; }")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	function, ok := program.First().(*ast.Func)
@@ -304,7 +339,7 @@ func TestFuncParams(t *testing.T) {
 		{"func(x,y){}", []string{"x", "y"}},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		function, ok := program.First().(*ast.Func)
@@ -318,7 +353,7 @@ func TestFuncParams(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	program, err := Parse("add(1, 2*3, 4+5)")
+	program, err := Parse(context.Background(), "add(1, 2*3, 4+5)")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr, ok := program.First().(*ast.Call)
@@ -334,7 +369,7 @@ func TestCall(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	program, err := Parse(`"hello world";`)
+	program, err := Parse(context.Background(), `"hello world";`)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	literal, ok := program.First().(*ast.String)
@@ -343,7 +378,7 @@ func TestString(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	program, err := Parse("[1, 2*2, 3+3]")
+	program, err := Parse(context.Background(), "[1, 2*2, 3+3]")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	ll, ok := program.First().(*ast.List)
@@ -357,7 +392,7 @@ func TestList(t *testing.T) {
 
 func TestIndex(t *testing.T) {
 	input := "myArray[1+1]"
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	indexExp, ok := program.First().(*ast.Index)
@@ -368,7 +403,7 @@ func TestIndex(t *testing.T) {
 
 func TestParsingMap(t *testing.T) {
 	input := `{"one":1, "two":2, "three":3}`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	m, ok := program.First().(*ast.Map)
@@ -389,7 +424,7 @@ func TestParsingMap(t *testing.T) {
 
 func TestParsingEmptyMap(t *testing.T) {
 	input := "{}"
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	m, ok := program.First().(*ast.Map)
@@ -399,7 +434,7 @@ func TestParsingEmptyMap(t *testing.T) {
 
 func TestParsingMapLiteralWithExpression(t *testing.T) {
 	input := `{"one":0+1, "two":10 - 8, "three": 15/5}`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	m, ok := program.First().(*ast.Map)
@@ -437,7 +472,7 @@ func TestMutators(t *testing.T) {
 		"var z = 10; var a = 3; y = a;",
 	}
 	for _, input := range inputs {
-		_, err := Parse(input)
+		_, err := Parse(context.Background(), input)
 		require.Nil(t, err)
 	}
 }
@@ -449,7 +484,7 @@ func TestObjectMethodCall(t *testing.T) {
 		"var x = 15; x.string();",
 	}
 	for _, input := range inputs {
-		_, err := Parse(input)
+		_, err := Parse(context.Background(), input)
 		require.Nil(t, err)
 	}
 }
@@ -469,7 +504,7 @@ func TestIncompleThings(t *testing.T) {
 		{`switch (foo) { `, "parse error: unterminated switch statement"},
 	}
 	for _, tt := range tests {
-		_, err := Parse(tt.input)
+		_, err := Parse(context.Background(), tt.input)
 		require.NotNil(t, err)
 		pe, ok := err.(ParserError)
 		require.True(t, ok)
@@ -484,7 +519,7 @@ func TestSwitch(t *testing.T) {
       x
 	  x
 }`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	switchExpr, ok := program.First().(*ast.Switch)
@@ -510,7 +545,7 @@ default:
 default:
     print("oh no!")
 }`
-	_, err := Parse(input)
+	_, err := Parse(context.Background(), input)
 	require.NotNil(t, err)
 	parserErr, ok := err.(ParserError)
 	require.True(t, ok)
@@ -532,7 +567,7 @@ func TestPipe(t *testing.T) {
 		{`var x = a() | b();`, "call", []string{"a", "b"}},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		stmt := program.First().(*ast.Var)
@@ -566,7 +601,7 @@ func TestMapExpression(t *testing.T) {
 
 	}
 	`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr := program.First()
@@ -582,7 +617,7 @@ func TestSetExpression(t *testing.T) {
 		"c",
 	}
 	`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr := program.First()
@@ -598,7 +633,7 @@ func TestCallExpression(t *testing.T) {
 		b=2,
 	)
 	`
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr := program.First()
@@ -614,7 +649,7 @@ func TestCallExpression(t *testing.T) {
 }
 
 func TestGetAttr(t *testing.T) {
-	program, err := Parse("foo.bar")
+	program, err := Parse(context.Background(), "foo.bar")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr := program.First()
@@ -657,7 +692,7 @@ func TestForLoop(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		printMultiError(err)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
@@ -682,7 +717,7 @@ func TestForLoop(t *testing.T) {
 }
 
 func TestMultiVar(t *testing.T) {
-	program, err := Parse("x, y := [1, 2]")
+	program, err := Parse(context.Background(), "x, y := [1, 2]")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	mvar, ok := program.First().(*ast.MultiVar)
@@ -693,7 +728,7 @@ func TestMultiVar(t *testing.T) {
 }
 
 func TestIn(t *testing.T) {
-	program, err := Parse("x in [1, 2]")
+	program, err := Parse(context.Background(), "x in [1, 2]")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	node, ok := program.First().(*ast.In)
@@ -705,7 +740,7 @@ func TestIn(t *testing.T) {
 }
 
 func TestBreak(t *testing.T) {
-	program, err := Parse("break")
+	program, err := Parse(context.Background(), "break")
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	_, ok := program.First().(*ast.Control)
@@ -714,7 +749,7 @@ func TestBreak(t *testing.T) {
 
 func TestBacktick(t *testing.T) {
 	input := "`" + `\\n\t foo bar /hey there/` + "`"
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	expr, ok := program.First().(*ast.String)
@@ -724,7 +759,7 @@ func TestBacktick(t *testing.T) {
 
 func TestUnterminatedBacktickString(t *testing.T) {
 	input := "`foo"
-	_, err := Parse(input)
+	_, err := Parse(context.Background(), input)
 	require.NotNil(t, err)
 	require.Equal(t, "syntax error: unterminated string literal", err.Error())
 	var syntaxErr *SyntaxError
@@ -752,7 +787,7 @@ func TestUnterminatedString(t *testing.T) {
 	input := `42
 x := "a`
 	ctx := context.Background()
-	_, err := ParseWithOpts(ctx, Opts{Input: input, File: "main.tm"})
+	_, err := Parse(ctx, input, WithFile("main.tm"))
 	require.NotNil(t, err)
 	fmt.Printf("%+v\n", err.(*SyntaxError).StartPosition())
 	require.Equal(t, "syntax error: unterminated string literal", err.Error())
@@ -787,7 +822,7 @@ x := "a`
 
 func TestMapIdentifierKey(t *testing.T) {
 	input := "{ one: 1 }"
-	program, err := Parse(input)
+	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
 	m, ok := program.First().(*ast.Map)
@@ -827,7 +862,7 @@ func FuzzParse(f *testing.F) {
 		f.Add(tc) // Use f.Add to provide a seed corpus
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		Parse(input) // Confirms no panics
+		Parse(context.Background(), input) // Confirms no panics
 	})
 }
 
@@ -850,7 +885,7 @@ func TestBadInputs(t *testing.T) {
 		{"switch x { case 1: 1 case 2: 2 defaultIIIIIII: 3 }", "parse error: invalid syntax (unexpected \":\")"},
 	}
 	for _, tt := range tests {
-		program, err := Parse(tt.input)
+		program, err := Parse(context.Background(), tt.input)
 		fmt.Println(program)
 		require.NotNil(t, err)
 		require.Equal(t, tt.expected, err.Error())

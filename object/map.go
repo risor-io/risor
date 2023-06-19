@@ -393,6 +393,14 @@ func (m *Map) Iter() Iterator {
 	return NewMapIter(m)
 }
 
+func (m *Map) StringKeys() []string {
+	keys := make([]string, 0, len(m.items))
+	for k := range m.items {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func NewMap(m map[string]Object) *Map {
 	if m == nil {
 		m = map[string]Object{}

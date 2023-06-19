@@ -6,12 +6,9 @@ import (
 	"encoding/binary"
 	"math/rand"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
-
-// Name of this module
-const Name = "rand"
 
 func Seed() {
 	var b [8]byte
@@ -76,7 +73,7 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("rand", map[string]object.Object{
 		"float":      object.NewBuiltin("float", Float),
 		"int":        object.NewBuiltin("int", Int),
 		"intn":       object.NewBuiltin("intn", IntN),
@@ -84,5 +81,4 @@ func Module() *object.Module {
 		"exp_float":  object.NewBuiltin("exp_float", ExpFloat),
 		"shuffle":    object.NewBuiltin("shuffle", Shuffle),
 	})
-	return m
 }

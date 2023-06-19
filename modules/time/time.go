@@ -4,12 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
-
-// Name of this module
-const Name = "time"
 
 func Now(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("time.now", 0, args); err != nil {
@@ -55,7 +52,7 @@ func Sleep(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("time", map[string]object.Object{
 		"now":         object.NewBuiltin("now", Now),
 		"parse":       object.NewBuiltin("parse", Parse),
 		"sleep":       object.NewBuiltin("sleep", Sleep),
@@ -75,5 +72,4 @@ func Module() *object.Module {
 		"StampMicro":  object.NewString(time.StampMicro),
 		"StampNano":   object.NewString(time.StampNano),
 	})
-	return m
 }
