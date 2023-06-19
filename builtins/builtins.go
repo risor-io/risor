@@ -4,14 +4,10 @@ package builtins
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"os"
 	"strconv"
-	"time"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
-	"github.com/cloudcmds/tamarin/v2/httputil"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
 
@@ -73,6 +69,12 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 				return res
 			}
 		}
+	case *object.BSlice:
+		for _, v := range arg.Value() {
+			if res := set.Add(object.NewInt(int64(v))); object.IsError(res) {
+				return res
+			}
+		}
 	case *object.List:
 		for _, obj := range arg.Value() {
 			if res := set.Add(obj); object.IsError(res) {
@@ -110,6 +112,12 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 		var items []object.Object
 		for _, v := range obj.Value() {
 			items = append(items, object.NewString(string(v)))
+		}
+		return object.NewList(items)
+	case *object.BSlice:
+		var items []object.Object
+		for _, v := range obj.Value() {
+			items = append(items, object.NewInt(int64(v)))
 		}
 		return object.NewList(items)
 	case *object.List:
@@ -180,8 +188,34 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.String:
 		return object.NewString(arg.Value())
+	case *object.BSlice:
+		return object.NewString(string(arg.Value()))
 	default:
 		return object.NewString(args[0].Inspect())
+	}
+}
+
+func BSlice(ctx context.Context, args ...object.Object) object.Object {
+	nArgs := len(args)
+	if nArgs > 1 {
+		return object.Errorf("type error: bytes() expected at most 1 argument (%d given)", nArgs)
+	}
+	if nArgs == 0 {
+		return object.NewBSlice(nil)
+	}
+	switch arg := args[0].(type) {
+	case *object.BSlice:
+		return arg.Clone()
+	case *object.String:
+		return object.NewBSlice([]byte(arg.Value()))
+	case *object.Int:
+		val := arg.Value()
+		if val < 0 || val > 255 {
+			return object.Errorf("type error: bytes() argument must be in range 0 to 255")
+		}
+		return object.NewBSlice([]byte{byte(val)})
+	default:
+		return object.Errorf("type error: bytes() argument is unsupported (%s given)", args[0].Type())
 	}
 }
 
@@ -258,6 +292,12 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 				return object.True
 			}
 		}
+	case *object.BSlice:
+		for _, val := range arg.Value() {
+			if val != 0 {
+				return object.True
+			}
+		}
 	default:
 		return object.Errorf("type error: any() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
@@ -281,6 +321,12 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 				return object.False
 			}
 		}
+	case *object.BSlice:
+		for _, val := range arg.Value() {
+			if val == 0 {
+				return object.False
+			}
+		}
 	default:
 		return object.Errorf("type error: all() argument must be an array, hash, or set (%s given)", args[0].Type())
 	}
@@ -299,77 +345,6 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 		return object.True
 	}
 	return object.False
-}
-
-func Fetch(ctx context.Context, args ...object.Object) object.Object {
-	numArgs := len(args)
-	if numArgs < 1 || numArgs > 2 {
-		return object.NewArgsRangeError("fetch", 1, 2, len(args))
-	}
-	urlArg, argErr := object.AsString(args[0])
-	if argErr != nil {
-		return argErr
-	}
-	var errObj *object.Error
-	var params *object.Map
-	if numArgs == 2 {
-		params, errObj = object.AsMap(args[1])
-		if errObj != nil {
-			return errObj
-		}
-	}
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
-	if errObj != nil {
-		return errObj
-	}
-	if timeout != 0 {
-		client.Timeout = timeout
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return object.NewError(err)
-	}
-	return object.NewHttpResponse(resp)
-}
-
-// output a string to stdout
-func Print(ctx context.Context, args ...object.Object) object.Object {
-	values := make([]interface{}, len(args))
-	for i, arg := range args {
-		switch arg := arg.(type) {
-		case *object.String:
-			values[i] = arg.Value()
-		default:
-			values[i] = arg.Inspect()
-		}
-	}
-	fmt.Println(values...)
-	return object.Nil
-}
-
-func Printf(ctx context.Context, args ...object.Object) object.Object {
-	numArgs := len(args)
-	if numArgs < 1 {
-		return object.Errorf("type error: printf() takes 1 or more arguments (%d given)", len(args))
-	}
-	format, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	var values []interface{}
-	for _, arg := range args[1:] {
-		switch arg := arg.(type) {
-		case *object.String:
-			values = append(values, arg.Value())
-		default:
-			values = append(values, arg.Interface())
-		}
-	}
-	fmt.Printf(format, values...)
-	return object.Nil
 }
 
 func Unwrap(ctx context.Context, args ...object.Object) object.Object {
@@ -418,6 +393,8 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 		items = arg.List().Value()
 	case *object.String:
 		items = arg.Runes()
+	case *object.BSlice:
+		items = arg.Integers()
 	default:
 		return object.Errorf("type error: sorted() argument must be a list, map, or set (%s given)", arg.Type())
 	}
@@ -437,6 +414,8 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 	case *object.List:
 		return arg.Reversed()
 	case *object.String:
+		return arg.Reversed()
+	case *object.BSlice:
 		return arg.Reversed()
 	default:
 		return object.Errorf("type error: reversed() argument must be an array or string (%s given)", arg.Type())
@@ -518,6 +497,12 @@ func Int(ctx context.Context, args ...object.Object) object.Object {
 			return object.NewInt(i)
 		}
 		return object.Errorf("value error: invalid literal for int(): %q", obj.Value())
+	case *object.BSlice:
+		val := obj.Value()
+		if len(val) != 1 {
+			return object.Errorf("value error: bytes must be exactly one byte long")
+		}
+		return object.NewInt(int64(val[0]))
 	}
 	return object.Errorf("type error: int() argument must be a string, float, or int (%s given)", args[0].Type())
 }
@@ -659,65 +644,55 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	return container.Iter()
 }
 
-func Exit(ctx context.Context, args ...object.Object) object.Object {
+func CodeObj(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
-	if nArgs > 1 {
-		return object.Errorf("type error: exit() expected at most 1 argument (%d given)", nArgs)
+	if nArgs != 0 {
+		return object.NewArgsError("codeobj", 0, len(args))
 	}
-	if nArgs == 0 {
-		os.Exit(0)
+	codeFunc, found := object.GetCodeFunc(ctx)
+	if !found {
+		return object.Errorf("eval error: context did not contain a code function")
 	}
-	switch obj := args[0].(type) {
-	case *object.Int:
-		os.Exit(int(obj.Value()))
-	case *object.Error:
-		os.Exit(1)
+	code, err := codeFunc(ctx)
+	if err != nil {
+		return object.Errorf(err.Error())
 	}
-	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
+	return object.NewCodeProxy(code)
 }
 
-func GlobalBuiltins() []*object.Builtin {
-	type builtin struct {
-		name string
-		fn   object.BuiltinFunction
+func Builtins() map[string]object.Object {
+	return map[string]object.Object{
+		"all":       object.NewBuiltin("all", All),
+		"any":       object.NewBuiltin("any", Any),
+		"assert":    object.NewBuiltin("assert", Assert),
+		"bool":      object.NewBuiltin("bool", Bool),
+		"bslice":    object.NewBuiltin("bslice", BSlice),
+		"call":      object.NewBuiltin("call", Call),
+		"chr":       object.NewBuiltin("chr", Chr),
+		"codeobj":   object.NewBuiltin("codeobj", CodeObj),
+		"decode":    object.NewBuiltin("decode", Decode),
+		"delete":    object.NewBuiltin("delete", Delete),
+		"encode":    object.NewBuiltin("encode", Encode),
+		"err":       object.NewBuiltin("err", Err),
+		"error":     object.NewBuiltin("error", Error),
+		"float":     object.NewBuiltin("float", Float),
+		"getattr":   object.NewBuiltin("getattr", GetAttr),
+		"int":       object.NewBuiltin("int", Int),
+		"iter":      object.NewBuiltin("iter", Iter),
+		"keys":      object.NewBuiltin("keys", Keys),
+		"len":       object.NewBuiltin("len", Len),
+		"list":      object.NewBuiltin("list", List),
+		"map":       object.NewBuiltin("map", Map),
+		"ok":        object.NewBuiltin("ok", Ok),
+		"ord":       object.NewBuiltin("ord", Ord),
+		"reversed":  object.NewBuiltin("reversed", Reversed),
+		"set":       object.NewBuiltin("set", Set),
+		"sorted":    object.NewBuiltin("sorted", Sorted),
+		"sprintf":   object.NewBuiltin("sprintf", Sprintf),
+		"string":    object.NewBuiltin("string", String),
+		"try":       object.NewBuiltin("try", Try),
+		"type":      object.NewBuiltin("type", Type),
+		"unwrap_or": object.NewBuiltin("unwrap_or", UnwrapOr),
+		"unwrap":    object.NewBuiltin("unwrap", Unwrap),
 	}
-	builtins := []builtin{
-		{"all", All},
-		{"any", Any},
-		{"assert", Assert},
-		{"bool", Bool},
-		{"call", Call},
-		{"chr", Chr},
-		{"delete", Delete},
-		{"err", Err},
-		{"error", Error},
-		{"exit", Exit},
-		{"fetch", Fetch},
-		{"float", Float},
-		{"getattr", GetAttr},
-		{"int", Int},
-		{"iter", Iter},
-		{"keys", Keys},
-		{"len", Len},
-		{"list", List},
-		{"map", Map},
-		{"ok", Ok},
-		{"ord", Ord},
-		{"print", Print},
-		{"printf", Printf},
-		{"reversed", Reversed},
-		{"set", Set},
-		{"sorted", Sorted},
-		{"sprintf", Sprintf},
-		{"string", String},
-		{"type", Type},
-		{"unwrap_or", UnwrapOr},
-		{"unwrap", Unwrap},
-	}
-	var ret []*object.Builtin
-	for _, b := range builtins {
-		ret = append(ret, object.NewBuiltin(b.name, b.fn))
-	}
-	ret = append(ret, object.NewErrorHandler("try", Try))
-	return ret
 }

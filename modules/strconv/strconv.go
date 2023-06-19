@@ -4,12 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
-
-// Name of this module
-const Name = "strconv"
 
 func Atoi(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strconv.atoi", 1, args); err != nil {
@@ -80,11 +77,10 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("strconv", map[string]object.Object{
 		"atoi":        object.NewBuiltin("atoi", Atoi),
 		"parse_bool":  object.NewBuiltin("parse_bool", ParseBool),
 		"parse_float": object.NewBuiltin("parse_float", ParseFloat),
 		"parse_int":   object.NewBuiltin("parse_int", ParseInt),
 	})
-	return m
 }

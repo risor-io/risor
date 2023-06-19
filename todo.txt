@@ -1,12 +1,16 @@
 
 TODO:
 
-* Assigning a module attribute `math.BAR = "NO"`
 * Review/update Go struct proxies
 * More modules
 * File I/O included by default
 * Update docs for 2.0.0-alpha1
+* Parsing unicode in strings: hex encoding
+
+FUTURE:
+
 * Switch without top-level expression
+* Assigning a module attribute `math.BAR = "NO"`
 
 DONE:
 

@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
+	"time"
 
+	"github.com/cloudcmds/tamarin/v2/limits"
 	"github.com/cloudcmds/tamarin/v2/op"
 )
 
-const TenMB = 1024 * 1024 * 10
+const OneMB = 1024 * 1024
 
 type HttpResponse struct {
-	resp    *http.Response
-	body    []byte
-	bodyErr error
+	resp   *http.Response
+	limits *limits.Limits
+	once   sync.Once
+	closed chan bool
 }
 
 func (r *HttpResponse) Type() Type {
@@ -60,6 +64,17 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 
 			},
 		}, true
+	case "close":
+		return &Builtin{
+			name: "http_response.close",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("close", 0, len(args))
+				}
+				r.Close()
+				return Nil
+			},
+		}, true
 	}
 	return nil, false
 }
@@ -68,23 +83,42 @@ func (r *HttpResponse) Interface() interface{} {
 	return r.resp
 }
 
-func (r *HttpResponse) readBody(limit int64) error {
-	defer r.resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(r.resp.Body, limit))
-	if err != nil {
-		r.bodyErr = err
-		return err
+func (r *HttpResponse) Close() {
+	r.once.Do(func() {
+		r.resp.Body.Close()
+		close(r.closed)
+	})
+}
+
+func (r *HttpResponse) readBody() ([]byte, error) {
+	if r.resp.ContentLength > 0 && r.resp.ContentLength > r.limits.MaxContentLength {
+		return nil, fmt.Errorf("content length exceeded limit of %d bytes (got %d)",
+			r.resp.ContentLength, r.resp.ContentLength)
 	}
-	r.body = body
-	return nil
+	var reader io.Reader = r.resp.Body
+	bodyLimit := int64(0)
+	if r.limits.MaxBodyLength > 0 {
+		bodyLimit = r.limits.MaxBodyLength + 1
+		reader = io.LimitReader(r.resp.Body, bodyLimit)
+	}
+	body, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	if bodyLimit > 0 && int64(len(body)) >= bodyLimit {
+		return nil, fmt.Errorf("response body exceeded limit of %d bytes",
+			r.limits.MaxBodyLength)
+	}
+	return body, nil
 }
 
 func (r *HttpResponse) JSON() Object {
-	if r.bodyErr != nil {
-		return NewError(r.bodyErr)
+	body, err := r.readBody()
+	if err != nil {
+		return NewError(err)
 	}
 	var target interface{}
-	if err := json.Unmarshal(r.body, &target); err != nil {
+	if err := json.Unmarshal(body, &target); err != nil {
 		return NewError(err)
 	}
 	scriptObj := FromGoType(target)
@@ -95,10 +129,11 @@ func (r *HttpResponse) JSON() Object {
 }
 
 func (r *HttpResponse) Text() Object {
-	if r.bodyErr != nil {
-		return NewError(r.bodyErr)
+	body, err := r.readBody()
+	if err != nil {
+		return NewError(err)
 	}
-	return NewString(string(r.body))
+	return NewString(string(body))
 }
 
 func (r *HttpResponse) Status() *String {
@@ -141,11 +176,27 @@ func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object
 	return NewError(fmt.Errorf("unsupported operation for http_response: %v", opType))
 }
 
-func NewHttpResponse(resp *http.Response) *HttpResponse {
-	obj := &HttpResponse{resp: resp}
-	// We have to guarantee that we read and close the HTTP response body
-	// in order to not leak memory. When/if we need to support different body
-	// size limits or streaming, we can add a new function to help with that.
-	obj.readBody(TenMB)
+func NewHttpResponse(
+	resp *http.Response,
+	timeout time.Duration,
+	limits *limits.Limits,
+) *HttpResponse {
+	obj := &HttpResponse{
+		resp:   resp,
+		limits: limits,
+		closed: make(chan bool),
+	}
+	if timeout > 0 {
+		// Guarantee that the response body is closed after the timeout
+		// elapses. Alternatively, if Close is called on the object before
+		// the timeout elapses, the goroutine exits.
+		go func() {
+			select {
+			case <-time.After(timeout):
+				obj.Close()
+			case <-obj.closed:
+			}
+		}()
+	}
 	return obj
 }

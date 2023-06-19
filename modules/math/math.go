@@ -4,12 +4,9 @@ import (
 	"context"
 	"math"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
-
-// Name of this module
-const Name = "math"
 
 func Abs(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("math.abs", 1, args); err != nil {
@@ -338,7 +335,7 @@ func Round(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("math", map[string]object.Object{
 		"abs":    object.NewBuiltin("abs", Abs),
 		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
 		"min":    object.NewBuiltin("min", Min),
@@ -360,5 +357,4 @@ func Module() *object.Module {
 		"PI":     object.NewFloat(math.Pi),
 		"E":      object.NewFloat(math.E),
 	})
-	return m
 }

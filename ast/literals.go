@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/tmpl"
+	"github.com/cloudcmds/tamarin/v2/internal/tmpl"
 	"github.com/cloudcmds/tamarin/v2/token"
 )
 

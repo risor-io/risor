@@ -27,11 +27,11 @@ func TestAdd(t *testing.T) {
 		op.BinaryOp,
 		op.Code(op.Add),
 	}
-	vm := New(Options{Main: &object.Code{
+	vm := New(&object.Code{
 		Constants:    constants,
 		Instructions: code,
 		Symbols:      object.NewSymbolTable(),
-	}})
+	})
 	err := vm.Run(context.Background())
 	require.Nil(t, err)
 
@@ -41,7 +41,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddCompilationAndExecution(t *testing.T) {
-	program, err := parser.Parse(`
+	program, err := parser.Parse(context.Background(), `
 	x := 11
 	y := 12
 	x + y
@@ -65,7 +65,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, int64(12), c2.Value())
 
-	vm := New(Options{Main: main})
+	vm := New(main)
 	require.Nil(t, vm.Run(context.Background()))
 
 	tos, ok := vm.TOS()
@@ -74,7 +74,7 @@ func TestAddCompilationAndExecution(t *testing.T) {
 }
 
 func TestConditional(t *testing.T) {
-	program, err := parser.Parse(`
+	program, err := parser.Parse(context.Background(), `
 	x := 20
 	if x > 10 {
 		x = 99
@@ -86,7 +86,7 @@ func TestConditional(t *testing.T) {
 	main, err := compiler.Compile(program)
 	require.Nil(t, err)
 
-	vm := New(Options{Main: main})
+	vm := New(main)
 	require.Nil(t, vm.Run(context.Background()))
 
 	tos, ok := vm.TOS()
@@ -1040,7 +1040,7 @@ func TestSimpleLoopBreak(t *testing.T) {
 	for {
 		x++
 		if x == 2 { break }
-		print(math.max([1, 2, 3])) // inject some extra instructions
+		max := math.max([1, 2, 3]) // inject some extra instructions
 	}
 	x
 	`)
@@ -1086,7 +1086,7 @@ func TestSimpleLoopContinue(t *testing.T) {
 		if x > 5 { break }
 		// We'll reach here on x in [2, 3, 4, 5]; so y should increment 4 times
 		y++
-		print(math.max([1, 2, 3])) // inject some extra instructions
+		max := math.max([1, 2, 3]) // inject some extra instructions
 	}
 	y
 	`)

@@ -1,3 +1,4 @@
+// Package op defines the opcodes that are used in the Tamarin virtual machine.
 package op
 
 type Code uint16

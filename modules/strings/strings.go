@@ -3,12 +3,9 @@ package strings
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/arg"
+	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
-
-// Name of this module
-const Name = "strings"
 
 func asString(obj object.Object) (*object.String, *object.Error) {
 	s, ok := obj.(*object.String)
@@ -214,7 +211,7 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	m := object.NewBuiltinsModule(Name, map[string]object.Object{
+	return object.NewBuiltinsModule("strings", map[string]object.Object{
 		"contains":    object.NewBuiltin("contains", Contains),
 		"count":       object.NewBuiltin("count", Count),
 		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),
@@ -233,5 +230,4 @@ func Module() *object.Module {
 		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
 		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
 	})
-	return m
 }

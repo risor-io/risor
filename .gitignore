@@ -1,6 +1,7 @@
 cmd/cli/cli
 .vscode
-tamarin
+/tamarin
+/cmd/tamarin/tamarin
 cpu.out
 node_modules
 tamarin*.vsix

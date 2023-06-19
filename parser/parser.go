@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/cloudcmds/tamarin/v2/ast"
+	"github.com/cloudcmds/tamarin/v2/internal/tmpl"
 	"github.com/cloudcmds/tamarin/v2/lexer"
-	"github.com/cloudcmds/tamarin/v2/tmpl"
 	"github.com/cloudcmds/tamarin/v2/token"
 )
 
@@ -23,33 +23,34 @@ type (
 	postfixParseFn func() ast.Statement
 )
 
-// Parse is a shortcut that can be used to parse the given Tamarin source code.
-// The lexer and parser are created internally and not exposed. ParseWithOpts
-// should be used in production in order to pass a context.
-func Parse(input string) (*ast.Program, error) {
-	return New(lexer.New(input)).Parse(context.Background())
-}
-
-// ParseWithOpts is a shortcut that can be used to parse the given Tamarin source code.
-// The lexer and parser are created internally and not exposed.
-func ParseWithOpts(ctx context.Context, opts Opts) (*ast.Program, error) {
-	lexerOpts := lexer.Opts{
-		Input: opts.Input,
-		File:  opts.File,
+// Parse the provided input as Tamarin source code and return the AST. This is
+// shorthand way to create a Lexer and Parser and then call Parse on that.
+func Parse(ctx context.Context, input string, options ...Option) (*ast.Program, error) {
+	l := lexer.New(input)
+	p := New(l, options...)
+	if p.filename != "" {
+		// If an option specified a filename, pass that through to the lexer.
+		l.SetFilename(p.filename)
 	}
-	return New(lexer.NewWithOptions(lexerOpts)).Parse(ctx)
+	return p.Parse(ctx)
 }
 
-// Opts contains options for the parser.
-type Opts struct {
-	// Input is the string being parsed.
-	Input string
-	// File is the name of the file being parsed (optional).
-	File string
+// Option is a configuration function for a Lexer.
+type Option func(*Parser)
+
+// WithFile sets the file name for the Lexer.
+func WithFile(file string) Option {
+	return func(l *Parser) {
+		l.filename = file
+	}
 }
 
 // Parser object
 type Parser struct {
+
+	// the Context supplied in the Parse() call
+	ctx context.Context
+
 	// l is our lexer
 	l *lexer.Lexer
 
@@ -81,18 +82,26 @@ type Parser struct {
 	//
 	// Nested ternary expressions are illegal :)
 	tern bool
+
+	// The filename of the input
+	filename string
 }
 
-// New returns a Parser for the program provided by the lexer.
-func New(l *lexer.Lexer) *Parser {
+// New returns a Parser for the program provided by the given Lexer.
+func New(l *lexer.Lexer, options ...Option) *Parser {
 
-	// Create the parser and prime the token pump
+	// Create the parser and apply any provided options
 	p := &Parser{
 		l:               l,
 		prefixParseFns:  map[token.Type]prefixParseFn{},
 		infixParseFns:   map[token.Type]infixParseFn{},
 		postfixParseFns: map[token.Type]postfixParseFn{},
 	}
+	for _, opt := range options {
+		opt(p)
+	}
+
+	// Prime the token pump
 	p.nextToken() // makes curToken=<empty>, peekToken=token[0]
 	p.nextToken() // makes curToken=token[0], peekToken=token[1]
 
@@ -167,7 +176,7 @@ func (p *Parser) nextToken() error {
 	var err error
 	p.prevToken = p.curToken
 	p.curToken = p.peekToken
-	p.peekToken, err = p.l.NextToken()
+	p.peekToken, err = p.l.Next()
 	if err == nil {
 		return nil // success
 	}
@@ -175,16 +184,17 @@ func (p *Parser) nextToken() error {
 	// "syntax errors" and parsing will now be considered broken.
 	p.err = NewSyntaxError(ErrorOpts{
 		Cause:         err,
-		File:          p.l.File(),
+		File:          p.l.Filename(),
 		StartPosition: p.peekToken.StartPosition,
 		EndPosition:   p.peekToken.EndPosition,
-		SourceCode:    p.l.GetTokenLineText(p.peekToken),
+		SourceCode:    p.l.GetLineText(p.peekToken),
 	})
 	return p.err
 }
 
 // Parse the program that is provided via the lexer.
 func (p *Parser) Parse(ctx context.Context) (*ast.Program, error) {
+	p.ctx = ctx
 	// It's possible for an error to already exist because we read tokens from
 	// the lexer in the constructor. Parsing is already broken if so.
 	if p.err != nil {
@@ -233,10 +243,10 @@ func (p *Parser) noPrefixParseFnError(t token.Token) {
 	p.err = NewParserError(ErrorOpts{
 		ErrType:       "parse error",
 		Message:       fmt.Sprintf("invalid syntax (unexpected %q)", t.Literal),
-		File:          p.l.File(),
+		File:          p.l.Filename(),
 		StartPosition: t.StartPosition,
 		EndPosition:   t.EndPosition,
-		SourceCode:    p.l.GetTokenLineText(t),
+		SourceCode:    p.l.GetLineText(t),
 	})
 }
 
@@ -251,10 +261,10 @@ func (p *Parser) peekError(context string, expected token.Type, got token.Token)
 		ErrType: "parse error",
 		Message: fmt.Sprintf("unexpected %s while parsing %s (expected %s)",
 			gotDesc, context, expDesc),
-		File:          p.l.File(),
+		File:          p.l.Filename(),
 		StartPosition: got.StartPosition,
 		EndPosition:   got.EndPosition,
-		SourceCode:    p.l.GetTokenLineText(got),
+		SourceCode:    p.l.GetLineText(got),
 	})
 }
 
@@ -363,10 +373,10 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 		p.setError(NewParserError(ErrorOpts{
 			ErrType:       "parse error",
 			Message:       "assignment is missing a value",
-			File:          p.l.File(),
+			File:          p.l.Filename(),
 			StartPosition: p.prevToken.EndPosition,
 			EndPosition:   p.prevToken.EndPosition,
-			SourceCode:    p.l.GetTokenLineText(p.prevToken),
+			SourceCode:    p.l.GetLineText(p.prevToken),
 		}))
 		return nil
 	}
@@ -381,10 +391,10 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 		p.setError(NewParserError(ErrorOpts{
 			ErrType:       "parse error",
 			Message:       fmt.Sprintf("unexpected token %s following assignment value", p.peekToken.Literal),
-			File:          p.l.File(),
+			File:          p.l.Filename(),
 			StartPosition: p.peekToken.StartPosition,
 			EndPosition:   p.peekToken.EndPosition,
-			SourceCode:    p.l.GetTokenLineText(p.peekToken),
+			SourceCode:    p.l.GetLineText(p.peekToken),
 		}))
 		return nil
 	}
@@ -405,10 +415,10 @@ func (p *Parser) parseReturn() *ast.Control {
 			p.setError(NewParserError(ErrorOpts{
 				ErrType:       "parse error",
 				Message:       fmt.Sprintf("unexpected token %s following return value", p.peekToken.Literal),
-				File:          p.l.File(),
+				File:          p.l.Filename(),
 				StartPosition: p.peekToken.StartPosition,
 				EndPosition:   p.peekToken.EndPosition,
-				SourceCode:    p.l.GetTokenLineText(p.peekToken),
+				SourceCode:    p.l.GetLineText(p.peekToken),
 			}))
 			return nil
 		}
@@ -499,10 +509,10 @@ func (p *Parser) illegalToken() ast.Node {
 	p.setError(NewParserError(ErrorOpts{
 		ErrType:       "parse error",
 		Message:       fmt.Sprintf("illegal token %s", p.curToken.Literal),
-		File:          p.l.File(),
+		File:          p.l.Filename(),
 		StartPosition: p.curToken.StartPosition,
 		EndPosition:   p.curToken.EndPosition,
-		SourceCode:    p.l.GetTokenLineText(p.curToken),
+		SourceCode:    p.l.GetLineText(p.curToken),
 	}))
 	return nil
 }
@@ -511,10 +521,10 @@ func (p *Parser) setTokenError(t token.Token, msg string, args ...interface{}) a
 	p.setError(NewParserError(ErrorOpts{
 		ErrType:       "parse error",
 		Message:       fmt.Sprintf(msg, args...),
-		File:          p.l.File(),
+		File:          p.l.Filename(),
 		StartPosition: t.StartPosition,
 		EndPosition:   t.EndPosition,
-		SourceCode:    p.l.GetTokenLineText(t),
+		SourceCode:    p.l.GetLineText(t),
 	}))
 	return nil
 }
@@ -542,10 +552,10 @@ func (p *Parser) parseInt() ast.Node {
 		p.setError(NewParserError(ErrorOpts{
 			ErrType:       "parse error",
 			Message:       fmt.Sprintf("invalid integer: %s", lit),
-			File:          p.l.File(),
+			File:          p.l.Filename(),
 			StartPosition: tok.StartPosition,
 			EndPosition:   tok.EndPosition,
-			SourceCode:    p.l.GetTokenLineText(tok),
+			SourceCode:    p.l.GetLineText(tok),
 		}))
 		return nil
 	}
@@ -559,10 +569,10 @@ func (p *Parser) parseFloat() ast.Node {
 		p.setError(NewParserError(ErrorOpts{
 			ErrType:       "parse error",
 			Message:       fmt.Sprintf("invalid float: %s", lit),
-			File:          p.l.File(),
+			File:          p.l.Filename(),
 			StartPosition: p.curToken.StartPosition,
 			EndPosition:   p.curToken.EndPosition,
-			SourceCode:    p.l.GetTokenLineText(p.curToken),
+			SourceCode:    p.l.GetLineText(p.curToken),
 		}))
 		return nil
 	}
@@ -951,11 +961,11 @@ func (p *Parser) parseString() ast.Node {
 		return nil
 	}
 	var exprs []ast.Expression
-	for _, e := range tmpl.Fragments {
-		if !e.IsVariable {
+	for _, e := range tmpl.Fragments() {
+		if !e.IsVariable() {
 			continue
 		}
-		tmplAst, err := Parse(e.Value)
+		tmplAst, err := Parse(p.ctx, e.Value())
 		if err != nil {
 			p.setTokenError(strToken, err.Error())
 			return nil

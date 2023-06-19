@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/cloudcmds/tamarin/v2/importer"
+	"github.com/cloudcmds/tamarin/v2/limits"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/op"
 )
@@ -17,6 +18,7 @@ const (
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
 	StopSignal    = -1
+	MB            = 1024 * 1024
 )
 
 type Options struct {
@@ -25,7 +27,7 @@ type Options struct {
 	Importer          importer.Importer
 }
 
-type VM struct {
+type VirtualMachine struct {
 	ip          int // instruction pointer
 	sp          int // stack pointer
 	fp          int // frame pointer
@@ -38,24 +40,61 @@ type VM struct {
 	main        *object.Code
 	importer    importer.Importer
 	modules     map[string]*object.Module
+	limits      *limits.Limits
 }
 
-func New(opts Options) *VM {
-	instructionOffset := 0
-	if opts.InstructionOffset > 0 {
-		instructionOffset = opts.InstructionOffset
+// Option is a configuration function for a Virtual Machine.
+type Option func(*VirtualMachine)
+
+// WithInstructionOffset sets the initial instruction offset.
+func WithInstructionOffset(offset int) Option {
+	return func(vm *VirtualMachine) {
+		vm.ip = offset
 	}
-	vm := &VM{
-		sp:       -1,
-		ip:       instructionOffset,
-		main:     opts.Main,
-		importer: opts.Importer,
-		modules:  map[string]*object.Module{},
+}
+
+// WithImporter is used to supply an Importer to the Virtual Machine.
+func WithImporter(importer importer.Importer) Option {
+	return func(vm *VirtualMachine) {
+		vm.importer = importer
+	}
+}
+
+// WithLimits sets the limits for the Virtual Machine.
+func WithLimits(limits *limits.Limits) Option {
+	return func(vm *VirtualMachine) {
+		vm.limits = limits
+	}
+}
+
+func defaultLimits() *limits.Limits {
+	return &limits.Limits{
+		HTTP: limits.HTTP{
+			MaxBodyLength:    10 * MB,
+			MaxContentLength: 10 * MB,
+			Timeout:          10 * 1000,
+		},
+	}
+}
+
+// New creates a new Virtual Machine.
+func New(main *object.Code, options ...Option) *VirtualMachine {
+	vm := &VirtualMachine{
+		sp:      -1,
+		ip:      0,
+		main:    main,
+		modules: map[string]*object.Module{},
+	}
+	for _, opt := range options {
+		opt(vm)
+	}
+	if vm.limits == nil {
+		vm.limits = defaultLimits()
 	}
 	return vm
 }
 
-func (vm *VM) Run(ctx context.Context) (err error) {
+func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
 	defer func() {
@@ -76,6 +115,8 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 	vm.activeFrame.ActivateCode(vm.main)
 	vm.activeCode = vm.main
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
+	ctx = object.WithCodeFunc(ctx, vm.codeFunction)
+	ctx = object.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
 	return
 }
@@ -89,7 +130,7 @@ func (vm *VM) Run(ctx context.Context) (err error) {
 //
 // Assuming this function returns without error, the result of the evaluation
 // will be on the top of the stack.
-func (vm *VM) eval(ctx context.Context) error {
+func (vm *VirtualMachine) eval(ctx context.Context) error {
 
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
@@ -112,79 +153,79 @@ func (vm *VM) eval(ctx context.Context) error {
 		switch opcode {
 		case op.Nop:
 		case op.LoadAttr:
-			obj := vm.Pop()
+			obj := vm.pop()
 			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return fmt.Errorf("attribute %q not found", name)
+				return fmt.Errorf("exec error: attribute %q not found", name)
 			}
-			vm.Push(value)
+			vm.push(value)
 		case op.LoadConst:
-			vm.Push(vm.activeCode.Constants[vm.fetch()])
+			vm.push(vm.activeCode.Constants[vm.fetch()])
 		case op.LoadFast:
-			vm.Push(vm.activeFrame.Locals()[vm.fetch()])
+			vm.push(vm.activeFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
-			vm.Push(vm.activeCode.Globals()[vm.fetch()])
+			vm.push(vm.activeCode.Globals()[vm.fetch()])
 		case op.LoadFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
-			vm.Push(freeVars[vm.fetch()].Value())
+			vm.push(freeVars[vm.fetch()].Value())
 		case op.LoadBuiltin:
-			vm.Push(vm.activeCode.Builtins()[vm.fetch()])
+			vm.push(vm.activeCode.Builtins()[vm.fetch()])
 		case op.StoreFast:
-			vm.activeFrame.Locals()[vm.fetch()] = vm.Pop()
+			vm.activeFrame.Locals()[vm.fetch()] = vm.pop()
 		case op.StoreGlobal:
-			vm.activeCode.Globals()[vm.fetch()] = vm.Pop()
+			vm.activeCode.Globals()[vm.fetch()] = vm.pop()
 		case op.StoreFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
-			freeVars[vm.fetch()].Set(vm.Pop())
+			freeVars[vm.fetch()].Set(vm.pop())
 		case op.LoadClosure:
 			constIndex := vm.fetch()
 			freeCount := vm.fetch()
 			free := make([]*object.Cell, freeCount)
 			for i := uint16(0); i < freeCount; i++ {
-				obj := vm.Pop()
+				obj := vm.pop()
 				switch obj := obj.(type) {
 				case *object.Cell:
 					free[i] = obj
 				default:
-					return errors.New("expected cell")
+					return errors.New("exec error: expected cell")
 				}
 			}
 			fn := vm.activeCode.Constants[constIndex].(*object.Function)
 			closure := object.NewClosure(fn, fn.Code(), free)
-			vm.Push(closure)
+			vm.push(closure)
 		case op.MakeCell:
 			symbolIndex := vm.fetch()
 			framesBack := int(vm.fetch())
 			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
-				return fmt.Errorf("no frame at depth %d", framesBack)
+				return fmt.Errorf("exec error: no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
 			locals := frame.CaptureLocals()
-			vm.Push(object.NewCell(&locals[symbolIndex]))
+			vm.push(object.NewCell(&locals[symbolIndex]))
 		case op.Nil:
-			vm.Push(object.Nil)
+			vm.push(object.Nil)
 		case op.True:
-			vm.Push(object.True)
+			vm.push(object.True)
 		case op.False:
-			vm.Push(object.False)
+			vm.push(object.False)
 		case op.CompareOp:
 			opType := op.CompareOpType(vm.fetch())
-			b := vm.Pop()
-			a := vm.Pop()
-			vm.Push(object.Compare(opType, a, b))
+			b := vm.pop()
+			a := vm.pop()
+			vm.push(object.Compare(opType, a, b))
 		case op.BinaryOp:
 			opType := op.BinaryOpType(vm.fetch())
-			b := vm.Pop()
-			a := vm.Pop()
-			vm.Push(object.BinaryOp(opType, a, b))
+			b := vm.pop()
+			a := vm.pop()
+			vm.push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
-				vm.tmp[argIndex] = vm.Pop()
+				vm.tmp[argIndex] = vm.pop()
 			}
-			obj := vm.Pop()
+			obj := vm.pop()
 			if err := vm.call(ctx, obj, argc); err != nil {
 				return err
 			}
@@ -192,11 +233,11 @@ func (vm *VM) eval(ctx context.Context) error {
 			argc := int(vm.fetch())
 			args := make([]object.Object, argc)
 			for i := argc - 1; i >= 0; i-- {
-				args[i] = vm.Pop()
+				args[i] = vm.pop()
 			}
-			obj := vm.Pop()
+			obj := vm.pop()
 			partial := object.NewPartial(obj, args)
-			vm.Push(partial)
+			vm.push(partial)
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
 			vm.fp--
@@ -209,25 +250,25 @@ func (vm *VM) eval(ctx context.Context) error {
 				return nil
 			}
 		case op.PopJumpForwardIfTrue:
-			tos := vm.Pop()
+			tos := vm.pop()
 			delta := int(vm.fetch()) - 2
 			if tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpForwardIfFalse:
-			tos := vm.Pop()
+			tos := vm.pop()
 			delta := int(vm.fetch()) - 2
 			if !tos.IsTruthy() {
 				vm.ip += delta
 			}
 		case op.PopJumpBackwardIfTrue:
-			tos := vm.Pop()
+			tos := vm.pop()
 			delta := int(vm.fetch()) - 2
 			if tos.IsTruthy() {
 				vm.ip -= delta
 			}
 		case op.PopJumpBackwardIfFalse:
-			tos := vm.Pop()
+			tos := vm.pop()
 			delta := int(vm.fetch()) - 2
 			if !tos.IsTruthy() {
 				vm.ip -= delta
@@ -244,86 +285,87 @@ func (vm *VM) eval(ctx context.Context) error {
 			count := vm.fetch()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
-				items[count-1-i] = vm.Pop()
+				items[count-1-i] = vm.pop()
 			}
-			vm.Push(object.NewList(items))
+			vm.push(object.NewList(items))
 		case op.BuildMap:
 			count := vm.fetch()
 			items := make(map[string]object.Object, count)
 			for i := uint16(0); i < count; i++ {
-				v := vm.Pop()
-				k := vm.Pop()
+				v := vm.pop()
+				k := vm.pop()
 				items[k.(*object.String).Value()] = v
 			}
-			vm.Push(object.NewMap(items))
+			vm.push(object.NewMap(items))
 		case op.BuildSet:
 			count := vm.fetch()
 			items := make([]object.Object, count)
 			for i := uint16(0); i < count; i++ {
-				items[i] = vm.Pop()
+				items[i] = vm.pop()
 			}
-			vm.Push(object.NewSet(items))
+			vm.push(object.NewSet(items))
 		case op.BinarySubscr:
-			idx := vm.Pop()
-			lhs := vm.Pop()
+			idx := vm.pop()
+			lhs := vm.pop()
 			container, ok := lhs.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", lhs)
+				return fmt.Errorf("type error: object is not a container (got %s)", lhs.Type())
 			}
 			result, err := container.GetItem(idx)
 			if err != nil {
 				return err.Value()
 			}
-			vm.Push(result)
+			vm.push(result)
 		case op.StoreSubscr:
-			idx := vm.Pop()
-			lhs := vm.Pop()
-			rhs := vm.Pop()
+			idx := vm.pop()
+			lhs := vm.pop()
+			rhs := vm.pop()
 			container, ok := lhs.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", lhs)
+				return fmt.Errorf("type error: object is not a container (got %s)", lhs.Type())
 			}
 			if err := container.SetItem(idx, rhs); err != nil {
 				return err.Value()
 			}
 		case op.UnaryNegative:
-			obj := vm.Pop()
+			obj := vm.pop()
 			switch obj := obj.(type) {
 			case *object.Int:
-				vm.Push(object.NewInt(-obj.Value()))
+				vm.push(object.NewInt(-obj.Value()))
 			case *object.Float:
-				vm.Push(object.NewFloat(-obj.Value()))
+				vm.push(object.NewFloat(-obj.Value()))
 			default:
-				return fmt.Errorf("object is not a number: %T", obj)
+				return fmt.Errorf("type error: object is not a number (got %s)", obj.Type())
 			}
 		case op.UnaryNot:
-			obj := vm.Pop()
+			obj := vm.pop()
 			if obj.IsTruthy() {
-				vm.Push(object.False)
+				vm.push(object.False)
 			} else {
-				vm.Push(object.True)
+				vm.push(object.True)
 			}
 		case op.ContainsOp:
-			obj := vm.Pop()
-			containerObj := vm.Pop()
+			obj := vm.pop()
+			containerObj := vm.pop()
 			invert := vm.fetch() == 1
 			if container, ok := containerObj.(object.Container); ok {
 				value := container.Contains(obj)
 				if invert {
 					value = object.Not(value)
 				}
-				vm.Push(value)
+				vm.push(value)
 			} else {
-				return fmt.Errorf("object is not a container: %T", container)
+				return fmt.Errorf("type error: object is not a container (got %s)",
+					containerObj.Type())
 			}
 		case op.Swap:
-			vm.Swap(int(vm.fetch()))
+			vm.swap(int(vm.fetch()))
 		case op.BuildString:
 			count := vm.fetch()
 			items := make([]string, count)
 			for i := uint16(0); i < count; i++ {
 				dst := count - 1 - i
-				obj := vm.Pop()
+				obj := vm.pop()
 				switch obj := obj.(type) {
 				case *object.Error:
 					return obj.Value() // TODO: review this
@@ -333,57 +375,65 @@ func (vm *VM) eval(ctx context.Context) error {
 					items[dst] = obj.Inspect()
 				}
 			}
-			vm.Push(object.NewString(strings.Join(items, "")))
+			vm.push(object.NewString(strings.Join(items, "")))
 		case op.Range:
-			container, ok := vm.Pop().(object.Container)
+			containerObj := vm.pop()
+			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", container)
+				return fmt.Errorf("type error: object is not a container (got %s)",
+					containerObj.Type())
 			}
-			vm.Push(container.Iter())
+			vm.push(container.Iter())
 		case op.Slice:
-			start := vm.Pop()
-			stop := vm.Pop()
-			container, ok := vm.Pop().(object.Container)
+			start := vm.pop()
+			stop := vm.pop()
+			containerObj := vm.pop()
+			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", container)
+				return fmt.Errorf("type error: object is not a container (got %s)",
+					containerObj.Type())
 			}
 			slice := object.Slice{Start: start, Stop: stop}
 			result, err := container.GetSlice(slice)
 			if err != nil {
 				return err.Value()
 			}
-			vm.Push(result)
+			vm.push(result)
 		case op.Length:
-			container, ok := vm.Pop().(object.Container)
+			containerObj := vm.pop()
+			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", container)
+				return fmt.Errorf("type error: object is not a container (got %s)",
+					containerObj.Type())
 			}
-			vm.Push(container.Len())
+			vm.push(container.Len())
 		case op.Copy:
 			offset := vm.fetch()
-			vm.Push(vm.stack[vm.sp-int(offset)])
+			vm.push(vm.stack[vm.sp-int(offset)])
 		case op.Import:
-			name, ok := vm.Pop().(*object.String)
+			name, ok := vm.pop().(*object.String)
 			if !ok {
-				return fmt.Errorf("object is not a string: %T", name)
+				return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
 			}
 			module, err := vm.loadModule(ctx, name.Value())
 			if err != nil {
 				return err
 			}
-			vm.Push(module)
+			vm.push(module)
 		case op.PopTop:
-			vm.Pop()
+			vm.pop()
 		case op.Unpack:
-			obj := vm.Pop()
+			containerObj := vm.pop()
 			nameCount := int64(vm.fetch())
-			container, ok := obj.(object.Container)
+			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("object is not a container: %T", obj)
+				return fmt.Errorf("type error: object is not a container (got %s)",
+					containerObj.Type())
 			}
 			containerSize := container.Len().Value()
 			if containerSize != nameCount {
-				return fmt.Errorf("unpack count mismatch: %d != %d", containerSize, nameCount)
+				return fmt.Errorf("exec error: unpack count mismatch: %d != %d",
+					containerSize, nameCount)
 			}
 			iter := container.Iter()
 			for {
@@ -391,52 +441,52 @@ func (vm *VM) eval(ctx context.Context) error {
 				if !ok {
 					break
 				}
-				vm.Push(obj.Primary())
+				vm.push(obj.Primary())
 			}
 		case op.GetIter:
-			obj := vm.Pop()
+			obj := vm.pop()
 			switch obj := obj.(type) {
 			case object.Container:
-				vm.Push(obj.Iter())
+				vm.push(obj.Iter())
 			case object.Iterator:
-				vm.Push(obj)
+				vm.push(obj)
 			default:
-				return fmt.Errorf("object is not iterable: %T", obj)
+				return fmt.Errorf("type error: object is not iterable (got %s)", obj.Type())
 			}
 		case op.ForIter:
 			base := vm.ip - 1
 			jumpAmount := vm.fetch()
 			nameCount := vm.fetch()
-			iter := vm.Pop().(object.Iterator)
+			iter := vm.pop().(object.Iterator)
 			obj, ok := iter.Next()
 			if !ok {
 				vm.ip = base + int(jumpAmount)
 			} else {
-				vm.Push(iter)
+				vm.push(iter)
 				if nameCount == 1 {
-					vm.Push(obj.Key())
+					vm.push(obj.Key())
 				} else if nameCount == 2 {
-					vm.Push(obj.Value())
-					vm.Push(obj.Key())
+					vm.push(obj.Value())
+					vm.push(obj.Key())
 				} else if nameCount != 0 {
-					return fmt.Errorf("invalid iteration")
+					return fmt.Errorf("exec error: invalid iteration")
 				}
 			}
 		case op.Halt:
 			return nil
 		default:
-			return fmt.Errorf("unknown opcode: %d", opcode)
+			return fmt.Errorf("exec error: unknown opcode: %d", opcode)
 		}
 	}
 	return nil
 }
 
-func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, error) {
+func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.Module, error) {
 	if module, ok := vm.modules[name]; ok {
 		return module, nil
 	}
 	if vm.importer == nil {
-		return nil, fmt.Errorf("imports are disabled")
+		return nil, fmt.Errorf("exec error: imports are disabled")
 	}
 	// Load and compile the module code
 	module, err := vm.importer.Import(ctx, name)
@@ -476,7 +526,7 @@ func (vm *VM) loadModule(ctx context.Context, name string) (*object.Module, erro
 	return module, nil
 }
 
-func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
+func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) error {
 	// The arguments are understood to be stored in vm.tmp here
 	args := vm.tmp[:argc]
 	switch fn := fn.(type) {
@@ -485,7 +535,7 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 		if err, ok := result.(*object.Error); ok {
 			return err.Value()
 		}
-		vm.Push(result)
+		vm.push(result)
 	case *object.Function:
 		vm.fp++
 		frame := &vm.frames[vm.fp]
@@ -513,7 +563,7 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 		// Combine the current arguments with the partial's arguments
 		expandedCount := argc + len(fn.Args())
 		if expandedCount > MaxArgs {
-			return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
+			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
 		}
 		// We can just append arguments from the partial into vm.tmp
 		copy(vm.tmp[argc:], fn.Args())
@@ -524,25 +574,25 @@ func (vm *VM) call(ctx context.Context, fn object.Object, argc int) error {
 	return nil
 }
 
-func (vm *VM) TOS() (object.Object, bool) {
+func (vm *VirtualMachine) TOS() (object.Object, bool) {
 	if vm.sp >= 0 {
 		return vm.stack[vm.sp], true
 	}
 	return nil, false
 }
 
-func (vm *VM) Pop() object.Object {
+func (vm *VirtualMachine) pop() object.Object {
 	obj := vm.stack[vm.sp]
 	vm.sp--
 	return obj
 }
 
-func (vm *VM) Push(obj object.Object) {
+func (vm *VirtualMachine) push(obj object.Object) {
 	vm.sp++
 	vm.stack[vm.sp] = obj
 }
 
-func (vm *VM) Swap(pos int) {
+func (vm *VirtualMachine) swap(pos int) {
 	otherIndex := vm.sp - pos
 	tos := vm.stack[vm.sp]
 	other := vm.stack[otherIndex]
@@ -550,15 +600,19 @@ func (vm *VM) Swap(pos int) {
 	vm.stack[vm.sp] = other
 }
 
-func (vm *VM) fetch() uint16 {
+func (vm *VirtualMachine) fetch() uint16 {
 	ip := vm.ip
 	vm.ip++
 	return uint16(vm.activeCode.Instructions[ip])
 }
 
+func (vm *VirtualMachine) codeFunction(ctx context.Context) (*object.Code, error) {
+	return vm.activeCode, nil
+}
+
 // Calls a compiled function with the given arguments. This is used internally
 // when a Tamarin object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
-func (vm *VM) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 	baseFrame := vm.fp
 	baseIP := vm.ip
 	// Advance to the next frame
@@ -600,7 +654,7 @@ func (vm *VM) callFunction(ctx context.Context, fn *object.Function, args []obje
 		return nil, err
 	}
 	vm.ip = baseIP
-	value := vm.Pop()
+	value := vm.pop()
 	return value, nil
 }
 

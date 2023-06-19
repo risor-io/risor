@@ -1,3 +1,4 @@
+// Package repl implements a read-eval-print-loop for Tamarin.
 package repl
 
 import (
@@ -9,8 +10,10 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
+	"github.com/cloudcmds/tamarin/v2"
+	"github.com/cloudcmds/tamarin/v2/compiler"
+	"github.com/cloudcmds/tamarin/v2/modules/all"
 	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/vm"
 	"github.com/fatih/color"
 )
 
@@ -20,7 +23,7 @@ const (
 	moveForward = "\033[%dC"
 )
 
-func Run(ctx context.Context, interp *vm.Interpreter) error {
+func Run(ctx context.Context) error {
 
 	color.New(color.Bold).Println("Tamarin")
 	fmt.Println("")
@@ -58,12 +61,19 @@ func Run(ctx context.Context, interp *vm.Interpreter) error {
 		return clearLine + ">>> " + accumulate
 	}
 
+	compilerBuiltins := all.Builtins()
+
+	c, err := compiler.New(compiler.WithBuiltins(compilerBuiltins))
+	if err != nil {
+		return err
+	}
+
 	// This could certainly use a refactor! But it works for now.
 	return keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.Enter:
 			fmt.Printf("\n")
-			execute(ctx, accumulate, interp)
+			execute(ctx, accumulate, c)
 			appendToHistory(accumulate)
 			history = append(history, accumulate)
 			historyIndex = len(history)
@@ -158,14 +168,16 @@ func Run(ctx context.Context, interp *vm.Interpreter) error {
 	})
 }
 
-func execute(ctx context.Context, code string, interp *vm.Interpreter) (object.Object, error) {
-	result, err := interp.Eval(ctx, code)
+func execute(ctx context.Context, code string, c *compiler.Compiler) (object.Object, error) {
+	offset := len(c.MainInstructions())
+	result, err := tamarin.Eval(ctx, code,
+		tamarin.WithCompiler(c),
+		tamarin.WithInstructionOffset(offset))
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err
 	}
 	if result == nil {
-		fmt.Println("nil result")
 		return object.Nil, nil
 	}
 	switch result := result.(type) {

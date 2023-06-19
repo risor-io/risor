@@ -1,98 +1,145 @@
-package main
+package tamarin
 
 import (
 	"context"
-	"flag"
-	"fmt"
-	"os"
-	"runtime/pprof"
-	"time"
 
+	"github.com/cloudcmds/tamarin/v2/builtins"
+	"github.com/cloudcmds/tamarin/v2/compiler"
+	"github.com/cloudcmds/tamarin/v2/importer"
+	modBase64 "github.com/cloudcmds/tamarin/v2/modules/base64"
+	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
+	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
+	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
+	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
+	modStrconv "github.com/cloudcmds/tamarin/v2/modules/strconv"
+	modStrings "github.com/cloudcmds/tamarin/v2/modules/strings"
 	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/cloudcmds/tamarin/v2/parser"
-	"github.com/cloudcmds/tamarin/v2/repl"
 	"github.com/cloudcmds/tamarin/v2/vm"
-	"github.com/fatih/color"
 )
 
-func main() {
-	var noColor, showTiming bool
-	var profilerOutputPath, code, breakpoints string
-	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
-	flag.BoolVar(&showTiming, "timing", false, "Show timing information")
-	flag.StringVar(&code, "c", "", "Code to execute")
-	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
-	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
-	flag.Parse()
+type Tamarin struct {
+	compiler *compiler.Compiler
+	main     *object.Code
+	builtins map[string]object.Object
+	importer importer.Importer
+	offset   int
+}
 
-	if noColor {
-		color.NoColor = true
+type Option func(*Tamarin)
+
+func WithDefaultBuiltins() Option {
+	return func(t *Tamarin) {
+		for k, v := range builtins.Builtins() {
+			t.builtins[k] = v
+		}
 	}
-	red := color.New(color.FgRed).SprintfFunc()
+}
 
-	if profilerOutputPath != "" {
-		f, err := os.Create(profilerOutputPath)
+func WithDefaultModules() Option {
+	return func(t *Tamarin) {
+		for k, v := range defaultModules() {
+			t.builtins[k] = v
+		}
+	}
+}
+
+func WithBuiltins(builtins map[string]object.Object) Option {
+	return func(t *Tamarin) {
+		for k, v := range builtins {
+			t.builtins[k] = v
+		}
+	}
+}
+
+func WithCompiler(c *compiler.Compiler) Option {
+	return func(t *Tamarin) {
+		t.compiler = c
+	}
+}
+
+func WithImporter(i importer.Importer) Option {
+	return func(t *Tamarin) {
+		t.importer = i
+	}
+}
+
+func WithCode(c *object.Code) Option {
+	return func(t *Tamarin) {
+		t.main = c
+	}
+}
+
+func WithInstructionOffset(offset int) Option {
+	return func(t *Tamarin) {
+		t.offset = offset
+	}
+}
+
+func Eval(ctx context.Context, source string, options ...Option) (object.Object, error) {
+
+	t := Tamarin{
+		builtins: map[string]object.Object{},
+	}
+	for _, opt := range options {
+		opt(&t)
+	}
+
+	// Initialize a compiler if one was not provided via opts.
+	if t.compiler == nil {
+		var err error
+		var compilerOpts []compiler.Option
+		if t.builtins != nil {
+			compilerOpts = append(compilerOpts, compiler.WithBuiltins(t.builtins))
+		}
+		if t.main != nil {
+			compilerOpts = append(compilerOpts, compiler.WithCode(t.main))
+		}
+		t.compiler, err = compiler.New(compilerOpts...)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-			os.Exit(1)
+			return nil, err
 		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
 	}
 
-	ctx := context.Background()
-
-	interp := vm.NewInterpreter()
-
-	// Input can only come from one source
-	nArgs := len(flag.Args())
-	if nArgs > 0 && len(code) > 0 {
-		fmt.Fprintf(os.Stderr, "%s\n", red("error: cannot provide both a script file and -c input\n"))
-		os.Exit(1)
-	} else if nArgs == 0 && len(code) == 0 {
-		// Run REPL
-		if err := repl.Run(ctx, interp); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-			os.Exit(1)
-		}
-		return
-	}
-
-	// Otherwise, use input from either -c or the first argument
-	var err error
-	var input string
-	var filename string
-	if nArgs == 0 {
-		input = code
-	} else {
-		filename = flag.Args()[0]
-		bytes, err := os.ReadFile(filename)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-			os.Exit(1)
-		}
-		input = string(bytes)
-	}
-
-	start := time.Now()
-
-	result, err := vm.RunWithDefaults(ctx, string(input))
+	// Parse the source code to create the AST.
+	ast, err := parser.Parse(ctx, source)
 	if err != nil {
-		parserErr, ok := err.(parser.ParserError)
-		if ok {
-			fmt.Fprintf(os.Stderr, "%s\n", red(parserErr.FriendlyMessage()))
-		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
-		}
-		os.Exit(1)
+		return nil, err
 	}
 
-	if showTiming {
-		fmt.Printf("%.03f\n", time.Since(start).Seconds())
-	} else {
-		// Print the result
-		if result != object.Nil {
-			fmt.Println(result.Inspect())
-		}
+	// Compile the AST to bytecode, appending these new instructions after any
+	// instructions that were previously compiled.
+	main, err := t.compiler.Compile(ast)
+	if err != nil {
+		return nil, err
+	}
+
+	// Eval the bytecode in a new VM then return the top-of-stack (TOS) value.
+	var vmOpts []vm.Option
+	if t.importer != nil {
+		vmOpts = append(vmOpts, vm.WithImporter(t.importer))
+	}
+	if t.offset != 0 {
+		vmOpts = append(vmOpts, vm.WithInstructionOffset(t.offset))
+	}
+	machine := vm.New(main, vmOpts...)
+	if err := machine.Run(ctx); err != nil {
+		return nil, err
+	}
+	if result, exists := machine.TOS(); exists {
+		return result, nil
+	}
+	return object.Nil, nil
+}
+
+func defaultModules() map[string]object.Object {
+	return map[string]object.Object{
+		"math":    modMath.Module(),
+		"json":    modJson.Module(),
+		"strings": modStrings.Module(),
+		"rand":    modRand.Module(),
+		"strconv": modStrconv.Module(),
+		"bytes":   modBytes.Module(),
+		"base64":  modBase64.Module(),
 	}
 }
