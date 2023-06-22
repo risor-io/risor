@@ -8,12 +8,58 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"sort"
+	"sync"
 
 	"github.com/cloudcmds/tamarin/v2/internal/arg"
 	"github.com/cloudcmds/tamarin/v2/object"
 )
+
+var (
+	mutex  sync.RWMutex
+	codecs = map[string]*Codec{}
+)
+
+// Codec contains an Encode and a Decode function
+type Codec struct {
+	Encode func(context.Context, object.Object) object.Object
+	Decode func(context.Context, object.Object) object.Object
+}
+
+func init() {
+	RegisterCodec("base64", &Codec{Encode: encodeBase64, Decode: decodeBase64})
+	RegisterCodec("base32", &Codec{Encode: encodeBase32, Decode: decodeBase32})
+	RegisterCodec("hex", &Codec{Encode: encodeHex, Decode: decodeHex})
+	RegisterCodec("json", &Codec{Encode: encodeJSON, Decode: decodeJSON})
+	RegisterCodec("csv", &Codec{Encode: encodeCsv, Decode: decodeCsv})
+	RegisterCodec("urlquery", &Codec{Encode: encodeUrlQuery, Decode: decodeUrlQuery})
+}
+
+// RegisterCodec registers a new codec
+func RegisterCodec(name string, codec *Codec) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, exists := codecs[name]; exists {
+		return errors.New("codec already registered: " + name)
+	}
+	codecs[name] = codec
+	return nil
+}
+
+// GetCodec retrieves a codec by its name
+func GetCodec(name string) (*Codec, error) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	codec, exists := codecs[name]
+	if !exists {
+		return nil, errors.New("codec not found: " + name)
+	}
+	return codec, nil
+}
 
 func Encode(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("encode", 2, args); err != nil {
@@ -23,25 +69,14 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	switch encoding {
-	case "base64":
-		return encodeBase64(args[0])
-	case "base32":
-		return encodeBase32(args[0])
-	case "hex":
-		return encodeHex(args[0])
-	case "json":
-		return encodeJSON(args[0])
-	case "csv":
-		return encodeCsv(args[0])
-	case "urlquery":
-		return encodeUrlQuery(args[0])
-	default:
-		return object.Errorf("value error: encode() does not support %q", encoding)
+	codec, codecErr := GetCodec(encoding)
+	if codecErr != nil {
+		return object.NewError(codecErr)
 	}
+	return codec.Encode(ctx, args[0])
 }
 
-func encodeBase64(obj object.Object) object.Object {
+func encodeBase64(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -49,7 +84,7 @@ func encodeBase64(obj object.Object) object.Object {
 	return object.NewString(base64.StdEncoding.EncodeToString(data))
 }
 
-func encodeBase32(obj object.Object) object.Object {
+func encodeBase32(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -57,7 +92,7 @@ func encodeBase32(obj object.Object) object.Object {
 	return object.NewString(base32.StdEncoding.EncodeToString(data))
 }
 
-func encodeHex(obj object.Object) object.Object {
+func encodeHex(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -65,7 +100,7 @@ func encodeHex(obj object.Object) object.Object {
 	return object.NewString(hex.EncodeToString(data))
 }
 
-func encodeJSON(obj object.Object) object.Object {
+func encodeJSON(ctx context.Context, obj object.Object) object.Object {
 	nativeObject := obj.Interface()
 	if nativeObject == nil {
 		return object.Errorf("value error: encode() does not support %T", obj)
@@ -77,7 +112,7 @@ func encodeJSON(obj object.Object) object.Object {
 	return object.NewString(string(jsonBytes))
 }
 
-func encodeUrlQuery(obj object.Object) object.Object {
+func encodeUrlQuery(ctx context.Context, obj object.Object) object.Object {
 	str, err := object.AsString(obj)
 	if err != nil {
 		return err
@@ -118,7 +153,7 @@ func csvStringListFromMap(m *object.Map, keys []string) ([]string, *object.Error
 	return result, nil
 }
 
-func encodeCsv(obj object.Object) object.Object {
+func encodeCsv(ctx context.Context, obj object.Object) object.Object {
 	list, ok := obj.(*object.List)
 	if !ok {
 		return object.Errorf("type error: encode(obj, \"csv\") requires a list (got %s)", obj.Type())
@@ -175,25 +210,14 @@ func Decode(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	switch encoding {
-	case "base64":
-		return decodeBase64(args[0])
-	case "base32":
-		return decodeBase32(args[0])
-	case "hex":
-		return decodeHex(args[0])
-	case "json":
-		return decodeJSON(args[0])
-	case "csv":
-		return decodeCsv(args[0])
-	case "urlquery":
-		return decodeUrlQuery(args[0])
-	default:
-		return object.Errorf("value error: decode() does not support %q", encoding)
+	codec, codecErr := GetCodec(encoding)
+	if codecErr != nil {
+		return object.NewError(codecErr)
 	}
+	return codec.Decode(ctx, args[0])
 }
 
-func decodeBase64(obj object.Object) object.Object {
+func decodeBase64(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -207,7 +231,7 @@ func decodeBase64(obj object.Object) object.Object {
 	return object.NewBSlice(dst[:count])
 }
 
-func decodeBase32(obj object.Object) object.Object {
+func decodeBase32(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -221,7 +245,7 @@ func decodeBase32(obj object.Object) object.Object {
 	return object.NewBSlice(dst[:count])
 }
 
-func decodeHex(obj object.Object) object.Object {
+func decodeHex(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -234,7 +258,7 @@ func decodeHex(obj object.Object) object.Object {
 	return object.NewBSlice(dst[:count])
 }
 
-func decodeJSON(obj object.Object) object.Object {
+func decodeJSON(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -246,7 +270,7 @@ func decodeJSON(obj object.Object) object.Object {
 	return object.FromGoType(result)
 }
 
-func decodeCsv(obj object.Object) object.Object {
+func decodeCsv(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsBytes(obj)
 	if err != nil {
 		return err
@@ -268,7 +292,7 @@ func decodeCsv(obj object.Object) object.Object {
 }
 
 // decodeUrlQuery wraps url.QueryUnescape
-func decodeUrlQuery(obj object.Object) object.Object {
+func decodeUrlQuery(ctx context.Context, obj object.Object) object.Object {
 	data, err := object.AsString(obj)
 	if err != nil {
 		return err

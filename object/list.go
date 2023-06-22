@@ -561,6 +561,10 @@ func (ls *List) Len() *Int {
 	return NewInt(int64(len(ls.items)))
 }
 
+func (ls *List) Size() int {
+	return len(ls.items)
+}
+
 func (ls *List) Iter() Iterator {
 	return NewListIter(ls)
 }

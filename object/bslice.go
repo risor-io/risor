@@ -13,7 +13,7 @@ type BSlice struct {
 }
 
 func (b *BSlice) Inspect() string {
-	return fmt.Sprintf("bslice(%v)", b.value)
+	return fmt.Sprintf("bslice(%q)", b.value)
 }
 
 func (b *BSlice) Type() Type {

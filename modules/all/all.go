@@ -2,6 +2,7 @@ package all
 
 import (
 	"github.com/cloudcmds/tamarin/v2/builtins"
+	modAws "github.com/cloudcmds/tamarin/v2/modules/aws"
 	modBase64 "github.com/cloudcmds/tamarin/v2/modules/base64"
 	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
 	modFetch "github.com/cloudcmds/tamarin/v2/modules/fetch"
@@ -22,6 +23,7 @@ import (
 
 func Builtins() map[string]object.Object {
 	result := map[string]object.Object{
+		"aws":     modAws.Module(),
 		"math":    modMath.Module(),
 		"json":    modJson.Module(),
 		"strings": modStrings.Module(),
