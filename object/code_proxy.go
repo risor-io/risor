@@ -58,7 +58,11 @@ func (c *CodeProxy) IsTruthy() bool {
 }
 
 func (c *CodeProxy) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for code: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for code: %v", opType))
+}
+
+func (c *CodeProxy) Cost() int {
+	return 8
 }
 
 func NewCodeProxy(c *Code) *CodeProxy {

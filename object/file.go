@@ -52,38 +52,37 @@ func (f *File) GetAttr(name string) (Object, bool) {
 			if len(args) != 1 {
 				return NewArgsError("file.read", 1, len(args))
 			}
-			bufferSize, err := AsInt(args[0])
-			if err != nil {
-				return err
+			switch obj := args[0].(type) {
+			case *BSlice:
+				n, ioErr := f.value.Read(obj.Value())
+				if ioErr != nil && ioErr != io.EOF {
+					return NewError(ioErr)
+				}
+				return NewInt(int64(n))
+			case *Buffer:
+				n, ioErr := f.value.Read(obj.Value())
+				if ioErr != nil && ioErr != io.EOF {
+					return NewError(ioErr)
+				}
+				return NewInt(int64(n))
+			default:
+				return Errorf("type error: file.read expects bslice or buffer (%s given)", obj.Type())
 			}
-			buffer := make([]byte, bufferSize)
-			n, ioErr := f.value.Read(buffer)
-			if ioErr != nil && ioErr != io.EOF {
-				return NewError(ioErr)
-			}
-			return NewBSlice(buffer[:n])
 		}), true
 	case "write":
 		return NewBuiltin("file.write", func(ctx context.Context, args ...Object) Object {
 			if len(args) != 1 {
 				return NewArgsError("file.write", 1, len(args))
 			}
-			switch obj := args[0].(type) {
-			case *BSlice:
-				n, ioErr := f.value.Write(obj.Value())
-				if ioErr != nil {
-					return NewError(ioErr)
-				}
-				return NewInt(int64(n))
-			case *String:
-				n, ioErr := f.value.WriteString(obj.Value())
-				if ioErr != nil {
-					return NewError(ioErr)
-				}
-				return NewInt(int64(n))
-			default:
-				return NewError(errors.New("type error: file.write expects bytes or string"))
+			bytes, err := AsBytes(args[0])
+			if err != nil {
+				return err
 			}
+			n, ioErr := f.value.Write(bytes)
+			if ioErr != nil {
+				return NewError(ioErr)
+			}
+			return NewInt(int64(n))
 		}), true
 	case "close":
 		return NewBuiltin("file.close", func(ctx context.Context, args ...Object) Object {
@@ -162,11 +161,8 @@ func (f *File) Compare(other Object) (int, error) {
 }
 
 func (f *File) Equals(other Object) Object {
-	switch other := other.(type) {
-	case *File:
-		if f.value == other.value {
-			return True
-		}
+	if f == other {
+		return True
 	}
 	return False
 }
@@ -176,7 +172,11 @@ func (f *File) IsTruthy() bool {
 }
 
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for file: %v ", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for file: %v ", opType))
+}
+
+func (f *File) Cost() int {
+	return 8
 }
 
 func NewFile(ctx context.Context, value *os.File) *File {

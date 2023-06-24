@@ -1,10 +1,12 @@
 package object
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"time"
 
@@ -18,7 +20,7 @@ import (
 func AsBool(obj Object) (bool, *Error) {
 	b, ok := obj.(*Bool)
 	if !ok {
-		return false, Errorf("type error: expected a bool (got %v)", obj.Type())
+		return false, Errorf("type error: expected a bool (%s given)", obj.Type())
 	}
 	return b.value, nil
 }
@@ -29,15 +31,17 @@ func AsString(obj Object) (string, *Error) {
 		return obj.value, nil
 	case *BSlice:
 		return string(obj.value), nil
+	case *Buffer:
+		return obj.value.String(), nil
 	default:
-		return "", Errorf("type error: expected a string (got %v)", obj.Type())
+		return "", Errorf("type error: expected a string (%s given)", obj.Type())
 	}
 }
 
 func AsInt(obj Object) (int64, *Error) {
 	i, ok := obj.(*Int)
 	if !ok {
-		return 0, Errorf("type error: expected an integer (got %v)", obj.Type())
+		return 0, Errorf("type error: expected an integer (%s given)", obj.Type())
 	}
 	return i.value, nil
 }
@@ -49,14 +53,14 @@ func AsFloat(obj Object) (float64, *Error) {
 	case *Float:
 		return obj.value, nil
 	default:
-		return 0.0, Errorf("type error: expected a number (got %v)", obj.Type())
+		return 0.0, Errorf("type error: expected a number (%s given)", obj.Type())
 	}
 }
 
 func AsList(obj Object) (*List, *Error) {
 	list, ok := obj.(*List)
 	if !ok {
-		return nil, Errorf("type error: expected a list (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a list (%s given", obj.Type())
 	}
 	return list, nil
 }
@@ -64,7 +68,7 @@ func AsList(obj Object) (*List, *Error) {
 func AsMap(obj Object) (*Map, *Error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a map (%s given", obj.Type())
 	}
 	return m, nil
 }
@@ -72,7 +76,7 @@ func AsMap(obj Object) (*Map, *Error) {
 func AsTime(obj Object) (result time.Time, err *Error) {
 	s, ok := obj.(*Time)
 	if !ok {
-		return time.Time{}, Errorf("type error: expected a time (got %v)", obj.Type())
+		return time.Time{}, Errorf("type error: expected a time (%s given", obj.Type())
 	}
 	return s.value, nil
 }
@@ -80,7 +84,7 @@ func AsTime(obj Object) (result time.Time, err *Error) {
 func AsSet(obj Object) (*Set, *Error) {
 	set, ok := obj.(*Set)
 	if !ok {
-		return nil, Errorf("type error: expected a set (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a set (%s given", obj.Type())
 	}
 	return set, nil
 }
@@ -89,16 +93,29 @@ func AsBytes(obj Object) ([]byte, *Error) {
 	switch obj := obj.(type) {
 	case *BSlice:
 		return obj.value, nil
+	case *Buffer:
+		return obj.value.Bytes(), nil
 	case *String:
 		return []byte(obj.value), nil
-	case *Int:
-		v := obj.Value()
-		if v < 0 || v > 255 {
-			return nil, Errorf("type error: expected bytes (got out-of-range integer)")
-		}
-		return []byte{byte(v)}, nil
 	default:
-		return nil, Errorf("type error: expected bytes (got %v)", obj.Type())
+		return nil, Errorf("type error: expected bytes (%s given)", obj.Type())
+	}
+}
+
+func AsReader(obj Object) (io.Reader, *Error) {
+	switch obj := obj.(type) {
+	case *BSlice:
+		return bytes.NewBuffer(obj.value), nil
+	case *String:
+		return bytes.NewBufferString(obj.value), nil
+	case *File:
+		return obj.value, nil
+	case *HttpResponse:
+		return obj.resp.Body, nil
+	case io.Reader:
+		return obj, nil
+	default:
+		return nil, Errorf("type error: expected a readable object (%s given)", obj.Type())
 	}
 }
 
@@ -136,6 +153,8 @@ func FromGoType(obj interface{}) Object {
 		return NewInt(int64(obj))
 	case []byte:
 		return NewBSlice(obj)
+	case *bytes.Buffer:
+		return NewBuffer(obj.Bytes())
 	case bool:
 		if obj {
 			return True
@@ -210,7 +229,7 @@ type Int64Converter struct{}
 func (c *Int64Converter) To(obj Object) (interface{}, error) {
 	integer, ok := obj.(*Int)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected an integer (%s given)", obj.Type())
 	}
 	return integer.value, nil
 }
@@ -229,7 +248,7 @@ type IntConverter struct{}
 func (c *IntConverter) To(obj Object) (interface{}, error) {
 	integer, ok := obj.(*Int)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected an integer (%s given)", obj.Type())
 	}
 	return int(integer.value), nil
 }
@@ -248,7 +267,7 @@ type StringConverter struct{}
 func (c *StringConverter) To(obj Object) (interface{}, error) {
 	s, ok := obj.(*String)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a string (%s given)", obj.Type())
 	}
 	return s.value, nil
 }
@@ -271,7 +290,7 @@ func (c *BytesConverter) To(obj Object) (interface{}, error) {
 	case *String:
 		return []byte(obj.value), nil
 	default:
-		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a string (%s given)", obj.Type())
 	}
 }
 
@@ -289,7 +308,7 @@ type Float64Converter struct{}
 func (c *Float64Converter) To(obj Object) (interface{}, error) {
 	f, ok := obj.(*Float)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a float (%s given)", obj.Type())
 	}
 	return f.value, nil
 }
@@ -308,7 +327,7 @@ type Float32Converter struct{}
 func (c *Float32Converter) To(obj Object) (interface{}, error) {
 	f, ok := obj.(*Float)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a float (%s given)", obj.Type())
 	}
 	return float32(f.value), nil
 }
@@ -327,7 +346,7 @@ type BooleanConverter struct{}
 func (c *BooleanConverter) To(obj Object) (interface{}, error) {
 	b, ok := obj.(*Bool)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a boolean (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a boolean (%s given)", obj.Type())
 	}
 	return b.value, nil
 }
@@ -346,7 +365,7 @@ type TimeConverter struct{}
 func (c *TimeConverter) To(obj Object) (interface{}, error) {
 	t, ok := obj.(*Time)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a time (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a time (%s given)", obj.Type())
 	}
 	return t.value, nil
 }
@@ -365,7 +384,7 @@ type MapStringIfaceConverter struct{}
 func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
 	mapObj, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a map (%s given)", obj.Type())
 	}
 	return mapObj.Interface(), nil
 }
@@ -392,7 +411,7 @@ type StructConverter struct {
 func (c *StructConverter) To(obj Object) (interface{}, error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a map (%s given)", obj.Type())
 	}
 	jsonBytes, err := json.Marshal(m.Interface())
 	if err != nil {
@@ -431,7 +450,7 @@ type ErrorConverter struct{}
 func (c *ErrorConverter) To(obj Object) (interface{}, error) {
 	e, ok := obj.(*Error)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected an error (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected an error (%s given)", obj.Type())
 	}
 	return e.Message, nil
 }

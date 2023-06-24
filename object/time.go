@@ -72,7 +72,7 @@ func (t *Time) Equals(other Object) Object {
 }
 
 func (t *Time) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for time: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for time: %v", opType))
 }
 
 func NewTime(t time.Time) *Time {
@@ -128,4 +128,8 @@ func (t *Time) Unix(ctx context.Context, args ...Object) Object {
 
 func (t *Time) IsTruthy() bool {
 	return !t.value.IsZero()
+}
+
+func (t *Time) Cost() int {
+	return 8
 }

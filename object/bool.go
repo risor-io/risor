@@ -73,7 +73,11 @@ func (b *Bool) IsTruthy() bool {
 }
 
 func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for bool: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for bool: %v", opType))
+}
+
+func (b *Bool) Cost() int {
+	return 0
 }
 
 func NewBool(value bool) *Bool {

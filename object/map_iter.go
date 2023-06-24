@@ -8,9 +8,10 @@ import (
 )
 
 type MapIter struct {
-	m    *Map
-	keys []string
-	pos  int64
+	m       *Map
+	keys    []string
+	pos     int64
+	current *String
 }
 
 func (iter *MapIter) Type() Type {
@@ -50,12 +51,26 @@ func (iter *MapIter) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "next":
 		return &Builtin{
-			name: "next",
+			name: "map_iter.next",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("map_iter.next", 0, len(args))
 				}
-				entry, ok := iter.Next()
+				value, ok := iter.Next()
+				if !ok {
+					return Nil
+				}
+				return value
+			},
+		}, true
+	case "entry":
+		return &Builtin{
+			name: "map_iter.entry",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("map_iter.entry", 0, len(args))
+				}
+				entry, ok := iter.Entry()
 				if !ok {
 					return Nil
 				}
@@ -71,23 +86,36 @@ func (iter *MapIter) IsTruthy() bool {
 }
 
 func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for map_iter: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for map_iter: %v", opType))
 }
 
-func (iter *MapIter) Next() (IteratorEntry, bool) {
+func (iter *MapIter) Next() (Object, bool) {
 	keys := iter.keys
-	if iter.pos >= int64(len(keys)) {
+	if iter.pos >= int64(len(keys)-1) {
+		iter.current = nil
 		return nil, false
 	}
-	key := keys[iter.pos]
 	iter.pos++
-	value, ok := iter.m.items[key]
-	if !ok {
+	iter.current = NewString(keys[iter.pos])
+	return iter.current, true
+}
+
+func (iter *MapIter) Entry() (IteratorEntry, bool) {
+	if iter.current == nil {
 		return nil, false
 	}
-	return NewEntry(NewString(key), value).WithKeyAsPrimary(), true
+	value, ok := iter.m.items[iter.current.value]
+	if !ok {
+		iter.current = nil
+		return nil, false
+	}
+	return NewEntry(iter.current, value).WithKeyAsPrimary(), true
+}
+
+func (iter *MapIter) Cost() int {
+	return 0
 }
 
 func NewMapIter(m *Map) *MapIter {
-	return &MapIter{m: m, keys: m.SortedKeys(), pos: 0}
+	return &MapIter{m: m, keys: m.SortedKeys(), pos: -1}
 }

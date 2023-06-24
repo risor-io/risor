@@ -108,10 +108,13 @@ func TestBase64DecodeRaw(t *testing.T) {
 }
 
 func TestBase64URLEncoded(t *testing.T) {
-	got := URLEncode(context.Background(), object.NewInt(251))
+
+	input := object.NewBSlice([]byte{251})
+
+	got := URLEncode(context.Background(), input)
 	require.Equal(t, object.NewString("-w=="), got)
 
-	got = URLEncode(context.Background(), object.NewInt(251), object.False)
+	got = URLEncode(context.Background(), input, object.False)
 	require.Equal(t, object.NewString("-w"), got)
 
 	got = URLDecode(context.Background(), object.NewString("-w=="))

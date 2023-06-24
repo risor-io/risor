@@ -105,6 +105,6 @@ func ConfigFunc(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("aws", map[string]object.Object{
-		"config": object.NewBuiltin("config", ConfigFunc),
+		"config": object.NewBuiltin("aws.config", ConfigFunc),
 	})
 }

@@ -50,13 +50,15 @@ func (e *Error) Compare(other Object) (int, error) {
 }
 
 func (e *Error) Equals(other Object) Object {
-	if other.Type() != ERROR {
+	switch other := other.(type) {
+	case *Error:
+		if e.Message() == other.Message() {
+			return True
+		}
+		return False
+	default:
 		return False
 	}
-	if e.Message() == other.(*Error).Message() {
-		return True
-	}
-	return False
 }
 
 func (e *Error) IsTruthy() bool {
@@ -72,7 +74,11 @@ func (e *Error) GetAttr(name string) (Object, bool) {
 }
 
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for error: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
+}
+
+func (e *Error) Cost() int {
+	return 0
 }
 
 func Errorf(format string, a ...interface{}) *Error {

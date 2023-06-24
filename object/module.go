@@ -79,7 +79,7 @@ func (m *Module) IsTruthy() bool {
 }
 
 func (m *Module) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for module: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for module: %v", opType))
 }
 
 func (m *Module) Equals(other Object) Object {
@@ -87,6 +87,10 @@ func (m *Module) Equals(other Object) Object {
 		return True
 	}
 	return False
+}
+
+func (m *Module) Cost() int {
+	return 0
 }
 
 func NewModule(name string, code *Code) *Module {

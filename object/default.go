@@ -36,5 +36,9 @@ func (d *DefaultImpl) IsTruthy() bool {
 }
 
 func (d *DefaultImpl) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for default: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for default: %v", opType))
+}
+
+func (d *DefaultImpl) Cost() int {
+	return 0
 }

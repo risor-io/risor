@@ -2,8 +2,6 @@ package object
 
 import (
 	"context"
-
-	"github.com/cloudcmds/tamarin/v2/limits"
 )
 
 type contextKey string
@@ -48,22 +46,4 @@ func WithCodeFunc(ctx context.Context, fn CodeFunc) context.Context {
 func GetCodeFunc(ctx context.Context) (CodeFunc, bool) {
 	fn, ok := ctx.Value(codeFuncKey).(CodeFunc)
 	return fn, ok
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Store and retrieve limits
-////////////////////////////////////////////////////////////////////////////////
-
-const limitsKey = contextKey("tamarin:limits")
-
-// WithCodeFunc adds an CodeFunc to the context, which can be used by
-// objects to retrieve the active code at runtime
-func WithLimits(ctx context.Context, l *limits.Limits) context.Context {
-	return context.WithValue(ctx, limitsKey, l)
-}
-
-// GetLimits returns Tamarin limits associated with the context, if any.
-func GetLimits(ctx context.Context) (*limits.Limits, bool) {
-	l, ok := ctx.Value(limitsKey).(*limits.Limits)
-	return l, ok
 }
