@@ -243,13 +243,14 @@ func TestForRange7(t *testing.T) {
 func TestIterator(t *testing.T) {
 	tests := []testCase{
 		{`range { 33, 44, 55 }.next()`, object.NewInt(33)},
-		// {`range { 33, 44, 55 }.next().value`, object.True},
-		// {`range [ 33, 44, 55 ].next().key`, object.NewInt(0)},
+		{`i := range { 33, 44, 55 }; i.next(); i.entry().value`, object.True},
+		{`i := range { 33, 44, 55 }; i.next(); i.entry().key`, object.NewInt(33)},
 		{`range [ 33, 44, 55 ].next()`, object.NewInt(33)},
-		// {`range "abcd".next().key`, object.NewInt(0)},
-		// {`range "abcd".next().value`, object.NewString("a")},
+		{`i := range "abcd"; i.next(); i.entry().key`, object.NewInt(0)},
+		{`i := range "abcd"; i.next(); i.entry().value`, object.NewString("a")},
 		{`range { a: 33, b: 44 }.next()`, object.NewString("a")},
-		// {`range { a: 33, b: 44 }.next().value`, object.NewInt(33)},
+		{`i := range { a: 33, b: 44 }; i.next(); i.entry().key`, object.NewString("a")},
+		{`i := range { a: 33, b: 44 }; i.next(); i.entry().value`, object.NewInt(33)},
 	}
 	runTests(t, tests)
 }
