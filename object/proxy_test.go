@@ -3,6 +3,7 @@ package object_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -234,7 +235,11 @@ func TestProxyTestType2(t *testing.T) {
 	require.Equal(t, "proxyTestType1", field.ReflectType().Name())
 	require.Equal(t, []string{"Len"}, field.GoType().AttributeNames())
 
-	ptt1, err := object.NewGoType(proxyTestType1{})
+	ptt1, err := object.NewGoType(reflect.TypeOf(proxyTestType1{}))
 	require.Nil(t, err)
 	require.Equal(t, ptt1, field.GoType())
+
+	aValue, getOk := proxy.GetAttr("A")
+	require.True(t, getOk)
+	require.Equal(t, object.NewInt(99), aValue)
 }

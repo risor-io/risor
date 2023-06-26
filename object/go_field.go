@@ -13,6 +13,7 @@ type GoField struct {
 	fieldType *GoType
 	name      *String
 	tag       *String
+	converter TypeConverter
 }
 
 func (f *GoField) Name() string {
@@ -74,15 +75,21 @@ func (f *GoField) Cost() int {
 	return 0
 }
 
+func (f *GoField) Converter() (TypeConverter, bool) {
+	return f.converter, f.converter != nil
+}
+
 func newGoField(f reflect.StructField) (*GoField, error) {
 	fieldGoType, err := newGoType(f.Type)
 	if err != nil {
 		return nil, err
 	}
+	conv := kindConverters[f.Type.Kind()]
 	return &GoField{
 		field:     f,
 		fieldType: fieldGoType,
 		name:      NewString(f.Name),
 		tag:       NewString(string(f.Tag)),
+		converter: conv,
 	}, nil
 }

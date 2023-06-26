@@ -10,11 +10,10 @@ import (
 )
 
 var (
-	errorInterface = reflect.TypeOf((*error)(nil)).Elem()
-	// contextInterface = reflect.TypeOf((*context.Context)(nil)).Elem()
-	goTypeRegistry = map[reflect.Type]*GoType{}
-	goTypeMutex    = &sync.RWMutex{}
-	// converters       = map[reflect.Type]TypeConverter{}
+	goTypeMutex      = &sync.RWMutex{}
+	errorInterface   = reflect.TypeOf((*error)(nil)).Elem()
+	contextInterface = reflect.TypeOf((*context.Context)(nil)).Elem()
+	goTypeRegistry   = map[reflect.Type]*GoType{}
 )
 
 func IsProxyableKind(kind reflect.Kind) bool {
@@ -41,66 +40,6 @@ type GoAttribute interface {
 	// Name of the attribute.
 	Name() string
 }
-
-// func (p *DefaultTypeRegistry) getConverter(t reflect.Type) (TypeConverter, bool) {
-// 	if converter, ok := p.converters[t]; ok {
-// 		return converter, true
-// 	}
-// 	switch t.Kind() {
-// 	case reflect.Struct:
-// 		return &StructConverter{Prototype: reflect.New(t).Elem().Interface()}, true
-// 	case reflect.Interface:
-// 		if t.Implements(errorInterface) {
-// 			return &ErrorConverter{}, true
-// 		}
-// 		if t.Implements(contextInterface) {
-// 			return &ContextConverter{}, true
-// 		}
-// 	case reflect.Pointer:
-// 		converter, found := p.getConverter(t.Elem())
-// 		if !found {
-// 			return nil, false
-// 		}
-// 		if structConv, ok := converter.(*StructConverter); ok {
-// 			structConv.AsPointer = true
-// 			return structConv, true
-// 		}
-// 		return nil, false
-// 	}
-// 	return nil, false
-// }
-
-// func (p *DefaultTypeRegistry) processMethod(m reflect.Method) (*GoMethod, error) {
-// 	goMethod := &GoMethod{
-// 		name:   m.Name,
-// 		method: m,
-// 		numIn:  m.Type.NumIn(),
-// 		numOut: m.Type.NumOut(),
-// 	}
-// 	// Choose a converter for each input, skipping the "self" param at i=0
-// 	for i := 1; i < goMethod.numIn; i++ {
-// 		inType := m.Type.In(i)
-// 		converter, found := p.getConverter(inType)
-// 		if !found {
-// 			return nil, fmt.Errorf("type error: no type conversion function found for %s", inType)
-// 		}
-// 		goMethod.inputConverters = append(goMethod.inputConverters, converter)
-// 	}
-// 	// Choose a converter for each output
-// 	for i := 0; i < goMethod.numOut; i++ {
-// 		outType := m.Type.Out(i)
-// 		converter, found := p.getConverter(outType)
-// 		if !found {
-// 			return nil, fmt.Errorf("type error: no type conversion function found for %s", outType)
-// 		}
-// 		if _, ok := converter.(*ErrorConverter); ok {
-// 			goMethod.outputHasErr = true
-// 			goMethod.outputErrIndex = i
-// 		}
-// 		goMethod.outputConverters = append(goMethod.outputConverters, converter)
-// 	}
-// 	return goMethod, nil
-// }
 
 func LookupGoType(obj interface{}) (*GoType, bool) {
 	goType, found := goTypeRegistry[reflect.TypeOf(obj)]
@@ -141,13 +80,21 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 	}
 	switch attr := attr.(type) {
 	case *GoField:
-		// reflect.ValueOf(p.obj).Elem().Field
-		// v := reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
-		// obj, err := attr.converter.From(v)
-		// if err != nil {
-		// 	return Errorf(err.Error()), true
-		// }
-		return Nil, true
+		conv, ok := attr.Converter()
+		if !ok {
+			return Errorf("type error: no converter for field %s", name), true
+		}
+		var value interface{}
+		if _, ok := p.typ.IndirectType(); ok {
+			value = reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
+		} else {
+			value = reflect.ValueOf(p.obj).FieldByName(name).Interface()
+		}
+		result, err := conv.From(value)
+		if err != nil {
+			return NewError(err), true
+		}
+		return result, true
 	case *GoMethod:
 		return &Builtin{
 			name: fmt.Sprintf("%s.%s", p.typ.Name(), name),
@@ -257,9 +204,18 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 // This operation may fail if the Go type has attributes whose types cannot be
 // converted to Tamarin types.
 func NewProxy(obj interface{}) (*Proxy, error) {
-	goType, err := NewGoType(obj)
+
+	typ := reflect.TypeOf(obj)
+
+	// Is this type proxyable?
+	if !IsProxyableType(typ) {
+		return nil, fmt.Errorf("type error: unsupported argument for go_type (%t given)", typ)
+	}
+
+	goType, err := NewGoType(typ)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Proxy{typ: goType, obj: obj}, nil
 }

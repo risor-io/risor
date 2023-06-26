@@ -10,13 +10,15 @@ import (
 
 // GoType represents a single Go type whose methods and fields can be proxied.
 type GoType struct {
-	typ             reflect.Type
-	name            *String
-	packagePath     *String
-	attributes      map[string]GoAttribute
-	attributeNames  []string
-	isStructPointer bool
-	warnings        []error
+	typ            reflect.Type
+	name           *String
+	packagePath    *String
+	attributes     map[string]GoAttribute
+	attributeNames []string
+	indirectType   *GoType
+	indirectKind   reflect.Kind
+	warnings       []error
+	converter      TypeConverter
 }
 
 func (t *GoType) Type() Type {
@@ -96,6 +98,10 @@ func (t *GoType) Warnings() []error {
 	return t.warnings
 }
 
+func (t *GoType) IndirectType() (*GoType, bool) {
+	return t.indirectType, t.indirectType != nil
+}
+
 // newGoType creates and registers a new GoType for the type of the given object.
 // This is NOT threadsafe. The caller must be holding goTypeMutex.
 func newGoType(typ reflect.Type) (*GoType, error) {
@@ -106,11 +112,14 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		return goType, nil
 	}
 
-	// Is this type proxyable?
-	if !IsProxyableType(typ) {
-		return nil, fmt.Errorf("type error: unsupported argument for go_type (%t given)", typ)
+	isPointer := kind == reflect.Ptr
+
+	var indirectType reflect.Type
+	var indirectKind reflect.Kind
+	if isPointer {
+		indirectType = typ.Elem()
+		indirectKind = indirectType.Kind()
 	}
-	isStructPointer := kind == reflect.Ptr
 
 	name := typ.Name()
 	if name == "" {
@@ -119,18 +128,37 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 
 	// Add the new type to the registry
 	goType := &GoType{
-		attributes:      map[string]GoAttribute{},
-		typ:             typ,
-		isStructPointer: isStructPointer,
-		name:            NewString(name),
-		packagePath:     NewString(typ.PkgPath()),
+		attributes:   map[string]GoAttribute{},
+		typ:          typ,
+		indirectKind: indirectKind,
+		name:         NewString(name),
+		packagePath:  NewString(typ.PkgPath()),
 	}
 	goTypeRegistry[typ] = goType
 
+	// Create/lookup the indirect type if there is one
+	if indirectType != nil {
+		indirectGoType, err := newGoType(indirectType)
+		if err != nil {
+			return nil, err
+		}
+		goType.indirectType = indirectGoType
+		goType.converter, err = NewPointerConverter(indirectType)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		conv, err := getConverter(kind, typ)
+		if err != nil {
+			return nil, err
+		}
+		goType.converter = conv
+	}
+
 	// Discover and register the type of each field for struct types
-	if kind == reflect.Struct || isStructPointer {
+	if kind == reflect.Struct || indirectKind == reflect.Struct {
 		structType := typ
-		if isStructPointer {
+		if isPointer {
 			structType = typ.Elem()
 		}
 		for i := 0; i < structType.NumField(); i++ {
@@ -174,9 +202,9 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 // NewGoType creates and registers a new GoType for the type of the given Go object.
 // This is safe for use by multiple goroutines. A type registry is maintained
 // behind the scenes to ensure that each type is only registered once.
-func NewGoType(obj interface{}) (*GoType, error) {
+func NewGoType(typ reflect.Type) (*GoType, error) {
 	goTypeMutex.Lock()
 	defer goTypeMutex.Unlock()
 
-	return newGoType(reflect.TypeOf(obj))
+	return newGoType(typ)
 }
