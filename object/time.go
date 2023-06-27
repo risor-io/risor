@@ -9,6 +9,7 @@ import (
 )
 
 type Time struct {
+	*base
 	value time.Time
 }
 
@@ -128,8 +129,4 @@ func (t *Time) Unix(ctx context.Context, args ...Object) Object {
 
 func (t *Time) IsTruthy() bool {
 	return !t.value.IsZero()
-}
-
-func (t *Time) Cost() int {
-	return 8
 }

@@ -8,6 +8,7 @@ import (
 )
 
 type ListIter struct {
+	*base
 	l       *List
 	pos     int64
 	current Object
@@ -86,10 +87,6 @@ func (iter *ListIter) IsTruthy() bool {
 
 func (iter *ListIter) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for list_iter: %v", opType))
-}
-
-func (iter *ListIter) Cost() int {
-	return 0
 }
 
 func (iter *ListIter) Next() (Object, bool) {

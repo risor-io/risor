@@ -8,6 +8,7 @@ import (
 )
 
 type StringIter struct {
+	*base
 	s       *String
 	runes   []rune
 	pos     int64
@@ -104,10 +105,6 @@ func (iter *StringIter) Entry() (IteratorEntry, bool) {
 
 func (iter *StringIter) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for string_iter: %v", opType))
-}
-
-func (iter *StringIter) Cost() int {
-	return 1
 }
 
 func NewStringIter(s *String) *StringIter {

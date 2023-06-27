@@ -8,6 +8,7 @@ import (
 )
 
 type BSliceIter struct {
+	*base
 	b       *BSlice
 	pos     int64
 	current Object
@@ -105,10 +106,6 @@ func (iter *BSliceIter) Entry() (IteratorEntry, bool) {
 
 func (iter *BSliceIter) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for bslice_iter: %v", opType))
-}
-
-func (iter *BSliceIter) Cost() int {
-	return 0
 }
 
 func NewBytesIter(b *BSlice) *BSliceIter {

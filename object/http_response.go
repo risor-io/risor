@@ -13,6 +13,7 @@ import (
 )
 
 type HttpResponse struct {
+	*base
 	resp        *http.Response
 	readerLimit int64
 	once        sync.Once
@@ -149,10 +150,6 @@ func (r *HttpResponse) Equals(other Object) Object {
 		return False
 	}
 	return NewBool(r.resp == other.(*HttpResponse).resp)
-}
-
-func (r *HttpResponse) IsTruthy() bool {
-	return true
 }
 
 func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object {

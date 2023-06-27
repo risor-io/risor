@@ -64,8 +64,12 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
+func (c *PgxConn) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: pgx.conn object has no attribute %q", name)
+}
+
 func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for pgx_conn: %v", opType))
+	return object.NewError(fmt.Errorf("eval error: unsupported operation for pgx.conn: %v", opType))
 }
 
 func (c *PgxConn) Close() error {

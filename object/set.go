@@ -10,6 +10,7 @@ import (
 )
 
 type Set struct {
+	*base
 	items map[HashKey]Object
 }
 

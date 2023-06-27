@@ -12,6 +12,7 @@ import (
 )
 
 type File struct {
+	*base
 	ctx    context.Context
 	value  *os.File
 	once   sync.Once
@@ -165,10 +166,6 @@ func (f *File) Equals(other Object) Object {
 		return True
 	}
 	return False
-}
-
-func (f *File) IsTruthy() bool {
-	return true
 }
 
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {

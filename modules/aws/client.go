@@ -39,6 +39,10 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 	return NewMethod(methodName, c.client, method), true
 }
 
+func (c *Client) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: aws.client object has no attribute %q", name)
+}
+
 func (c *Client) Interface() interface{} {
 	return c.client
 }
@@ -67,7 +71,7 @@ func (c *Client) RunOperation(opType op.BinaryOpType, right object.Object) objec
 }
 
 func (c *Client) Cost() int {
-	return 8
+	return 0
 }
 
 func NewClient(service string, client interface{}) *Client {

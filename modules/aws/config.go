@@ -163,6 +163,10 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
+func (c *Config) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: aws.config object has no attribute %q", name)
+}
+
 func (c *Config) Interface() interface{} {
 	return c.cfg
 }
@@ -191,7 +195,7 @@ func (c *Config) RunOperation(opType op.BinaryOpType, right object.Object) objec
 }
 
 func (c *Config) Cost() int {
-	return 8
+	return 0
 }
 
 func NewConfig(cfg aws.Config) *Config {

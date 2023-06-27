@@ -10,7 +10,7 @@ import (
 
 // Float wraps float64 and implements Object and Hashable interfaces.
 type Float struct {
-	// value holds the float64 wrapped by this object.
+	*base
 	value float64
 }
 
@@ -28,10 +28,6 @@ func (f *Float) Value() float64 {
 
 func (f *Float) HashKey() HashKey {
 	return HashKey{Type: f.Type(), FltValue: f.value}
-}
-
-func (f *Float) GetAttr(name string) (Object, bool) {
-	return nil, false
 }
 
 func (f *Float) Interface() interface{} {
@@ -93,10 +89,6 @@ func (f *Float) RunOperation(opType op.BinaryOpType, right Object) Object {
 	default:
 		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v on type %s", opType, right.Type()))
 	}
-}
-
-func (f *Float) Cost() int {
-	return 8
 }
 
 func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object {

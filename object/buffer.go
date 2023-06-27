@@ -8,6 +8,7 @@ import (
 )
 
 type Buffer struct {
+	*base
 	value *bytes.Buffer
 }
 
@@ -21,10 +22,6 @@ func (b *Buffer) Type() Type {
 
 func (b *Buffer) Value() []byte {
 	return b.value.Bytes()
-}
-
-func (b *Buffer) GetAttr(name string) (Object, bool) {
-	return nil, false
 }
 
 func (b *Buffer) Interface() interface{} {

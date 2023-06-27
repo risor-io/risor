@@ -9,6 +9,7 @@ import (
 )
 
 type BSlice struct {
+	*base
 	value []byte
 }
 

@@ -49,6 +49,7 @@ func LookupGoType(obj interface{}) (*GoType, bool) {
 // Proxy is a Tamarin type that proxies method calls to a wrapped Go struct.
 // Only the public methods of the Go type are proxied.
 type Proxy struct {
+	*base
 	typ *GoType
 	obj interface{}
 }
@@ -113,16 +114,8 @@ func (p *Proxy) Equals(other Object) Object {
 	return False
 }
 
-func (p *Proxy) IsTruthy() bool {
-	return true
-}
-
 func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for proxy: %v", opType))
-}
-
-func (p *Proxy) Cost() int {
-	return 8
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
@@ -168,7 +161,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 	}
 	outputCount := len(outputs) - len(m.errorIndices)
-	if outputCount == 1 {
+	if outputCount <= 1 {
 		for i, output := range outputs {
 			if !m.IsOutputError(i) {
 				outType := m.outputTypes[i]

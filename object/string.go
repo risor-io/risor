@@ -9,6 +9,7 @@ import (
 )
 
 type String struct {
+	*base
 	value string
 }
 

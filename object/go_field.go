@@ -9,6 +9,7 @@ import (
 
 // GoField represents a single field on a Go type that can be read or written.
 type GoField struct {
+	*base
 	field     reflect.StructField
 	fieldType *GoType
 	name      *String
@@ -69,10 +70,6 @@ func (f *GoField) IsTruthy() bool {
 
 func (f *GoField) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return Errorf("type error: unsupported operation on go_field (%s)", opType)
-}
-
-func (f *GoField) Cost() int {
-	return 0
 }
 
 func (f *GoField) Converter() (TypeConverter, bool) {

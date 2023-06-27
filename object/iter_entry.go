@@ -7,6 +7,7 @@ import (
 )
 
 type Entry struct {
+	*base
 	key     Object
 	value   Object
 	primary Object
@@ -52,10 +53,6 @@ func (e *Entry) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (e *Entry) IsTruthy() bool {
-	return true
-}
-
 func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for entry: %v", opType))
 }
@@ -83,10 +80,6 @@ func (e *Entry) WithKeyAsPrimary() *Entry {
 func (e *Entry) WithValueAsPrimary() *Entry {
 	e.primary = e.value
 	return e
-}
-
-func (e *Entry) Cost() int {
-	return 0
 }
 
 func NewEntry(key, value Object) *Entry {

@@ -74,10 +74,14 @@ func (img *Image) GetAttr(name string) (object.Object, bool) {
 				if err != nil {
 					return object.Errorf("type error: image.at() expects argument 2 to be an integer")
 				}
-				return NewColor(img.image.At(int(x), int(y)))
+				return object.NewColor(img.image.At(int(x), int(y)))
 			}), true
 	}
 	return nil, false
+}
+
+func (img *Image) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: image object has no attribute %q", name)
 }
 
 func (img *Image) Interface() interface{} {

@@ -30,6 +30,7 @@ const (
 	BSLICE_ITER   Type = "bslice_iter"
 	CELL          Type = "cell"
 	CODE          Type = "code"
+	COLOR         Type = "color"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"
@@ -80,6 +81,9 @@ type Object interface {
 
 	// GetAttr returns the attribute with the given name from this object.
 	GetAttr(name string) (Object, bool)
+
+	// SetAttr sets the attribute with the given name on this object.
+	SetAttr(name string, value Object) error
 
 	// IsTruthy returns true if the object is considered "truthy".
 	IsTruthy() bool

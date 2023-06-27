@@ -10,6 +10,7 @@ import (
 
 // GoType represents a single Go type whose methods and fields can be proxied.
 type GoType struct {
+	*base
 	typ            reflect.Type
 	name           *String
 	packagePath    *String
@@ -67,10 +68,6 @@ func (t *GoType) IsTruthy() bool {
 
 func (t *GoType) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return Errorf("type error: unsupported operation on go_type (%s)", opType)
-}
-
-func (t *GoType) Cost() int {
-	return 8
 }
 
 func (t *GoType) Name() string {

@@ -11,6 +11,8 @@ import (
 
 // List of objects
 type List struct {
+	*base
+
 	// items holds the list of objects
 	items []Object
 
