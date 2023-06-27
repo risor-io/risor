@@ -1,8 +1,10 @@
 package object
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +22,7 @@ func TestFloat64Converter(t *testing.T) {
 }
 
 func TestMapStringConverter(t *testing.T) {
-	c, err := NewMapConverter(reflect.TypeOf(""))
+	c, err := newMapConverter(reflect.TypeOf(""))
 	require.Nil(t, err)
 
 	m := map[string]string{
@@ -47,7 +49,7 @@ func TestMapStringConverter(t *testing.T) {
 }
 
 func TestMapStringInterfaceConverter(t *testing.T) {
-	c, err := NewMapConverter(reflect.TypeOf(""))
+	c, err := newMapConverter(reflect.TypeOf(""))
 	require.Nil(t, err)
 
 	m := map[string]string{
@@ -75,7 +77,7 @@ func TestMapStringInterfaceConverter(t *testing.T) {
 
 func TestPointerConverter(t *testing.T) {
 
-	c, err := NewPointerConverter(reflect.TypeOf(float64(0)))
+	c, err := newPointerConverter(reflect.TypeOf(float64(0)))
 	require.Nil(t, err)
 
 	v := 2.0
@@ -120,7 +122,7 @@ func TestCreatingPointerViaReflect(t *testing.T) {
 }
 
 func TestSliceConverter(t *testing.T) {
-	c, err := NewSliceConverter(reflect.TypeOf(0.0))
+	c, err := newSliceConverter(reflect.TypeOf(0.0))
 	require.Nil(t, err)
 
 	v := []float64{1.0, 2.0, 3.0}
@@ -149,7 +151,7 @@ func TestStructConverter(t *testing.T) {
 		B string
 	}
 
-	c, err := NewStructConverter(reflect.TypeOf(foo{}))
+	c, err := newStructConverter(reflect.TypeOf(foo{}))
 	require.Nil(t, err)
 
 	f := foo{A: 1, B: "two"}
@@ -170,4 +172,80 @@ func TestStructConverter(t *testing.T) {
 	gFStruct, ok := gF.(foo)
 	require.True(t, ok)
 	require.Equal(t, foo{A: 3, B: "four"}, gFStruct)
+}
+
+func TestTimeConverter(t *testing.T) {
+
+	now := time.Now()
+	typ := reflect.TypeOf(now)
+
+	c, err := NewTypeConverter(typ)
+	require.Nil(t, err)
+
+	tT, err := c.From(now)
+	require.Nil(t, err)
+	require.Equal(t, NewTime(now), tT)
+
+	gT, err := c.To(NewTime(now))
+	require.Nil(t, err)
+	goTime, ok := gT.(time.Time)
+	require.True(t, ok)
+	require.Equal(t, now, goTime)
+}
+
+func TestBufferConverter(t *testing.T) {
+
+	buf := bytes.NewBufferString("hello")
+	typ := reflect.TypeOf(buf)
+
+	c, err := NewTypeConverter(typ)
+	require.Nil(t, err)
+
+	tBuf, err := c.From(buf)
+	require.Nil(t, err)
+	require.Equal(t, NewBuffer(buf), tBuf)
+
+	gBuf, err := c.To(NewBufferFromBytes([]byte("hello")))
+	require.Nil(t, err)
+	goBuf, ok := gBuf.(*bytes.Buffer)
+	require.True(t, ok)
+	require.Equal(t, buf, goBuf)
+}
+
+func TestBSliceConverter(t *testing.T) {
+
+	buf := []byte("abc")
+	typ := reflect.TypeOf(buf)
+
+	c, err := NewTypeConverter(typ)
+	require.Nil(t, err)
+
+	tBuf, err := c.From(buf)
+	require.Nil(t, err)
+	require.Equal(t, NewBSlice([]byte("abc")), tBuf)
+
+	gBuf, err := c.To(NewBSlice([]byte("abc")))
+	require.Nil(t, err)
+	goBuf, ok := gBuf.([]byte)
+	require.True(t, ok)
+	require.Equal(t, buf, goBuf)
+}
+
+func TestGenericMapConverter(t *testing.T) {
+
+	m := map[string]interface{}{
+		"foo": 1,
+		"bar": "two",
+	}
+	typ := reflect.TypeOf(m)
+
+	c, err := NewTypeConverter(typ)
+	require.Nil(t, err)
+
+	tMap, err := c.From(m)
+	require.Nil(t, err)
+	require.Equal(t, NewMap(map[string]Object{
+		"foo": NewInt(1),
+		"bar": NewString("two"),
+	}), tMap)
 }

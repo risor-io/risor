@@ -123,7 +123,7 @@ func (p proxyTestType1) Len() int {
 }
 
 func TestProxyNonStruct(t *testing.T) {
-	proxy, err := object.NewProxy(proxyTestType1{})
+	proxy, err := object.NewProxy(proxyTestType1{"a", "b", "c"})
 	require.Nil(t, err)
 	fmt.Println(proxy)
 
@@ -140,6 +140,13 @@ func TestProxyNonStruct(t *testing.T) {
 	require.Equal(t, "Len", method.Name())
 	require.Equal(t, 1, method.NumIn())
 	require.Equal(t, 1, method.NumOut())
+
+	m, ok := proxy.GetAttr("Len")
+	require.True(t, ok)
+	lenBuiltin, ok := m.(*object.Builtin)
+	require.True(t, ok)
+	res := lenBuiltin.Call(context.Background())
+	require.Equal(t, int64(3), res.(*object.Int).Value())
 }
 
 type proxyTestType2 struct {
@@ -242,4 +249,22 @@ func TestProxyTestType2(t *testing.T) {
 	aValue, getOk := proxy.GetAttr("A")
 	require.True(t, getOk)
 	require.Equal(t, object.NewInt(99), aValue)
+}
+
+func TestProxyCall(t *testing.T) {
+	proxy, err := object.NewProxy(&proxyTestType2{})
+	require.Nil(t, err)
+	fmt.Println(proxy)
+
+	m, ok := proxy.GetAttr("D")
+	require.True(t, ok)
+
+	b, ok := m.(*object.Builtin)
+	require.True(t, ok)
+
+	result := b.Call(context.Background(),
+		object.NewInt(1),
+		object.NewFloat(2.0))
+
+	require.Equal(t, object.NewInt(3), result)
 }

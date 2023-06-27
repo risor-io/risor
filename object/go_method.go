@@ -11,14 +11,15 @@ import (
 // GoMethod represents a single method on a Go type. This exposes the method to
 // Tamarin for reflection and proxying.
 type GoMethod struct {
-	method       reflect.Method
-	inputTypes   []*GoType
-	outputTypes  []*GoType
-	name         *String
-	numIn        *Int
-	numOut       *Int
-	producesErr  bool
-	errorIndices []int
+	method        reflect.Method
+	inputTypes    []*GoType
+	outputTypes   []*GoType
+	name          *String
+	numIn         *Int
+	numOut        *Int
+	producesErr   bool
+	errorIndices  []int
+	outputIsError []bool
 }
 
 func (m *GoMethod) Type() Type {
@@ -134,6 +135,10 @@ func (m *GoMethod) ErrorIndices() []int {
 	return m.errorIndices
 }
 
+func (m *GoMethod) IsOutputError(index int) bool {
+	return m.outputIsError[index]
+}
+
 // Returns a Tamarin *GoMethod Object that represents the given Go method.
 // This aids in calling Go methods from Tamarin.
 func newGoMethod(m reflect.Method) (*GoMethod, error) {
@@ -166,6 +171,7 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 	// Store the output type for each method output, taking note of whether an
 	// error is produced and the index of the first error.
 	method.outputTypes = make([]*GoType, numOut)
+	method.outputIsError = make([]bool, numOut)
 	for i := 0; i < numOut; i++ {
 		outputType := m.Type.Out(i)
 		outputGoType, err := newGoType(outputType)
@@ -177,6 +183,9 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 		if outputType.Implements(errorInterface) {
 			method.producesErr = true
 			method.errorIndices = append(method.errorIndices, i)
+			method.outputIsError[i] = true
+		} else {
+			method.outputIsError[i] = false
 		}
 	}
 	return method, nil

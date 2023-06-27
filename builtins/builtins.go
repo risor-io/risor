@@ -260,30 +260,30 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBuffer(arg.Value())
+		return object.NewBufferFromBytes(arg.Value())
 	case *object.BSlice:
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBuffer(arg.Value())
+		return object.NewBufferFromBytes(arg.Value())
 	case *object.String:
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBuffer([]byte(arg.Value()))
+		return object.NewBufferFromBytes([]byte(arg.Value()))
 	case *object.Int:
 		// Special case: treat the value as the size to allocate
 		val := arg.Value()
 		if err := lim.TrackCost(int(val)); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBuffer(make([]byte, val))
+		return object.NewBufferFromBytes(make([]byte, val))
 	case io.Reader:
 		bytes, err := lim.ReadAll(arg)
 		if err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBuffer(bytes)
+		return object.NewBufferFromBytes(bytes)
 	default:
 		return object.Errorf("type error: buffer() unsupported argument (%s given)", args[0].Type())
 	}

@@ -120,6 +120,10 @@ func (b *Buffer) Cost() int {
 	return len(b.value.Bytes())
 }
 
-func NewBuffer(value []byte) *Buffer {
+func NewBuffer(buf *bytes.Buffer) *Buffer {
+	return &Buffer{value: buf}
+}
+
+func NewBufferFromBytes(value []byte) *Buffer {
 	return &Buffer{value: bytes.NewBuffer(value)}
 }

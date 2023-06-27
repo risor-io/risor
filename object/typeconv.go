@@ -29,13 +29,16 @@ var kindConverters = map[reflect.Kind]TypeConverter{
 	reflect.String:  &StringConverter{},
 }
 
-var typeConverters = map[reflect.Type]TypeConverter{}
+var typeConverters = map[reflect.Type]TypeConverter{
+	reflect.TypeOf(time.Time{}):          &TimeConverter{},
+	reflect.TypeOf(bytes.NewBuffer(nil)): &BufferConverter{},
+	reflect.TypeOf([]byte{}):             &BSliceConverter{},
+}
 
 // Outside of those, we want to handle:
 // * Array
 // * Func
 // * Interface (Partial?)
-// * Map (Partial?)
 
 // Kinds do NOT intend to handle for now:
 // * Chan
@@ -184,7 +187,7 @@ func FromGoType(obj interface{}) Object {
 	case []byte:
 		return NewBSlice(obj)
 	case *bytes.Buffer:
-		return NewBuffer(obj.Bytes())
+		return NewBuffer(obj)
 	case bool:
 		if obj {
 			return True
@@ -236,16 +239,41 @@ type TypeConverter interface {
 	From(interface{}) (Object, error)
 }
 
-// GetConverter returns a TypeConverter for the given Go kind and type.
+// NewTypeConverter returns a TypeConverter for the given Go kind and type.
 // Converters are cached internally for reuse.
-func GetConverter(kind reflect.Kind, typ reflect.Type) (TypeConverter, error) {
+func NewTypeConverter(typ reflect.Type) (TypeConverter, error) {
 	goTypeMutex.Lock()
 	defer goTypeMutex.Unlock()
 
-	return getConverter(kind, typ)
+	return createTypeConverter(typ)
 }
 
-func getConverter(kind reflect.Kind, typ reflect.Type) (TypeConverter, error) {
+// The caller must hold the goTypeMutex lock.
+func createTypeConverter(typ reflect.Type) (TypeConverter, error) {
+	if conv, ok := typeConverters[typ]; ok {
+		return conv, nil
+	}
+	conv, err := getTypeConverter(typ)
+	if err != nil {
+		return nil, err
+	}
+	typeConverters[typ] = conv
+	return conv, nil
+}
+
+// SetTypeConverter sets a TypeConverter for the given Go type. This is not
+// typically used, since the default converters should typically be sufficient.
+func SetTypeConverter(typ reflect.Type, conv TypeConverter) {
+	goTypeMutex.Lock()
+	defer goTypeMutex.Unlock()
+
+	typeConverters[typ] = conv
+}
+
+// getTypeConverter returns a TypeConverter for the given Go type.
+// The caller must hold the goTypeMutex lock.
+func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
+	kind := typ.Kind()
 	if conv, ok := kindConverters[kind]; ok {
 		return conv, nil
 	}
@@ -256,23 +284,23 @@ func getConverter(kind reflect.Kind, typ reflect.Type) (TypeConverter, error) {
 	var converter TypeConverter
 	switch kind {
 	case reflect.Struct:
-		converter, err = NewStructConverter(typ)
+		converter, err = newStructConverter(typ)
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Pointer:
-		converter, err = NewPointerConverter(typ.Elem())
+		converter, err = newPointerConverter(typ.Elem())
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Slice:
-		converter, err = NewSliceConverter(typ.Elem())
+		converter, err = newSliceConverter(typ.Elem())
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Map:
 		if typ.Key().Kind() == reflect.String {
-			converter, err = NewMapConverter(typ.Elem())
+			converter, err = newMapConverter(typ.Elem())
 			if err != nil {
 				return nil, err
 			}
@@ -285,91 +313,12 @@ func getConverter(kind reflect.Kind, typ reflect.Type) (TypeConverter, error) {
 		} else if typ.Implements(contextInterface) {
 			converter = &ContextConverter{}
 		} else { // TODO: io.*?
-			return nil, fmt.Errorf("type error: unsupported interface type %s", typ)
+			converter = &DynamicConverter{}
 		}
 	default:
 		return nil, fmt.Errorf("type error: unsupported type %s", typ)
 	}
-	typeConverters[typ] = converter
 	return converter, nil
-}
-
-// PointerConverter converts between *T and the Tamarin equivalent of T.
-type PointerConverter struct {
-	valueConverter TypeConverter
-}
-
-func (c *PointerConverter) To(obj Object) (interface{}, error) {
-	v, err := c.valueConverter.To(obj)
-	if err != nil {
-		return nil, err
-	}
-	vp := reflect.New(reflect.TypeOf(v))
-	vp.Elem().Set(reflect.ValueOf(v))
-	return vp.Interface(), nil
-}
-
-func (c *PointerConverter) From(obj interface{}) (Object, error) {
-	v := reflect.ValueOf(obj).Elem().Interface()
-	return c.valueConverter.From(v)
-}
-
-// NewPointerConverter creates a TypeConverter for pointers that point to
-// items of the given type.
-func NewPointerConverter(indirectType reflect.Type) (*PointerConverter, error) {
-	indirectKind := indirectType.Kind()
-	indirectConv, err := getConverter(indirectKind, indirectType)
-	if err != nil {
-		return nil, err
-	}
-	return &PointerConverter{valueConverter: indirectConv}, nil
-}
-
-// SliceConverter converts between []T and the Tamarin equivalent of []T.
-type SliceConverter struct {
-	valueConverter TypeConverter
-	valueType      reflect.Type
-}
-
-func (c *SliceConverter) To(obj Object) (interface{}, error) {
-	list := obj.(*List)
-	slice := reflect.MakeSlice(reflect.SliceOf(c.valueType), 0, len(list.items))
-	for _, v := range list.items {
-		item, err := c.valueConverter.To(v)
-		if err != nil {
-			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
-		}
-		slice = reflect.Append(slice, reflect.ValueOf(item))
-	}
-	return slice.Interface(), nil
-}
-
-func (c *SliceConverter) From(iface interface{}) (Object, error) {
-	v := reflect.ValueOf(iface)
-	count := v.Len()
-	items := make([]Object, 0, count)
-	for i := 0; i < count; i++ {
-		item, err := c.valueConverter.From(v.Index(i).Interface())
-		if err != nil {
-			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
-		}
-		items = append(items, item)
-	}
-	return NewList(items), nil
-}
-
-// NewSliceConverter creates a TypeConverter for slices containing the given
-// value type, where the items can be converted using the given TypeConverter.
-func NewSliceConverter(indirectType reflect.Type) (*SliceConverter, error) {
-	indirectKind := indirectType.Kind()
-	indirectConv, err := getConverter(indirectKind, indirectType)
-	if err != nil {
-		return nil, err
-	}
-	return &SliceConverter{
-		valueType:      indirectType,
-		valueConverter: indirectConv,
-	}, nil
 }
 
 // BoolConverter converts between bool and *Bool.
@@ -545,7 +494,7 @@ func (c *BSliceConverter) From(obj interface{}) (Object, error) {
 	return NewBSlice(obj.([]byte)), nil
 }
 
-// TimeConverter converts between time.Time and Time.
+// TimeConverter converts between time.Time and *Time.
 type TimeConverter struct{}
 
 func (c *TimeConverter) To(obj Object) (interface{}, error) {
@@ -554,6 +503,34 @@ func (c *TimeConverter) To(obj Object) (interface{}, error) {
 
 func (c *TimeConverter) From(obj interface{}) (Object, error) {
 	return NewTime(obj.(time.Time)), nil
+}
+
+// BufferConverter converts between *bytes.Buffer and *Buffer.
+type BufferConverter struct{}
+
+func (c *BufferConverter) To(obj Object) (interface{}, error) {
+	return obj.(*Buffer).value, nil
+}
+
+func (c *BufferConverter) From(obj interface{}) (Object, error) {
+	return NewBuffer(obj.(*bytes.Buffer)), nil
+}
+
+// DynamicConverter converts between interface{} and the appropriate Tamarin type.
+// This is slow and should only be used to handle unknown types.
+type DynamicConverter struct{}
+
+func (c *DynamicConverter) To(obj Object) (interface{}, error) {
+	return obj.Interface(), nil
+}
+
+func (c *DynamicConverter) From(obj interface{}) (Object, error) {
+	typ := reflect.TypeOf(obj)
+	conv, err := NewTypeConverter(typ)
+	if err != nil {
+		return nil, err
+	}
+	return conv.From(obj)
 }
 
 // MapConverter converts between map[string]interface{} and *Map.
@@ -591,8 +568,8 @@ func (c *MapConverter) From(obj interface{}) (Object, error) {
 	return NewMap(o), nil
 }
 
-func NewMapConverter(valueType reflect.Type) (*MapConverter, error) {
-	valueConverter, err := getConverter(valueType.Kind(), valueType)
+func newMapConverter(valueType reflect.Type) (*MapConverter, error) {
+	valueConverter, err := createTypeConverter(valueType)
 	if err != nil {
 		return nil, fmt.Errorf("type error: unsupported map value type %s", valueType)
 	}
@@ -648,8 +625,8 @@ func (c *StructConverter) From(obj interface{}) (Object, error) {
 	return NewMap(items), nil
 }
 
-// NewStructConverter creates a TypeConverter for a given type of struct.
-func NewStructConverter(typ reflect.Type) (*StructConverter, error) {
+// newStructConverter creates a TypeConverter for a given type of struct.
+func newStructConverter(typ reflect.Type) (*StructConverter, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("type error: expected a struct (%s given)", typ)
 	}
@@ -660,7 +637,7 @@ func NewStructConverter(typ reflect.Type) (*StructConverter, error) {
 		field := typ.Field(i)
 		fieldType := field.Type
 		fieldNames[i] = field.Name
-		conv, err := getConverter(fieldType.Kind(), fieldType)
+		conv, err := createTypeConverter(fieldType)
 		if err != nil {
 			return nil, err
 		}
@@ -670,6 +647,82 @@ func NewStructConverter(typ reflect.Type) (*StructConverter, error) {
 		typ:             typ,
 		fieldConverters: fieldConverters,
 		fieldNames:      fieldNames,
+	}, nil
+}
+
+// PointerConverter converts between *T and the Tamarin equivalent of T.
+type PointerConverter struct {
+	valueConverter TypeConverter
+}
+
+func (c *PointerConverter) To(obj Object) (interface{}, error) {
+	v, err := c.valueConverter.To(obj)
+	if err != nil {
+		return nil, err
+	}
+	vp := reflect.New(reflect.TypeOf(v))
+	vp.Elem().Set(reflect.ValueOf(v))
+	return vp.Interface(), nil
+}
+
+func (c *PointerConverter) From(obj interface{}) (Object, error) {
+	v := reflect.ValueOf(obj).Elem().Interface()
+	return c.valueConverter.From(v)
+}
+
+// newPointerConverter creates a TypeConverter for pointers that point to
+// items of the given type.
+func newPointerConverter(indirectType reflect.Type) (*PointerConverter, error) {
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	return &PointerConverter{valueConverter: indirectConv}, nil
+}
+
+// SliceConverter converts between []T and the Tamarin equivalent of []T.
+type SliceConverter struct {
+	valueConverter TypeConverter
+	valueType      reflect.Type
+}
+
+func (c *SliceConverter) To(obj Object) (interface{}, error) {
+	list := obj.(*List)
+	slice := reflect.MakeSlice(reflect.SliceOf(c.valueType), 0, len(list.items))
+	for _, v := range list.items {
+		item, err := c.valueConverter.To(v)
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		slice = reflect.Append(slice, reflect.ValueOf(item))
+	}
+	return slice.Interface(), nil
+}
+
+func (c *SliceConverter) From(iface interface{}) (Object, error) {
+	v := reflect.ValueOf(iface)
+	count := v.Len()
+	items := make([]Object, 0, count)
+	for i := 0; i < count; i++ {
+		item, err := c.valueConverter.From(v.Index(i).Interface())
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		items = append(items, item)
+	}
+	return NewList(items), nil
+}
+
+// newSliceConverter creates a TypeConverter for slices containing the given
+// value type, where the items can be converted using the given TypeConverter.
+func newSliceConverter(indirectType reflect.Type) (*SliceConverter, error) {
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	return &SliceConverter{
+		valueType:      indirectType,
+		valueConverter: indirectConv,
 	}, nil
 }
 

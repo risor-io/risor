@@ -126,6 +126,11 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		name = typ.String()
 	}
 
+	conv, err := getTypeConverter(typ)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add the new type to the registry
 	goType := &GoType{
 		attributes:   map[string]GoAttribute{},
@@ -133,6 +138,7 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		indirectKind: indirectKind,
 		name:         NewString(name),
 		packagePath:  NewString(typ.PkgPath()),
+		converter:    conv,
 	}
 	goTypeRegistry[typ] = goType
 
@@ -143,16 +149,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 			return nil, err
 		}
 		goType.indirectType = indirectGoType
-		goType.converter, err = NewPointerConverter(indirectType)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		conv, err := getConverter(kind, typ)
-		if err != nil {
-			return nil, err
-		}
-		goType.converter = conv
 	}
 
 	// Discover and register the type of each field for struct types
