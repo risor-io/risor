@@ -891,3 +891,32 @@ func TestBadInputs(t *testing.T) {
 		require.Equal(t, tt.expected, err.Error())
 	}
 }
+
+func TestPrecedence(t *testing.T) {
+	// This confirms the correct precedence of the "range" vs. "call" operators
+	input := `range byte_slice(99)`
+
+	// Parse the program, which should be 1 statement in length
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	stmt := program.First()
+
+	// The top-level of the AST should be a range statement
+	require.IsType(t, &ast.Range{}, stmt)
+	rangeStmt := stmt.(*ast.Range)
+
+	// The container of the range statement should be a call expression
+	require.IsType(t, &ast.Call{}, rangeStmt.Container())
+	callStmt := rangeStmt.Container().(*ast.Call)
+
+	// The function of the call expression should be an identifier (byte_slice)
+	require.IsType(t, &ast.Ident{}, callStmt.Function())
+	ident := callStmt.Function().(*ast.Ident)
+	require.Equal(t, "byte_slice", ident.String())
+
+	// The argument of the call expression should be an integer
+	require.IsType(t, &ast.Int{}, callStmt.Arguments()[0])
+	intVal := callStmt.Arguments()[0].(*ast.Int)
+	require.Equal(t, int64(99), intVal.Value())
+}

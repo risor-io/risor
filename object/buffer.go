@@ -38,7 +38,7 @@ func (b *Buffer) Compare(other Object) (int, error) {
 		return bytes.Compare(b.value.Bytes(), other.value.Bytes()), nil
 	case *String:
 		return bytes.Compare(b.value.Bytes(), []byte(other.Value())), nil
-	case *BSlice:
+	case *ByteSlice:
 		return bytes.Compare(b.value.Bytes(), other.Value()), nil
 	default:
 		return 0, fmt.Errorf("type error: cannot compare buffer to type %s", other.Type())
@@ -62,8 +62,8 @@ func (b *Buffer) RunOperation(opType op.BinaryOpType, right Object) Object {
 		return b.runOperationBytes(opType, right)
 	case *String:
 		return b.runOperationString(opType, right)
-	case *BSlice:
-		return b.runOperationBSlice(opType, right)
+	case *ByteSlice:
+		return b.runOperationByteSlice(opType, right)
 	default:
 		return NewError(fmt.Errorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type()))
 	}
@@ -81,7 +81,7 @@ func (b *Buffer) runOperationBytes(opType op.BinaryOpType, right *Buffer) Object
 	}
 }
 
-func (b *Buffer) runOperationBSlice(opType op.BinaryOpType, right *BSlice) Object {
+func (b *Buffer) runOperationByteSlice(opType op.BinaryOpType, right *ByteSlice) Object {
 	switch opType {
 	case op.Add:
 		if _, err := b.value.Write(right.value); err != nil {

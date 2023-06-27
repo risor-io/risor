@@ -229,7 +229,7 @@ func ReadFile(ctx context.Context, args ...object.Object) object.Object {
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewBSlice(bytes)
+	return object.NewByteSlice(bytes)
 }
 
 func WriteFile(ctx context.Context, args ...object.Object) object.Object {
@@ -242,12 +242,12 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var data []byte
 	switch arg := args[1].(type) {
-	case *object.BSlice:
+	case *object.ByteSlice:
 		data = arg.Value()
 	case *object.String:
 		data = []byte(arg.Value())
 	default:
-		return object.NewError(fmt.Errorf("type error: expected bslice or string (got %s)", args[1].Type()))
+		return object.NewError(fmt.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type()))
 	}
 	perm, err := object.AsInt(args[2])
 	if err != nil {

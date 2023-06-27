@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"reflect"
 	"time"
 
@@ -32,13 +31,9 @@ var kindConverters = map[reflect.Kind]TypeConverter{
 var typeConverters = map[reflect.Type]TypeConverter{
 	reflect.TypeOf(time.Time{}):          &TimeConverter{},
 	reflect.TypeOf(bytes.NewBuffer(nil)): &BufferConverter{},
-	reflect.TypeOf([]byte{}):             &BSliceConverter{},
+	reflect.TypeOf([]byte{}):             &ByteSliceConverter{},
+	reflect.TypeOf(byte(0)):              &ByteConverter{},
 }
-
-// Outside of those, we want to handle:
-// * Array
-// * Func
-// * Interface (Partial?)
 
 // Kinds do NOT intend to handle for now:
 // * Chan
@@ -62,7 +57,7 @@ func AsString(obj Object) (string, *Error) {
 	switch obj := obj.(type) {
 	case *String:
 		return obj.value, nil
-	case *BSlice:
+	case *ByteSlice:
 		return string(obj.value), nil
 	case *Buffer:
 		return obj.value.String(), nil
@@ -72,16 +67,34 @@ func AsString(obj Object) (string, *Error) {
 }
 
 func AsInt(obj Object) (int64, *Error) {
-	i, ok := obj.(*Int)
-	if !ok {
+	switch obj := obj.(type) {
+	case *Int:
+		return obj.value, nil
+	case *Byte:
+		return int64(obj.value), nil
+	default:
 		return 0, Errorf("type error: expected an integer (%s given)", obj.Type())
 	}
-	return i.value, nil
+}
+
+func AsByte(obj Object) (byte, *Error) {
+	switch obj := obj.(type) {
+	case *Int:
+		return byte(obj.value), nil
+	case *Byte:
+		return obj.value, nil
+	case *Float:
+		return byte(obj.value), nil
+	default:
+		return 0, Errorf("type error: expected a byte (%s given)", obj.Type())
+	}
 }
 
 func AsFloat(obj Object) (float64, *Error) {
 	switch obj := obj.(type) {
 	case *Int:
+		return float64(obj.value), nil
+	case *Byte:
 		return float64(obj.value), nil
 	case *Float:
 		return obj.value, nil
@@ -124,7 +137,7 @@ func AsSet(obj Object) (*Set, *Error) {
 
 func AsBytes(obj Object) ([]byte, *Error) {
 	switch obj := obj.(type) {
-	case *BSlice:
+	case *ByteSlice:
 		return obj.value, nil
 	case *Buffer:
 		return obj.value.Bytes(), nil
@@ -137,7 +150,7 @@ func AsBytes(obj Object) ([]byte, *Error) {
 
 func AsReader(obj Object) (io.Reader, *Error) {
 	switch obj := obj.(type) {
-	case *BSlice:
+	case *ByteSlice:
 		return bytes.NewBuffer(obj.value), nil
 	case *String:
 		return bytes.NewBufferString(obj.value), nil
@@ -183,9 +196,9 @@ func FromGoType(obj interface{}) Object {
 	case string:
 		return NewString(obj)
 	case byte:
-		return NewInt(int64(obj))
+		return NewByte(obj)
 	case []byte:
-		return NewBSlice(obj)
+		return NewByteSlice(obj)
 	case *bytes.Buffer:
 		return NewBuffer(obj)
 	case bool:
@@ -298,6 +311,11 @@ func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
 		if err != nil {
 			return nil, err
 		}
+	case reflect.Array:
+		converter, err = newArrayConverter(typ.Elem(), typ.Len())
+		if err != nil {
+			return nil, err
+		}
 	case reflect.Map:
 		if typ.Key().Kind() == reflect.String {
 			converter, err = newMapConverter(typ.Elem())
@@ -316,7 +334,7 @@ func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
 			converter = &DynamicConverter{}
 		}
 	default:
-		return nil, fmt.Errorf("type error: unsupported type %s", typ)
+		return nil, fmt.Errorf("type error: unsupported kind: %q", kind)
 	}
 	return converter, nil
 }
@@ -325,18 +343,51 @@ func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
 type BoolConverter struct{}
 
 func (c *BoolConverter) To(obj Object) (interface{}, error) {
-	return obj.(*Bool).value, nil
+	b, ok := obj.(*Bool)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected bool (%s given)", obj.Type())
+	}
+	return b.value, nil
 }
 
 func (c *BoolConverter) From(obj interface{}) (Object, error) {
 	return NewBool(obj.(bool)), nil
 }
 
+// ByteConverter converts between byte and *Byte.
+type ByteConverter struct{}
+
+func (c *ByteConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return obj.value, nil
+	case *Int:
+		return byte(obj.value), nil
+	case *Float:
+		return byte(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected byte (%s given)", obj.Type())
+	}
+}
+
+func (c *ByteConverter) From(obj interface{}) (Object, error) {
+	return NewByte(obj.(byte)), nil
+}
+
 // IntConverter converts between int and *Int.
 type IntConverter struct{}
 
 func (c *IntConverter) To(obj Object) (interface{}, error) {
-	return int(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return int(obj.value), nil
+	case *Int:
+		return int(obj.value), nil
+	case *Float:
+		return int(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *IntConverter) From(obj interface{}) (Object, error) {
@@ -347,7 +398,16 @@ func (c *IntConverter) From(obj interface{}) (Object, error) {
 type Int8Converter struct{}
 
 func (c *Int8Converter) To(obj Object) (interface{}, error) {
-	return int8(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return int8(obj.value), nil
+	case *Int:
+		return int8(obj.value), nil
+	case *Float:
+		return int8(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Int8Converter) From(obj interface{}) (Object, error) {
@@ -358,7 +418,16 @@ func (c *Int8Converter) From(obj interface{}) (Object, error) {
 type Int16Converter struct{}
 
 func (c *Int16Converter) To(obj Object) (interface{}, error) {
-	return int16(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return int16(obj.value), nil
+	case *Int:
+		return int16(obj.value), nil
+	case *Float:
+		return int16(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Int16Converter) From(obj interface{}) (Object, error) {
@@ -369,7 +438,16 @@ func (c *Int16Converter) From(obj interface{}) (Object, error) {
 type Int32Converter struct{}
 
 func (c *Int32Converter) To(obj Object) (interface{}, error) {
-	return int32(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return int32(obj.value), nil
+	case *Int:
+		return int32(obj.value), nil
+	case *Float:
+		return int32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Int32Converter) From(obj interface{}) (Object, error) {
@@ -380,7 +458,16 @@ func (c *Int32Converter) From(obj interface{}) (Object, error) {
 type Int64Converter struct{}
 
 func (c *Int64Converter) To(obj Object) (interface{}, error) {
-	return obj.(*Int).value, nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return int64(obj.value), nil
+	case *Int:
+		return int64(obj.value), nil
+	case *Float:
+		return int64(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Int64Converter) From(obj interface{}) (Object, error) {
@@ -391,7 +478,16 @@ func (c *Int64Converter) From(obj interface{}) (Object, error) {
 type UintConverter struct{}
 
 func (c *UintConverter) To(obj Object) (interface{}, error) {
-	return uint(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint(obj.value), nil
+	case *Int:
+		return uint(obj.value), nil
+	case *Float:
+		return uint(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *UintConverter) From(obj interface{}) (Object, error) {
@@ -402,7 +498,16 @@ func (c *UintConverter) From(obj interface{}) (Object, error) {
 type Uint8Converter struct{}
 
 func (c *Uint8Converter) To(obj Object) (interface{}, error) {
-	return uint8(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint8(obj.value), nil
+	case *Int:
+		return uint8(obj.value), nil
+	case *Float:
+		return uint8(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Uint8Converter) From(obj interface{}) (Object, error) {
@@ -413,7 +518,16 @@ func (c *Uint8Converter) From(obj interface{}) (Object, error) {
 type Uint16Converter struct{}
 
 func (c *Uint16Converter) To(obj Object) (interface{}, error) {
-	return uint16(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint16(obj.value), nil
+	case *Int:
+		return uint16(obj.value), nil
+	case *Float:
+		return uint16(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Uint16Converter) From(obj interface{}) (Object, error) {
@@ -424,7 +538,16 @@ func (c *Uint16Converter) From(obj interface{}) (Object, error) {
 type Uint32Converter struct{}
 
 func (c *Uint32Converter) To(obj Object) (interface{}, error) {
-	return uint32(obj.(*Int).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint32(obj.value), nil
+	case *Int:
+		return uint32(obj.value), nil
+	case *Float:
+		return uint32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
 func (c *Uint32Converter) From(obj interface{}) (Object, error) {
@@ -435,26 +558,36 @@ func (c *Uint32Converter) From(obj interface{}) (Object, error) {
 type Uint64Converter struct{}
 
 func (c *Uint64Converter) To(obj Object) (interface{}, error) {
-	v := obj.(*Int).value
-	if v < 0 {
-		return nil, fmt.Errorf("value error: %d is out of range for uint64", v)
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint64(obj.value), nil
+	case *Int:
+		return uint64(obj.value), nil
+	case *Float:
+		return uint64(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
 	}
-	return uint64(obj.(*Int).value), nil
 }
 
 func (c *Uint64Converter) From(obj interface{}) (Object, error) {
-	v := obj.(uint64)
-	if v > math.MaxInt64 {
-		return nil, fmt.Errorf("value error: %d is out of range for int64", v)
-	}
-	return NewInt(int64(v)), nil
+	return NewInt(int64(obj.(uint64))), nil
 }
 
 // Float32Converter converts between float32 and *Float.
 type Float32Converter struct{}
 
 func (c *Float32Converter) To(obj Object) (interface{}, error) {
-	return float32(obj.(*Float).value), nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return float32(obj.value), nil
+	case *Int:
+		return float32(obj.value), nil
+	case *Float:
+		return float32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected float (%s given)", obj.Type())
+	}
 }
 
 func (c *Float32Converter) From(obj interface{}) (Object, error) {
@@ -465,7 +598,16 @@ func (c *Float32Converter) From(obj interface{}) (Object, error) {
 type Float64Converter struct{}
 
 func (c *Float64Converter) To(obj Object) (interface{}, error) {
-	return obj.(*Float).value, nil
+	switch obj := obj.(type) {
+	case *Byte:
+		return float64(obj.value), nil
+	case *Int:
+		return float64(obj.value), nil
+	case *Float:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected float (%s given)", obj.Type())
+	}
 }
 
 func (c *Float64Converter) From(obj interface{}) (Object, error) {
@@ -476,29 +618,54 @@ func (c *Float64Converter) From(obj interface{}) (Object, error) {
 type StringConverter struct{}
 
 func (c *StringConverter) To(obj Object) (interface{}, error) {
-	return obj.(*String).value, nil
+	switch obj := obj.(type) {
+	case *ByteSlice:
+		return string(obj.value), nil
+	case *Buffer:
+		return obj.value.String(), nil
+	case *String:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected string (%s given)", obj.Type())
+	}
 }
 
 func (c *StringConverter) From(obj interface{}) (Object, error) {
 	return NewString(obj.(string)), nil
 }
 
-// BSliceConverter converts between []byte and BSlice.
-type BSliceConverter struct{}
+// ByteSliceConverter converts between []byte and *ByteSlice.
+type ByteSliceConverter struct{}
 
-func (c *BSliceConverter) To(obj Object) (interface{}, error) {
-	return obj.(*BSlice).value, nil
+func (c *ByteSliceConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *ByteSlice:
+		return obj.value, nil
+	case *Buffer:
+		return obj.value.Bytes(), nil
+	case *String:
+		return []byte(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected bytes (%s given)", obj.Type())
+	}
 }
 
-func (c *BSliceConverter) From(obj interface{}) (Object, error) {
-	return NewBSlice(obj.([]byte)), nil
+func (c *ByteSliceConverter) From(obj interface{}) (Object, error) {
+	return NewByteSlice(obj.([]byte)), nil
 }
 
 // TimeConverter converts between time.Time and *Time.
 type TimeConverter struct{}
 
 func (c *TimeConverter) To(obj Object) (interface{}, error) {
-	return obj.(*Time).value, nil
+	switch obj := obj.(type) {
+	case *Time:
+		return obj.value, nil
+	case *String:
+		return time.Parse(time.RFC3339, obj.value)
+	default:
+		return nil, fmt.Errorf("type error: expected time (%s given)", obj.Type())
+	}
 }
 
 func (c *TimeConverter) From(obj interface{}) (Object, error) {
@@ -509,7 +676,14 @@ func (c *TimeConverter) From(obj interface{}) (Object, error) {
 type BufferConverter struct{}
 
 func (c *BufferConverter) To(obj Object) (interface{}, error) {
-	return obj.(*Buffer).value, nil
+	switch obj := obj.(type) {
+	case *Buffer:
+		return obj.value, nil
+	case *ByteSlice:
+		return bytes.NewBuffer(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected buffer (%s given)", obj.Type())
+	}
 }
 
 func (c *BufferConverter) From(obj interface{}) (Object, error) {
@@ -540,7 +714,10 @@ type MapConverter struct {
 }
 
 func (c *MapConverter) To(obj Object) (interface{}, error) {
-	tMap := obj.(*Map)
+	tMap, ok := obj.(*Map)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected map (%s given)", obj.Type())
+	}
 	keyType := reflect.TypeOf("")
 	mapType := reflect.MapOf(keyType, c.valueType)
 	gMap := reflect.MakeMapWithSize(mapType, tMap.Size())
@@ -687,7 +864,10 @@ type SliceConverter struct {
 }
 
 func (c *SliceConverter) To(obj Object) (interface{}, error) {
-	list := obj.(*List)
+	list, ok := obj.(*List)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a list (%s given)", obj.Type())
+	}
 	slice := reflect.MakeSlice(reflect.SliceOf(c.valueType), 0, len(list.items))
 	for _, v := range list.items {
 		item, err := c.valueConverter.To(v)
@@ -726,11 +906,73 @@ func newSliceConverter(indirectType reflect.Type) (*SliceConverter, error) {
 	}, nil
 }
 
-// ErrorConverter converts between error and *Error.
+// ArrayConverter converts between []T and the Tamarin equivalent of []T.
+type ArrayConverter struct {
+	valueConverter TypeConverter
+	valueType      reflect.Type
+	len            int
+}
+
+func (c *ArrayConverter) To(obj Object) (interface{}, error) {
+	list, ok := obj.(*List)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a list (%s given)", obj.Type())
+	}
+	array := reflect.New(reflect.ArrayOf(c.len, c.valueType))
+	arrayElem := array.Elem()
+	for i, v := range list.items {
+		item, err := c.valueConverter.To(v)
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert element: %v", err)
+		}
+		arrayElem.Index(i).Set(reflect.ValueOf(item))
+	}
+	return arrayElem.Interface(), nil
+}
+
+func (c *ArrayConverter) From(iface interface{}) (Object, error) {
+	v := reflect.ValueOf(iface)
+	count := v.Len()
+	items := make([]Object, 0, count)
+	for i := 0; i < count; i++ {
+		item, err := c.valueConverter.From(v.Index(i).Interface())
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		items = append(items, item)
+	}
+	return NewList(items), nil
+}
+
+// newArrayConverter creates a TypeConverter for arrays containing the given
+// value type, where the items can be converted using the given TypeConverter.
+func newArrayConverter(indirectType reflect.Type, length int) (*ArrayConverter, error) {
+	if length < 0 {
+		return nil, fmt.Errorf("value error: invalid array length: %d", length)
+	}
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	return &ArrayConverter{
+		valueType:      indirectType,
+		valueConverter: indirectConv,
+		len:            length,
+	}, nil
+}
+
+// ErrorConverter converts between error and *Error or *String.
 type ErrorConverter struct{}
 
 func (c *ErrorConverter) To(obj Object) (interface{}, error) {
-	return obj.(*Error).err, nil
+	switch obj := obj.(type) {
+	case *Error:
+		return obj.Value(), nil
+	case *String:
+		return errors.New(obj.Value()), nil
+	default:
+		return nil, fmt.Errorf("type error: expected a string (%s given)", obj.Type())
+	}
 }
 
 func (c *ErrorConverter) From(obj interface{}) (Object, error) {

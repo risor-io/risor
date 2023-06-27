@@ -16,22 +16,15 @@ var (
 	goTypeRegistry   = map[reflect.Type]*GoType{}
 )
 
-func IsProxyableKind(kind reflect.Kind) bool {
-	switch kind {
-	case reflect.Invalid, reflect.UnsafePointer, reflect.Chan, reflect.Array:
-		return false
-	default:
-		return true
-	}
-}
-
 func IsProxyableType(typ reflect.Type) bool {
-	kind := typ.Kind()
-	if kind == reflect.Ptr {
-		// Indirection is allowed only for structs, and only one level
+	switch typ.Kind() {
+	case reflect.Interface, reflect.Slice:
+		return true
+	case reflect.Ptr:
 		return typ.Elem().Kind() == reflect.Struct
+	default:
+		return false
 	}
-	return IsProxyableKind(kind)
 }
 
 // GoAttribute is an interface to represent an attribute on a Go type. This could
@@ -63,11 +56,11 @@ func (p *Proxy) Interface() interface{} {
 }
 
 func (p *Proxy) Inspect() string {
-	return fmt.Sprintf("%v", p.obj)
+	return p.String()
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("proxy(%v)", p.obj)
+	return fmt.Sprintf("proxy(%s(%v))", reflect.TypeOf(p.obj), p.obj)
 }
 
 func (p *Proxy) GoType() *GoType {
@@ -75,6 +68,9 @@ func (p *Proxy) GoType() *GoType {
 }
 
 func (p *Proxy) GetAttr(name string) (Object, bool) {
+	if name == "__type__" {
+		return p.typ, true
+	}
 	attr, found := p.typ.GetAttribute(name)
 	if !found {
 		return nil, false
@@ -105,6 +101,39 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 		}, true
 	}
 	return nil, false
+}
+
+func (p *Proxy) SetAttr(name string, value Object) error {
+	attr, found := p.typ.GetAttribute(name)
+	if !found {
+		return fmt.Errorf("attribute error: %s has no attribute %s", p.typ.Name(), name)
+	}
+	switch attr := attr.(type) {
+	case *GoField:
+		conv, ok := attr.Converter()
+		if !ok {
+			return fmt.Errorf("type error: no converter for field %s", name)
+		}
+		var field reflect.Value
+		if _, ok := p.typ.IndirectType(); ok {
+			field = reflect.ValueOf(p.obj).Elem().FieldByName(name)
+		} else {
+			field = reflect.ValueOf(p.obj).FieldByName(name)
+		}
+		result, err := conv.To(value)
+		if err != nil {
+			return err
+		}
+		if field.CanSet() {
+			field.Set(reflect.ValueOf(result))
+			return nil
+		} else {
+			return fmt.Errorf("type error: cannot set field %s", name)
+		}
+	case *GoMethod:
+		return fmt.Errorf("attribute error: cannot set method %s", name)
+	}
+	return fmt.Errorf("attribute error: unknown attribute type")
 }
 
 func (p *Proxy) Equals(other Object) Object {
@@ -197,7 +226,7 @@ func NewProxy(obj interface{}) (*Proxy, error) {
 
 	// Is this type proxyable?
 	if !IsProxyableType(typ) {
-		return nil, fmt.Errorf("type error: unsupported argument for go_type (%t given)", typ)
+		return nil, fmt.Errorf("type error: unable to proxy type (%T given)", obj)
 	}
 
 	goType, err := NewGoType(typ)

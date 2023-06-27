@@ -29,7 +29,7 @@ func Hash(ctx context.Context, args ...object.Object) object.Object {
 		}
 	}
 	var h hash.Hash
-	// Hash `data` using the algorithm specified by `alg` and return the result as a BSlice.
+	// Hash `data` using the algorithm specified by `alg` and return the result as a byte_slice.
 	// Support `alg` values: sha256, sha512, sha1, md5
 	switch alg {
 	case "sha256":
@@ -44,7 +44,7 @@ func Hash(ctx context.Context, args ...object.Object) object.Object {
 		return object.Errorf("type error: hash() algorithm must be one of sha256, sha512, sha1, md5")
 	}
 	h.Write(data)
-	return object.NewBSlice(h.Sum(nil))
+	return object.NewByteSlice(h.Sum(nil))
 
 }
 

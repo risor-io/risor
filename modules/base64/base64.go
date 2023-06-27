@@ -91,7 +91,7 @@ func Decode(ctx context.Context, args ...object.Object) object.Object {
 	if decodeErr != nil {
 		return object.NewError(decodeErr)
 	}
-	return object.NewBSlice(dst[:count])
+	return object.NewByteSlice(dst[:count])
 }
 
 func URLDecode(ctx context.Context, args ...object.Object) object.Object {
@@ -122,7 +122,7 @@ func URLDecode(ctx context.Context, args ...object.Object) object.Object {
 	if decodeErr != nil {
 		return object.NewError(decodeErr)
 	}
-	return object.NewBSlice(dst[:count])
+	return object.NewByteSlice(dst[:count])
 }
 
 func Module() *object.Module {

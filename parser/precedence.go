@@ -20,7 +20,6 @@ const (
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 	IN          // X in Y
-	RANGE       // range X
 	INDEX       // array[index], map[key]
 	HIGHEST
 )
@@ -55,5 +54,5 @@ var precedences = map[token.Type]int{
 	token.PERIOD:          CALL,
 	token.LBRACKET:        INDEX,
 	token.IN:              IN,
-	token.RANGE:           RANGE,
+	token.RANGE:           PREFIX,
 }
