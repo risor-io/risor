@@ -8,9 +8,10 @@ import (
 )
 
 type StringIter struct {
-	s     *String
-	runes []rune
-	pos   int64
+	s       *String
+	runes   []rune
+	pos     int64
+	current *String
 }
 
 func (iter *StringIter) Type() Type {
@@ -50,12 +51,26 @@ func (iter *StringIter) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "next":
 		return &Builtin{
-			name: "next",
+			name: "string_iter.next",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("string_iter.next", 0, len(args))
 				}
-				entry, ok := iter.Next()
+				value, ok := iter.Next()
+				if !ok {
+					return Nil
+				}
+				return value
+			},
+		}, true
+	case "entry":
+		return &Builtin{
+			name: "string_iter.entry",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("string_iter.entry", 0, len(args))
+				}
+				entry, ok := iter.Entry()
 				if !ok {
 					return Nil
 				}
@@ -70,20 +85,31 @@ func (iter *StringIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.runes))
 }
 
-func (iter *StringIter) Next() (IteratorEntry, bool) {
-	if iter.pos >= int64(len(iter.runes)) {
+func (iter *StringIter) Next() (Object, bool) {
+	if iter.pos >= int64(len(iter.runes)-1) {
+		iter.current = nil
 		return nil, false
 	}
-	r := iter.runes[iter.pos]
-	entry := NewEntry(NewInt(iter.pos), NewString(string(r)))
 	iter.pos++
-	return entry, true
+	iter.current = NewString(string(iter.runes[iter.pos]))
+	return iter.current, true
+}
+
+func (iter *StringIter) Entry() (IteratorEntry, bool) {
+	if iter.current == nil {
+		return nil, false
+	}
+	return NewEntry(NewInt(iter.pos), iter.current), true
 }
 
 func (iter *StringIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for string_iter: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for string_iter: %v", opType))
+}
+
+func (iter *StringIter) Cost() int {
+	return 1
 }
 
 func NewStringIter(s *String) *StringIter {
-	return &StringIter{s: s, runes: []rune(s.value), pos: 0}
+	return &StringIter{s: s, runes: []rune(s.value), pos: -1}
 }

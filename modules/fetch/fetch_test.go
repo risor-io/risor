@@ -29,9 +29,7 @@ func TestFetch(t *testing.T) {
 	defer svr.Close()
 
 	ctx := context.Background()
-	ctx = object.WithLimits(ctx, &limits.Limits{
-		HTTP: limits.HTTP{Timeout: 1000},
-	})
+	ctx = limits.WithLimits(ctx, limits.New())
 
 	result := Fetch(ctx, object.NewString(svr.URL), object.NewMap(map[string]object.Object{
 		"method":  object.NewString("PATCH"),
@@ -77,9 +75,7 @@ func TestBasicFetch(t *testing.T) {
 	defer svr.Close()
 
 	ctx := context.Background()
-	ctx = object.WithLimits(ctx, &limits.Limits{
-		HTTP: limits.HTTP{Timeout: 1000},
-	})
+	ctx = limits.WithLimits(ctx, limits.New())
 
 	result := Fetch(ctx, object.NewString(svr.URL))
 	if errObj, ok := result.(*object.Error); ok {

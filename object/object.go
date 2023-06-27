@@ -24,18 +24,20 @@ type Type string
 // Type constants
 const (
 	BOOL          Type = "bool"
+	BUFFER        Type = "buffer"
 	BUILTIN       Type = "builtin"
 	BSLICE        Type = "bslice"
 	BSLICE_ITER   Type = "bslice_iter"
 	CELL          Type = "cell"
 	CODE          Type = "code"
-	COLOR         Type = "color"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"
 	FUNCTION      Type = "function"
+	GO_TYPE       Type = "go_type"
+	GO_FIELD      Type = "go_field"
+	GO_METHOD     Type = "go_method"
 	HTTP_RESPONSE Type = "http_response"
-	IMAGE         Type = "image"
 	INT           Type = "int"
 	ITER_ENTRY    Type = "iter_entry"
 	LIST          Type = "list"
@@ -85,6 +87,9 @@ type Object interface {
 	// RunOperation runs an operation on this object with the given
 	// right-hand side object.
 	RunOperation(opType op.BinaryOpType, right Object) Object
+
+	// Cost returns the incremental processing cost of this object.
+	Cost() int
 }
 
 // Slice is used to specify a range or slice of items in a container.
@@ -105,10 +110,14 @@ type IteratorEntry interface {
 type Iterator interface {
 	Object
 
-	// Next returns the next item in the iterator and a bool indicating whether
-	// the returned item is valid. If the iteration is complete, (nil, false) is
-	// returned.
-	Next() (IteratorEntry, bool)
+	// Next advances the iterator and then returns the current object and a
+	// bool indicating whether the returned item is valid. Once Next() has been
+	// called, the Entry() method can be used to get an IteratorEntry.
+	Next() (Object, bool)
+
+	// Entry returns the current entry in the iterator and a bool indicating
+	// whether the returned item is valid.
+	Entry() (IteratorEntry, bool)
 }
 
 type Container interface {

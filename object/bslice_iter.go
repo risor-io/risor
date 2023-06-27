@@ -8,8 +8,9 @@ import (
 )
 
 type BSliceIter struct {
-	b   *BSlice
-	pos int64
+	b       *BSlice
+	pos     int64
+	current Object
 }
 
 func (iter *BSliceIter) Type() Type {
@@ -49,12 +50,26 @@ func (iter *BSliceIter) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "next":
 		return &Builtin{
-			name: "next",
+			name: "bslice_iter.next",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("bslice_iter.next", 0, len(args))
 				}
-				entry, ok := iter.Next()
+				value, ok := iter.Next()
+				if !ok {
+					return Nil
+				}
+				return value
+			},
+		}, true
+	case "entry":
+		return &Builtin{
+			name: "bslice_iter.entry",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("bslice_iter.entry", 0, len(args))
+				}
+				entry, ok := iter.Entry()
 				if !ok {
 					return Nil
 				}
@@ -69,21 +84,33 @@ func (iter *BSliceIter) IsTruthy() bool {
 	return iter.pos < int64(len(iter.b.value))
 }
 
-func (iter *BSliceIter) Next() (IteratorEntry, bool) {
+func (iter *BSliceIter) Next() (Object, bool) {
 	data := iter.b.value
-	if iter.pos >= int64(len(data)) {
+	if iter.pos >= int64(len(data)-1) {
+		iter.current = nil
 		return nil, false
 	}
-	r := data[iter.pos]
-	entry := NewEntry(NewInt(iter.pos), NewBSlice([]byte{r}))
 	iter.pos++
-	return entry, true
+	value := data[iter.pos]
+	iter.current = NewBSlice([]byte{value})
+	return iter.current, true
+}
+
+func (iter *BSliceIter) Entry() (IteratorEntry, bool) {
+	if iter.current == nil {
+		return nil, false
+	}
+	return NewEntry(NewInt(iter.pos), iter.current), true
 }
 
 func (iter *BSliceIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for bslice_iter: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for bslice_iter: %v", opType))
+}
+
+func (iter *BSliceIter) Cost() int {
+	return 0
 }
 
 func NewBytesIter(b *BSlice) *BSliceIter {
-	return &BSliceIter{b: b, pos: 0}
+	return &BSliceIter{b: b, pos: -1}
 }

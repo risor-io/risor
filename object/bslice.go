@@ -232,7 +232,7 @@ func (b *BSlice) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return b.runOperationString(opType, right)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for bslice: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for bslice: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -244,7 +244,7 @@ func (b *BSlice) runOperationBytes(opType op.BinaryOpType, right *BSlice) Object
 		copy(result[len(b.value):], right.value)
 		return NewBSlice(result)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for bslice: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for bslice: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -257,7 +257,7 @@ func (b *BSlice) runOperationString(opType op.BinaryOpType, right *String) Objec
 		copy(result[len(b.value):], rightBytes)
 		return NewBSlice(result)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for bslice: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for bslice: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -306,11 +306,14 @@ func (b *BSlice) DelItem(key Object) *Error {
 }
 
 func (b *BSlice) Contains(obj Object) *Bool {
-	data, err := AsBytes(obj)
+	data, err := AsInt(obj)
 	if err != nil {
 		return False
 	}
-	return NewBool(bytes.Contains(b.value, data))
+	if data < 0 || data > 255 {
+		return False
+	}
+	return NewBool(bytes.Contains(b.value, []byte{byte(data)}))
 }
 
 func (b *BSlice) Len() *Int {
@@ -458,6 +461,10 @@ func (b *BSlice) ReplaceAll(old, new Object) Object {
 		return err
 	}
 	return NewBSlice(bytes.ReplaceAll(b.value, oldBytes, newBytes))
+}
+
+func (b *BSlice) Cost() int {
+	return len(b.value)
 }
 
 func NewBSlice(value []byte) *BSlice {

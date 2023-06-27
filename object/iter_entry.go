@@ -57,7 +57,7 @@ func (e *Entry) IsTruthy() bool {
 }
 
 func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for entry: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for entry: %v", opType))
 }
 
 func (e *Entry) Key() Object {
@@ -83,6 +83,10 @@ func (e *Entry) WithKeyAsPrimary() *Entry {
 func (e *Entry) WithValueAsPrimary() *Entry {
 	e.primary = e.value
 	return e
+}
+
+func (e *Entry) Cost() int {
+	return 0
 }
 
 func NewEntry(key, value Object) *Entry {

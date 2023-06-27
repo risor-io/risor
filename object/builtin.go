@@ -89,19 +89,22 @@ func (b *Builtin) Key() string {
 }
 
 func (b *Builtin) Equals(other Object) Object {
-	if other.Type() != BUILTIN {
-		return NewBool(false)
+	if b == other {
+		return True
 	}
-	value := fmt.Sprintf("%v", b.fn) == fmt.Sprintf("%v", other.(*Builtin).fn)
-	return NewBool(value)
+	return False
 }
 
 func (b *Builtin) IsTruthy() bool {
-	return b.fn != nil
+	return true
 }
 
 func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for builtin: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for builtin: %v", opType))
+}
+
+func (b *Builtin) Cost() int {
+	return 0
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

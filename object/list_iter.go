@@ -8,8 +8,9 @@ import (
 )
 
 type ListIter struct {
-	l   *List
-	pos int64
+	l       *List
+	pos     int64
+	current Object
 }
 
 func (iter *ListIter) Type() Type {
@@ -49,12 +50,26 @@ func (iter *ListIter) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "next":
 		return &Builtin{
-			name: "next",
+			name: "list_iter.next",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("list_iter.next", 0, len(args))
 				}
-				entry, ok := iter.Next()
+				value, ok := iter.Next()
+				if !ok {
+					return Nil
+				}
+				return value
+			},
+		}, true
+	case "entry":
+		return &Builtin{
+			name: "list_iter.entry",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("list_iter.entry", 0, len(args))
+				}
+				entry, ok := iter.Entry()
 				if !ok {
 					return Nil
 				}
@@ -70,20 +85,31 @@ func (iter *ListIter) IsTruthy() bool {
 }
 
 func (iter *ListIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for list_iter: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for list_iter: %v", opType))
 }
 
-func (iter *ListIter) Next() (IteratorEntry, bool) {
+func (iter *ListIter) Cost() int {
+	return 0
+}
+
+func (iter *ListIter) Next() (Object, bool) {
 	items := iter.l.items
-	if iter.pos >= int64(len(items)) {
+	if iter.pos >= int64(len(items)-1) {
+		iter.current = nil
 		return nil, false
 	}
-	r := items[iter.pos]
-	entry := NewEntry(NewInt(iter.pos), r)
 	iter.pos++
-	return entry, true
+	iter.current = items[iter.pos]
+	return iter.current, true
+}
+
+func (iter *ListIter) Entry() (IteratorEntry, bool) {
+	if iter.current == nil {
+		return nil, false
+	}
+	return NewEntry(NewInt(iter.pos), iter.current), true
 }
 
 func NewListIter(l *List) *ListIter {
-	return &ListIter{l: l, pos: 0}
+	return &ListIter{l: l, pos: -1}
 }

@@ -40,7 +40,7 @@ type VirtualMachine struct {
 	main        *object.Code
 	importer    importer.Importer
 	modules     map[string]*object.Module
-	limits      *limits.Limits
+	limits      limits.Limits
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -61,20 +61,14 @@ func WithImporter(importer importer.Importer) Option {
 }
 
 // WithLimits sets the limits for the Virtual Machine.
-func WithLimits(limits *limits.Limits) Option {
+func WithLimits(limits limits.Limits) Option {
 	return func(vm *VirtualMachine) {
 		vm.limits = limits
 	}
 }
 
-func defaultLimits() *limits.Limits {
-	return &limits.Limits{
-		HTTP: limits.HTTP{
-			MaxBodyLength:    10 * MB,
-			MaxContentLength: 10 * MB,
-			Timeout:          10 * 1000,
-		},
-	}
+func defaultLimits() limits.Limits {
+	return limits.New(limits.WithMaxBufferSize(100 * MB))
 }
 
 // New creates a new Virtual Machine.
@@ -116,7 +110,7 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	vm.activeCode = vm.main
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	ctx = object.WithCodeFunc(ctx, vm.codeFunction)
-	ctx = object.WithLimits(ctx, vm.limits)
+	ctx = limits.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
 	return
 }
@@ -437,11 +431,11 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 			iter := container.Iter()
 			for {
-				obj, ok := iter.Next()
+				val, ok := iter.Next()
 				if !ok {
 					break
 				}
-				vm.push(obj.Primary())
+				vm.push(val)
 			}
 		case op.GetIter:
 			obj := vm.pop()
@@ -458,10 +452,10 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			jumpAmount := vm.fetch()
 			nameCount := vm.fetch()
 			iter := vm.pop().(object.Iterator)
-			obj, ok := iter.Next()
-			if !ok {
+			if _, ok := iter.Next(); !ok {
 				vm.ip = base + int(jumpAmount)
 			} else {
+				obj, _ := iter.Entry()
 				vm.push(iter)
 				if nameCount == 1 {
 					vm.push(obj.Key())

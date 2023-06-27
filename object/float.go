@@ -91,8 +91,12 @@ func (f *Float) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *Float:
 		return f.runOperationFloat(opType, right.value)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for float: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v on type %s", opType, right.Type()))
 	}
+}
+
+func (f *Float) Cost() int {
+	return 8
 }
 
 func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object {
@@ -108,7 +112,7 @@ func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object 
 	case op.Power:
 		return NewFloat(math.Pow(f.value, right))
 	default:
-		return NewError(fmt.Errorf("unsupported operation for float: %v", opType))
+		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v", opType))
 	}
 }
 

@@ -330,7 +330,7 @@ func (m *Map) Equals(other Object) Object {
 }
 
 func (m *Map) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for map: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for map: %v", opType))
 }
 
 func (m *Map) GetItem(key Object) (Object, *Error) {
@@ -399,6 +399,12 @@ func (m *Map) StringKeys() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func (m *Map) Cost() int {
+	// It would be possible to recurse and compute the cost of each item, but
+	// let's avoid that since it would be an expensive op itself.
+	return len(m.items) * 8
 }
 
 func NewMap(m map[string]Object) *Map {

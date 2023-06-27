@@ -65,7 +65,7 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 }
 
 func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("unsupported operation for pgx_conn: %v", opType))
+	return object.NewError(fmt.Errorf("eval error: unsupported operation for pgx_conn: %v", opType))
 }
 
 func (c *PgxConn) Close() error {
@@ -85,6 +85,10 @@ func (c *PgxConn) waitToClose() {
 			c.conn.Close(c.ctx)
 		}
 	}()
+}
+
+func (c *PgxConn) Cost() int {
+	return 8
 }
 
 func New(ctx context.Context, conn *pgx.Conn) *PgxConn {

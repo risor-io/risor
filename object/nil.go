@@ -17,7 +17,7 @@ func (n *NilType) Inspect() string {
 }
 
 func (n *NilType) String() string {
-	return "nil()"
+	return "nil"
 }
 
 func (n *NilType) GetAttr(name string) (Object, bool) {
@@ -48,5 +48,9 @@ func (n *NilType) IsTruthy() bool {
 }
 
 func (n *NilType) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for nil: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
+}
+
+func (n *NilType) Cost() int {
+	return 0
 }
