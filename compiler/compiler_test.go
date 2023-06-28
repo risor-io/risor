@@ -3,8 +3,8 @@ package compiler
 import (
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/ast"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/ast"
+	"github.com/risor-io/risor/op"
 	"github.com/stretchr/testify/require"
 )
 

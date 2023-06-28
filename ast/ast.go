@@ -1,7 +1,7 @@
-// Package ast defines abstract syntax tree types that represent Tamarin code.
+// Package ast defines abstract syntax tree types that represent Risor code.
 package ast
 
-import "github.com/cloudcmds/tamarin/v2/token"
+import "github.com/risor-io/risor/token"
 
 // Node reresents a portion of the syntax tree. All nodes have a token, which is
 // the token that begins the node. A Node may be an Expression, in which case
@@ -22,7 +22,7 @@ type Node interface {
 	IsExpression() bool
 }
 
-// Statement represents a snippet of Tamarin code that causes a side effect, but
+// Statement represents a snippet of Risor code that causes a side effect, but
 // does not evaluate to a value.
 type Statement interface {
 	// Node is embedded here to indicate that all statements are AST nodes.
@@ -32,7 +32,7 @@ type Statement interface {
 	StatementNode()
 }
 
-// Expression represents a snippet of Tamarin code that evaluates to a value.
+// Expression represents a snippet of Risor code that evaluates to a value.
 // Expressions may be embedded within other expressions.
 type Expression interface {
 	// Node is embedded here to indicate that all expressions are AST nodes.

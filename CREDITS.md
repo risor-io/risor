@@ -6,7 +6,7 @@
 
 ## Background
 
-Tamarin v1 started from the interpreter codebase from Thorsten Ball from his book
+Risor v1 started from the interpreter codebase from Thorsten Ball from his book
 "Writing An Interpreter In Go".
 
 https://interpreterbook.com/

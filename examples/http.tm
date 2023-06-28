@@ -1,4 +1,4 @@
-#!/usr/bin/env tamarin
+#!/usr/bin/env risor
 
 resp := fetch("https://httpbin.org/post", {
     method: "POST",

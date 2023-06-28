@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // GoMethod represents a single method on a Go type. This exposes the method to
-// Tamarin for reflection and proxying.
+// Risor for reflection and proxying.
 type GoMethod struct {
 	*base
 	method        reflect.Method
@@ -136,14 +136,14 @@ func (m *GoMethod) IsOutputError(index int) bool {
 	return m.outputIsError[index]
 }
 
-// Returns a Tamarin *GoMethod Object that represents the given Go method.
-// This aids in calling Go methods from Tamarin.
+// Returns a Risor *GoMethod Object that represents the given Go method.
+// This aids in calling Go methods from Risor.
 func newGoMethod(m reflect.Method) (*GoMethod, error) {
 
 	numIn := m.Type.NumIn()
 	numOut := m.Type.NumOut()
 
-	// name, numIn, numOut are immutable so we can create Tamarin objects
+	// name, numIn, numOut are immutable so we can create Risor objects
 	// for them once and reuse them to avoid repeated allocations later.
 	method := &GoMethod{
 		method: m,

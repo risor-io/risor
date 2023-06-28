@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 type Client struct {

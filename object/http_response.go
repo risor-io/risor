@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2/limits"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/op"
 )
 
 type HttpResponse struct {

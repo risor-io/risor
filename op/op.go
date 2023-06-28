@@ -1,4 +1,4 @@
-// Package op defines the opcodes that are used in the Tamarin virtual machine.
+// Package op defines the opcodes that are used in the Risor virtual machine.
 package op
 
 type Code uint16

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/token"
 )
 
 // Ident is an expression node that refers to a variable by name.

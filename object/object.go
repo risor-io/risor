@@ -1,6 +1,6 @@
-// Package object defines the standard set of object types in Tamarin.
+// Package object defines the standard set of object types in Risor.
 //
-// For external users of Tamarin, often an object.Object interface
+// For external users of Risor, often an object.Object interface
 // will be type asserted to a specific object type, such as *object.Float.
 //
 // For example:
@@ -16,7 +16,7 @@
 // name of the object type, such as "string" or "float".
 package object
 
-import "github.com/cloudcmds/tamarin/v2/op"
+import "github.com/risor-io/risor/op"
 
 // Type of an object as a string.
 type Type string
@@ -68,7 +68,7 @@ var (
 	False = &Bool{value: false}
 )
 
-// Object is the interface that all object types in Tamarin must implement.
+// Object is the interface that all object types in Risor must implement.
 type Object interface {
 
 	// Type of the object.

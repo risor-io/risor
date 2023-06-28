@@ -1,4 +1,4 @@
-// Package builtins defines the default set of builtin functions for Tamarin.
+// Package builtins defines the default set of builtin functions for Risor.
 package builtins
 
 import (
@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/limits"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/object"
 )
 
 func Len(ctx context.Context, args ...object.Object) object.Object {

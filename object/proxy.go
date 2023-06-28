@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 var (
@@ -39,7 +39,7 @@ func LookupGoType(obj interface{}) (*GoType, bool) {
 	return goType, found
 }
 
-// Proxy is a Tamarin type that proxies method calls to a wrapped Go struct.
+// Proxy is a Risor type that proxies method calls to a wrapped Go struct.
 // Only the public methods of the Go type are proxied.
 type Proxy struct {
 	*base
@@ -217,9 +217,9 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	return NewList(results)
 }
 
-// NewProxy returns a new Tamarin proxy object that wraps the given Go object.
+// NewProxy returns a new Risor proxy object that wraps the given Go object.
 // This operation may fail if the Go type has attributes whose types cannot be
-// converted to Tamarin types.
+// converted to Risor types.
 func NewProxy(obj interface{}) (*Proxy, error) {
 
 	typ := reflect.TypeOf(obj)

@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
 func NewMethod(name string, obj interface{}, method *GoMethod) *object.Builtin {
@@ -56,12 +56,12 @@ func NewMethod(name string, obj interface{}, method *GoMethod) *object.Builtin {
 			return object.Errorf("unsupported aws method: %s (unexpected return count: %d)", name, len(outputs))
 		}
 
-		// If there is a non-nil error in the output, return a Tamarin error
+		// If there is a non-nil error in the output, return a Risor error
 		if errOut := outputs[1]; !errOut.IsNil() {
 			return object.NewError(errOut.Interface().(error))
 		}
 
-		// Convert the output to a Tamarin map
+		// Convert the output to a Risor map
 		outputData, err := json.Marshal(outputs[0].Interface())
 		if err != nil {
 			return object.NewError(err)

@@ -8,13 +8,13 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/modules/all"
-	"github.com/cloudcmds/tamarin/v2/object"
-	tos "github.com/cloudcmds/tamarin/v2/os"
-	"github.com/cloudcmds/tamarin/v2/parser"
-	"github.com/cloudcmds/tamarin/v2/repl"
 	"github.com/fatih/color"
+	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/modules/all"
+	"github.com/risor-io/risor/object"
+	tos "github.com/risor-io/risor/os"
+	"github.com/risor-io/risor/parser"
+	"github.com/risor-io/risor/repl"
 )
 
 func main() {
@@ -80,11 +80,11 @@ func main() {
 
 	start := time.Now()
 
-	result, err := tamarin.Eval(ctx,
+	result, err := risor.Eval(ctx,
 		string(input),
-		tamarin.WithBuiltins(all.Builtins()),
-		tamarin.WithDefaultBuiltins(),
-		tamarin.WithDefaultModules())
+		risor.WithBuiltins(all.Builtins()),
+		risor.WithDefaultBuiltins(),
+		risor.WithDefaultModules())
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {

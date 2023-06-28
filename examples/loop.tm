@@ -1,4 +1,4 @@
-#!/usr/bin/env tamarin
+#!/usr/bin/env risor
 
 // sum := 0
 

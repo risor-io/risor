@@ -1,13 +1,13 @@
 # Executable Scripts
 
-Tamarin scripts can easily be made directly executable on MacOS and Linux.
-In the steps below, the Tamarin script filename is `myscript`. The full path
+Risor scripts can easily be made directly executable on MacOS and Linux.
+In the steps below, the Risor script filename is `myscript`. The full path
 to the script is `/path/to/myscript`.
 
-1\. Add a shebang line at the start of the Tamarin script.
+1\. Add a shebang line at the start of the Risor script.
 
 ```
-#!/usr/bin/env tamarin
+#!/usr/bin/env risor
 ```
 
 2\. Allow execution as a program by running `chmod` against the script:
@@ -29,7 +29,7 @@ modified `PATH` variable for future sessions.
 ## Example Script
 
 ```go
-#!/usr/bin/env tamarin
+#!/usr/bin/env risor
 
 print("just a test")
 ```

@@ -1,4 +1,4 @@
-// Package tmpl is used to parse Tamarin string templates.
+// Package tmpl is used to parse Risor string templates.
 package tmpl
 
 import "fmt"

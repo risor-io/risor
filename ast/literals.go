@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/internal/tmpl"
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/internal/tmpl"
+	"github.com/risor-io/risor/token"
 )
 
 // Int is an expression node that holds an integer literal.

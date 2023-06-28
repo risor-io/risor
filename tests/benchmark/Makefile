@@ -1,4 +1,4 @@
 
-.PHONY: tamarin
-tamarin:
-	../../tamarin ./main.tm
+.PHONY: risor
+risor:
+	../../risor ./main.tm

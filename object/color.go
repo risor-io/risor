@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"image/color"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Color struct {

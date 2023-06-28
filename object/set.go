@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Set struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"math"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
 func Abs(ctx context.Context, args ...object.Object) object.Object {
