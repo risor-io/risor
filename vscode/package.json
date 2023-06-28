@@ -1,14 +1,14 @@
 {
-  "name": "tamarin-language",
-  "displayName": "Tamarin Language",
-  "description": "Tamarin Language Support",
+  "name": "risor-language",
+  "displayName": "Risor Language",
+  "description": "Risor Language Support",
   "author": "Curtis Myzie",
   "license": "MIT",
   "version": "0.0.8",
   "icon": "images/logo-256.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cloudcmds/tamarin"
+    "url": "https://github.com/risor-io/risor"
   },
   "publisher": "CurtisMyzie",
   "categories": [
@@ -27,10 +27,10 @@
   "contributes": {
     "languages": [
       {
-        "id": "tamarin",
+        "id": "risor",
         "aliases": [
-          "Tamarin",
-          "tamarin"
+          "Risor",
+          "risor"
         ],
         "extensions": [
           ".tam",
@@ -41,9 +41,9 @@
     ],
     "grammars": [
       {
-        "language": "tamarin",
-        "scopeName": "source.tamarin",
-        "path": "./syntaxes/tamarin.grammar.json"
+        "language": "risor",
+        "scopeName": "source.risor",
+        "path": "./syntaxes/risor.grammar.json"
       }
     ],
     "configuration": {

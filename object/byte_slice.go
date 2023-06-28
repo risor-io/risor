@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type ByteSlice struct {

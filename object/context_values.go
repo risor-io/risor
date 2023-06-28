@@ -7,16 +7,16 @@ import (
 type contextKey string
 
 ////////////////////////////////////////////////////////////////////////////////
-// Store and retrieve a function that can call a compiled Tamarin function
+// Store and retrieve a function that can call a compiled Risor function
 ////////////////////////////////////////////////////////////////////////////////
 
-// CallFunc is a type signature for a function that can call a Tamarin function.
+// CallFunc is a type signature for a function that can call a Risor function.
 type CallFunc func(ctx context.Context, fn *Function, args []Object) (Object, error)
 
-const callFuncKey = contextKey("tamarin:call")
+const callFuncKey = contextKey("risor:call")
 
 // WithCallFunc adds an CallFunc to the context, which can be used by
-// objects to call a Tamarin function at runtime.
+// objects to call a Risor function at runtime.
 func WithCallFunc(ctx context.Context, fn CallFunc) context.Context {
 	return context.WithValue(ctx, callFuncKey, fn)
 }
@@ -34,7 +34,7 @@ func GetCallFunc(ctx context.Context) (CallFunc, bool) {
 // CodeFunc is a type signature for a function that can retrieve the active code.
 type CodeFunc func(ctx context.Context) (*Code, error)
 
-const codeFuncKey = contextKey("tamarin:code")
+const codeFuncKey = contextKey("risor:code")
 
 // WithCodeFunc adds an CodeFunc to the context, which can be used by
 // objects to retrieve the active code at runtime

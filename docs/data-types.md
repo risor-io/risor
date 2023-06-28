@@ -1,6 +1,6 @@
 # Data Types
 
-Tamarin includes a variety of built-in types. The core types are: int, float,
+Risor includes a variety of built-in types. The core types are: int, float,
 bool, error, string, list, map, set, result, function, and time. There are also
 a handful of iterator types, one for each container type.
 
@@ -8,7 +8,7 @@ Container types may hold a heterogeneous mix of types within. There is not
 currently a way to restrict the types a container may hold.
 
 Optional type hints like found in Python or Typescript may be a future addition
-to Tamarin.
+to Risor.
 
 ## Quick Reference
 
@@ -27,8 +27,8 @@ time.now()  // time
 
 ## Numerics
 
-Int and Float types are the two numeric types in Tamarin. They correspond to
-boxed `int64` and `float64` values in Go. Tamarin automatically converts Ints
+Int and Float types are the two numeric types in Risor. They correspond to
+boxed `int64` and `float64` values in Go. Risor automatically converts Ints
 to Floats in mixed type operations.
 
 The standard set of numeric operators are available when working with these types.
@@ -60,7 +60,7 @@ The standard set of numeric operators are available when working with these type
 "float"
 ```
 
-Many math functions are also available in the Tamarin `math` module.
+Many math functions are also available in the Risor `math` module.
 
 ### Related Built-ins
 
@@ -88,9 +88,9 @@ fails.
 
 ## Bool
 
-The `bool` type in Tamarin is a simple wrapper of the Go `bool` type.
+The `bool` type in Risor is a simple wrapper of the Go `bool` type.
 
-All underlying object types in Tamarin implement the `object.Object` interface,
+All underlying object types in Risor implement the `object.Object` interface,
 which includes `IsTruthy()` and `Equals(other)` methods. It's good to keep this
 in mind since object "truthiness" can be leveraged in conditional statements.
 
@@ -127,13 +127,13 @@ be truthy.
 
 ## String
 
-Strings in Tamarin are based on the underlying `string` type in Go. As such,
+Strings in Risor are based on the underlying `string` type in Go. As such,
 they support unicode and various operations like indexing operate on the
 underlying runes within the string.
 
 ### Quote Types
 
-There are three ways to quote strings in Tamarin source code:
+There are three ways to quote strings in Risor source code:
 
 ```
 'single quotes: supports interpolated {vars}'
@@ -143,8 +143,8 @@ There are three ways to quote strings in Tamarin source code:
 
 The single quoted string approach offers string formatting via interpolation,
 much like [f-strings](https://peps.python.org/pep-0498/) in Python. Arbitrary
-Tamarin expressions can be embedded within parentheses and resolved during
-evaluation. In Tamarin, the restriction on these expressions is that they
+Risor expressions can be embedded within parentheses and resolved during
+evaluation. In Risor, the restriction on these expressions is that they
 cannot contain curly braces, since those are used to mark the beginning and
 end of the template expression.
 
@@ -170,7 +170,7 @@ Another example:
 
 ### Container Operations
 
-Strings in Tamarin implement the `object.Container` interface, which means they
+Strings in Risor implement the `object.Container` interface, which means they
 support typical container-style operations:
 
 ```go
@@ -207,13 +207,13 @@ provided.
 
 #### sprintf(string, ...any)
 
-Wraps `fmt.Sprintf` to format the string with the provided arguments. Tamarin
+Wraps `fmt.Sprintf` to format the string with the provided arguments. Risor
 objects are converted to their corresponding Go types before being passed to
 `fmt.Sprintf`.
 
 #### string(x)
 
-Returns the string representation of any Tamarin object.
+Returns the string representation of any Risor object.
 
 ### Methods
 
@@ -290,7 +290,7 @@ string doesn't end with `suffix`.
 
 ## List
 
-Lists in Tamarin behave very similarly to lists in Python. Methods and indexing
+Lists in Risor behave very similarly to lists in Python. Methods and indexing
 on lists are the primary way to interact with these objects. A list can store
 objects of any types, including a mix of types in one list.
 
@@ -398,9 +398,9 @@ Calls the supplied function once with each item in the list.
 
 ## Map
 
-Maps associate keys with values and provide fast lookups by key. Tamarin
+Maps associate keys with values and provide fast lookups by key. Risor
 maps use underlying Go maps of type `map[string]interface{}`. This means
-Tamarin maps always operate with string keys, which provides equivalence with JSON.
+Risor maps always operate with string keys, which provides equivalence with JSON.
 
 ```go
 >>> m := {one: 1, two: 2}

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // GoType represents a single Go type whose methods and fields can be proxied.

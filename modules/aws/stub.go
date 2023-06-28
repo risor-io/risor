@@ -4,7 +4,7 @@
 package aws
 
 import (
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 )
 
 func Module() *object.Module {

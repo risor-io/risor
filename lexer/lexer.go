@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/token"
 )
 
 // NumberType describes the type of a number that is being lexed.

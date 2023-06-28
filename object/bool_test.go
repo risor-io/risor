@@ -3,7 +3,7 @@ package object_test
 import (
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/require"
 )
 

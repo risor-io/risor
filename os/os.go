@@ -52,7 +52,7 @@ type contextKey string
 const osKey = contextKey("tamarin:os")
 
 // WithOS adds an OS to the context. Subsequently, when this context is present
-// in the invocation of Tamarin builtins, this OS will be used for all related
+// in the invocation of Risor builtins, this OS will be used for all related
 // functionality.
 func WithOS(ctx context.Context, osObj OS) context.Context {
 	return context.WithValue(ctx, osKey, osObj)

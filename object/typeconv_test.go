@@ -89,14 +89,14 @@ func TestPointerConverter(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, NewFloat(2.0), f)
 
-	// Convert one Tamarin Float to a *float64
+	// Convert one Risor Float to a *float64
 	outVal1, err := c.To(NewFloat(3.0))
 	require.Nil(t, err)
 	outValPtr1, ok := outVal1.(*float64)
 	require.True(t, ok)
 	require.Equal(t, 3.0, *outValPtr1)
 
-	// Convert a second Tamarin Float to a *float64
+	// Convert a second Risor Float to a *float64
 	outVal2, err := c.To(NewFloat(4.0))
 	require.Nil(t, err)
 	outValPtr2, ok := outVal2.(*float64)

@@ -3,7 +3,7 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Bool wraps bool and implements Object and Hashable interface.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // GoField represents a single field on a Go type that can be read or written.

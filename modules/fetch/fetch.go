@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/cloudcmds/tamarin/v2/internal/httputil"
-	"github.com/cloudcmds/tamarin/v2/limits"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/httputil"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/object"
 )
 
 func Fetch(ctx context.Context, args ...object.Object) object.Object {

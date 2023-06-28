@@ -1,12 +1,12 @@
 cmd/cli/cli
 .vscode
-/tamarin
-/cmd/tamarin/tamarin
+/risor
+/cmd/risor/risor
 cpu.out
 node_modules
-tamarin*.vsix
-tamarin-language-server.log
-cmd/tamarin-lsp/tamarin-lsp
+risor*.vsix
+risor-language-server.log
+cmd/risor-lsp/risor-lsp
 cmd/simple-example/simple-example
 cover.out
 profile.out
@@ -15,5 +15,5 @@ dist/
 venv/
 site/
 
-tamarin_v1
-tamarin_v2
+risor_v1
+risor_v2

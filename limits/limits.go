@@ -38,7 +38,7 @@ type Limits interface {
 
 type contextKey string
 
-const limitsKey = contextKey("tamarin:limits")
+const limitsKey = contextKey("risor:limits")
 
 // WithCodeFunc adds an CodeFunc to the context, which can be used by
 // objects to retrieve the active code at runtime
@@ -46,7 +46,7 @@ func WithLimits(ctx context.Context, l Limits) context.Context {
 	return context.WithValue(ctx, limitsKey, l)
 }
 
-// GetLimits returns Tamarin limits associated with the context, if any.
+// GetLimits returns Risor limits associated with the context, if any.
 func GetLimits(ctx context.Context) (Limits, bool) {
 	l, ok := ctx.Value(limitsKey).(Limits)
 	return l, ok

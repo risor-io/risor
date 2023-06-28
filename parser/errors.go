@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/token"
 )
 
 // ErrorOpts is a struct that holds a variety of error data.

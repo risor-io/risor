@@ -7,8 +7,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/op"
-	tos "github.com/cloudcmds/tamarin/v2/os"
+	"github.com/risor-io/risor/op"
+	tos "github.com/risor-io/risor/os"
 )
 
 type File struct {

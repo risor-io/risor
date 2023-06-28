@@ -3,8 +3,8 @@ package pgx
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/jackc/pgx/v5"
+	"github.com/risor-io/risor/object"
 )
 
 func Connect(ctx context.Context, args ...object.Object) object.Object {

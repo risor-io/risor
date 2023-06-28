@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 )
 
-// Importer is an interface used to import Tamarin code modules
+// Importer is an interface used to import Risor code modules
 type Importer interface {
 
 	// Import a module by name

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/ast"
 	"github.com/hashicorp/go-multierror"
+	"github.com/risor-io/risor/ast"
 )
 
 func printMultiError(err error) {

@@ -3,10 +3,10 @@ package ast
 import (
 	"bytes"
 
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/token"
 )
 
-// Program represents a complete Tamarin program, which consists of a series of
+// Program represents a complete Risor program, which consists of a series of
 // statements.
 type Program struct {
 	// The list of statements which comprise the program.

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	tamarin "github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,9 +79,9 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	return tamarin.Eval(ctx, input,
-		tamarin.WithDefaultBuiltins(),
-		tamarin.WithDefaultModules())
+	return risor.Eval(ctx, input,
+		risor.WithDefaultBuiltins(),
+		risor.WithDefaultModules())
 }
 
 func listTestFiles() []string {

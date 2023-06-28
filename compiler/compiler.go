@@ -7,10 +7,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/cloudcmds/tamarin/v2/ast"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/ast"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/token"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 	Placeholder = uint16(math.MaxUint16)
 )
 
-// Compiler is used to compile Tamarin AST into its corresponding bytecode.
+// Compiler is used to compile Risor AST into its corresponding bytecode.
 // This implements the ICompiler interface.
 type Compiler struct {
 

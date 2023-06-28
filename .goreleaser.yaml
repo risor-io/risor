@@ -41,13 +41,13 @@ changelog:
 brews:
   - skip_upload: false
     tap:
-      owner: cloudcmds
-      name: homebrew-tamarin
+      owner: risor-io
+      name: homebrew-risor
     commit_author:
       name: Curtis Myzie
       email: info@cmds.dev
     folder: Formula
-    homepage: "https://github.com/cloudcmds/tamarin"
+    homepage: "https://github.com/risor-io/risor"
     description: "An embedded scripting language for Go projects"
     license: "MIT"
 # The lines beneath this are called `modelines`. See `:help modeline`

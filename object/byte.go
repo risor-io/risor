@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Byte wraps byte and implements Object and Hashable interface.

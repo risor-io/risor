@@ -1,4 +1,4 @@
-#!/usr/bin/env tamarin
+#!/usr/bin/env risor
 
 func connect(user="postgres", pass="", host="localhost", port=5432, db="postgres") {
     return pgx.connect('postgres://{user}:{pass}@{host}:{port}/{db}')

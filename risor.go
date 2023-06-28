@@ -1,24 +1,24 @@
-package tamarin
+package risor
 
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/builtins"
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/importer"
-	modBase64 "github.com/cloudcmds/tamarin/v2/modules/base64"
-	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
-	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
-	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
-	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
-	modStrconv "github.com/cloudcmds/tamarin/v2/modules/strconv"
-	modStrings "github.com/cloudcmds/tamarin/v2/modules/strings"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
-	"github.com/cloudcmds/tamarin/v2/vm"
+	"github.com/risor-io/risor/builtins"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/importer"
+	modBase64 "github.com/risor-io/risor/modules/base64"
+	modBytes "github.com/risor-io/risor/modules/bytes"
+	modJson "github.com/risor-io/risor/modules/json"
+	modMath "github.com/risor-io/risor/modules/math"
+	modRand "github.com/risor-io/risor/modules/rand"
+	modStrconv "github.com/risor-io/risor/modules/strconv"
+	modStrings "github.com/risor-io/risor/modules/strings"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
+	"github.com/risor-io/risor/vm"
 )
 
-type Tamarin struct {
+type Risor struct {
 	compiler *compiler.Compiler
 	main     *object.Code
 	builtins map[string]object.Object
@@ -26,10 +26,10 @@ type Tamarin struct {
 	offset   int
 }
 
-type Option func(*Tamarin)
+type Option func(*Risor)
 
 func WithDefaultBuiltins() Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		for k, v := range builtins.Builtins() {
 			t.builtins[k] = v
 		}
@@ -37,7 +37,7 @@ func WithDefaultBuiltins() Option {
 }
 
 func WithDefaultModules() Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		for k, v := range defaultModules() {
 			t.builtins[k] = v
 		}
@@ -45,7 +45,7 @@ func WithDefaultModules() Option {
 }
 
 func WithBuiltins(builtins map[string]object.Object) Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		for k, v := range builtins {
 			t.builtins[k] = v
 		}
@@ -53,32 +53,32 @@ func WithBuiltins(builtins map[string]object.Object) Option {
 }
 
 func WithCompiler(c *compiler.Compiler) Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		t.compiler = c
 	}
 }
 
 func WithImporter(i importer.Importer) Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		t.importer = i
 	}
 }
 
 func WithCode(c *object.Code) Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		t.main = c
 	}
 }
 
 func WithInstructionOffset(offset int) Option {
-	return func(t *Tamarin) {
+	return func(t *Risor) {
 		t.offset = offset
 	}
 }
 
 func Eval(ctx context.Context, source string, options ...Option) (object.Object, error) {
 
-	t := Tamarin{
+	t := Risor{
 		builtins: map[string]object.Object{},
 	}
 	for _, opt := range options {

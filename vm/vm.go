@@ -7,10 +7,10 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/cloudcmds/tamarin/v2/importer"
-	"github.com/cloudcmds/tamarin/v2/limits"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/importer"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 const (
@@ -605,7 +605,7 @@ func (vm *VirtualMachine) codeFunction(ctx context.Context) (*object.Code, error
 }
 
 // Calls a compiled function with the given arguments. This is used internally
-// when a Tamarin object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
+// when a Risor object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
 func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 	baseFrame := vm.fp
 	baseIP := vm.ip

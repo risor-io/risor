@@ -167,7 +167,7 @@ func AsReader(obj Object) (io.Reader, *Error) {
 }
 
 // *****************************************************************************
-// Converting types from Go to Tamarin
+// Converting types from Go to Risor
 // *****************************************************************************
 
 func FromGoType(obj interface{}) Object {
@@ -242,14 +242,14 @@ func FromGoType(obj interface{}) Object {
 //   - These are applicable when the Go type(s) are known in advance
 // *****************************************************************************
 
-// TypeConverter is an interface used to convert between Go and Tamarin objects
+// TypeConverter is an interface used to convert between Go and Risor objects
 // for a single Go type.
 type TypeConverter interface {
 
-	// To converts to a Go object from a Tamarin object.
+	// To converts to a Go object from a Risor object.
 	To(Object) (interface{}, error)
 
-	// From converts a Go object to a Tamarin object.
+	// From converts a Go object to a Risor object.
 	From(interface{}) (Object, error)
 }
 
@@ -728,7 +728,7 @@ func (c *BufferConverter) From(obj interface{}) (Object, error) {
 	return NewBuffer(obj.(*bytes.Buffer)), nil
 }
 
-// DynamicConverter converts between interface{} and the appropriate Tamarin type.
+// DynamicConverter converts between interface{} and the appropriate Risor type.
 // This is slow and should only be used to handle unknown types.
 type DynamicConverter struct{}
 
@@ -794,7 +794,7 @@ func newMapConverter(valueType reflect.Type) (*MapConverter, error) {
 	}, nil
 }
 
-// StructConverter converts between a Go struct and a Tamarin Map.
+// StructConverter converts between a Go struct and a Risor Map.
 type StructConverter struct {
 	typ             reflect.Type
 	fieldConverters []TypeConverter
@@ -865,7 +865,7 @@ func newStructConverter(typ reflect.Type) (*StructConverter, error) {
 	}, nil
 }
 
-// PointerConverter converts between *T and the Tamarin equivalent of T.
+// PointerConverter converts between *T and the Risor equivalent of T.
 type PointerConverter struct {
 	valueConverter TypeConverter
 }
@@ -895,7 +895,7 @@ func newPointerConverter(indirectType reflect.Type) (*PointerConverter, error) {
 	return &PointerConverter{valueConverter: indirectConv}, nil
 }
 
-// SliceConverter converts between []T and the Tamarin equivalent of []T.
+// SliceConverter converts between []T and the Risor equivalent of []T.
 type SliceConverter struct {
 	valueConverter TypeConverter
 	valueType      reflect.Type
@@ -944,7 +944,7 @@ func newSliceConverter(indirectType reflect.Type) (*SliceConverter, error) {
 	}, nil
 }
 
-// ArrayConverter converts between []T and the Tamarin equivalent of []T.
+// ArrayConverter converts between []T and the Risor equivalent of []T.
 type ArrayConverter struct {
 	valueConverter TypeConverter
 	valueType      reflect.Type

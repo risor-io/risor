@@ -8,7 +8,7 @@ import (
 	"crypto/sha512"
 	"hash"
 
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 )
 
 func Hash(ctx context.Context, args ...object.Object) object.Object {

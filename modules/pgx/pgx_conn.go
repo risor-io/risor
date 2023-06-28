@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 const PGX_CONN = object.Type("pgx_conn")
@@ -133,7 +133,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	fields := rows.FieldDescriptions()
 	var results []object.Object
 
-	// Transform each result row into a Tamarin map object
+	// Transform each result row into a Risor map object
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {

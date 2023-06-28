@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +35,7 @@ func (e ProxyServiceEmbedded) Increment(ctx context.Context, i int64) int64 {
 }
 
 // This represents a "service" provided by Go code that we want to call from
-// Tamarin code using a proxy.
+// Risor code using a proxy.
 type ProxyService struct {
 	ProxyServiceEmbedded
 }
@@ -274,7 +274,7 @@ func TestProxyBytesBuffer(t *testing.T) {
 func TestProxyMethodError(t *testing.T) {
 
 	// Using the ReadByte method as an example, call it in a situation that will
-	// have it return an error, then confirm a Tamarin *Error is returned.
+	// have it return an error, then confirm a Risor *Error is returned.
 
 	// func (b *Buffer) ReadByte() (byte, error)
 	// If no byte is available, it returns error io.EOF.

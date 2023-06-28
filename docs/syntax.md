@@ -1,14 +1,14 @@
 # Syntax
 
-Tamarin was designed to be like a more scripting-friendly version of Go.
-At times, approaches from Python were referenced when deciding how Tamarin
+Risor was designed to be like a more scripting-friendly version of Go.
+At times, approaches from Python were referenced when deciding how Risor
 should approach a particular situation as an interpreted language. As a result,
-Tamarin may feel like a hybrid of Go and Python.
+Risor may feel like a hybrid of Go and Python.
 
 !!! Note
 
     In the examples below, when you see a `>>>` it indicates that input and output
-    from a Tamarin REPL session is being shown. To the right of the `>>>` is the
+    from a Risor REPL session is being shown. To the right of the `>>>` is the
     command the user entered. The command output is shown on the line below.
 
 ## Variables
@@ -243,7 +243,7 @@ Pipelines can be used to build functions:
 
 ## Attributes
 
-Objects in Tamarin may have data attributes and method attributes. Both are
+Objects in Risor may have data attributes and method attributes. Both are
 retrieved with a familiar `object.attribute` syntax. There is also a built-in
 `getattr` function that supports retrieving a named attribute from an object.
 
@@ -264,7 +264,7 @@ builtin(list.append)
 
 ## Indexing
 
-Multiple Tamarin core types support index operations. These types are referred
+Multiple Risor core types support index operations. These types are referred
 to as _container types_ and include list, map, set, and string.
 
 Lists use zero-based indexing. Negative indices operate relative to the end of the list:
@@ -313,7 +313,7 @@ operates on the underlying bytes.
 
 ## Slices
 
-Lists and strings in Tamarin support slice operations to select a range of items.
+Lists and strings in Risor support slice operations to select a range of items.
 
 ```go
 >>> l := ["a", "b", "c"]
@@ -329,7 +329,7 @@ in order to refer to the beginning or the end of the sequence, respectively.
 
 ## Import
 
-Tamarin files may be imported as modules using the `import` keyword. All module
+Risor files may be imported as modules using the `import` keyword. All module
 data and functions are available as attributes on the module after import. As a
 convention, if an attribute is intended to be private to a module, prefix its
 name with an underscore.

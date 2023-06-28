@@ -1,13 +1,13 @@
-package tamarin
+package risor
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
 

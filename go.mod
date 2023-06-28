@@ -1,4 +1,4 @@
-module github.com/cloudcmds/tamarin/v2
+module github.com/risor-io/risor
 
 go 1.19
 

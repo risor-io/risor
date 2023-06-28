@@ -35,9 +35,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 type Config struct {

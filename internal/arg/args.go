@@ -3,7 +3,7 @@ package arg
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 )
 
 func Require(funcName string, count int, args []object.Object) *object.Error {

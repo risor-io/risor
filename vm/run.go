@@ -3,19 +3,19 @@ package vm
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/builtins"
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/importer"
-	modBytes "github.com/cloudcmds/tamarin/v2/modules/bytes"
-	modFmt "github.com/cloudcmds/tamarin/v2/modules/fmt"
-	modJson "github.com/cloudcmds/tamarin/v2/modules/json"
-	modMath "github.com/cloudcmds/tamarin/v2/modules/math"
-	modRand "github.com/cloudcmds/tamarin/v2/modules/rand"
-	modStrconv "github.com/cloudcmds/tamarin/v2/modules/strconv"
-	modStrings "github.com/cloudcmds/tamarin/v2/modules/strings"
-	modTime "github.com/cloudcmds/tamarin/v2/modules/time"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor/builtins"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/importer"
+	modBytes "github.com/risor-io/risor/modules/bytes"
+	modFmt "github.com/risor-io/risor/modules/fmt"
+	modJson "github.com/risor-io/risor/modules/json"
+	modMath "github.com/risor-io/risor/modules/math"
+	modRand "github.com/risor-io/risor/modules/rand"
+	modStrconv "github.com/risor-io/risor/modules/strconv"
+	modStrings "github.com/risor-io/risor/modules/strings"
+	modTime "github.com/risor-io/risor/modules/time"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 )
 
 func run(ctx context.Context, code string) (object.Object, error) {

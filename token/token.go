@@ -1,4 +1,4 @@
-// Package token defines the tokens that are produced when lexing Tamarin code.
+// Package token defines the tokens that are produced when lexing Risor code.
 package token
 
 // Type describes the type of a token as a string.

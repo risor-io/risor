@@ -9,8 +9,8 @@ import (
 	"image"
 
 	"github.com/anthonynsimon/bild/imgio"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 type Image struct {
