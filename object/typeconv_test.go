@@ -2,6 +2,8 @@ package object
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -308,6 +310,14 @@ func TestGenericMapConverter(t *testing.T) {
 	m := map[string]interface{}{
 		"foo": 1,
 		"bar": "two",
+		"baz": []interface{}{
+			"three",
+			4,
+			false,
+			map[string]interface{}{
+				"five": 5,
+			},
+		},
 	}
 	typ := reflect.TypeOf(m)
 
@@ -319,5 +329,50 @@ func TestGenericMapConverter(t *testing.T) {
 	require.Equal(t, NewMap(map[string]Object{
 		"foo": NewInt(1),
 		"bar": NewString("two"),
+		"baz": NewList([]Object{
+			NewString("three"),
+			NewInt(4),
+			False,
+			NewMap(map[string]Object{
+				"five": NewInt(5),
+			}),
+		}),
+	}), tMap)
+}
+
+func TestGenericMapConverterFromJSON(t *testing.T) {
+	m := `{
+		"foo": 1,
+		"bar": "two",
+		"baz": [
+			"three",
+			4,
+			false,
+			{ "five": 5 }
+		]
+	}`
+	var v interface{}
+	err := json.Unmarshal([]byte(m), &v)
+	require.Nil(t, err)
+
+	fmt.Println(v, reflect.TypeOf(v))
+	typ := reflect.TypeOf(v)
+
+	c, err := NewTypeConverter(typ)
+	require.Nil(t, err)
+
+	tMap, err := c.From(v)
+	require.Nil(t, err)
+	require.Equal(t, NewMap(map[string]Object{
+		"foo": NewFloat(1),
+		"bar": NewString("two"),
+		"baz": NewList([]Object{
+			NewString("three"),
+			NewFloat(4),
+			False,
+			NewMap(map[string]Object{
+				"five": NewFloat(5),
+			}),
+		}),
 	}), tMap)
 }

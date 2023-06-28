@@ -11,19 +11,21 @@ import (
 	"github.com/cloudcmds/tamarin/v2"
 	"github.com/cloudcmds/tamarin/v2/modules/all"
 	"github.com/cloudcmds/tamarin/v2/object"
+	tos "github.com/cloudcmds/tamarin/v2/os"
 	"github.com/cloudcmds/tamarin/v2/parser"
 	"github.com/cloudcmds/tamarin/v2/repl"
 	"github.com/fatih/color"
 )
 
 func main() {
-	var noColor, showTiming bool
+	var noColor, showTiming, virtualOS bool
 	var profilerOutputPath, code, breakpoints string
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
 	flag.BoolVar(&showTiming, "timing", false, "Show timing information")
 	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
 	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
+	flag.BoolVar(&virtualOS, "virtual-os", false, "Enable virtual OS")
 	flag.Parse()
 
 	if noColor {
@@ -42,6 +44,9 @@ func main() {
 	}
 
 	ctx := context.Background()
+	if virtualOS {
+		ctx = tos.WithOS(ctx, tos.NewVirtualOS(ctx))
+	}
 
 	// Input can only come from one source
 	nArgs := len(flag.Args())

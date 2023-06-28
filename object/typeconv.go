@@ -29,10 +29,11 @@ var kindConverters = map[reflect.Kind]TypeConverter{
 }
 
 var typeConverters = map[reflect.Type]TypeConverter{
+	reflect.TypeOf(byte(0)):              &ByteConverter{},
 	reflect.TypeOf(time.Time{}):          &TimeConverter{},
 	reflect.TypeOf(bytes.NewBuffer(nil)): &BufferConverter{},
 	reflect.TypeOf([]byte{}):             &ByteSliceConverter{},
-	reflect.TypeOf(byte(0)):              &ByteConverter{},
+	reflect.TypeOf([]float64{}):          &FloatSliceConverter{},
 }
 
 // Kinds do NOT intend to handle for now:
@@ -673,6 +674,22 @@ func (c *ByteSliceConverter) To(obj Object) (interface{}, error) {
 
 func (c *ByteSliceConverter) From(obj interface{}) (Object, error) {
 	return NewByteSlice(obj.([]byte)), nil
+}
+
+// FloatSliceConverter converts between []float64 and *FloatSlice.
+type FloatSliceConverter struct{}
+
+func (c *FloatSliceConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *FloatSlice:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected float_slice (%s given)", obj.Type())
+	}
+}
+
+func (c *FloatSliceConverter) From(obj interface{}) (Object, error) {
+	return NewFloatSlice(obj.([]float64)), nil
 }
 
 // TimeConverter converts between time.Time and *Time.

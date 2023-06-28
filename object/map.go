@@ -415,15 +415,3 @@ func NewMap(m map[string]Object) *Map {
 	}
 	return &Map{items: m}
 }
-
-func NewMapFromGo(m map[string]interface{}) *Map {
-	result := &Map{items: make(map[string]Object, len(m))}
-	for k, v := range m {
-		value := FromGoType(v)
-		if value == nil {
-			panic(fmt.Sprintf("type error: cannot convert %v to a tamarin object", v))
-		}
-		result.items[k] = value
-	}
-	return result
-}
