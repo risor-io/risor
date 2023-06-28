@@ -113,14 +113,12 @@ func (f *FloatSlice) Len() *Int {
 }
 
 func (f *FloatSlice) Iter() Iterator {
-	iter, err := NewSliceIter(f.value)
-	if err != nil {
-		iter, err = NewSliceIter([]interface{}{})
-		if err != nil {
-			panic(err)
-		}
+	return &SliceIter{
+		s:         f.value,
+		size:      len(f.value),
+		pos:       -1,
+		converter: &Float64Converter{},
 	}
-	return iter
 }
 
 func (f *FloatSlice) Clone() *FloatSlice {

@@ -423,7 +423,13 @@ func (s *String) Len() *Int {
 }
 
 func (s *String) Iter() Iterator {
-	return NewStringIter(s)
+	runes := []rune(s.value)
+	return &SliceIter{
+		s:         runes,
+		size:      len(runes),
+		pos:       -1,
+		converter: &RuneConverter{},
+	}
 }
 
 func (s *String) Runes() []Object {

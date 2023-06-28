@@ -322,11 +322,12 @@ func (b *ByteSlice) Len() *Int {
 }
 
 func (b *ByteSlice) Iter() Iterator {
-	iter, err := NewSliceIter(b.value)
-	if err != nil {
-		panic(err) // should never happen
+	return &SliceIter{
+		s:         b.value,
+		size:      len(b.value),
+		pos:       -1,
+		converter: &ByteConverter{},
 	}
-	return iter
 }
 
 func (b *ByteSlice) Clone() *ByteSlice {

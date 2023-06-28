@@ -374,6 +374,27 @@ func (c *ByteConverter) From(obj interface{}) (Object, error) {
 	return NewByte(obj.(byte)), nil
 }
 
+// RuneConverter converts between rune and *String.
+type RuneConverter struct{}
+
+func (c *RuneConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *String:
+		if len(obj.value) != 1 {
+			return nil, fmt.Errorf("type error: expected single rune string (got length %d)", len(obj.value))
+		}
+		return []rune(obj.value)[0], nil
+	case *Int:
+		return rune(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected string (%s given)", obj.Type())
+	}
+}
+
+func (c *RuneConverter) From(obj interface{}) (Object, error) {
+	return NewString(string([]rune{obj.(rune)})), nil
+}
+
 // IntConverter converts between int and *Int.
 type IntConverter struct{}
 
