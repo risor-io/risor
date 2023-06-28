@@ -9,6 +9,7 @@ import (
 
 // Partial is a partially applied function
 type Partial struct {
+	*base
 	fn   Object
 	args []Object
 }
@@ -44,20 +45,8 @@ func (p *Partial) Equals(other Object) Object {
 	return False
 }
 
-func (p *Partial) GetAttr(name string) (Object, bool) {
-	return nil, false
-}
-
-func (p *Partial) IsTruthy() bool {
-	return true
-}
-
 func (p *Partial) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
-}
-
-func (p *Partial) Cost() int {
-	return 0
 }
 
 func NewPartial(fn Object, args []Object) *Partial {

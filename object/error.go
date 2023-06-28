@@ -8,7 +8,7 @@ import (
 
 // Error wraps a Go error interface and implements Object.
 type Error struct {
-	// err is the Go error being wrapped.
+	*base
 	err error
 }
 
@@ -61,24 +61,12 @@ func (e *Error) Equals(other Object) Object {
 	}
 }
 
-func (e *Error) IsTruthy() bool {
-	return true
-}
-
 func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }
 
-func (e *Error) GetAttr(name string) (Object, bool) {
-	return nil, false
-}
-
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
-}
-
-func (e *Error) Cost() int {
-	return 0
 }
 
 func Errorf(format string, a ...interface{}) *Error {

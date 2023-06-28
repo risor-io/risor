@@ -7,6 +7,7 @@ import (
 )
 
 type Module struct {
+	*base
 	name string
 	code *Code
 }
@@ -74,10 +75,6 @@ func (m *Module) Compare(other Object) (int, error) {
 	return -1, nil
 }
 
-func (m *Module) IsTruthy() bool {
-	return true
-}
-
 func (m *Module) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for module: %v", opType))
 }
@@ -87,10 +84,6 @@ func (m *Module) Equals(other Object) Object {
 		return True
 	}
 	return False
-}
-
-func (m *Module) Cost() int {
-	return 0
 }
 
 func NewModule(name string, code *Code) *Module {

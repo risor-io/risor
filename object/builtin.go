@@ -12,6 +12,8 @@ type BuiltinFunction func(ctx context.Context, args ...Object) Object
 
 // Builtin wraps func and implements Object interface.
 type Builtin struct {
+	*base
+
 	// The function that this object wraps.
 	fn BuiltinFunction
 
@@ -95,16 +97,8 @@ func (b *Builtin) Equals(other Object) Object {
 	return False
 }
 
-func (b *Builtin) IsTruthy() bool {
-	return true
-}
-
 func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for builtin: %v", opType))
-}
-
-func (b *Builtin) Cost() int {
-	return 0
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

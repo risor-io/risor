@@ -121,6 +121,28 @@ func TestCreatingPointerViaReflect(t *testing.T) {
 	require.Equal(t, &v, result)
 }
 
+func TestSetAttributeViaReflect(t *testing.T) {
+	type test struct {
+		A int
+	}
+	tStruct := test{A: 99}
+	var tInterface interface{} = tStruct
+
+	if reflect.TypeOf(tInterface).Kind() != reflect.Ptr {
+		// Create a pointer to the value
+		tInterfacePointer := reflect.New(reflect.TypeOf(tInterface))
+		tInterfacePointer.Elem().Set(reflect.ValueOf(tInterface))
+		tInterface = tInterfacePointer.Interface()
+	}
+
+	// Set the field "A"
+	value := reflect.ValueOf(tInterface)
+	value.Elem().FieldByName("A").Set(reflect.ValueOf(100))
+
+	// Confirm the field was set
+	require.Equal(t, 100, value.Elem().FieldByName("A").Interface())
+}
+
 func TestSliceConverter(t *testing.T) {
 	c, err := newSliceConverter(reflect.TypeOf(0.0))
 	require.Nil(t, err)
@@ -212,7 +234,7 @@ func TestBufferConverter(t *testing.T) {
 	require.Equal(t, buf, goBuf)
 }
 
-func TestBSliceConverter(t *testing.T) {
+func TestByteSliceConverter(t *testing.T) {
 
 	buf := []byte("abc")
 	typ := reflect.TypeOf(buf)
@@ -222,13 +244,63 @@ func TestBSliceConverter(t *testing.T) {
 
 	tBuf, err := c.From(buf)
 	require.Nil(t, err)
-	require.Equal(t, NewBSlice([]byte("abc")), tBuf)
+	require.Equal(t, NewByteSlice([]byte("abc")), tBuf)
 
-	gBuf, err := c.To(NewBSlice([]byte("abc")))
+	gBuf, err := c.To(NewByteSlice([]byte("abc")))
 	require.Nil(t, err)
 	goBuf, ok := gBuf.([]byte)
 	require.True(t, ok)
 	require.Equal(t, buf, goBuf)
+}
+
+func TestArrayConverterInt(t *testing.T) {
+
+	arr := [4]int{2, 3, 4, 5}
+	c, err := NewTypeConverter(reflect.TypeOf(arr))
+	require.Nil(t, err)
+
+	tList, err := c.From(arr)
+	require.Nil(t, err)
+	require.Equal(t, NewList([]Object{
+		NewInt(2),
+		NewInt(3),
+		NewInt(4),
+		NewInt(5),
+	}), tList)
+
+	goValue, err := c.To(NewList([]Object{
+		NewInt(-1),
+		NewInt(-2),
+	}))
+	require.Nil(t, err)
+
+	goArray, ok := goValue.([4]int)
+	require.True(t, ok)
+	require.Equal(t, [4]int{-1, -2}, goArray)
+}
+
+func TestArrayConverterFloat64(t *testing.T) {
+
+	arr := [2]float64{100, 101}
+	c, err := NewTypeConverter(reflect.TypeOf(arr))
+	require.Nil(t, err)
+
+	tList, err := c.From(arr)
+	require.Nil(t, err)
+	require.Equal(t, NewList([]Object{
+		NewFloat(100),
+		NewFloat(101),
+	}), tList)
+
+	goValue, err := c.To(NewList([]Object{
+		NewFloat(-1),
+		NewFloat(-2),
+	}))
+	require.Nil(t, err)
+
+	goArray, ok := goValue.([2]float64)
+	require.True(t, ok)
+	require.Equal(t, [2]float64{-1, -2}, goArray)
 }
 
 func TestGenericMapConverter(t *testing.T) {

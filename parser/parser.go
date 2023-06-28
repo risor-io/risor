@@ -1220,7 +1220,7 @@ func (p *Parser) parseRange() ast.Node {
 	if err := p.nextToken(); err != nil {
 		return nil
 	}
-	container := p.parseExpression(RANGE)
+	container := p.parseExpression(PREFIX)
 	if container == nil {
 		p.setTokenError(p.curToken, "invalid range expression")
 		return nil

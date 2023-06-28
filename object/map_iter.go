@@ -8,6 +8,7 @@ import (
 )
 
 type MapIter struct {
+	*base
 	m       *Map
 	keys    []string
 	pos     int64
@@ -110,10 +111,6 @@ func (iter *MapIter) Entry() (IteratorEntry, bool) {
 		return nil, false
 	}
 	return NewEntry(iter.current, value).WithKeyAsPrimary(), true
-}
-
-func (iter *MapIter) Cost() int {
-	return 0
 }
 
 func NewMapIter(m *Map) *MapIter {

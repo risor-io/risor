@@ -11,6 +11,7 @@ import (
 // GoMethod represents a single method on a Go type. This exposes the method to
 // Tamarin for reflection and proxying.
 type GoMethod struct {
+	*base
 	method        reflect.Method
 	inputTypes    []*GoType
 	outputTypes   []*GoType
@@ -101,10 +102,6 @@ func (m *GoMethod) IsTruthy() bool {
 
 func (m *GoMethod) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return Errorf("type error: unsupported operation on go_method (%s)", opType)
-}
-
-func (m *GoMethod) Cost() int {
-	return 0
 }
 
 func (m *GoMethod) Name() string {

@@ -1,8 +1,11 @@
 package object_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -43,77 +46,6 @@ func (pt *ProxyService) ToUpper(s string) string {
 
 func (pt *ProxyService) ParseInt(s string) (int, error) {
 	return strconv.Atoi(s)
-}
-
-func TestProxy(t *testing.T) {
-
-	// ctx := context.Background()
-
-	// reg, err := object.NewTypeRegistry()
-	// require.Nil(t, err)
-
-	// _, err = reg.Register(&ProxyService{})
-	// require.Nil(t, err)
-
-	// proxyType, found := reg.GetType(&ProxyService{})
-	// require.True(t, found)
-	// methods := proxyType.Methods()
-	// require.Len(t, methods, 4)
-
-	// sort.Slice(methods, func(i, j int) bool {
-	// 	return methods[i].Name() < methods[j].Name()
-	// })
-
-	// require.Equal(t, "Flub", methods[0].Name())
-	// require.Equal(t, "Increment", methods[1].Name())
-	// require.Equal(t, "ParseInt", methods[2].Name())
-	// require.Equal(t, "ToUpper", methods[3].Name())
-
-	// // Create a proxy around an instance of ProxyService
-	// proxy, err := object.NewProxy(reg, &ProxyService{})
-	// require.Nil(t, err)
-
-	// getMethod := func(name string) *object.Builtin {
-	// 	method, ok := proxy.GetAttr(name)
-	// 	require.True(t, ok)
-	// 	return method.(*object.Builtin)
-	// }
-
-	// flub := getMethod("Flub")
-	// inc := getMethod("Increment")
-	// toUpper := getMethod("ToUpper")
-	// parseInt := getMethod("ParseInt")
-
-	// // Call Flub and check the result
-	// res := flub.Call(ctx, object.NewMap(map[string]object.Object{
-	// 	"A": object.NewInt(99),
-	// 	"B": object.NewString("B"),
-	// 	"C": object.NewBool(true),
-	// }))
-	// require.Equal(t, "flubbed:99.B.true", res.(*object.String).Value())
-
-	// // Try calling Increment
-	// res = inc.Call(ctx, object.NewInt(123))
-	// require.Equal(t, int64(124), res.(*object.Int).Value())
-
-	// // Try calling ToUpper
-	// res = toUpper.Call(ctx, object.NewString("hello"))
-	// require.Equal(t, "HELLO", res.(*object.String).Value())
-
-	// Call ParseInt and check that an Ok result is returned
-	// res = parseInt.Call(ctx, object.NewString("234"))
-	// result, ok := res.(*object.Result)
-	// require.True(t, ok)
-	// require.True(t, result.IsOk())
-	// require.Equal(t, int64(234), result.Unwrap().(*object.Int).Value())
-
-	// // Call ParseInt with an invalid input and check that an Err result is returned
-	// res = parseInt.Call(ctx, object.NewString("not-an-int"))
-	// result, ok = res.(*object.Result)
-	// require.True(t, ok)
-	// require.True(t, result.IsErr())
-	// require.Equal(t, "strconv.Atoi: parsing \"not-an-int\": invalid syntax",
-	// 	result.UnwrapErr().Message().Value())
 }
 
 type proxyTestType1 []string
@@ -254,7 +186,6 @@ func TestProxyTestType2(t *testing.T) {
 func TestProxyCall(t *testing.T) {
 	proxy, err := object.NewProxy(&proxyTestType2{})
 	require.Nil(t, err)
-	fmt.Println(proxy)
 
 	m, ok := proxy.GetAttr("D")
 	require.True(t, ok)
@@ -267,4 +198,134 @@ func TestProxyCall(t *testing.T) {
 		object.NewFloat(2.0))
 
 	require.Equal(t, object.NewInt(3), result)
+}
+
+func TestProxySetGetAttr(t *testing.T) {
+
+	proxy, err := object.NewProxy(&proxyTestType2{})
+	require.Nil(t, err)
+
+	// A starts at 0
+	value, ok := proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(0), value)
+
+	// Set to 42
+	require.Nil(t, proxy.SetAttr("A", object.NewInt(42)))
+
+	// Confirm 42
+	value, ok = proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(42), value)
+
+	// Set to -3
+	require.Nil(t, proxy.SetAttr("A", object.NewInt(-3)))
+
+	// Confirm -3
+	value, ok = proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(-3), value)
+
+}
+
+func TestAttemptProxyOnStructValue(t *testing.T) {
+	// Cannot create a proxy on a struct value. It has to be a pointer.
+	_, err := object.NewProxy(proxyTestType2{})
+	require.NotNil(t, err)
+	require.Equal(t, "type error: unable to proxy type (object_test.proxyTestType2 given)", err.Error())
+}
+
+func TestProxyBytesBuffer(t *testing.T) {
+
+	ctx := context.Background()
+	buf := bytes.NewBuffer([]byte("abc"))
+	var reader io.Reader = buf
+
+	// Creating a proxy on an interface really means creating a proxy on the
+	// underlying concrete type.
+	proxy, err := object.NewProxy(reader)
+	require.Nil(t, err)
+
+	// Confirm the GoType is actually *bytes.Buffer
+	goType := proxy.GoType()
+	require.Equal(t, "*bytes.Buffer", goType.Name())
+
+	// The proxy should have attributes available for all public attributes
+	// on *bytes.Buffer
+	method, ok := proxy.GetAttr("Len")
+	require.True(t, ok)
+
+	// Confirm we can call a method
+	lenMethod, ok := method.(*object.Builtin)
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(3), lenMethod.Call(ctx))
+
+	// Write to the buffer and confirm the length changes
+	buf.WriteString("defg")
+	require.Equal(t, object.NewInt(7), lenMethod.Call(ctx))
+
+	// Confirm we can call Bytes() and get a byte_slice back
+	getBytes, ok := proxy.GetAttr("Bytes")
+	require.True(t, ok)
+	bytes := getBytes.(*object.Builtin).Call(ctx)
+	require.Equal(t, object.NewByteSlice([]byte("abcdefg")), bytes)
+}
+
+func TestProxyMethodError(t *testing.T) {
+
+	// Using the ReadByte method as an example, call it in a situation that will
+	// have it return an error, then confirm a Tamarin *Error is returned.
+
+	// func (b *Buffer) ReadByte() (byte, error)
+	// If no byte is available, it returns error io.EOF.
+
+	ctx := context.Background()
+	buf := bytes.NewBuffer(nil) // empty buffer!
+	proxy, err := object.NewProxy(buf)
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("ReadByte")
+	require.True(t, ok)
+
+	readByte, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	result := readByte.Call(ctx)
+	errObj, ok := result.(*object.Error)
+	require.True(t, ok)
+	require.Equal(t, object.Errorf("EOF"), errObj)
+}
+
+func TestProxyHasher(t *testing.T) {
+	ctx := context.Background()
+	h := sha256.New()
+
+	proxy, err := object.NewProxy(h)
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("Write")
+	require.True(t, ok)
+	write, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	method, ok = proxy.GetAttr("Sum")
+	require.True(t, ok)
+	sum, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	result := write.Call(ctx, object.NewByteSlice([]byte("abc")))
+	require.Equal(t, object.NewInt(3), result)
+
+	result = write.Call(ctx, object.NewByteSlice([]byte("de")))
+	require.Equal(t, object.NewInt(2), result)
+
+	result = sum.Call(ctx, object.NewByteSlice(nil))
+	byte_slice, ok := result.(*object.ByteSlice)
+	require.True(t, ok)
+
+	other := sha256.New()
+	other.Write([]byte("abcde"))
+	expected := other.Sum(nil)
+
+	require.Equal(t, expected, byte_slice.Value())
 }

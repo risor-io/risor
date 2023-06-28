@@ -12,6 +12,7 @@ import (
 )
 
 type File struct {
+	*base
 	ctx    context.Context
 	value  *os.File
 	once   sync.Once
@@ -53,7 +54,7 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				return NewArgsError("file.read", 1, len(args))
 			}
 			switch obj := args[0].(type) {
-			case *BSlice:
+			case *ByteSlice:
 				n, ioErr := f.value.Read(obj.Value())
 				if ioErr != nil && ioErr != io.EOF {
 					return NewError(ioErr)
@@ -66,7 +67,7 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				}
 				return NewInt(int64(n))
 			default:
-				return Errorf("type error: file.read expects bslice or buffer (%s given)", obj.Type())
+				return Errorf("type error: file.read expects byte_slice or buffer (%s given)", obj.Type())
 			}
 		}), true
 	case "write":
@@ -165,10 +166,6 @@ func (f *File) Equals(other Object) Object {
 		return True
 	}
 	return False
-}
-
-func (f *File) IsTruthy() bool {
-	return true
 }
 
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {

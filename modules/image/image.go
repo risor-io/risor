@@ -60,7 +60,7 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 	if err := encoder(writer, img.Value()); err != nil {
 		return object.NewError(err)
 	}
-	return object.NewBSlice(buf.Bytes())
+	return object.NewByteSlice(buf.Bytes())
 }
 
 func Module() *object.Module {

@@ -11,6 +11,8 @@ import (
 )
 
 type Map struct {
+	*base
+
 	items map[string]Object
 
 	// Used to avoid the possibility of infinite recursion when inspecting.

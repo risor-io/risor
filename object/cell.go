@@ -1,9 +1,13 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cloudcmds/tamarin/v2/op"
+)
 
 type Cell struct {
-	*DefaultImpl
+	*base
 	value *Object
 }
 
@@ -47,6 +51,10 @@ func (c *Cell) Equals(other Object) Object {
 	return False
 }
 
+func (c *Cell) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("eval error: unsupported operation for cell: %v", opType))
+}
+
 func NewCell(value *Object) *Cell {
-	return &Cell{DefaultImpl: &DefaultImpl{}, value: value}
+	return &Cell{value: value}
 }

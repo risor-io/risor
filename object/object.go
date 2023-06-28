@@ -26,13 +26,17 @@ const (
 	BOOL          Type = "bool"
 	BUFFER        Type = "buffer"
 	BUILTIN       Type = "builtin"
-	BSLICE        Type = "bslice"
-	BSLICE_ITER   Type = "bslice_iter"
+	BYTE_SLICE    Type = "byte_slice"
+	BYTE          Type = "byte"
 	CELL          Type = "cell"
 	CODE          Type = "code"
+	COLOR         Type = "color"
+	COMPLEX       Type = "complex"
+	COMPLEX_SLICE Type = "complex_slice"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"
+	FLOAT_SLICE   Type = "float_slice"
 	FUNCTION      Type = "function"
 	GO_TYPE       Type = "go_type"
 	GO_FIELD      Type = "go_field"
@@ -52,6 +56,7 @@ const (
 	RESULT        Type = "result"
 	SET           Type = "set"
 	SET_ITER      Type = "set_iter"
+	SLICE_ITER    Type = "slice_iter"
 	STRING        Type = "string"
 	STRING_ITER   Type = "string_iter"
 	TIME          Type = "time"
@@ -80,6 +85,9 @@ type Object interface {
 
 	// GetAttr returns the attribute with the given name from this object.
 	GetAttr(name string) (Object, bool)
+
+	// SetAttr sets the attribute with the given name on this object.
+	SetAttr(name string, value Object) error
 
 	// IsTruthy returns true if the object is considered "truthy".
 	IsTruthy() bool

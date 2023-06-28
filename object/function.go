@@ -10,7 +10,7 @@ import (
 
 // Function is a function that has been compiled to bytecode.
 type Function struct {
-	*DefaultImpl
+	*base
 	name          string
 	parameters    []string
 	defaults      []Object
@@ -62,6 +62,21 @@ func (f *Function) String() string {
 		return fmt.Sprintf("func %s() { ... }", f.name)
 	}
 	return "func() { ... }"
+}
+
+func (f *Function) Interface() interface{} {
+	return nil
+}
+
+func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("eval error: unsupported operation for function: %v", opType))
+}
+
+func (f *Function) Equals(other Object) Object {
+	if f == other {
+		return True
+	}
+	return False
 }
 
 func (f *Function) Instructions() []op.Code {

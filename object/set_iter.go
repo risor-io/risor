@@ -8,6 +8,7 @@ import (
 )
 
 type SetIter struct {
+	*base
 	set     *Set
 	keys    []HashKey
 	pos     int64
@@ -111,10 +112,6 @@ func (iter *SetIter) Entry() (IteratorEntry, bool) {
 		return nil, false
 	}
 	return NewEntry(iter.current, True).WithKeyAsPrimary(), true
-}
-
-func (iter *SetIter) Cost() int {
-	return 0
 }
 
 func NewSetIter(set *Set) *SetIter {
