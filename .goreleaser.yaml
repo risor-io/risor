@@ -13,6 +13,7 @@ builds:
       - linux
       - windows
       - darwin
+    main: ./cmd/risor
 
 archives:
   - format: tar.gz
