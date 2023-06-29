@@ -60,16 +60,19 @@ func Getwd(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Mkdir(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("os.mkdir", 2, args); err != nil {
+	if err := arg.RequireRange("os.mkdir", 1, 2, args); err != nil {
 		return err
 	}
 	dir, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	perm, err := object.AsInt(args[1])
-	if err != nil {
-		return err
+	perm := int64(0755)
+	if len(args) == 2 {
+		perm, err = object.AsInt(args[1])
+		if err != nil {
+			return err
+		}
 	}
 	if err := GetOS(ctx).Mkdir(dir, os.FileMode(perm)); err != nil {
 		return object.NewError(err)

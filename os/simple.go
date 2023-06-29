@@ -3,14 +3,27 @@ package os
 import (
 	"context"
 	"os"
+
+	"github.com/risor-io/risor/limits"
+)
+
+var (
+	_ OS = (*SimpleOS)(nil)
 )
 
 type SimpleOS struct {
-	ctx context.Context
+	ctx    context.Context
+	limits limits.Limits
 }
 
 func NewSimpleOS(ctx context.Context) *SimpleOS {
-	return &SimpleOS{ctx: ctx}
+	sos := &SimpleOS{ctx: ctx}
+	if lim, ok := limits.GetLimits(ctx); ok {
+		sos.limits = lim
+	} else {
+		sos.limits = limits.New()
+	}
+	return sos
 }
 
 func (osObj *SimpleOS) Chdir(dir string) error {
@@ -67,10 +80,6 @@ func (osObj *SimpleOS) MkdirTemp(dir, pattern string) (string, error) {
 
 func (osObj *SimpleOS) Open(name string) (File, error) {
 	return os.Open(name)
-}
-
-func (osObj *SimpleOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
-	return os.OpenFile(name, flag, perm)
 }
 
 func (osObj *SimpleOS) ReadFile(name string) ([]byte, error) {

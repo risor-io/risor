@@ -8,11 +8,14 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fatih/color"
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/modules/all"
 	"github.com/risor-io/risor/object"
 	tos "github.com/risor-io/risor/os"
+	"github.com/risor-io/risor/os/s3fs"
 	"github.com/risor-io/risor/parser"
 	"github.com/risor-io/risor/repl"
 )
@@ -44,8 +47,35 @@ func main() {
 	}
 
 	ctx := context.Background()
+
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion("us-east-1"),
+		config.WithSharedConfigProfile(os.Getenv("RISOR_TEST_AWS_PROFILE")),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+		os.Exit(1)
+	}
+
+	s3Client := s3.NewFromConfig(cfg)
+
+	fs, err := s3fs.New(ctx,
+		s3fs.WithBase("/stat"),
+		s3fs.WithClient(s3Client),
+		s3fs.WithBucket(os.Getenv("RISOR_TEST_S3_BUCKET")))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
+		os.Exit(1)
+	}
+
 	if virtualOS {
-		ctx = tos.WithOS(ctx, tos.NewVirtualOS(ctx))
+		ctx = tos.WithOS(ctx, tos.NewVirtualOS(ctx,
+			tos.WithMounts(map[string]*tos.Mount{
+				"/": {
+					Source: fs,
+					Target: "/",
+				},
+			})))
 	}
 
 	// Input can only come from one source
@@ -63,7 +93,6 @@ func main() {
 	}
 
 	// Otherwise, use input from either -c or the first argument
-	var err error
 	var input string
 	var filename string
 	if nArgs == 0 {

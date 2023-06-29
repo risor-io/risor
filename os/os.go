@@ -2,12 +2,16 @@ package os
 
 import (
 	"context"
+	"io"
 	"io/fs"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
-type FS = fs.FS
-
-type File = fs.File
+var (
+	_ fs.FileInfo = (*GenericFileInfo)(nil)
+)
 
 type FileMode = fs.FileMode
 
@@ -17,9 +21,35 @@ type ReadDirFile = fs.ReadDirFile
 
 type DirEntry = fs.DirEntry
 
-type OS interface {
-	Chdir(dir string) error
+type File interface {
+	fs.File
+	io.Writer
+}
+
+type FS interface {
 	Create(name string) (File, error)
+	Mkdir(name string, perm FileMode) error
+	MkdirAll(path string, perm FileMode) error
+	Open(name string) (File, error)
+	ReadFile(name string) ([]byte, error)
+	Remove(name string) error
+	Rename(oldpath, newpath string) error
+	Stat(name string) (FileInfo, error)
+	Symlink(oldname, newname string) error
+	WriteFile(name string, data []byte, perm FileMode) error
+}
+
+// type ReadDirFS interface {
+// 	FS
+
+// 	// ReadDir reads the named directory
+// 	// and returns a list of directory entries sorted by filename.
+// 	ReadDir(name string) ([]DirEntry, error)
+// }
+
+type OS interface {
+	FS
+	Chdir(dir string) error
 	Environ() []string
 	Exit(code int)
 	Getenv(key string) string
@@ -28,28 +58,18 @@ type OS interface {
 	Getwd() (dir string, err error)
 	Hostname() (name string, err error)
 	LookupEnv(key string) (string, bool)
-	Mkdir(name string, perm FileMode) error
-	MkdirAll(path string, perm FileMode) error
 	MkdirTemp(dir, pattern string) (string, error)
-	Open(name string) (File, error)
-	OpenFile(name string, flag int, perm FileMode) (File, error)
-	ReadFile(name string) ([]byte, error)
-	Remove(name string) error
-	Rename(oldpath, newpath string) error
 	Setenv(key, value string) error
-	Stat(name string) (FileInfo, error)
-	Symlink(oldname, newname string) error
 	TempDir() string
 	Unsetenv(key string) error
 	UserCacheDir() (string, error)
 	UserConfigDir() (string, error)
 	UserHomeDir() (string, error)
-	WriteFile(name string, data []byte, perm FileMode) error
 }
 
 type contextKey string
 
-const osKey = contextKey("tamarin:os")
+const osKey = contextKey("risor:os")
 
 // WithOS adds an OS to the context. Subsequently, when this context is present
 // in the invocation of Risor builtins, this OS will be used for all related
@@ -62,4 +82,69 @@ func WithOS(ctx context.Context, osObj OS) context.Context {
 func GetOS(ctx context.Context) (OS, bool) {
 	osObj, ok := ctx.Value(osKey).(OS)
 	return osObj, ok
+}
+
+// MassagePathError transforms a fs.PathError into a new one with the base path
+// removed from the Path field.
+func MassagePathError(basePath string, err error) error {
+	switch err := err.(type) {
+	case *fs.PathError:
+		// Return a new PathError with the prefix removed.
+		return &fs.PathError{
+			Op:   err.Op,
+			Path: strings.TrimPrefix(err.Path, basePath),
+			Err:  err.Err,
+		}
+	}
+	return err
+}
+
+// ResolvePath resolves a path relative to a base path. An error is returned if
+// the path is invalid.
+func ResolvePath(base, path, op string) (string, error) {
+	path = filepath.Clean(path)
+	if strings.HasPrefix(path, "..") {
+		return "", &fs.PathError{
+			Op:   op,
+			Path: path,
+			Err:  fs.ErrInvalid,
+		}
+	}
+	if base == "" || base == "/" {
+		return path, nil
+	}
+	return filepath.Join(base, path), nil
+}
+
+type GenericFileInfo struct {
+	name    string
+	size    int64
+	mode    FileMode
+	modTime time.Time
+	isDir   bool
+}
+
+func (fi *GenericFileInfo) Name() string       { return fi.name }
+func (fi *GenericFileInfo) Size() int64        { return fi.size }
+func (fi *GenericFileInfo) Mode() FileMode     { return fi.mode }
+func (fi *GenericFileInfo) ModTime() time.Time { return fi.modTime }
+func (fi *GenericFileInfo) IsDir() bool        { return fi.isDir }
+func (fi *GenericFileInfo) Sys() interface{}   { return nil }
+
+type GenericFileInfoOpts struct {
+	Name    string
+	Size    int64
+	Mode    FileMode
+	ModTime time.Time
+	IsDir   bool
+}
+
+func NewFileInfo(opts GenericFileInfoOpts) *GenericFileInfo {
+	return &GenericFileInfo{
+		name:    opts.Name,
+		size:    opts.Size,
+		mode:    opts.Mode,
+		modTime: opts.ModTime,
+		isDir:   opts.IsDir,
+	}
 }
