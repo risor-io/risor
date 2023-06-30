@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/modules/all"
-	"github.com/cloudcmds/tamarin/v2/parser"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/modules/all"
+	"github.com/risor-io/risor/parser"
 )
 
 type Request struct {
@@ -54,10 +53,10 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	start := time.Now()
 
-	result, err := tamarin.Eval(ctx, string(input),
-		tamarin.WithBuiltins(all.Builtins()),
-		tamarin.WithDefaultBuiltins(),
-		tamarin.WithDefaultModules())
+	result, err := risor.Eval(ctx, string(input),
+		risor.WithBuiltins(all.Builtins()),
+		risor.WithDefaultBuiltins(),
+		risor.WithDefaultModules())
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {

@@ -10,7 +10,7 @@ import (
 
 func TestExecuteHandler(t *testing.T) {
 	payload := Request{
-		Content: "['welcome', 'to', 'tamarin', '👋'] | strings.join(' ')",
+		Content: "['welcome', 'to', 'risor', '👋'] | strings.join(' ')",
 	}
 	payloadBytes, _ := json.Marshal(payload)
 
@@ -32,7 +32,7 @@ func TestExecuteHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedResult :=  "\"welcome to tamarin 👋\""
+	expectedResult :=  "\"welcome to risor 👋\""
 	if response.Result != expectedResult {
 		t.Errorf("handler returned unexpected result: got %s want %s", response.Result, expectedResult)
 	}
