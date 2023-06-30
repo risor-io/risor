@@ -4,22 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2/limits"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/op"
 )
 
-const OneMB = 1024 * 1024
-
 type HttpResponse struct {
-	resp   *http.Response
-	limits *limits.Limits
-	once   sync.Once
-	closed chan bool
+	*base
+	resp        *http.Response
+	readerLimit int64
+	once        sync.Once
+	closed      chan bool
 }
 
 func (r *HttpResponse) Type() Type {
@@ -27,7 +25,7 @@ func (r *HttpResponse) Type() Type {
 }
 
 func (r *HttpResponse) Inspect() string {
-	return fmt.Sprintf("http_response(status: %q, content_length: %d)",
+	return fmt.Sprintf("http.response(status: %q, content_length: %d)",
 		r.resp.Status, r.resp.ContentLength)
 }
 
@@ -45,7 +43,7 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 		return r.Header(), true
 	case "json":
 		return &Builtin{
-			name: "http_response.json",
+			name: "http.response.json",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("json", 0, len(args))
@@ -55,7 +53,7 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 		}, true
 	case "text":
 		return &Builtin{
-			name: "http_response.text",
+			name: "http.response.text",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("text", 0, len(args))
@@ -66,7 +64,7 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 		}, true
 	case "close":
 		return &Builtin{
-			name: "http_response.close",
+			name: "http.response.close",
 			fn: func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("close", 0, len(args))
@@ -91,25 +89,11 @@ func (r *HttpResponse) Close() {
 }
 
 func (r *HttpResponse) readBody() ([]byte, error) {
-	if r.resp.ContentLength > 0 && r.resp.ContentLength > r.limits.MaxContentLength {
-		return nil, fmt.Errorf("content length exceeded limit of %d bytes (got %d)",
-			r.resp.ContentLength, r.resp.ContentLength)
+	if r.readerLimit > 0 && r.resp.ContentLength > r.readerLimit {
+		return nil, limits.NewLimitsError("limit error: content length exceeded limit of %d bytes (got %d)",
+			r.readerLimit, r.resp.ContentLength)
 	}
-	var reader io.Reader = r.resp.Body
-	bodyLimit := int64(0)
-	if r.limits.MaxBodyLength > 0 {
-		bodyLimit = r.limits.MaxBodyLength + 1
-		reader = io.LimitReader(r.resp.Body, bodyLimit)
-	}
-	body, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	if bodyLimit > 0 && int64(len(body)) >= bodyLimit {
-		return nil, fmt.Errorf("response body exceeded limit of %d bytes",
-			r.limits.MaxBodyLength)
-	}
-	return body, nil
+	return limits.ReadAll(r.resp.Body, r.readerLimit)
 }
 
 func (r *HttpResponse) JSON() Object {
@@ -123,7 +107,7 @@ func (r *HttpResponse) JSON() Object {
 	}
 	scriptObj := FromGoType(target)
 	if scriptObj == nil {
-		return Errorf("eval error: unmarshal failed")
+		return Errorf("value error: unmarshal failed")
 	}
 	return scriptObj
 }
@@ -168,23 +152,23 @@ func (r *HttpResponse) Equals(other Object) Object {
 	return NewBool(r.resp == other.(*HttpResponse).resp)
 }
 
-func (r *HttpResponse) IsTruthy() bool {
-	return true
+func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object {
+	return NewError(fmt.Errorf("eval error: unsupported operation for http.response: %v", opType))
 }
 
-func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for http_response: %v", opType))
+func (r *HttpResponse) Cost() int {
+	return 8 + int(r.resp.ContentLength)
 }
 
 func NewHttpResponse(
 	resp *http.Response,
 	timeout time.Duration,
-	limits *limits.Limits,
+	readerLimit int64,
 ) *HttpResponse {
 	obj := &HttpResponse{
-		resp:   resp,
-		limits: limits,
-		closed: make(chan bool),
+		resp:        resp,
+		readerLimit: readerLimit,
+		closed:      make(chan bool),
 	}
 	if timeout > 0 {
 		// Guarantee that the response body is closed after the timeout

@@ -3,9 +3,9 @@ package vm
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 )
 
 func CompileModule(ctx context.Context, name, code string, builtins map[string]object.Object) (*object.Module, error) {

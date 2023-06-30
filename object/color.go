@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"image/color"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Color struct {
+	*base
 	c color.Color
 }
 
@@ -28,9 +29,8 @@ func (c *Color) Value() color.Color {
 func (c *Color) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "rgba":
-		return &Builtin{
-			name: "color.rgba",
-			fn: func(ctx context.Context, args ...Object) Object {
+		return NewBuiltin("color.rgba",
+			func(ctx context.Context, args ...Object) Object {
 				if len(args) != 0 {
 					return NewArgsError("color.rgba", 0, len(args))
 				}
@@ -41,10 +41,13 @@ func (c *Color) GetAttr(name string) (Object, bool) {
 					NewInt(int64(b)),
 					NewInt(int64(a)),
 				})
-			},
-		}, true
+			}), true
 	}
 	return nil, false
+}
+
+func (c *Color) SetAttr(name string, value Object) error {
+	return fmt.Errorf("attribute error: color object has no attribute %q", name)
 }
 
 func (c *Color) Interface() interface{} {
@@ -61,21 +64,14 @@ func (c *Color) Compare(other Object) (int, error) {
 }
 
 func (c *Color) Equals(other Object) Object {
-	switch other := other.(type) {
-	case *Color:
-		if c.c == other.c {
-			return True
-		}
+	if c == other {
+		return True
 	}
 	return False
 }
 
-func (c *Color) IsTruthy() bool {
-	return true
-}
-
 func (c *Color) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for color: %v ", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for color: %v ", opType))
 }
 
 func NewColor(c color.Color) *Color {

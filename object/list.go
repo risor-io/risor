@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // List of objects
 type List struct {
+	*base
+
 	// items holds the list of objects
 	items []Object
 
@@ -574,7 +576,7 @@ func (ls *List) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *List:
 		return ls.runOperationList(opType, right)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+		return NewError(fmt.Errorf("eval error: unsupported operation for list: %v on type %s",
 			opType, right.Type()))
 	}
 }
@@ -587,9 +589,15 @@ func (ls *List) runOperationList(opType op.BinaryOpType, right *List) Object {
 		copy(combined[len(ls.items):], right.items)
 		return NewList(combined)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for list: %v on type %s",
+		return NewError(fmt.Errorf("eval error: unsupported operation for list: %v on type %s",
 			opType, right.Type()))
 	}
+}
+
+func (ls *List) Cost() int {
+	// It would be possible to recurse into the list and compute the cost of
+	// each item, but let's avoid that since it would be an expensive op itself.
+	return len(ls.items) * 8
 }
 
 func NewList(items []Object) *List {

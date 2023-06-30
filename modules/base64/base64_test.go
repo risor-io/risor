@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,8 +70,8 @@ func TestBase64Decode(t *testing.T) {
 	for _, test := range tests {
 		got := Decode(context.Background(), object.NewString(test.input))
 		ideal, _ := base64.StdEncoding.DecodeString(test.input)
-		require.Equal(t, object.NewBSlice([]byte(test.want)), got)
-		require.Equal(t, object.NewBSlice([]byte(ideal)), got)
+		require.Equal(t, object.NewByteSlice([]byte(test.want)), got)
+		require.Equal(t, object.NewByteSlice([]byte(ideal)), got)
 	}
 }
 
@@ -101,22 +101,25 @@ func TestBase64DecodeRaw(t *testing.T) {
 			require.Equal(t, test.wantErr, gotErr.Value().Error())
 			require.Equal(t, test.wantErr, err.Error())
 		} else {
-			require.Equal(t, object.NewBSlice([]byte(test.want)), got)
-			require.Equal(t, object.NewBSlice([]byte(ideal)), got)
+			require.Equal(t, object.NewByteSlice([]byte(test.want)), got)
+			require.Equal(t, object.NewByteSlice([]byte(ideal)), got)
 		}
 	}
 }
 
 func TestBase64URLEncoded(t *testing.T) {
-	got := URLEncode(context.Background(), object.NewInt(251))
+
+	input := object.NewByteSlice([]byte{251})
+
+	got := URLEncode(context.Background(), input)
 	require.Equal(t, object.NewString("-w=="), got)
 
-	got = URLEncode(context.Background(), object.NewInt(251), object.False)
+	got = URLEncode(context.Background(), input, object.False)
 	require.Equal(t, object.NewString("-w"), got)
 
 	got = URLDecode(context.Background(), object.NewString("-w=="))
-	require.Equal(t, object.NewBSlice([]byte{251}), got)
+	require.Equal(t, object.NewByteSlice([]byte{251}), got)
 
 	got = URLDecode(context.Background(), object.NewString("-w"), object.False)
-	require.Equal(t, object.NewBSlice([]byte{251}), got)
+	require.Equal(t, object.NewByteSlice([]byte{251}), got)
 }

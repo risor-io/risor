@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/ast"
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
+	"github.com/risor-io/risor/ast"
 )
 
 type document struct {

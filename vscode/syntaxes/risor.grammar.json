@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Tamarin",
+  "name": "Risor",
   "patterns": [
     {
       "include": "#keywords"
@@ -63,55 +63,55 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.tamarin",
+          "name": "keyword.control.risor",
           "match": "\\b(if|else|switch|case|default|var|const|for|func|import|return|break|continue|range)\\b"
         }
       ]
     },
     "strings": {
-      "name": "string.quoted.double.tamarin",
+      "name": "string.quoted.double.risor",
       "begin": "\"",
       "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.tamarin",
+          "name": "constant.character.escape.risor",
           "match": "\\\\."
         }
       ]
     },
     "backtick_strings": {
-      "name": "string.quoted.other.tamarin",
+      "name": "string.quoted.other.risor",
       "begin": "`",
       "end": "`",
       "patterns": [
         {
-          "name": "constant.character.escape.tamarin",
+          "name": "constant.character.escape.risor",
           "match": "\\\\."
         }
       ]
     },
     "single_quote_strings": {
-      "name": "string.quoted.other.tamarin",
+      "name": "string.quoted.other.risor",
       "begin": "'",
       "end": "'",
       "patterns": [
         {
-          "name": "constant.character.escape.tamarin",
+          "name": "constant.character.escape.risor",
           "match": "\\\\."
         }
       ]
     },
     "block_comments": {
-      "name": "comment.block.tamarin",
+      "name": "comment.block.risor",
       "begin": "/\\*",
       "end": "\\*/",
       "patterns": [
         {
-          "name": "constant.character.escape.tamarin",
+          "name": "constant.character.escape.risor",
           "match": "\\\\."
         }
       ]
     }
   },
-  "scopeName": "source.tamarin"
+  "scopeName": "source.risor"
 }

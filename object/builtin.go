@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // BuiltinFunction holds the type of a built-in function.
@@ -12,6 +12,8 @@ type BuiltinFunction func(ctx context.Context, args ...Object) Object
 
 // Builtin wraps func and implements Object interface.
 type Builtin struct {
+	*base
+
 	// The function that this object wraps.
 	fn BuiltinFunction
 
@@ -89,19 +91,14 @@ func (b *Builtin) Key() string {
 }
 
 func (b *Builtin) Equals(other Object) Object {
-	if other.Type() != BUILTIN {
-		return NewBool(false)
+	if b == other {
+		return True
 	}
-	value := fmt.Sprintf("%v", b.fn) == fmt.Sprintf("%v", other.(*Builtin).fn)
-	return NewBool(value)
-}
-
-func (b *Builtin) IsTruthy() bool {
-	return b.fn != nil
+	return False
 }
 
 func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for builtin: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for builtin: %v", opType))
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

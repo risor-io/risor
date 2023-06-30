@@ -3,12 +3,12 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Bool wraps bool and implements Object and Hashable interface.
 type Bool struct {
-	// value holds the boolean value we wrap.
+	*base
 	value bool
 }
 
@@ -32,10 +32,6 @@ func (b *Bool) HashKey() HashKey {
 		value = 0
 	}
 	return HashKey{Type: b.Type(), IntValue: value}
-}
-
-func (b *Bool) GetAttr(name string) (Object, bool) {
-	return nil, false
 }
 
 func (b *Bool) Interface() interface{} {
@@ -73,7 +69,7 @@ func (b *Bool) IsTruthy() bool {
 }
 
 func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for bool: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for bool: %v", opType))
 }
 
 func NewBool(value bool) *Bool {

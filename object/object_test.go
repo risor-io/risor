@@ -16,11 +16,9 @@ func TestObjectString(t *testing.T) {
 		input    Object
 		expected string
 	}{
-		{NewOkResult(True), "result(ok: bool(true))"},
-		{NewErrResult(Errorf("ouch")), "result(err: error(ouch))"},
 		{True, "bool(true)"},
 		{False, "bool(false)"},
-		{Nil, "nil()"},
+		{Nil, "nil"},
 		// {NewBreak(), "break"},
 		// {NewContinue(), "continue"},
 		{NewError(errors.New("kaboom")), "error(kaboom)"},
@@ -30,7 +28,7 @@ func TestObjectString(t *testing.T) {
 		{NewString("foo"), "string(foo)"},
 		// {NewModule("my-scope"), "module(my-scope)"},
 		{NewList([]Object{NewInt(1), NewInt(2)}), "list([int(1), int(2)])"},
-		{NewSet([]Object{True, Nil}), "set(bool(true), nil())"},
+		{NewSet([]Object{True, Nil}), "set(bool(true), nil)"},
 		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `map("bar": int(2), "foo": int(1))`},
 		{NewTime(tm), "time(2009-11-10T23:00:00Z)"},
 	}

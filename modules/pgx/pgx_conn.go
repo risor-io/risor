@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 const PGX_CONN = object.Type("pgx_conn")
@@ -64,8 +64,12 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
+func (c *PgxConn) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: pgx.conn object has no attribute %q", name)
+}
+
 func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("unsupported operation for pgx_conn: %v", opType))
+	return object.NewError(fmt.Errorf("eval error: unsupported operation for pgx.conn: %v", opType))
 }
 
 func (c *PgxConn) Close() error {
@@ -85,6 +89,10 @@ func (c *PgxConn) waitToClose() {
 			c.conn.Close(c.ctx)
 		}
 	}()
+}
+
+func (c *PgxConn) Cost() int {
+	return 8
 }
 
 func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
@@ -125,7 +133,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	fields := rows.FieldDescriptions()
 	var results []object.Object
 
-	// Transform each result row into a Tamarin map object
+	// Transform each result row into a Risor map object
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {

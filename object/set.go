@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Set struct {
+	*base
 	items map[HashKey]Object
 }
 
@@ -257,7 +258,7 @@ func (s *Set) IsTruthy() bool {
 }
 
 func (s *Set) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for set: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for set: %v", opType))
 }
 
 // Len returns the number of items in this container.
@@ -280,6 +281,10 @@ func (s *Set) Keys() []HashKey {
 		keys = append(keys, hashable.HashKey())
 	}
 	return keys
+}
+
+func (s *Set) Cost() int {
+	return len(s.items) * 8
 }
 
 func NewSet(items []Object) Object {

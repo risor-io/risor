@@ -35,9 +35,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
 
 type Config struct {
@@ -163,6 +163,10 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
+func (c *Config) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: aws.config object has no attribute %q", name)
+}
+
 func (c *Config) Interface() interface{} {
 	return c.cfg
 }
@@ -187,7 +191,11 @@ func (c *Config) IsTruthy() bool {
 }
 
 func (c *Config) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("unsupported operation for aws.config: %v ", opType))
+	return object.NewError(fmt.Errorf("eval error: unsupported operation for aws.config: %v ", opType))
+}
+
+func (c *Config) Cost() int {
+	return 0
 }
 
 func NewConfig(cfg aws.Config) *Config {

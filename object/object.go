@@ -1,6 +1,6 @@
-// Package object defines the standard set of object types in Tamarin.
+// Package object defines the standard set of object types in Risor.
 //
-// For external users of Tamarin, often an object.Object interface
+// For external users of Risor, often an object.Object interface
 // will be type asserted to a specific object type, such as *object.Float.
 //
 // For example:
@@ -16,7 +16,7 @@
 // name of the object type, such as "string" or "float".
 package object
 
-import "github.com/cloudcmds/tamarin/v2/op"
+import "github.com/risor-io/risor/op"
 
 // Type of an object as a string.
 type Type string
@@ -24,18 +24,24 @@ type Type string
 // Type constants
 const (
 	BOOL          Type = "bool"
+	BUFFER        Type = "buffer"
 	BUILTIN       Type = "builtin"
-	BSLICE        Type = "bslice"
-	BSLICE_ITER   Type = "bslice_iter"
+	BYTE_SLICE    Type = "byte_slice"
+	BYTE          Type = "byte"
 	CELL          Type = "cell"
 	CODE          Type = "code"
 	COLOR         Type = "color"
+	COMPLEX       Type = "complex"
+	COMPLEX_SLICE Type = "complex_slice"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FLOAT         Type = "float"
+	FLOAT_SLICE   Type = "float_slice"
 	FUNCTION      Type = "function"
+	GO_TYPE       Type = "go_type"
+	GO_FIELD      Type = "go_field"
+	GO_METHOD     Type = "go_method"
 	HTTP_RESPONSE Type = "http_response"
-	IMAGE         Type = "image"
 	INT           Type = "int"
 	ITER_ENTRY    Type = "iter_entry"
 	LIST          Type = "list"
@@ -50,6 +56,7 @@ const (
 	RESULT        Type = "result"
 	SET           Type = "set"
 	SET_ITER      Type = "set_iter"
+	SLICE_ITER    Type = "slice_iter"
 	STRING        Type = "string"
 	STRING_ITER   Type = "string_iter"
 	TIME          Type = "time"
@@ -61,7 +68,7 @@ var (
 	False = &Bool{value: false}
 )
 
-// Object is the interface that all object types in Tamarin must implement.
+// Object is the interface that all object types in Risor must implement.
 type Object interface {
 
 	// Type of the object.
@@ -79,12 +86,18 @@ type Object interface {
 	// GetAttr returns the attribute with the given name from this object.
 	GetAttr(name string) (Object, bool)
 
+	// SetAttr sets the attribute with the given name on this object.
+	SetAttr(name string, value Object) error
+
 	// IsTruthy returns true if the object is considered "truthy".
 	IsTruthy() bool
 
 	// RunOperation runs an operation on this object with the given
 	// right-hand side object.
 	RunOperation(opType op.BinaryOpType, right Object) Object
+
+	// Cost returns the incremental processing cost of this object.
+	Cost() int
 }
 
 // Slice is used to specify a range or slice of items in a container.
@@ -105,10 +118,14 @@ type IteratorEntry interface {
 type Iterator interface {
 	Object
 
-	// Next returns the next item in the iterator and a bool indicating whether
-	// the returned item is valid. If the iteration is complete, (nil, false) is
-	// returned.
-	Next() (IteratorEntry, bool)
+	// Next advances the iterator and then returns the current object and a
+	// bool indicating whether the returned item is valid. Once Next() has been
+	// called, the Entry() method can be used to get an IteratorEntry.
+	Next() (Object, bool)
+
+	// Entry returns the current entry in the iterator and a bool indicating
+	// whether the returned item is valid.
+	Entry() (IteratorEntry, bool)
 }
 
 type Container interface {

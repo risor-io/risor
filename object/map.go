@@ -7,10 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Map struct {
+	*base
+
 	items map[string]Object
 
 	// Used to avoid the possibility of infinite recursion when inspecting.
@@ -330,7 +332,7 @@ func (m *Map) Equals(other Object) Object {
 }
 
 func (m *Map) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for map: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for map: %v", opType))
 }
 
 func (m *Map) GetItem(key Object) (Object, *Error) {
@@ -401,21 +403,15 @@ func (m *Map) StringKeys() []string {
 	return keys
 }
 
+func (m *Map) Cost() int {
+	// It would be possible to recurse and compute the cost of each item, but
+	// let's avoid that since it would be an expensive op itself.
+	return len(m.items) * 8
+}
+
 func NewMap(m map[string]Object) *Map {
 	if m == nil {
 		m = map[string]Object{}
 	}
 	return &Map{items: m}
-}
-
-func NewMapFromGo(m map[string]interface{}) *Map {
-	result := &Map{items: make(map[string]Object, len(m))}
-	for k, v := range m {
-		value := FromGoType(v)
-		if value == nil {
-			panic(fmt.Sprintf("type error: cannot convert %v to a tamarin object", v))
-		}
-		result.items[k] = value
-	}
-	return result
 }

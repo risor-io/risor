@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type String struct {
+	*base
 	value string
 }
 
@@ -241,7 +242,7 @@ func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return s.runOperationString(opType, right)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -250,7 +251,7 @@ func (s *String) runOperationString(opType op.BinaryOpType, right *String) Objec
 	case op.Add:
 		return NewString(s.value + right.value)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for string: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -286,39 +287,11 @@ func (s *String) GetSlice(slice Slice) (Object, *Error) {
 }
 
 func (s *String) SetItem(key, value Object) *Error {
-	runes := []rune(s.value)
-	indexObj, ok := key.(*Int)
-	if !ok {
-		return Errorf("index error: index must be an int (got %s)", key.Type())
-	}
-	index, err := ResolveIndex(indexObj.value, int64(len(runes)))
-	if err != nil {
-		return Errorf(err.Error())
-	}
-	valueStr, ok := value.(*String)
-	if !ok {
-		return Errorf("index error: value must be a string (got %s)", value.Type())
-	}
-	if len(valueStr.value) != 1 {
-		return Errorf("index error: value must be a string of length 1 (got %d)", len(valueStr.value))
-	}
-	runes[index] = []rune(valueStr.value)[0]
-	s.value = string(runes)
-	return nil
+	return Errorf("type error: set item is unsupported for string")
 }
 
 func (s *String) DelItem(key Object) *Error {
-	runes := []rune(s.value)
-	indexObj, ok := key.(*Int)
-	if !ok {
-		return Errorf("index error: index must be an int (got %s)", key.Type())
-	}
-	index, err := ResolveIndex(indexObj.value, int64(len(runes)))
-	if err != nil {
-		return Errorf(err.Error())
-	}
-	s.value = string(append(runes[:index], runes[index+1:]...))
-	return nil
+	return Errorf("type error: del item is unsupported for string")
 }
 
 func (s *String) Contains(obj Object) *Bool {
@@ -450,7 +423,13 @@ func (s *String) Len() *Int {
 }
 
 func (s *String) Iter() Iterator {
-	return NewStringIter(s)
+	runes := []rune(s.value)
+	return &SliceIter{
+		s:         runes,
+		size:      len(runes),
+		pos:       -1,
+		converter: &RuneConverter{},
+	}
 }
 
 func (s *String) Runes() []Object {
@@ -460,6 +439,10 @@ func (s *String) Runes() []Object {
 		result[i] = NewString(string(r))
 	}
 	return result
+}
+
+func (s *String) Cost() int {
+	return len(s.value)
 }
 
 func NewString(s string) *String {

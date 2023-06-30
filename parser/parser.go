@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudcmds/tamarin/v2/ast"
-	"github.com/cloudcmds/tamarin/v2/internal/tmpl"
-	"github.com/cloudcmds/tamarin/v2/lexer"
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/ast"
+	"github.com/risor-io/risor/internal/tmpl"
+	"github.com/risor-io/risor/lexer"
+	"github.com/risor-io/risor/token"
 )
 
 type (
@@ -23,7 +23,7 @@ type (
 	postfixParseFn func() ast.Statement
 )
 
-// Parse the provided input as Tamarin source code and return the AST. This is
+// Parse the provided input as Risor source code and return the AST. This is
 // shorthand way to create a Lexer and Parser and then call Parse on that.
 func Parse(ctx context.Context, input string, options ...Option) (*ast.Program, error) {
 	l := lexer.New(input)
@@ -1220,7 +1220,7 @@ func (p *Parser) parseRange() ast.Node {
 	if err := p.nextToken(); err != nil {
 		return nil
 	}
-	container := p.parseExpression(RANGE)
+	container := p.parseExpression(PREFIX)
 	if container == nil {
 		p.setTokenError(p.curToken, "invalid range expression")
 		return nil

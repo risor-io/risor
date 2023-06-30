@@ -1,4 +1,4 @@
-// Package repl implements a read-eval-print-loop for Tamarin.
+// Package repl implements a read-eval-print-loop for Risor.
 package repl
 
 import (
@@ -10,11 +10,11 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
-	"github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/modules/all"
-	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/fatih/color"
+	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/modules/all"
+	"github.com/risor-io/risor/object"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 
 func Run(ctx context.Context) error {
 
-	color.New(color.Bold).Println("Tamarin")
+	color.New(color.Bold).Println("Risor")
 	fmt.Println("")
 	fmt.Printf(">>> ")
 
@@ -38,7 +38,7 @@ func Run(ctx context.Context) error {
 	var historyPath string
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		historyPath = path.Join(homeDir, ".tamarin_history")
+		historyPath = path.Join(homeDir, ".risor_history")
 		historyData, err := os.ReadFile(historyPath)
 		if err == nil {
 			history = strings.Split(string(historyData), "\n")
@@ -170,9 +170,9 @@ func Run(ctx context.Context) error {
 
 func execute(ctx context.Context, code string, c *compiler.Compiler) (object.Object, error) {
 	offset := len(c.MainInstructions())
-	result, err := tamarin.Eval(ctx, code,
-		tamarin.WithCompiler(c),
-		tamarin.WithInstructionOffset(offset))
+	result, err := risor.Eval(ctx, code,
+		risor.WithCompiler(c),
+		risor.WithInstructionOffset(offset))
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err

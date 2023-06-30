@@ -5,12 +5,12 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Float wraps float64 and implements Object and Hashable interfaces.
 type Float struct {
-	// value holds the float64 wrapped by this object.
+	*base
 	value float64
 }
 
@@ -28,10 +28,6 @@ func (f *Float) Value() float64 {
 
 func (f *Float) HashKey() HashKey {
 	return HashKey{Type: f.Type(), FltValue: f.value}
-}
-
-func (f *Float) GetAttr(name string) (Object, bool) {
-	return nil, false
 }
 
 func (f *Float) Interface() interface{} {
@@ -91,7 +87,7 @@ func (f *Float) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *Float:
 		return f.runOperationFloat(opType, right.value)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for float: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -108,7 +104,7 @@ func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object 
 	case op.Power:
 		return NewFloat(math.Pow(f.value, right))
 	default:
-		return NewError(fmt.Errorf("unsupported operation for float: %v", opType))
+		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v", opType))
 	}
 }
 

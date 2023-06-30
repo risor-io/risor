@@ -3,10 +3,10 @@ package fetch
 import (
 	"context"
 	"net/http"
-	"time"
 
-	"github.com/cloudcmds/tamarin/v2/internal/httputil"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/httputil"
+	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/object"
 )
 
 func Fetch(ctx context.Context, args ...object.Object) object.Object {
@@ -26,13 +26,11 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			return errObj
 		}
 	}
-	limits, ok := object.GetLimits(ctx)
+	lim, ok := limits.GetLimits(ctx)
 	if !ok {
-		return object.Errorf("fetch: limits not found in context")
+		return object.NewError(limits.LimitsNotFound)
 	}
-	client := &http.Client{
-		Timeout: time.Millisecond * time.Duration(limits.Timeout),
-	}
+	client := &http.Client{Timeout: lim.IOTimeout()}
 	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
 	if errObj != nil {
 		return errObj
@@ -42,11 +40,17 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			client.Timeout = timeout
 		}
 	}
+	if err := lim.TrackHTTPRequest(req); err != nil {
+		return object.NewError(err)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return object.NewError(err)
 	}
-	return object.NewHttpResponse(resp, client.Timeout, limits)
+	if err := lim.TrackHTTPResponse(resp); err != nil {
+		return object.NewError(err)
+	}
+	return object.NewHttpResponse(resp, client.Timeout, lim.MaxBufferSize())
 }
 
 func Builtins() map[string]object.Object {

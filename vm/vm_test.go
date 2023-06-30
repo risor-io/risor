@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2/compiler"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/op"
-	"github.com/cloudcmds/tamarin/v2/parser"
+	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
 
@@ -242,14 +242,15 @@ func TestForRange7(t *testing.T) {
 
 func TestIterator(t *testing.T) {
 	tests := []testCase{
-		{`range { 33, 44, 55 }.next().key`, object.NewInt(33)},
-		{`range { 33, 44, 55 }.next().value`, object.True},
-		{`range [ 33, 44, 55 ].next().key`, object.NewInt(0)},
-		{`range [ 33, 44, 55 ].next().value`, object.NewInt(33)},
-		{`range "abcd".next().key`, object.NewInt(0)},
-		{`range "abcd".next().value`, object.NewString("a")},
-		{`range { a: 33, b: 44 }.next().key`, object.NewString("a")},
-		{`range { a: 33, b: 44 }.next().value`, object.NewInt(33)},
+		{`(range { 33, 44, 55 }).next()`, object.NewInt(33)},
+		{`i := range { 33, 44, 55 }; i.next(); i.entry().value`, object.True},
+		{`i := range { 33, 44, 55 }; i.next(); i.entry().key`, object.NewInt(33)},
+		{`(range [ 33, 44, 55 ]).next()`, object.NewInt(33)},
+		{`i := range "abcd"; i.next(); i.entry().key`, object.NewInt(0)},
+		{`i := range "abcd"; i.next(); i.entry().value`, object.NewString("a")},
+		{`(range { a: 33, b: 44 }).next()`, object.NewString("a")},
+		{`i := range { a: 33, b: 44 }; i.next(); i.entry().key`, object.NewString("a")},
+		{`i := range { a: 33, b: 44 }; i.next(); i.entry().value`, object.NewInt(33)},
 	}
 	runTests(t, tests)
 }
@@ -262,7 +263,6 @@ func TestIndexing(t *testing.T) {
 		{`x := {a: 1}; x["b"] = 9; x["b"]`, object.NewInt(9)},
 		{`x := { 1 }; x[1]`, object.True},
 		{`x := { 1 }; x[2]`, object.False},
-		{`x := "ab"; x[0] = "X"; x`, object.NewString("Xb")},
 	}
 	runTests(t, tests)
 }
@@ -804,6 +804,7 @@ func TestLength(t *testing.T) {
 		{`len({"abc": 1})`, object.NewInt(1)},
 		{`len({"abc"})`, object.NewInt(1)},
 		{`len("ᛛᛥ")`, object.NewInt(2)},
+		{`len(string(byte_slice([0, 1, 2])))`, object.NewInt(3)},
 	}
 	runTests(t, tests)
 }
@@ -814,6 +815,9 @@ func TestBuiltins(t *testing.T) {
 		{`keys({"a": 1})`, object.NewList([]object.Object{
 			object.NewString("a"),
 		})},
+		{`byte(9)`, object.NewByte(9)},
+		{`byte_slice([9])`, object.NewByteSlice([]byte{9})},
+		{`float_slice([9])`, object.NewFloatSlice([]float64{9})},
 		{`type(3.14159)`, object.NewString("float")},
 		{`type("hi".contains)`, object.NewString("builtin")},
 		{`sprintf("%d-%d", 1, 2)`, object.NewString("1-2")},
@@ -823,7 +827,11 @@ func TestBuiltins(t *testing.T) {
 		{`string(2.5)`, object.NewString("2.5")},
 		{`ord("a")`, object.NewInt(97)},
 		{`chr(97)`, object.NewString("a")},
-		{`iter("abc").next().value`, object.NewString("a")},
+		{`encode("hi", "hex")`, object.NewString("6869")},
+		{`encode("hi", "base64")`, object.NewString("aGk=")},
+		{`iter("abc").next()`, object.NewString("a")},
+		{`i := iter("abc"); i.next(); i.entry().key`, object.NewInt(0)},
+		{`i := iter("abc"); i.next(); i.entry().value`, object.NewString("a")},
 		{`reversed("abc")`, object.NewString("cba")},
 		{`reversed([1, 2, 3])`, object.NewList([]object.Object{
 			object.NewInt(3),
@@ -852,17 +860,13 @@ func TestTry(t *testing.T) {
 		{`try(func() { error("oops") }, "nope")`, object.NewString("nope")},
 		{`try(func() { error("oops") }, func() { error("oops") })`, object.Nil},
 		{`try(func() { error("oops") }, func() { error("oops") }, 1)`, object.NewInt(1)},
-		{`try(func() { err("oops") }, func() { err("oops") }, 1)`, object.NewInt(1)},
-		{`try(2, func() { err("oops") }, func() { err("oops") }, 1)`, object.NewInt(2)},
-		{`try(func() { err("oops") }, 2, func() { err("oops") }, 1)`, object.NewInt(2)},
-		{`try(func() { return err("oops") }, func() { return err("oops") }, 1)`, object.NewInt(1)},
 		{`x := 0; y := 0; z := try(func() {
 			x = 11
 			error("oops")
 			x = 12
 		  }, func() {
 			y = 21
-			return err("oops")
+			error("oops")
 			y = 22
 		  }, 33); [x, y, z]`, object.NewList([]object.Object{
 			object.NewInt(11),

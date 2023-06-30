@@ -3,10 +3,11 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Entry struct {
+	*base
 	key     Object
 	value   Object
 	primary Object
@@ -52,12 +53,8 @@ func (e *Entry) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (e *Entry) IsTruthy() bool {
-	return true
-}
-
 func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for entry: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for entry: %v", opType))
 }
 
 func (e *Entry) Key() Object {

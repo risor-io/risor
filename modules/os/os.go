@@ -3,25 +3,33 @@ package os
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/os"
 )
+
+func GetOS(ctx context.Context) os.OS {
+	if osObj, found := os.GetOS(ctx); found {
+		return osObj
+	}
+	return os.NewSimpleOS(ctx)
+}
 
 func Exit(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs > 1 {
 		return object.Errorf("type error: exit() expected at most 1 argument (%d given)", nArgs)
 	}
+	tos := GetOS(ctx)
 	if nArgs == 0 {
-		os.Exit(0)
+		tos.Exit(0)
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
-		os.Exit(int(obj.Value()))
+		tos.Exit(int(obj.Value()))
 	case *object.Error:
-		os.Exit(1)
+		tos.Exit(1)
 	}
 	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
 }
@@ -34,7 +42,7 @@ func Chdir(ctx context.Context, args ...object.Object) object.Object {
 	if !ok {
 		return object.Errorf("type error: expected a string (got %v)", args[0].Type())
 	}
-	if err := os.Chdir(dir.Value()); err != nil {
+	if err := GetOS(ctx).Chdir(dir.Value()); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -44,7 +52,7 @@ func Getwd(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.getwd", 0, args); err != nil {
 		return err
 	}
-	dir, err := os.Getwd()
+	dir, err := GetOS(ctx).Getwd()
 	if err != nil {
 		return object.NewError(err)
 	}
@@ -63,7 +71,7 @@ func Mkdir(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Mkdir(dir, os.FileMode(perm)); err != nil {
+	if err := GetOS(ctx).Mkdir(dir, os.FileMode(perm)); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -77,7 +85,7 @@ func Remove(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(path); err != nil {
+	if err := GetOS(ctx).Remove(path); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -91,10 +99,10 @@ func Open(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if file, err := os.Open(path); err != nil {
+	if file, err := GetOS(ctx).Open(path); err != nil {
 		return object.NewError(err)
 	} else {
-		return object.NewFile(ctx, file)
+		return object.NewFile(ctx, file, path)
 	}
 }
 
@@ -110,7 +118,7 @@ func Rename(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Rename(oldpath, newpath); err != nil {
+	if err := GetOS(ctx).Rename(oldpath, newpath); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -124,7 +132,7 @@ func Stat(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	info, ioErr := os.Stat(name)
+	info, ioErr := GetOS(ctx).Stat(name)
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
@@ -141,7 +149,7 @@ func TempDir(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.temp_dir", 0, args); err != nil {
 		return err
 	}
-	return object.NewString(os.TempDir())
+	return object.NewString(GetOS(ctx).TempDir())
 }
 
 func Getenv(ctx context.Context, args ...object.Object) object.Object {
@@ -152,7 +160,7 @@ func Getenv(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewString(os.Getenv(key))
+	return object.NewString(GetOS(ctx).Getenv(key))
 }
 
 func Create(ctx context.Context, args ...object.Object) object.Object {
@@ -163,11 +171,11 @@ func Create(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	file, ioErr := os.Create(name)
+	file, ioErr := GetOS(ctx).Create(name)
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewFile(ctx, file)
+	return object.NewFile(ctx, file, name)
 }
 
 func Setenv(ctx context.Context, args ...object.Object) object.Object {
@@ -182,7 +190,7 @@ func Setenv(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Setenv(key, value); err != nil {
+	if err := GetOS(ctx).Setenv(key, value); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -196,7 +204,7 @@ func Unsetenv(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Unsetenv(key); err != nil {
+	if err := GetOS(ctx).Unsetenv(key); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -210,7 +218,7 @@ func LookupEnv(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	value, ok := os.LookupEnv(key)
+	value, ok := GetOS(ctx).LookupEnv(key)
 	return object.NewMap(map[string]object.Object{
 		"value":  object.NewString(value),
 		"exists": object.NewBool(ok),
@@ -225,11 +233,11 @@ func ReadFile(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	bytes, ioErr := os.ReadFile(filename)
+	bytes, ioErr := GetOS(ctx).ReadFile(filename)
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewBSlice(bytes)
+	return object.NewByteSlice(bytes)
 }
 
 func WriteFile(ctx context.Context, args ...object.Object) object.Object {
@@ -242,18 +250,18 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var data []byte
 	switch arg := args[1].(type) {
-	case *object.BSlice:
+	case *object.ByteSlice:
 		data = arg.Value()
 	case *object.String:
 		data = []byte(arg.Value())
 	default:
-		return object.NewError(fmt.Errorf("type error: expected bslice or string (got %s)", args[1].Type()))
+		return object.NewError(fmt.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type()))
 	}
 	perm, err := object.AsInt(args[2])
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filename, data, os.FileMode(perm)); err != nil {
+	if err := GetOS(ctx).WriteFile(filename, data, os.FileMode(perm)); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -263,7 +271,7 @@ func UserCacheDir(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.user_cache_dir", 0, args); err != nil {
 		return err
 	}
-	dir, err := os.UserCacheDir()
+	dir, err := GetOS(ctx).UserCacheDir()
 	if err != nil {
 		return object.NewError(err)
 	}
@@ -274,7 +282,7 @@ func UserConfigDir(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.user_config_dir", 0, args); err != nil {
 		return err
 	}
-	dir, err := os.UserConfigDir()
+	dir, err := GetOS(ctx).UserConfigDir()
 	if err != nil {
 		return object.NewError(err)
 	}
@@ -285,7 +293,7 @@ func UserHomeDir(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.user_home_dir", 0, args); err != nil {
 		return err
 	}
-	dir, err := os.UserHomeDir()
+	dir, err := GetOS(ctx).UserHomeDir()
 	if err != nil {
 		return object.NewError(err)
 	}
@@ -304,7 +312,7 @@ func Symlink(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.Symlink(oldname, newname); err != nil {
+	if err := GetOS(ctx).Symlink(oldname, newname); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -322,7 +330,7 @@ func MkdirAll(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(path, os.FileMode(perm)); err != nil {
+	if err := GetOS(ctx).MkdirAll(path, os.FileMode(perm)); err != nil {
 		return object.NewError(err)
 	}
 	return object.Nil
@@ -332,7 +340,7 @@ func Environ(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.environ", 0, args); err != nil {
 		return err
 	}
-	envVars := os.Environ()
+	envVars := GetOS(ctx).Environ()
 	items := make([]object.Object, len(envVars))
 	for i, envVar := range envVars {
 		items[i] = object.NewString(envVar)
@@ -344,21 +352,21 @@ func Getpid(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.getpid", 0, args); err != nil {
 		return err
 	}
-	return object.NewInt(int64(os.Getpid()))
+	return object.NewInt(int64(GetOS(ctx).Getpid()))
 }
 
 func Getuid(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.getuid", 0, args); err != nil {
 		return err
 	}
-	return object.NewInt(int64(os.Getuid()))
+	return object.NewInt(int64(GetOS(ctx).Getuid()))
 }
 
 func Hostname(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.hostname", 0, args); err != nil {
 		return err
 	}
-	hostname, err := os.Hostname()
+	hostname, err := GetOS(ctx).Hostname()
 	if err != nil {
 		return object.NewError(err)
 	}
@@ -377,7 +385,7 @@ func MkdirTemp(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	tempDir, ioErr := os.MkdirTemp(dir, pattern)
+	tempDir, ioErr := GetOS(ctx).MkdirTemp(dir, pattern)
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}

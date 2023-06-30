@@ -8,8 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
 type configuration struct {
@@ -105,6 +105,6 @@ func ConfigFunc(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("aws", map[string]object.Object{
-		"config": object.NewBuiltin("config", ConfigFunc),
+		"config": object.NewBuiltin("aws.config", ConfigFunc),
 	})
 }

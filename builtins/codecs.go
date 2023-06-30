@@ -13,8 +13,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
 var (
@@ -228,7 +228,7 @@ func decodeBase64(ctx context.Context, obj object.Object) object.Object {
 	if decodeErr != nil {
 		return object.NewError(decodeErr)
 	}
-	return object.NewBSlice(dst[:count])
+	return object.NewByteSlice(dst[:count])
 }
 
 func decodeBase32(ctx context.Context, obj object.Object) object.Object {
@@ -242,7 +242,7 @@ func decodeBase32(ctx context.Context, obj object.Object) object.Object {
 	if decodeErr != nil {
 		return object.NewError(decodeErr)
 	}
-	return object.NewBSlice(dst[:count])
+	return object.NewByteSlice(dst[:count])
 }
 
 func decodeHex(ctx context.Context, obj object.Object) object.Object {
@@ -255,7 +255,7 @@ func decodeHex(ctx context.Context, obj object.Object) object.Object {
 	if decodeErr != nil {
 		return object.NewError(decodeErr)
 	}
-	return object.NewBSlice(dst[:count])
+	return object.NewByteSlice(dst[:count])
 }
 
 func decodeJSON(ctx context.Context, obj object.Object) object.Object {

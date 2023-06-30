@@ -1,14 +1,14 @@
 # Error Handling
 
-There are two concepts used in Tamarin for dealing with situations where
-something goes wrong: _errors_ and _results_. A Tamarin object type is used
+There are two concepts used in Risor for dealing with situations where
+something goes wrong: _errors_ and _results_. A Risor object type is used
 for each of these, `object.Error` and `object.Result`. There are various
 built-in functions and methods used to interact with these as values to
 design an error resilient application.
 
-In short, when an error object is generated, the Tamarin interpreter recognizes
+In short, when an error object is generated, the Risor interpreter recognizes
 the error, evaluation of the code stops, and the error is returned. This means
-that, by default, a Tamarin program halts on an error.
+that, by default, a Risor program halts on an error.
 
 Results are objects that may contain an _ok_ value or an _err_ value. These are
 returned from operations that have common error conditions, such as I/O operations
@@ -23,7 +23,7 @@ to an error or an err result.
 ## Errors
 
 Generate an error intentionally using the `error` built-in function. This stops
-evaluation of the Tamarin program immediately:
+evaluation of the Risor program immediately:
 
 ```go
 >>> error("kaboom")
@@ -40,7 +40,7 @@ Wrap an operation with `try` to prevent an error from propagating:
 ## Results
 
 Create a result containing an error message using the `err` built-in function.
-This result is treated as any other value in Tamarin:
+This result is treated as any other value in Risor:
 
 ```go
 >>> e := err("io problem")

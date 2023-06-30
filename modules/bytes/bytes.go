@@ -3,14 +3,14 @@ package strings
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
-func asBytes(obj object.Object) (*object.BSlice, *object.Error) {
-	b, ok := obj.(*object.BSlice)
+func asBytes(obj object.Object) (*object.ByteSlice, *object.Error) {
+	b, ok := obj.(*object.ByteSlice)
 	if !ok {
-		return nil, object.Errorf("type error: expected a bslice (got %v)", obj.Type())
+		return nil, object.Errorf("type error: expected a byte_slice (%s given)", obj.Type())
 	}
 	return b, nil
 }

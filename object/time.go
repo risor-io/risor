@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type Time struct {
+	*base
 	value time.Time
 }
 
@@ -72,7 +73,7 @@ func (t *Time) Equals(other Object) Object {
 }
 
 func (t *Time) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for time: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for time: %v", opType))
 }
 
 func NewTime(t time.Time) *Time {

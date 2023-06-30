@@ -3,9 +3,9 @@ package uuid
 import (
 	"context"
 
-	"github.com/cloudcmds/tamarin/v2/internal/arg"
-	"github.com/cloudcmds/tamarin/v2/object"
 	"github.com/gofrs/uuid"
+	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/object"
 )
 
 func V4(ctx context.Context, args ...object.Object) object.Object {

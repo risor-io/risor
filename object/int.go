@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Int wraps int64 and implements Object and Hashable interfaces.
 type Int struct {
-	// value holds the int64 wrapped by this object.
+	*base
 	value int64
 }
 
@@ -27,10 +27,6 @@ func (i *Int) Value() int64 {
 
 func (i *Int) HashKey() HashKey {
 	return HashKey{Type: i.Type(), IntValue: i.value}
-}
-
-func (i *Int) GetAttr(name string) (Object, bool) {
-	return nil, false
 }
 
 func (i *Int) Interface() interface{} {
@@ -90,7 +86,7 @@ func (i *Int) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *Float:
 		return i.runOperationFloat(opType, right.value)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for int: %v on type %s", opType, right.Type()))
+		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type %s", opType, right.Type()))
 	}
 }
 
@@ -119,7 +115,7 @@ func (i *Int) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	case op.BitwiseOr:
 		return NewInt(i.value | right)
 	default:
-		return NewError(fmt.Errorf("unsupported operation for int: %v on type int", opType))
+		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type int", opType))
 	}
 }
 
@@ -137,7 +133,7 @@ func (i *Int) runOperationFloat(opType op.BinaryOpType, right float64) Object {
 	case op.Power:
 		return NewInt(int64(math.Pow(float64(i.value), float64(right))))
 	default:
-		return NewError(fmt.Errorf("unsupported operation for int: %v on type float", opType))
+		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type float", opType))
 	}
 }
 

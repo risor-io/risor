@@ -1,7 +1,7 @@
 package json
 
 import (
-	"github.com/cloudcmds/tamarin/v2/object"
+	"github.com/risor-io/risor/object"
 )
 
 const Name = "jsondiff"

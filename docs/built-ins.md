@@ -1,6 +1,6 @@
 # Built-in Functions
 
-Tamarin includes this set of default built-in functions. The set of available
+Risor includes this set of default built-in functions. The set of available
 built-ins is easily customizable, depending on the goals for your project.
 
 ### all(container)
@@ -105,7 +105,7 @@ err("failed operation")
 
 ### error(message)
 
-Generates an Error containing the given message. Errors in Tamarin stop evaluation
+Generates an Error containing the given message. Errors in Risor stop evaluation
 when they are generated, unless a `try` call is used to stop error propagation.
 
 ```go
@@ -126,7 +126,7 @@ operation fails.
 ### getattr(object, name, default)
 
 Returns the named attribute from the object, or the default value if the
-attribute does not exist. The returned attribute is always a Tamarin object,
+attribute does not exist. The returned attribute is always a Risor object,
 which may be a function. This is similar to
 [getattr](https://docs.python.org/3/library/functions.html#getattr) in Python.
 
@@ -251,7 +251,7 @@ is output. This is a wrapper around `fmt.Println` in Go.
 ### printf(string, ...any)
 
 Printf wraps `fmt.Printf` in order to print the formatted string and arguments
-to stdout. In the Tamarin REPL you will currently not see the `printf` output
+to stdout. In the Risor REPL you will currently not see the `printf` output
 unless the string ends in a newline character.
 
 ```go
@@ -298,7 +298,7 @@ Returns a sorted list of items from the given container object.
 
 ### sprintf(string, ...any)
 
-Wraps `fmt.Sprintf` to format the string with the provided arguments. Tamarin
+Wraps `fmt.Sprintf` to format the string with the provided arguments. Risor
 objects are converted to their corresponding Go types before being passed to
 `fmt.Sprintf`.
 
@@ -311,7 +311,7 @@ objects are converted to their corresponding Go types before being passed to
 
 ### string(object)
 
-Returns a string representation of the given Tamarin object.
+Returns a string representation of the given Risor object.
 
 ```go
 >>> string({one:1, two:2})

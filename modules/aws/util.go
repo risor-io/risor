@@ -3,7 +3,7 @@
 
 package aws
 
-import "github.com/cloudcmds/tamarin/v2/object"
+import "github.com/risor-io/risor/object"
 
 func mapGetStr(m *object.Map, key string) (string, bool, *object.Error) {
 	value := m.GetWithDefault(key, nil)

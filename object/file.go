@@ -5,92 +5,84 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"sync"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
+	tos "github.com/risor-io/risor/os"
 )
 
 type File struct {
+	*base
 	ctx    context.Context
-	value  *os.File
+	value  tos.File
+	path   string
 	once   sync.Once
 	closed chan bool
 }
 
 func (f *File) Inspect() string {
-	return fmt.Sprintf("file(name=%q)", f.value.Name())
+	return fmt.Sprintf("file(path=%s)", f.path)
 }
 
 func (f *File) Type() Type {
 	return FILE
 }
 
-func (f *File) Value() *os.File {
+func (f *File) Value() tos.File {
 	return f.value
 }
 
 func (f *File) GetAttr(name string) (Object, bool) {
 	switch name {
-	case "name":
-		return NewString(f.value.Name()), true
 	case "position":
-		position, _ := f.value.Seek(0, io.SeekCurrent)
-		return NewInt(int64(position)), true
-	case "sync":
-		return NewBuiltin("file.sync", func(ctx context.Context, args ...Object) Object {
-			if len(args) != 0 {
-				return NewArgsError("file.sync", 0, len(args))
-			}
-			if err := f.value.Sync(); err != nil {
-				return NewError(err)
-			}
-			return Nil
-		}), true
+		position, err := f.Position()
+		if err != nil {
+			return NewError(err), true
+		}
+		return NewInt(position), true
 	case "read":
 		return NewBuiltin("file.read", func(ctx context.Context, args ...Object) Object {
 			if len(args) != 1 {
 				return NewArgsError("file.read", 1, len(args))
 			}
-			bufferSize, err := AsInt(args[0])
-			if err != nil {
-				return err
+			switch obj := args[0].(type) {
+			case *ByteSlice:
+				n, ioErr := f.Read(obj.Value())
+				if ioErr != nil && ioErr != io.EOF {
+					return NewError(ioErr)
+				}
+				return NewInt(int64(n))
+			case *Buffer:
+				n, ioErr := f.Read(obj.Value())
+				if ioErr != nil && ioErr != io.EOF {
+					return NewError(ioErr)
+				}
+				return NewInt(int64(n))
+			default:
+				return Errorf("type error: file.read expects byte_slice or buffer (%s given)", obj.Type())
 			}
-			buffer := make([]byte, bufferSize)
-			n, ioErr := f.value.Read(buffer)
-			if ioErr != nil && ioErr != io.EOF {
-				return NewError(ioErr)
-			}
-			return NewBSlice(buffer[:n])
 		}), true
 	case "write":
 		return NewBuiltin("file.write", func(ctx context.Context, args ...Object) Object {
 			if len(args) != 1 {
 				return NewArgsError("file.write", 1, len(args))
 			}
-			switch obj := args[0].(type) {
-			case *BSlice:
-				n, ioErr := f.value.Write(obj.Value())
-				if ioErr != nil {
-					return NewError(ioErr)
-				}
-				return NewInt(int64(n))
-			case *String:
-				n, ioErr := f.value.WriteString(obj.Value())
-				if ioErr != nil {
-					return NewError(ioErr)
-				}
-				return NewInt(int64(n))
-			default:
-				return NewError(errors.New("type error: file.write expects bytes or string"))
+			bytes, err := AsBytes(args[0])
+			if err != nil {
+				return err
 			}
+			n, ioErr := f.Write(bytes)
+			if ioErr != nil {
+				return NewError(ioErr)
+			}
+			return NewInt(int64(n))
 		}), true
 	case "close":
 		return NewBuiltin("file.close", func(ctx context.Context, args ...Object) Object {
 			if len(args) != 0 {
 				return NewArgsError("file.close", 0, len(args))
 			}
-			if err := f.value.Close(); err != nil {
+			if err := f.Close(); err != nil {
 				return NewError(err)
 			}
 			return Nil
@@ -108,7 +100,7 @@ func (f *File) GetAttr(name string) (Object, bool) {
 			if err != nil {
 				return err
 			}
-			newPosition, ioErr := f.value.Seek(offset, int(whence))
+			newPosition, ioErr := f.Seek(offset, int(whence))
 			if ioErr != nil {
 				return NewError(ioErr)
 			}
@@ -123,11 +115,19 @@ func (f *File) Read(p []byte) (n int, err error) {
 }
 
 func (f *File) Seek(offset int64, whence int) (int64, error) {
-	return f.value.Seek(offset, whence)
+	seeker, ok := f.value.(io.Seeker)
+	if !ok {
+		return 0, errors.New("value error: this file does not support seeking")
+	}
+	return seeker.Seek(offset, whence)
 }
 
 func (f *File) Write(p []byte) (n int, err error) {
-	return f.value.Write(p)
+	writer, ok := f.value.(io.Writer)
+	if !ok {
+		return 0, errors.New("value error: this file does not support writing")
+	}
+	return writer.Write(p)
 }
 
 func (f *File) Close() error {
@@ -137,6 +137,18 @@ func (f *File) Close() error {
 		close(f.closed)
 	})
 	return err
+}
+
+func (f *File) Position() (int64, error) {
+	seeker, ok := f.value.(io.Seeker)
+	if !ok {
+		return 0, errors.New("value error: this file does not support seeking")
+	}
+	position, err := seeker.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, err
+	}
+	return position, nil
 }
 
 func (f *File) waitToClose() {
@@ -162,27 +174,25 @@ func (f *File) Compare(other Object) (int, error) {
 }
 
 func (f *File) Equals(other Object) Object {
-	switch other := other.(type) {
-	case *File:
-		if f.value == other.value {
-			return True
-		}
+	if f == other {
+		return True
 	}
 	return False
 }
 
-func (f *File) IsTruthy() bool {
-	return true
-}
-
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for file: %v ", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for file: %v ", opType))
 }
 
-func NewFile(ctx context.Context, value *os.File) *File {
+func (f *File) Cost() int {
+	return 8
+}
+
+func NewFile(ctx context.Context, value tos.File, path string) *File {
 	f := &File{
 		ctx:    ctx,
 		value:  value,
+		path:   path,
 		closed: make(chan bool),
 	}
 	f.waitToClose()

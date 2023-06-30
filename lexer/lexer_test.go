@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudcmds/tamarin/v2/token"
+	"github.com/risor-io/risor/token"
 	"github.com/stretchr/testify/require"
 )
 
@@ -417,7 +417,7 @@ func TestInvalidIntegers(t *testing.T) {
 
 // Test that the shebang-line is handled specially.
 func TestShebang(t *testing.T) {
-	input := `#!/bin/tamarin
+	input := `#!/bin/risor
 10;`
 
 	tests := []struct {

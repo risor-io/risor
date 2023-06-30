@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 type SetIter struct {
-	set  *Set
-	keys []HashKey
-	pos  int64
+	*base
+	set     *Set
+	keys    []HashKey
+	pos     int64
+	current Object
 }
 
 func (iter *SetIter) Type() Type {
@@ -55,7 +57,21 @@ func (iter *SetIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("set_iter.next", 0, len(args))
 				}
-				entry, ok := iter.Next()
+				value, ok := iter.Next()
+				if !ok {
+					return Nil
+				}
+				return value
+			},
+		}, true
+	case "entry":
+		return &Builtin{
+			name: "set_iter.entry",
+			fn: func(ctx context.Context, args ...Object) Object {
+				if len(args) != 0 {
+					return NewArgsError("set_iter.entry", 0, len(args))
+				}
+				entry, ok := iter.Entry()
 				if !ok {
 					return Nil
 				}
@@ -71,23 +87,33 @@ func (iter *SetIter) IsTruthy() bool {
 }
 
 func (iter *SetIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for set_iter: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for set_iter: %v", opType))
 }
 
-func (iter *SetIter) Next() (IteratorEntry, bool) {
+func (iter *SetIter) Next() (Object, bool) {
 	hashKeys := iter.keys
-	if iter.pos >= int64(len(hashKeys)) {
+	if iter.pos >= int64(len(hashKeys)-1) {
+		iter.current = nil
 		return nil, false
 	}
-	key := hashKeys[iter.pos]
 	iter.pos++
+	key := hashKeys[iter.pos]
 	value, ok := iter.set.items[key]
 	if !ok {
+		iter.current = nil
 		return nil, false
 	}
-	return NewEntry(value, True).WithKeyAsPrimary(), true
+	iter.current = value
+	return value, true
+}
+
+func (iter *SetIter) Entry() (IteratorEntry, bool) {
+	if iter.current == nil {
+		return nil, false
+	}
+	return NewEntry(iter.current, True).WithKeyAsPrimary(), true
 }
 
 func NewSetIter(set *Set) *SetIter {
-	return &SetIter{set: set, keys: set.Keys(), pos: 0}
+	return &SetIter{set: set, keys: set.Keys(), pos: -1}
 }

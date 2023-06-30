@@ -8,22 +8,24 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/cloudcmds/tamarin/v2"
-	"github.com/cloudcmds/tamarin/v2/modules/all"
-	"github.com/cloudcmds/tamarin/v2/object"
-	"github.com/cloudcmds/tamarin/v2/parser"
-	"github.com/cloudcmds/tamarin/v2/repl"
 	"github.com/fatih/color"
+	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/modules/all"
+	"github.com/risor-io/risor/object"
+	tos "github.com/risor-io/risor/os"
+	"github.com/risor-io/risor/parser"
+	"github.com/risor-io/risor/repl"
 )
 
 func main() {
-	var noColor, showTiming bool
+	var noColor, showTiming, virtualOS bool
 	var profilerOutputPath, code, breakpoints string
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
 	flag.BoolVar(&showTiming, "timing", false, "Show timing information")
 	flag.StringVar(&code, "c", "", "Code to execute")
 	flag.StringVar(&profilerOutputPath, "profile", "", "Enable profiling")
 	flag.StringVar(&breakpoints, "breakpoints", "", "Comma-separated list of breakpoints")
+	flag.BoolVar(&virtualOS, "virtual-os", false, "Enable virtual OS")
 	flag.Parse()
 
 	if noColor {
@@ -42,6 +44,9 @@ func main() {
 	}
 
 	ctx := context.Background()
+	if virtualOS {
+		ctx = tos.WithOS(ctx, tos.NewVirtualOS(ctx))
+	}
 
 	// Input can only come from one source
 	nArgs := len(flag.Args())
@@ -75,11 +80,11 @@ func main() {
 
 	start := time.Now()
 
-	result, err := tamarin.Eval(ctx,
+	result, err := risor.Eval(ctx,
 		string(input),
-		tamarin.WithBuiltins(all.Builtins()),
-		tamarin.WithDefaultBuiltins(),
-		tamarin.WithDefaultModules())
+		risor.WithBuiltins(all.Builtins()),
+		risor.WithDefaultBuiltins(),
+		risor.WithDefaultModules())
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {

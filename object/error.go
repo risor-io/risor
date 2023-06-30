@@ -3,12 +3,12 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
 // Error wraps a Go error interface and implements Object.
 type Error struct {
-	// err is the Go error being wrapped.
+	*base
 	err error
 }
 
@@ -50,29 +50,23 @@ func (e *Error) Compare(other Object) (int, error) {
 }
 
 func (e *Error) Equals(other Object) Object {
-	if other.Type() != ERROR {
+	switch other := other.(type) {
+	case *Error:
+		if e.Message() == other.Message() {
+			return True
+		}
+		return False
+	default:
 		return False
 	}
-	if e.Message() == other.(*Error).Message() {
-		return True
-	}
-	return False
-}
-
-func (e *Error) IsTruthy() bool {
-	return true
 }
 
 func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }
 
-func (e *Error) GetAttr(name string) (Object, bool) {
-	return nil, false
-}
-
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for error: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
 }
 
 func Errorf(format string, a ...interface{}) *Error {

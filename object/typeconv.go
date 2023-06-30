@@ -1,15 +1,46 @@
 package object
 
 import (
-	"context"
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"time"
 
 	"github.com/gofrs/uuid"
 )
+
+var kindConverters = map[reflect.Kind]TypeConverter{
+	reflect.Bool:    &BoolConverter{},
+	reflect.Int:     &IntConverter{},
+	reflect.Int8:    &Int8Converter{},
+	reflect.Int16:   &Int16Converter{},
+	reflect.Int32:   &Int32Converter{},
+	reflect.Int64:   &Int64Converter{},
+	reflect.Uint:    &UintConverter{},
+	reflect.Uint8:   &Uint8Converter{},
+	reflect.Uint16:  &Uint16Converter{},
+	reflect.Uint32:  &Uint32Converter{},
+	reflect.Uint64:  &Uint64Converter{},
+	reflect.Float32: &Float32Converter{},
+	reflect.Float64: &Float64Converter{},
+	reflect.String:  &StringConverter{},
+}
+
+var typeConverters = map[reflect.Type]TypeConverter{
+	reflect.TypeOf(byte(0)):              &ByteConverter{},
+	reflect.TypeOf(time.Time{}):          &TimeConverter{},
+	reflect.TypeOf(bytes.NewBuffer(nil)): &BufferConverter{},
+	reflect.TypeOf([]byte{}):             &ByteSliceConverter{},
+	reflect.TypeOf([]float64{}):          &FloatSliceConverter{},
+}
+
+// Kinds do NOT intend to handle for now:
+// * Chan
+// * Complex64
+// * Complex128
+// * UnsafePointer
 
 // *****************************************************************************
 // Type assertion helpers
@@ -18,7 +49,7 @@ import (
 func AsBool(obj Object) (bool, *Error) {
 	b, ok := obj.(*Bool)
 	if !ok {
-		return false, Errorf("type error: expected a bool (got %v)", obj.Type())
+		return false, Errorf("type error: expected a bool (%s given)", obj.Type())
 	}
 	return b.value, nil
 }
@@ -27,36 +58,56 @@ func AsString(obj Object) (string, *Error) {
 	switch obj := obj.(type) {
 	case *String:
 		return obj.value, nil
-	case *BSlice:
+	case *ByteSlice:
 		return string(obj.value), nil
+	case *Buffer:
+		return obj.value.String(), nil
 	default:
-		return "", Errorf("type error: expected a string (got %v)", obj.Type())
+		return "", Errorf("type error: expected a string (%s given)", obj.Type())
 	}
 }
 
 func AsInt(obj Object) (int64, *Error) {
-	i, ok := obj.(*Int)
-	if !ok {
-		return 0, Errorf("type error: expected an integer (got %v)", obj.Type())
+	switch obj := obj.(type) {
+	case *Int:
+		return obj.value, nil
+	case *Byte:
+		return int64(obj.value), nil
+	default:
+		return 0, Errorf("type error: expected an integer (%s given)", obj.Type())
 	}
-	return i.value, nil
+}
+
+func AsByte(obj Object) (byte, *Error) {
+	switch obj := obj.(type) {
+	case *Int:
+		return byte(obj.value), nil
+	case *Byte:
+		return obj.value, nil
+	case *Float:
+		return byte(obj.value), nil
+	default:
+		return 0, Errorf("type error: expected a byte (%s given)", obj.Type())
+	}
 }
 
 func AsFloat(obj Object) (float64, *Error) {
 	switch obj := obj.(type) {
 	case *Int:
 		return float64(obj.value), nil
+	case *Byte:
+		return float64(obj.value), nil
 	case *Float:
 		return obj.value, nil
 	default:
-		return 0.0, Errorf("type error: expected a number (got %v)", obj.Type())
+		return 0.0, Errorf("type error: expected a number (%s given)", obj.Type())
 	}
 }
 
 func AsList(obj Object) (*List, *Error) {
 	list, ok := obj.(*List)
 	if !ok {
-		return nil, Errorf("type error: expected a list (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a list (%s given", obj.Type())
 	}
 	return list, nil
 }
@@ -64,7 +115,7 @@ func AsList(obj Object) (*List, *Error) {
 func AsMap(obj Object) (*Map, *Error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a map (%s given", obj.Type())
 	}
 	return m, nil
 }
@@ -72,7 +123,7 @@ func AsMap(obj Object) (*Map, *Error) {
 func AsTime(obj Object) (result time.Time, err *Error) {
 	s, ok := obj.(*Time)
 	if !ok {
-		return time.Time{}, Errorf("type error: expected a time (got %v)", obj.Type())
+		return time.Time{}, Errorf("type error: expected a time (%s given", obj.Type())
 	}
 	return s.value, nil
 }
@@ -80,30 +131,43 @@ func AsTime(obj Object) (result time.Time, err *Error) {
 func AsSet(obj Object) (*Set, *Error) {
 	set, ok := obj.(*Set)
 	if !ok {
-		return nil, Errorf("type error: expected a set (got %v)", obj.Type())
+		return nil, Errorf("type error: expected a set (%s given", obj.Type())
 	}
 	return set, nil
 }
 
 func AsBytes(obj Object) ([]byte, *Error) {
 	switch obj := obj.(type) {
-	case *BSlice:
+	case *ByteSlice:
 		return obj.value, nil
+	case *Buffer:
+		return obj.value.Bytes(), nil
 	case *String:
 		return []byte(obj.value), nil
-	case *Int:
-		v := obj.Value()
-		if v < 0 || v > 255 {
-			return nil, Errorf("type error: expected bytes (got out-of-range integer)")
-		}
-		return []byte{byte(v)}, nil
 	default:
-		return nil, Errorf("type error: expected bytes (got %v)", obj.Type())
+		return nil, Errorf("type error: expected bytes (%s given)", obj.Type())
+	}
+}
+
+func AsReader(obj Object) (io.Reader, *Error) {
+	switch obj := obj.(type) {
+	case *ByteSlice:
+		return bytes.NewBuffer(obj.value), nil
+	case *String:
+		return bytes.NewBufferString(obj.value), nil
+	case *File:
+		return obj.value, nil
+	case *HttpResponse:
+		return obj.resp.Body, nil
+	case io.Reader:
+		return obj, nil
+	default:
+		return nil, Errorf("type error: expected a readable object (%s given)", obj.Type())
 	}
 }
 
 // *****************************************************************************
-// Converting types from Go to Tamarin
+// Converting types from Go to Risor
 // *****************************************************************************
 
 func FromGoType(obj interface{}) Object {
@@ -133,9 +197,11 @@ func FromGoType(obj interface{}) Object {
 	case string:
 		return NewString(obj)
 	case byte:
-		return NewInt(int64(obj))
+		return NewByte(obj)
 	case []byte:
-		return NewBSlice(obj)
+		return NewByteSlice(obj)
+	case *bytes.Buffer:
+		return NewBuffer(obj)
 	case bool:
 		if obj {
 			return True
@@ -176,275 +242,779 @@ func FromGoType(obj interface{}) Object {
 //   - These are applicable when the Go type(s) are known in advance
 // *****************************************************************************
 
-// TypeConverter is an interface used to convert between Go and Tamarin objects
-// for a single Go type. There may be a way to use generics here...
+// TypeConverter is an interface used to convert between Go and Risor objects
+// for a single Go type.
 type TypeConverter interface {
 
-	// To converts a Tamarin object to a Go object.
+	// To converts to a Go object from a Risor object.
 	To(Object) (interface{}, error)
 
-	// From converts a Go object to a Tamarin object.
+	// From converts a Go object to a Risor object.
 	From(interface{}) (Object, error)
-
-	// Type that this TypeConverter is responsible for.
-	Type() reflect.Type
 }
 
-var (
-	intType         = reflect.TypeOf(int(0))
-	int64Type       = reflect.TypeOf(int64(0))
-	stringType      = reflect.TypeOf("")
-	bytesType       = reflect.TypeOf([]byte{})
-	float32Type     = reflect.TypeOf(float32(0))
-	float64Type     = reflect.TypeOf(float64(0))
-	booleanType     = reflect.TypeOf(false)
-	timeType        = reflect.TypeOf(time.Time{})
-	mapStrIfaceType = reflect.TypeOf(map[string]interface{}{})
-	errType         = reflect.TypeOf(errors.New(""))
-	contextType     = reflect.TypeOf(context.Background())
-)
+// NewTypeConverter returns a TypeConverter for the given Go kind and type.
+// Converters are cached internally for reuse.
+func NewTypeConverter(typ reflect.Type) (TypeConverter, error) {
+	goTypeMutex.Lock()
+	defer goTypeMutex.Unlock()
 
-// Int64Converter converts between int64 and Integer.
-type Int64Converter struct{}
+	return createTypeConverter(typ)
+}
 
-func (c *Int64Converter) To(obj Object) (interface{}, error) {
-	integer, ok := obj.(*Int)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+// The caller must hold the goTypeMutex lock.
+func createTypeConverter(typ reflect.Type) (TypeConverter, error) {
+	if conv, ok := typeConverters[typ]; ok {
+		return conv, nil
 	}
-	return integer.value, nil
+	conv, err := getTypeConverter(typ)
+	if err != nil {
+		return nil, err
+	}
+	typeConverters[typ] = conv
+	return conv, nil
 }
 
-func (c *Int64Converter) From(obj interface{}) (Object, error) {
-	return NewInt(obj.(int64)), nil
+// SetTypeConverter sets a TypeConverter for the given Go type. This is not
+// typically used, since the default converters should typically be sufficient.
+func SetTypeConverter(typ reflect.Type, conv TypeConverter) {
+	goTypeMutex.Lock()
+	defer goTypeMutex.Unlock()
+
+	typeConverters[typ] = conv
 }
 
-func (c *Int64Converter) Type() reflect.Type {
-	return int64Type
+// getTypeConverter returns a TypeConverter for the given Go type.
+// The caller must hold the goTypeMutex lock.
+func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
+	kind := typ.Kind()
+	if conv, ok := kindConverters[kind]; ok {
+		return conv, nil
+	}
+	if conv, ok := typeConverters[typ]; ok {
+		return conv, nil
+	}
+	var err error
+	var converter TypeConverter
+	switch kind {
+	case reflect.Struct:
+		converter, err = newStructConverter(typ)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Pointer:
+		converter, err = newPointerConverter(typ.Elem())
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Slice:
+		converter, err = newSliceConverter(typ.Elem())
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Array:
+		converter, err = newArrayConverter(typ.Elem(), typ.Len())
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Map:
+		if typ.Key().Kind() == reflect.String {
+			converter, err = newMapConverter(typ.Elem())
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, fmt.Errorf("type error: unsupported map key type in %s", typ)
+		}
+	case reflect.Interface:
+		if typ.Implements(errorInterface) {
+			converter = &ErrorConverter{}
+		} else if typ.Implements(contextInterface) {
+			converter = &ContextConverter{}
+		} else { // TODO: io.*?
+			converter = &DynamicConverter{}
+		}
+	default:
+		return nil, fmt.Errorf("type error: unsupported kind: %q", kind)
+	}
+	return converter, nil
 }
 
-// IntConverter converts between int and Integer.
+// BoolConverter converts between bool and *Bool.
+type BoolConverter struct{}
+
+func (c *BoolConverter) To(obj Object) (interface{}, error) {
+	b, ok := obj.(*Bool)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected bool (%s given)", obj.Type())
+	}
+	return b.value, nil
+}
+
+func (c *BoolConverter) From(obj interface{}) (Object, error) {
+	return NewBool(obj.(bool)), nil
+}
+
+// ByteConverter converts between byte and *Byte.
+type ByteConverter struct{}
+
+func (c *ByteConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return obj.value, nil
+	case *Int:
+		return byte(obj.value), nil
+	case *Float:
+		return byte(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected byte (%s given)", obj.Type())
+	}
+}
+
+func (c *ByteConverter) From(obj interface{}) (Object, error) {
+	return NewByte(obj.(byte)), nil
+}
+
+// RuneConverter converts between rune and *String.
+type RuneConverter struct{}
+
+func (c *RuneConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *String:
+		if len(obj.value) != 1 {
+			return nil, fmt.Errorf("type error: expected single rune string (got length %d)", len(obj.value))
+		}
+		return []rune(obj.value)[0], nil
+	case *Int:
+		return rune(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected string (%s given)", obj.Type())
+	}
+}
+
+func (c *RuneConverter) From(obj interface{}) (Object, error) {
+	return NewString(string([]rune{obj.(rune)})), nil
+}
+
+// IntConverter converts between int and *Int.
 type IntConverter struct{}
 
 func (c *IntConverter) To(obj Object) (interface{}, error) {
-	integer, ok := obj.(*Int)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected an integer (got %v)", obj.Type())
+	switch obj := obj.(type) {
+	case *Byte:
+		return int(obj.value), nil
+	case *Int:
+		return int(obj.value), nil
+	case *Float:
+		return int(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
 	}
-	return int(integer.value), nil
 }
 
 func (c *IntConverter) From(obj interface{}) (Object, error) {
 	return NewInt(int64(obj.(int))), nil
 }
 
-func (c *IntConverter) Type() reflect.Type {
-	return intType
-}
+// Int8Converter converts between int8 and *Int.
+type Int8Converter struct{}
 
-// StringConverter converts between string and String.
-type StringConverter struct{}
-
-func (c *StringConverter) To(obj Object) (interface{}, error) {
-	s, ok := obj.(*String)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
-	}
-	return s.value, nil
-}
-
-func (c *StringConverter) From(obj interface{}) (Object, error) {
-	return NewString(obj.(string)), nil
-}
-
-func (c *StringConverter) Type() reflect.Type {
-	return stringType
-}
-
-// BytesConverter converts between []byte and BSlice.
-type BytesConverter struct{}
-
-func (c *BytesConverter) To(obj Object) (interface{}, error) {
+func (c *Int8Converter) To(obj Object) (interface{}, error) {
 	switch obj := obj.(type) {
-	case *BSlice:
-		return obj.value, nil
-	case *String:
-		return []byte(obj.value), nil
+	case *Byte:
+		return int8(obj.value), nil
+	case *Int:
+		return int8(obj.value), nil
+	case *Float:
+		return int8(obj.value), nil
 	default:
-		return nil, fmt.Errorf("type error: expected a string (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
 	}
 }
 
-func (c *BytesConverter) From(obj interface{}) (Object, error) {
-	return NewBSlice(obj.([]byte)), nil
+func (c *Int8Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(int8))), nil
 }
 
-func (c *BytesConverter) Type() reflect.Type {
-	return bytesType
-}
+// Int16Converter converts between int16 and *Int.
+type Int16Converter struct{}
 
-// Float64Converter converts between float64 and Float.
-type Float64Converter struct{}
-
-func (c *Float64Converter) To(obj Object) (interface{}, error) {
-	f, ok := obj.(*Float)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+func (c *Int16Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return int16(obj.value), nil
+	case *Int:
+		return int16(obj.value), nil
+	case *Float:
+		return int16(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
 	}
-	return f.value, nil
 }
 
-func (c *Float64Converter) From(obj interface{}) (Object, error) {
-	return NewFloat(obj.(float64)), nil
+func (c *Int16Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(int16))), nil
 }
 
-func (c *Float64Converter) Type() reflect.Type {
-	return float64Type
+// Int32Converter converts between int32 and *Int.
+type Int32Converter struct{}
+
+func (c *Int32Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return int32(obj.value), nil
+	case *Int:
+		return int32(obj.value), nil
+	case *Float:
+		return int32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
 }
 
-// Float32Converter converts between float32 and Float.
+func (c *Int32Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(int32))), nil
+}
+
+// Int64Converter converts between int64 and *Int.
+type Int64Converter struct{}
+
+func (c *Int64Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return int64(obj.value), nil
+	case *Int:
+		return int64(obj.value), nil
+	case *Float:
+		return int64(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *Int64Converter) From(obj interface{}) (Object, error) {
+	return NewInt(obj.(int64)), nil
+}
+
+// UintConverter converts between uint and *Int.
+type UintConverter struct{}
+
+func (c *UintConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint(obj.value), nil
+	case *Int:
+		return uint(obj.value), nil
+	case *Float:
+		return uint(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *UintConverter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(uint))), nil
+}
+
+// Uint8Converter converts between uint8 and *Int.
+type Uint8Converter struct{}
+
+func (c *Uint8Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint8(obj.value), nil
+	case *Int:
+		return uint8(obj.value), nil
+	case *Float:
+		return uint8(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *Uint8Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(uint8))), nil
+}
+
+// Uint16Converter converts between uint16 and *Int.
+type Uint16Converter struct{}
+
+func (c *Uint16Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint16(obj.value), nil
+	case *Int:
+		return uint16(obj.value), nil
+	case *Float:
+		return uint16(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *Uint16Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(uint16))), nil
+}
+
+// Uint32Converter converts between uint32 and *Int.
+type Uint32Converter struct{}
+
+func (c *Uint32Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint32(obj.value), nil
+	case *Int:
+		return uint32(obj.value), nil
+	case *Float:
+		return uint32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *Uint32Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(uint32))), nil
+}
+
+// Uint64Converter converts between uint64 and *Int.
+type Uint64Converter struct{}
+
+func (c *Uint64Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return uint64(obj.value), nil
+	case *Int:
+		return uint64(obj.value), nil
+	case *Float:
+		return uint64(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected int (%s given)", obj.Type())
+	}
+}
+
+func (c *Uint64Converter) From(obj interface{}) (Object, error) {
+	return NewInt(int64(obj.(uint64))), nil
+}
+
+// Float32Converter converts between float32 and *Float.
 type Float32Converter struct{}
 
 func (c *Float32Converter) To(obj Object) (interface{}, error) {
-	f, ok := obj.(*Float)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a float (got %v)", obj.Type())
+	switch obj := obj.(type) {
+	case *Byte:
+		return float32(obj.value), nil
+	case *Int:
+		return float32(obj.value), nil
+	case *Float:
+		return float32(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected float (%s given)", obj.Type())
 	}
-	return float32(f.value), nil
 }
 
 func (c *Float32Converter) From(obj interface{}) (Object, error) {
 	return NewFloat(float64(obj.(float32))), nil
 }
 
-func (c *Float32Converter) Type() reflect.Type {
-	return float32Type
-}
+// Float64Converter converts between float64 and *Float.
+type Float64Converter struct{}
 
-// BooleanConverter converts between bool and Bool.
-type BooleanConverter struct{}
-
-func (c *BooleanConverter) To(obj Object) (interface{}, error) {
-	b, ok := obj.(*Bool)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a boolean (got %v)", obj.Type())
+func (c *Float64Converter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Byte:
+		return float64(obj.value), nil
+	case *Int:
+		return float64(obj.value), nil
+	case *Float:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected float (%s given)", obj.Type())
 	}
-	return b.value, nil
 }
 
-func (c *BooleanConverter) From(obj interface{}) (Object, error) {
-	return NewBool(obj.(bool)), nil
+func (c *Float64Converter) From(obj interface{}) (Object, error) {
+	return NewFloat(obj.(float64)), nil
 }
 
-func (c *BooleanConverter) Type() reflect.Type {
-	return booleanType
+// StringConverter converts between string and *String.
+type StringConverter struct{}
+
+func (c *StringConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *ByteSlice:
+		return string(obj.value), nil
+	case *Buffer:
+		return obj.value.String(), nil
+	case *String:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected string (%s given)", obj.Type())
+	}
 }
 
-// TimeConverter converts between time.Time and Time.
+func (c *StringConverter) From(obj interface{}) (Object, error) {
+	return NewString(obj.(string)), nil
+}
+
+// ByteSliceConverter converts between []byte and *ByteSlice.
+type ByteSliceConverter struct{}
+
+func (c *ByteSliceConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *ByteSlice:
+		return obj.value, nil
+	case *Buffer:
+		return obj.value.Bytes(), nil
+	case *String:
+		return []byte(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected bytes (%s given)", obj.Type())
+	}
+}
+
+func (c *ByteSliceConverter) From(obj interface{}) (Object, error) {
+	return NewByteSlice(obj.([]byte)), nil
+}
+
+// FloatSliceConverter converts between []float64 and *FloatSlice.
+type FloatSliceConverter struct{}
+
+func (c *FloatSliceConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *FloatSlice:
+		return obj.value, nil
+	default:
+		return nil, fmt.Errorf("type error: expected float_slice (%s given)", obj.Type())
+	}
+}
+
+func (c *FloatSliceConverter) From(obj interface{}) (Object, error) {
+	return NewFloatSlice(obj.([]float64)), nil
+}
+
+// TimeConverter converts between time.Time and *Time.
 type TimeConverter struct{}
 
 func (c *TimeConverter) To(obj Object) (interface{}, error) {
-	t, ok := obj.(*Time)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a time (got %v)", obj.Type())
+	switch obj := obj.(type) {
+	case *Time:
+		return obj.value, nil
+	case *String:
+		return time.Parse(time.RFC3339, obj.value)
+	default:
+		return nil, fmt.Errorf("type error: expected time (%s given)", obj.Type())
 	}
-	return t.value, nil
 }
 
 func (c *TimeConverter) From(obj interface{}) (Object, error) {
 	return NewTime(obj.(time.Time)), nil
 }
 
-func (c *TimeConverter) Type() reflect.Type {
-	return timeType
+// BufferConverter converts between *bytes.Buffer and *Buffer.
+type BufferConverter struct{}
+
+func (c *BufferConverter) To(obj Object) (interface{}, error) {
+	switch obj := obj.(type) {
+	case *Buffer:
+		return obj.value, nil
+	case *ByteSlice:
+		return bytes.NewBuffer(obj.value), nil
+	default:
+		return nil, fmt.Errorf("type error: expected buffer (%s given)", obj.Type())
+	}
 }
 
-// MapStringIfaceConverter converts between map[string]interface{} and Hash.
-type MapStringIfaceConverter struct{}
+func (c *BufferConverter) From(obj interface{}) (Object, error) {
+	return NewBuffer(obj.(*bytes.Buffer)), nil
+}
 
-func (c *MapStringIfaceConverter) To(obj Object) (interface{}, error) {
-	mapObj, ok := obj.(*Map)
+// DynamicConverter converts between interface{} and the appropriate Risor type.
+// This is slow and should only be used to handle unknown types.
+type DynamicConverter struct{}
+
+func (c *DynamicConverter) To(obj Object) (interface{}, error) {
+	return obj.Interface(), nil
+}
+
+func (c *DynamicConverter) From(obj interface{}) (Object, error) {
+	typ := reflect.TypeOf(obj)
+	conv, err := NewTypeConverter(typ)
+	if err != nil {
+		return nil, err
+	}
+	return conv.From(obj)
+}
+
+// MapConverter converts between map[string]interface{} and *Map.
+type MapConverter struct {
+	valueConverter TypeConverter
+	valueType      reflect.Type
+}
+
+func (c *MapConverter) To(obj Object) (interface{}, error) {
+	tMap, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected map (%s given)", obj.Type())
 	}
-	return mapObj.Interface(), nil
-}
-
-func (c *MapStringIfaceConverter) From(obj interface{}) (Object, error) {
-	m := obj.(map[string]interface{})
-	objMap := make(map[string]Object, len(m))
-	for k, v := range m {
-		objMap[k] = FromGoType(v)
+	keyType := reflect.TypeOf("")
+	mapType := reflect.MapOf(keyType, c.valueType)
+	gMap := reflect.MakeMapWithSize(mapType, tMap.Size())
+	for k, v := range tMap.items {
+		conv, err := c.valueConverter.To(v)
+		if err != nil {
+			return nil, err
+		}
+		gMap.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(conv))
 	}
-	return NewMap(objMap), nil
+	return gMap.Interface(), nil
 }
 
-func (c *MapStringIfaceConverter) Type() reflect.Type {
-	return mapStrIfaceType
+func (c *MapConverter) From(obj interface{}) (Object, error) {
+	m := reflect.ValueOf(obj)
+	o := make(map[string]Object, m.Len())
+	for _, key := range m.MapKeys() {
+		v := m.MapIndex(key)
+		conv, err := c.valueConverter.From(v.Interface())
+		if err != nil {
+			return nil, err
+		}
+		o[key.Interface().(string)] = conv
+	}
+	return NewMap(o), nil
 }
 
-// StructConverter converts between a struct and a Map via JSON marshaling.
+func newMapConverter(valueType reflect.Type) (*MapConverter, error) {
+	valueConverter, err := createTypeConverter(valueType)
+	if err != nil {
+		return nil, fmt.Errorf("type error: unsupported map value type %s", valueType)
+	}
+	return &MapConverter{
+		valueConverter: valueConverter,
+		valueType:      valueType,
+	}, nil
+}
+
+// StructConverter converts between a Go struct and a Risor Map.
 type StructConverter struct {
-	Prototype interface{}
-	AsPointer bool
+	typ             reflect.Type
+	fieldConverters []TypeConverter
+	fieldNames      []string
 }
 
 func (c *StructConverter) To(obj Object) (interface{}, error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, fmt.Errorf("type error: expected a map (got %v)", obj.Type())
+		return nil, fmt.Errorf("type error: expected a map (%s given)", obj.Type())
 	}
-	jsonBytes, err := json.Marshal(m.Interface())
-	if err != nil {
-		return nil, err
+	v := reflect.New(c.typ).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		attrName := c.fieldNames[i]
+		if item, ok := m.items[attrName]; ok {
+			if f := v.Field(i); f.CanSet() {
+				conv := c.fieldConverters[i]
+				attrValue, err := conv.To(item)
+				if err != nil {
+					return nil, err
+				}
+				f.Set(reflect.ValueOf(attrValue))
+			}
+		}
 	}
-	inst := reflect.New(reflect.TypeOf(c.Prototype))
-	instValue := inst.Interface()
-	if err := json.Unmarshal(jsonBytes, &instValue); err != nil {
-		return nil, err
-	}
-	if c.AsPointer {
-		return inst.Interface(), nil
-	}
-	return inst.Elem().Interface(), nil
+	return v.Interface(), nil
 }
 
 func (c *StructConverter) From(obj interface{}) (Object, error) {
-	jsonBytes, err := json.Marshal(obj)
+	items := map[string]Object{}
+	objValue := reflect.ValueOf(obj)
+	for i, conv := range c.fieldConverters {
+		f := objValue.Field(i)
+		if !f.CanInterface() {
+			continue
+		}
+		item, err := conv.From(f.Interface())
+		if err != nil {
+			return nil, err
+		}
+		items[c.fieldNames[i]] = item
+	}
+	return NewMap(items), nil
+}
+
+// newStructConverter creates a TypeConverter for a given type of struct.
+func newStructConverter(typ reflect.Type) (*StructConverter, error) {
+	if typ.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("type error: expected a struct (%s given)", typ)
+	}
+	numField := typ.NumField()
+	fieldConverters := make([]TypeConverter, numField)
+	fieldNames := make([]string, numField)
+	for i := 0; i < numField; i++ {
+		field := typ.Field(i)
+		fieldType := field.Type
+		fieldNames[i] = field.Name
+		conv, err := createTypeConverter(fieldType)
+		if err != nil {
+			return nil, err
+		}
+		fieldConverters[i] = conv
+	}
+	return &StructConverter{
+		typ:             typ,
+		fieldConverters: fieldConverters,
+		fieldNames:      fieldNames,
+	}, nil
+}
+
+// PointerConverter converts between *T and the Risor equivalent of T.
+type PointerConverter struct {
+	valueConverter TypeConverter
+}
+
+func (c *PointerConverter) To(obj Object) (interface{}, error) {
+	v, err := c.valueConverter.To(obj)
 	if err != nil {
 		return nil, err
 	}
-	var goMap map[string]interface{}
-	if err := json.Unmarshal(jsonBytes, &goMap); err != nil {
+	vp := reflect.New(reflect.TypeOf(v))
+	vp.Elem().Set(reflect.ValueOf(v))
+	return vp.Interface(), nil
+}
+
+func (c *PointerConverter) From(obj interface{}) (Object, error) {
+	v := reflect.ValueOf(obj).Elem().Interface()
+	return c.valueConverter.From(v)
+}
+
+// newPointerConverter creates a TypeConverter for pointers that point to
+// items of the given type.
+func newPointerConverter(indirectType reflect.Type) (*PointerConverter, error) {
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
 		return nil, err
 	}
-	return FromGoType(goMap), nil
+	return &PointerConverter{valueConverter: indirectConv}, nil
 }
 
-func (c *StructConverter) Type() reflect.Type {
-	return reflect.TypeOf(c.Prototype)
+// SliceConverter converts between []T and the Risor equivalent of []T.
+type SliceConverter struct {
+	valueConverter TypeConverter
+	valueType      reflect.Type
 }
 
-// ErrorConverter converts between error and Error.
+func (c *SliceConverter) To(obj Object) (interface{}, error) {
+	list, ok := obj.(*List)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a list (%s given)", obj.Type())
+	}
+	slice := reflect.MakeSlice(reflect.SliceOf(c.valueType), 0, len(list.items))
+	for _, v := range list.items {
+		item, err := c.valueConverter.To(v)
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		slice = reflect.Append(slice, reflect.ValueOf(item))
+	}
+	return slice.Interface(), nil
+}
+
+func (c *SliceConverter) From(iface interface{}) (Object, error) {
+	v := reflect.ValueOf(iface)
+	count := v.Len()
+	items := make([]Object, 0, count)
+	for i := 0; i < count; i++ {
+		item, err := c.valueConverter.From(v.Index(i).Interface())
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		items = append(items, item)
+	}
+	return NewList(items), nil
+}
+
+// newSliceConverter creates a TypeConverter for slices containing the given
+// value type, where the items can be converted using the given TypeConverter.
+func newSliceConverter(indirectType reflect.Type) (*SliceConverter, error) {
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	return &SliceConverter{
+		valueType:      indirectType,
+		valueConverter: indirectConv,
+	}, nil
+}
+
+// ArrayConverter converts between []T and the Risor equivalent of []T.
+type ArrayConverter struct {
+	valueConverter TypeConverter
+	valueType      reflect.Type
+	len            int
+}
+
+func (c *ArrayConverter) To(obj Object) (interface{}, error) {
+	list, ok := obj.(*List)
+	if !ok {
+		return nil, fmt.Errorf("type error: expected a list (%s given)", obj.Type())
+	}
+	array := reflect.New(reflect.ArrayOf(c.len, c.valueType))
+	arrayElem := array.Elem()
+	for i, v := range list.items {
+		item, err := c.valueConverter.To(v)
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert element: %v", err)
+		}
+		arrayElem.Index(i).Set(reflect.ValueOf(item))
+	}
+	return arrayElem.Interface(), nil
+}
+
+func (c *ArrayConverter) From(iface interface{}) (Object, error) {
+	v := reflect.ValueOf(iface)
+	count := v.Len()
+	items := make([]Object, 0, count)
+	for i := 0; i < count; i++ {
+		item, err := c.valueConverter.From(v.Index(i).Interface())
+		if err != nil {
+			return nil, fmt.Errorf("type error: failed to convert slice element: %v", err)
+		}
+		items = append(items, item)
+	}
+	return NewList(items), nil
+}
+
+// newArrayConverter creates a TypeConverter for arrays containing the given
+// value type, where the items can be converted using the given TypeConverter.
+func newArrayConverter(indirectType reflect.Type, length int) (*ArrayConverter, error) {
+	if length < 0 {
+		return nil, fmt.Errorf("value error: invalid array length: %d", length)
+	}
+	indirectConv, err := createTypeConverter(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	return &ArrayConverter{
+		valueType:      indirectType,
+		valueConverter: indirectConv,
+		len:            length,
+	}, nil
+}
+
+// ErrorConverter converts between error and *Error or *String.
 type ErrorConverter struct{}
 
 func (c *ErrorConverter) To(obj Object) (interface{}, error) {
-	e, ok := obj.(*Error)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected an error (got %v)", obj.Type())
+	switch obj := obj.(type) {
+	case *Error:
+		return obj.Value(), nil
+	case *String:
+		return errors.New(obj.Value()), nil
+	default:
+		return nil, fmt.Errorf("type error: expected a string (%s given)", obj.Type())
 	}
-	return e.Message, nil
 }
 
 func (c *ErrorConverter) From(obj interface{}) (Object, error) {
-	if obj == nil {
-		return nil, nil
-	}
 	return NewError(obj.(error)), nil
-}
-
-func (c *ErrorConverter) Type() reflect.Type {
-	return errType
 }
 
 // ContextConverter converts between context.Context and Context.
@@ -458,8 +1028,4 @@ func (c *ContextConverter) To(obj Object) (interface{}, error) {
 func (c *ContextConverter) From(obj interface{}) (Object, error) {
 	// Not actually called, but needed to satisfy the Converter interface.
 	return nil, errors.New("not implemented")
-}
-
-func (c *ContextConverter) Type() reflect.Type {
-	return contextType
 }

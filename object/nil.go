@@ -3,10 +3,12 @@ package object
 import (
 	"fmt"
 
-	"github.com/cloudcmds/tamarin/v2/op"
+	"github.com/risor-io/risor/op"
 )
 
-type NilType struct{}
+type NilType struct {
+	*base
+}
 
 func (n *NilType) Type() Type {
 	return NIL
@@ -17,11 +19,7 @@ func (n *NilType) Inspect() string {
 }
 
 func (n *NilType) String() string {
-	return "nil()"
-}
-
-func (n *NilType) GetAttr(name string) (Object, bool) {
-	return nil, false
+	return "nil"
 }
 
 func (n *NilType) Interface() interface{} {
@@ -48,5 +46,5 @@ func (n *NilType) IsTruthy() bool {
 }
 
 func (n *NilType) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("unsupported operation for nil: %v", opType))
+	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
 }
