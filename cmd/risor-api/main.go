@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -14,14 +15,7 @@ import (
 	"github.com/risor-io/risor/errz"
 )
 
-type Request struct {
-	Code string `json:"code"`
-}
-
-type Response struct {
-	Result json.RawMessage `json:"result"`
-	Time   float64         `json:"time"`
-}
+const MaxCodeSize = 100 * 1024
 
 func main() {
 	var port string
@@ -39,25 +33,18 @@ func main() {
 }
 
 func executeHandler(w http.ResponseWriter, r *http.Request) {
-	var req Request
-	var res Response
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Expected a JSON body in the request", http.StatusBadRequest)
-		return
-	}
-
-	if req.Code == "" {
-		http.Error(w, "Please provide a code snippet", http.StatusBadRequest)
-		return
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	start := time.Now()
+	code, err := io.ReadAll(io.LimitReader(r.Body, MaxCodeSize))
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		return
+	}
 
 	result, err := risor.Eval(ctx,
-		string(req.Code),
+		string(code),
 		risor.WithDefaultBuiltins(),
 		risor.WithDefaultModules())
 	if err != nil {
@@ -69,17 +56,9 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res.Result, err = json.Marshal(result)
+	response, err := json.Marshal(result)
 	if err != nil {
-		http.Error(w, "Unable to marshal output", http.StatusInternalServerError)
-		return
-	}
-
-	res.Time = time.Since(start).Seconds()
-
-	response, err := json.Marshal(res)
-	if err != nil {
-		http.Error(w, "Unable to marshal output", http.StatusInternalServerError)
+		http.Error(w, "Unable to marshal result", http.StatusInternalServerError)
 		return
 	}
 
