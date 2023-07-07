@@ -102,24 +102,24 @@ const (
 
 // Reserved keywords
 var keywords = map[string]Type{
+	"break":    BREAK,
 	"case":     CASE,
 	"const":    CONST,
+	"continue": CONTINUE,
 	"default":  DEFAULT,
 	"else":     ELSE,
 	"false":    FALSE,
 	"for":      FOR,
 	"func":     FUNC,
 	"if":       IF,
-	"var":      VAR,
+	"import":   IMPORT,
+	"in":       IN,
 	"nil":      NIL,
+	"range":    RANGE,
 	"return":   RETURN,
 	"switch":   SWITCH,
 	"true":     TRUE,
-	"import":   IMPORT,
-	"break":    BREAK,
-	"continue": CONTINUE,
-	"in":       IN,
-	"range":    RANGE,
+	"var":      VAR,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
