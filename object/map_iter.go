@@ -113,6 +113,10 @@ func (iter *MapIter) Entry() (IteratorEntry, bool) {
 	return NewEntry(iter.current, value).WithKeyAsPrimary(), true
 }
 
+func (iter *MapIter) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal map_iter")
+}
+
 func NewMapIter(m *Map) *MapIter {
 	return &MapIter{m: m, keys: m.SortedKeys(), pos: -1}
 }

@@ -1,6 +1,7 @@
 package object
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -48,18 +49,22 @@ func (t *GoType) GetAttr(name string) (Object, bool) {
 	case "package_path":
 		return t.packagePath, true
 	case "attributes":
-		attrs := make(map[string]Object, len(t.attributes))
-		for name, attr := range t.attributes {
-			switch attr := attr.(type) {
-			case *GoMethod:
-				attrs[name] = attr
-			case *GoField:
-				attrs[name] = attr
-			}
-		}
-		return NewMap(attrs), true
+		return NewMap(t.attrMap()), true
 	}
 	return nil, false
+}
+
+func (t *GoType) attrMap() map[string]Object {
+	attrs := make(map[string]Object, len(t.attributes))
+	for name, attr := range t.attributes {
+		switch attr := attr.(type) {
+		case *GoMethod:
+			attrs[name] = attr
+		case *GoField:
+			attrs[name] = attr
+		}
+	}
+	return attrs
 }
 
 func (t *GoType) IsTruthy() bool {
@@ -97,6 +102,14 @@ func (t *GoType) Warnings() []error {
 
 func (t *GoType) IndirectType() (*GoType, bool) {
 	return t.indirectType, t.indirectType != nil
+}
+
+func (t *GoType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"name":       t.name,
+		"package":    t.packagePath,
+		"attributes": t.attrMap(),
+	})
 }
 
 // newGoType creates and registers a new GoType for the type of the given object.

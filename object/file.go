@@ -188,6 +188,10 @@ func (f *File) Cost() int {
 	return 8
 }
 
+func (f *File) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal file")
+}
+
 func NewFile(ctx context.Context, value tos.File, path string) *File {
 	f := &File{
 		ctx:    ctx,

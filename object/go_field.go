@@ -1,6 +1,7 @@
 package object
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -74,6 +75,14 @@ func (f *GoField) RunOperation(opType op.BinaryOpType, right Object) Object {
 
 func (f *GoField) Converter() (TypeConverter, bool) {
 	return f.converter, f.converter != nil
+}
+
+func (f *GoField) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"name": f.name,
+		"type": f.fieldType,
+		"tag":  f.tag,
+	})
 }
 
 func newGoField(f reflect.StructField) (*GoField, error) {

@@ -1,6 +1,7 @@
 package object
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/risor-io/risor/op"
@@ -137,6 +138,10 @@ func (f *FloatSlice) Integers() []Object {
 
 func (f *FloatSlice) Cost() int {
 	return len(f.value)
+}
+
+func (f *FloatSlice) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.value)
 }
 
 func NewFloatSlice(value []float64) *FloatSlice {

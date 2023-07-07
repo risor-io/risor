@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -285,6 +286,10 @@ func (s *Set) Keys() []HashKey {
 
 func (s *Set) Cost() int {
 	return len(s.items) * 8
+}
+
+func (s *Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.SortedItems())
 }
 
 func NewSet(items []Object) Object {

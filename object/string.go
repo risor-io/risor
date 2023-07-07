@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -443,6 +444,10 @@ func (s *String) Runes() []Object {
 
 func (s *String) Cost() int {
 	return len(s.value)
+}
+
+func (s *String) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.value)
 }
 
 func NewString(s string) *String {

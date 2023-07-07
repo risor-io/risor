@@ -135,6 +135,10 @@ func (b *Byte) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	}
 }
 
+func (b *Byte) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d", b.value)), nil
+}
+
 func NewByte(value byte) *Byte {
 	return &Byte{value: value}
 }

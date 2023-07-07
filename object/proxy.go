@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -215,6 +216,10 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 	}
 	return NewList(results)
+}
+
+func (p *Proxy) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.obj)
 }
 
 // NewProxy returns a new Risor proxy object that wraps the given Go object.

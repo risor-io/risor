@@ -1,6 +1,7 @@
 package object
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -106,6 +107,10 @@ func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object 
 	default:
 		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v", opType))
 	}
+}
+
+func (f *Float) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.value)
 }
 
 func NewFloat(value float64) *Float {

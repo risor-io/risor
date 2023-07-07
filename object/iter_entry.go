@@ -82,6 +82,10 @@ func (e *Entry) WithValueAsPrimary() *Entry {
 	return e
 }
 
+func (e *Entry) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal entry")
+}
+
 func NewEntry(key, value Object) *Entry {
 	return &Entry{key: key, value: value}
 }

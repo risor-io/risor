@@ -2,6 +2,7 @@ package pgx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -93,6 +94,10 @@ func (c *PgxConn) waitToClose() {
 
 func (c *PgxConn) Cost() int {
 	return 8
+}
+
+func (c *PgxConn) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal pgx.conn")
 }
 
 func New(ctx context.Context, conn *pgx.Conn) *PgxConn {

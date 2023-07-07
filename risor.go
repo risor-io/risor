@@ -8,11 +8,14 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modHash "github.com/risor-io/risor/modules/hash"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
 	modRand "github.com/risor-io/risor/modules/rand"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
+	modTime "github.com/risor-io/risor/modules/time"
+	modUuid "github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/parser"
 	"github.com/risor-io/risor/vm"
@@ -133,13 +136,19 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 }
 
 func defaultModules() map[string]object.Object {
-	return map[string]object.Object{
+	result := map[string]object.Object{
 		"math":    modMath.Module(),
 		"json":    modJson.Module(),
 		"strings": modStrings.Module(),
+		"time":    modTime.Module(),
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
+		"uuid":    modUuid.Module(),
 		"bytes":   modBytes.Module(),
 		"base64":  modBase64.Module(),
 	}
+	for k, v := range modHash.Builtins() {
+		result[k] = v
+	}
+	return result
 }

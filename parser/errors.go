@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/token"
 )
 
@@ -45,7 +46,7 @@ type ParserError interface {
 	EndPosition() token.Position
 	SourceCode() string
 	Error() string
-	FriendlyMessage() string
+	errz.FriendlyError
 }
 
 // BaseParserError is the simplest implementation of ParserError.
@@ -79,7 +80,7 @@ func (e *BaseParserError) Error() string {
 	return msg
 }
 
-func (e *BaseParserError) FriendlyMessage() string {
+func (e *BaseParserError) FriendlyErrorMessage() string {
 	var msg bytes.Buffer
 	header := e.Error()
 	msg.WriteString(header)

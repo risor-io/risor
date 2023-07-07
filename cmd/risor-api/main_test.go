@@ -10,7 +10,7 @@ import (
 
 func TestExecuteHandler(t *testing.T) {
 	payload := Request{
-		Content: "['welcome', 'to', 'risor', '👋'] | strings.join(' ')",
+		Code: "['welcome', 'to', 'risor', '👋'] | strings.join(' ')",
 	}
 	payloadBytes, _ := json.Marshal(payload)
 
@@ -23,7 +23,7 @@ func TestExecuteHandler(t *testing.T) {
 
 	executeHandler(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
+	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
@@ -32,8 +32,8 @@ func TestExecuteHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedResult :=  "\"welcome to risor 👋\""
-	if response.Result != expectedResult {
+	expectedResult := "\"welcome to risor 👋\""
+	if string(response.Result) != expectedResult {
 		t.Errorf("handler returned unexpected result: got %s want %s", response.Result, expectedResult)
 	}
 

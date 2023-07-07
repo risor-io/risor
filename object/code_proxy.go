@@ -62,6 +62,10 @@ func (c *CodeProxy) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for code: %v", opType))
 }
 
+func (c *CodeProxy) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal code")
+}
+
 func NewCodeProxy(c *Code) *CodeProxy {
 
 	// Provide some isolation

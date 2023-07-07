@@ -1,6 +1,7 @@
 package object
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/risor-io/risor/op"
@@ -84,6 +85,10 @@ func (m *Module) Equals(other Object) Object {
 		return True
 	}
 	return False
+}
+
+func (m *Module) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal module")
 }
 
 func NewModule(name string, code *Code) *Module {

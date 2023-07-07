@@ -72,6 +72,13 @@ func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for bool: %v", opType))
 }
 
+func (b *Bool) MarshalJSON() ([]byte, error) {
+	if b.value {
+		return []byte("true"), nil
+	}
+	return []byte("false"), nil
+}
+
 func NewBool(value bool) *Bool {
 	if value {
 		return True

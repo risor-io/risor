@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		parserErr, ok := err.(parser.ParserError)
 		if ok {
-			fmt.Fprintf(os.Stderr, "%s\n", red(parserErr.FriendlyMessage()))
+			fmt.Fprintf(os.Stderr, "%s\n", red(parserErr.FriendlyErrorMessage()))
 		} else {
 			fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 		}

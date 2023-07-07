@@ -107,6 +107,10 @@ func (iter *ListIter) Entry() (IteratorEntry, bool) {
 	return NewEntry(NewInt(iter.pos), iter.current), true
 }
 
+func (iter *ListIter) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal list_iter")
+}
+
 func NewListIter(l *List) *ListIter {
 	return &ListIter{l: l, pos: -1}
 }
