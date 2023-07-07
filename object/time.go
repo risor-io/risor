@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -129,4 +130,8 @@ func (t *Time) Unix(ctx context.Context, args ...Object) Object {
 
 func (t *Time) IsTruthy() bool {
 	return !t.value.IsZero()
+}
+
+func (t *Time) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.value.Format(time.RFC3339))
 }

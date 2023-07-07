@@ -155,6 +155,10 @@ func (img *Image) Cost() int {
 	return width * height * 24
 }
 
+func (img *Image) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal image")
+}
+
 func NewImage(image image.Image, format string) *Image {
 	return &Image{image: image, format: format}
 }

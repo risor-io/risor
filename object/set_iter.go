@@ -114,6 +114,10 @@ func (iter *SetIter) Entry() (IteratorEntry, bool) {
 	return NewEntry(iter.current, True).WithKeyAsPrimary(), true
 }
 
+func (iter *SetIter) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal set_iter")
+}
+
 func NewSetIter(set *Set) *SetIter {
 	return &SetIter{set: set, keys: set.Keys(), pos: -1}
 }

@@ -45,6 +45,10 @@ func (n *NilType) IsTruthy() bool {
 	return false
 }
 
+func (n *NilType) MarshalJSON() ([]byte, error) {
+	return []byte("null"), nil
+}
+
 func (n *NilType) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
 }

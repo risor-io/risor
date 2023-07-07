@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -134,6 +135,14 @@ func (m *GoMethod) ErrorIndices() []int {
 
 func (m *GoMethod) IsOutputError(index int) bool {
 	return m.outputIsError[index]
+}
+
+func (m *GoMethod) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"name":    m.name.value,
+		"num_in":  m.numIn.value,
+		"num_out": m.numOut.value,
+	})
 }
 
 // Returns a Risor *GoMethod Object that represents the given Go method.

@@ -113,6 +113,10 @@ func (iter *SliceIter) RunOperation(opType op.BinaryOpType, right Object) Object
 	return NewError(fmt.Errorf("eval error: unsupported operation for slice_iter: %v", opType))
 }
 
+func (iter *SliceIter) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal slice_iter")
+}
+
 func NewSliceIter(s interface{}) (*SliceIter, error) {
 	typ := reflect.TypeOf(s)
 	if typ.Kind() != reflect.Slice {

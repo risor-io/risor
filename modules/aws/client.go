@@ -74,6 +74,10 @@ func (c *Client) Cost() int {
 	return 0
 }
 
+func (c *Client) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal aws.client")
+}
+
 func NewClient(service string, client interface{}) *Client {
 	return &Client{service: service, client: client, methods: loadMethods(client)}
 }

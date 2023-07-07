@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/risor-io/risor/op"
@@ -471,6 +472,10 @@ func (b *ByteSlice) ReplaceAll(old, new Object) Object {
 
 func (b *ByteSlice) Cost() int {
 	return len(b.value)
+}
+
+func (b *ByteSlice) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(b.value))
 }
 
 func NewByteSlice(value []byte) *ByteSlice {

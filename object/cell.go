@@ -55,6 +55,10 @@ func (c *Cell) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for cell: %v", opType))
 }
 
+func (c *Cell) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal cell")
+}
+
 func NewCell(value *Object) *Cell {
 	return &Cell{value: value}
 }

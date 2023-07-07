@@ -137,7 +137,7 @@ func TestFiles(t *testing.T) {
 				parserErr, ok := err.(parser.ParserError)
 				require.True(t, ok)
 				fmt.Println("--- Friendly error output for", name)
-				fmt.Println(parserErr.FriendlyMessage())
+				fmt.Println(parserErr.FriendlyErrorMessage())
 				fmt.Println("---")
 				require.Equal(t,
 					tc.ExpectedErrColumn,
@@ -149,7 +149,7 @@ func TestFiles(t *testing.T) {
 				parserErr, ok := err.(parser.ParserError)
 				require.True(t, ok)
 				fmt.Println("--- Friendly error output for", name)
-				fmt.Println(parserErr.FriendlyMessage())
+				fmt.Println(parserErr.FriendlyErrorMessage())
 				fmt.Println("---")
 				require.Equal(t,
 					tc.ExpectedErrLine,

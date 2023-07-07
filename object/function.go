@@ -107,6 +107,10 @@ func (f *Function) LocalsCount() int {
 	return int(f.code.Symbols.Size())
 }
 
+func (f *Function) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal function")
+}
+
 type FunctionOpts struct {
 	Name           string
 	ParameterNames []string

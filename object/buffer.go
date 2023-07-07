@@ -117,6 +117,10 @@ func (b *Buffer) Cost() int {
 	return len(b.value.Bytes())
 }
 
+func (b *Buffer) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("\"%s\"", b.value.String())), nil
+}
+
 func NewBuffer(buf *bytes.Buffer) *Buffer {
 	return &Buffer{value: buf}
 }

@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -407,6 +408,10 @@ func (m *Map) Cost() int {
 	// It would be possible to recurse and compute the cost of each item, but
 	// let's avoid that since it would be an expensive op itself.
 	return len(m.items) * 8
+}
+
+func (m *Map) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.items)
 }
 
 func NewMap(m map[string]Object) *Map {

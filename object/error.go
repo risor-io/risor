@@ -1,6 +1,7 @@
 package object
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/risor-io/risor/op"
@@ -79,6 +80,10 @@ func Errorf(format string, a ...interface{}) *Error {
 		}
 	}
 	return &Error{err: fmt.Errorf(format, args...)}
+}
+
+func (e *Error) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal error")
 }
 
 func NewError(err error) *Error {

@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -598,6 +599,10 @@ func (ls *List) Cost() int {
 	// It would be possible to recurse into the list and compute the cost of
 	// each item, but let's avoid that since it would be an expensive op itself.
 	return len(ls.items) * 8
+}
+
+func (ls *List) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ls.items)
 }
 
 func NewList(items []Object) *List {

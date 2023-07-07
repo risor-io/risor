@@ -198,6 +198,10 @@ func (c *Config) Cost() int {
 	return 0
 }
 
+func (c *Config) MarshalJSON() ([]byte, error) {
+	return nil, errors.New("type error: unable to marshal aws.config")
+}
+
 func NewConfig(cfg aws.Config) *Config {
 	return &Config{cfg: cfg}
 }

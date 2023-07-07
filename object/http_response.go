@@ -160,6 +160,10 @@ func (r *HttpResponse) Cost() int {
 	return 8 + int(r.resp.ContentLength)
 }
 
+func (r *HttpResponse) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("type error: unable to marshal http.response")
+}
+
 func NewHttpResponse(
 	resp *http.Response,
 	timeout time.Duration,

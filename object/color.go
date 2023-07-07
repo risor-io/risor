@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image/color"
@@ -72,6 +73,16 @@ func (c *Color) Equals(other Object) Object {
 
 func (c *Color) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for color: %v ", opType))
+}
+
+func (c *Color) MarshalJSON() ([]byte, error) {
+	r, g, b, a := c.c.RGBA()
+	return json.Marshal(map[string]interface{}{
+		"r": r,
+		"g": g,
+		"b": b,
+		"a": a,
+	})
 }
 
 func NewColor(c color.Color) *Color {
