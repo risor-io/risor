@@ -17,3 +17,8 @@ site/
 
 risor_v1
 risor_v2
+
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+.DS_Store
