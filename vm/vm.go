@@ -151,7 +151,8 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return fmt.Errorf("exec error: attribute %q not found", name)
+				return fmt.Errorf("exec error: attribute %q not found on %s object",
+					name, obj.Type())
 			}
 			vm.push(value)
 		case op.LoadConst:

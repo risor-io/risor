@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -319,4 +320,41 @@ func (fs *Filesystem) WriteFile(name string, data []byte, perm ros.FileMode) err
 		return err
 	}
 	return nil
+}
+
+func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
+	name = strings.TrimPrefix(name, "/")
+	result, err := fs.client.ListObjectsV2(fs.ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(fs.bucket),
+		Prefix: aws.String(name),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var entries []ros.DirEntry
+	for _, obj := range result.Contents {
+		key := aws.ToString(obj.Key)
+		var mod time.Time
+		if obj.LastModified != nil {
+			mod = *obj.LastModified
+		}
+		size := obj.Size
+		mode := ros.FileMode(0660)
+		isDir := strings.HasSuffix(key, "/")
+		if isDir {
+			mode |= os.ModeDir | 0110
+		}
+		entries = append(entries, ros.NewDirEntry(ros.GenericDirEntryOpts{
+			Name: key,
+			Mode: mode,
+			Info: ros.NewFileInfo(ros.GenericFileInfoOpts{
+				Name:    key,
+				Size:    size,
+				Mode:    mode,
+				ModTime: mod,
+				IsDir:   isDir,
+			}),
+		}))
+	}
+	return entries, nil
 }

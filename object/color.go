@@ -12,7 +12,7 @@ import (
 
 type Color struct {
 	*base
-	c color.Color
+	value color.Color
 }
 
 func (c *Color) Inspect() string {
@@ -24,7 +24,7 @@ func (c *Color) Type() Type {
 }
 
 func (c *Color) Value() color.Color {
-	return c.c
+	return c.value
 }
 
 func (c *Color) GetAttr(name string) (Object, bool) {
@@ -35,7 +35,7 @@ func (c *Color) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("color.rgba", 0, len(args))
 				}
-				r, g, b, a := c.c.RGBA()
+				r, g, b, a := c.value.RGBA()
 				return NewList([]Object{
 					NewInt(int64(r)),
 					NewInt(int64(g)),
@@ -52,11 +52,11 @@ func (c *Color) SetAttr(name string, value Object) error {
 }
 
 func (c *Color) Interface() interface{} {
-	return c.c
+	return c.value
 }
 
 func (c *Color) String() string {
-	r, g, b, a := c.c.RGBA()
+	r, g, b, a := c.value.RGBA()
 	return fmt.Sprintf("color(r=%d g=%d b=%d a=%d)", r, g, b, a)
 }
 
@@ -76,15 +76,20 @@ func (c *Color) RunOperation(opType op.BinaryOpType, right Object) Object {
 }
 
 func (c *Color) MarshalJSON() ([]byte, error) {
-	r, g, b, a := c.c.RGBA()
-	return json.Marshal(map[string]interface{}{
-		"r": r,
-		"g": g,
-		"b": b,
-		"a": a,
+	r, g, b, a := c.value.RGBA()
+	return json.Marshal(struct {
+		R uint32 `json:"r"`
+		G uint32 `json:"g"`
+		B uint32 `json:"b"`
+		A uint32 `json:"a"`
+	}{
+		R: r,
+		G: g,
+		B: b,
+		A: a,
 	})
 }
 
 func NewColor(c color.Color) *Color {
-	return &Color{c: c}
+	return &Color{value: c}
 }

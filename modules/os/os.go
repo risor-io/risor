@@ -243,6 +243,30 @@ func ReadFile(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewByteSlice(bytes)
 }
 
+func ReadDir(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.read_dir", 1, args); err != nil {
+		return err
+	}
+	filename, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	entries, ioErr := GetOS(ctx).ReadDir(filename)
+	if ioErr != nil {
+		return object.NewError(ioErr)
+	}
+	items := make([]object.Object, 0, len(entries))
+	for _, entry := range entries {
+		var infoObj *object.FileInfo
+		if entry.HasInfo() {
+			info, _ := entry.Info()
+			infoObj = object.NewFileInfo(info)
+		}
+		items = append(items, object.NewDirEntry(entry, infoObj))
+	}
+	return object.NewList(items)
+}
+
 func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.write_file", 3, args); err != nil {
 		return err
@@ -411,6 +435,7 @@ func Module() *object.Module {
 		"mkdir_temp":      object.NewBuiltin("mkdir_temp", MkdirTemp),
 		"mkdir":           object.NewBuiltin("mkdir", Mkdir),
 		"open":            object.NewBuiltin("open", Open),
+		"read_dir":        object.NewBuiltin("read_dir", ReadDir),
 		"read_file":       object.NewBuiltin("read_file", ReadFile),
 		"remove":          object.NewBuiltin("remove", Remove),
 		"rename":          object.NewBuiltin("rename", Rename),

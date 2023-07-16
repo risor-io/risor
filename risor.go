@@ -8,9 +8,14 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modFetch "github.com/risor-io/risor/modules/fetch"
+	modFmt "github.com/risor-io/risor/modules/fmt"
 	modHash "github.com/risor-io/risor/modules/hash"
+	modImage "github.com/risor-io/risor/modules/image"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
+	modOs "github.com/risor-io/risor/modules/os"
+	modPgx "github.com/risor-io/risor/modules/pgx"
 	modRand "github.com/risor-io/risor/modules/rand"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
@@ -20,6 +25,8 @@ import (
 	"github.com/risor-io/risor/parser"
 	"github.com/risor-io/risor/vm"
 )
+
+const Version = "0.0.1"
 
 type Risor struct {
 	compiler *compiler.Compiler
@@ -34,6 +41,15 @@ type Option func(*Risor)
 func WithDefaultBuiltins() Option {
 	return func(t *Risor) {
 		for k, v := range builtins.Builtins() {
+			t.builtins[k] = v
+		}
+		for k, v := range modFetch.Builtins() {
+			t.builtins[k] = v
+		}
+		for k, v := range modFmt.Builtins() {
+			t.builtins[k] = v
+		}
+		for k, v := range modHash.Builtins() {
 			t.builtins[k] = v
 		}
 	}
@@ -136,19 +152,19 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 }
 
 func defaultModules() map[string]object.Object {
-	result := map[string]object.Object{
+	return map[string]object.Object{
 		"math":    modMath.Module(),
 		"json":    modJson.Module(),
 		"strings": modStrings.Module(),
 		"time":    modTime.Module(),
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
+		"pgx":     modPgx.Module(),
 		"uuid":    modUuid.Module(),
+		"os":      modOs.Module(),
 		"bytes":   modBytes.Module(),
 		"base64":  modBase64.Module(),
+		"fmt":     modFmt.Module(),
+		"image":   modImage.Module(),
 	}
-	for k, v := range modHash.Builtins() {
-		result[k] = v
-	}
-	return result
 }

@@ -8,13 +8,13 @@ import (
 	"sync"
 
 	"github.com/risor-io/risor/op"
-	tos "github.com/risor-io/risor/os"
+	ros "github.com/risor-io/risor/os"
 )
 
 type File struct {
 	*base
 	ctx    context.Context
-	value  tos.File
+	value  ros.File
 	path   string
 	once   sync.Once
 	closed chan bool
@@ -28,7 +28,7 @@ func (f *File) Type() Type {
 	return FILE
 }
 
-func (f *File) Value() tos.File {
+func (f *File) Value() ros.File {
 	return f.value
 }
 
@@ -192,7 +192,7 @@ func (f *File) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("type error: unable to marshal file")
 }
 
-func NewFile(ctx context.Context, value tos.File, path string) *File {
+func NewFile(ctx context.Context, value ros.File, path string) *File {
 	f := &File{
 		ctx:    ctx,
 		value:  value,

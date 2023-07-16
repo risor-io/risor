@@ -78,10 +78,14 @@ func (f *GoField) Converter() (TypeConverter, bool) {
 }
 
 func (f *GoField) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
-		"name": f.name,
-		"type": f.fieldType,
-		"tag":  f.tag,
+	return json.Marshal(struct {
+		Name string  `json:"name"`
+		Type *GoType `json:"type"`
+		Tag  string  `json:"tag"`
+	}{
+		Name: f.name.value,
+		Type: f.fieldType,
+		Tag:  f.tag.value,
 	})
 }
 

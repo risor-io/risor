@@ -105,10 +105,14 @@ func (t *GoType) IndirectType() (*GoType, bool) {
 }
 
 func (t *GoType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
-		"name":       t.name,
-		"package":    t.packagePath,
-		"attributes": t.attrMap(),
+	return json.Marshal(struct {
+		Name       string            `json:"name"`
+		Package    string            `json:"package"`
+		Attributes map[string]Object `json:"attributes"`
+	}{
+		Name:       t.name.value,
+		Package:    t.packagePath.value,
+		Attributes: t.attrMap(),
 	})
 }
 

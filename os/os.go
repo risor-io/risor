@@ -2,6 +2,7 @@ package os
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -19,7 +20,10 @@ type FileInfo = fs.FileInfo
 
 type ReadDirFile = fs.ReadDirFile
 
-type DirEntry = fs.DirEntry
+type DirEntry interface {
+	fs.DirEntry
+	HasInfo() bool
+}
 
 type File interface {
 	fs.File
@@ -37,15 +41,8 @@ type FS interface {
 	Stat(name string) (FileInfo, error)
 	Symlink(oldname, newname string) error
 	WriteFile(name string, data []byte, perm FileMode) error
+	ReadDir(name string) ([]DirEntry, error)
 }
-
-// type ReadDirFS interface {
-// 	FS
-
-// 	// ReadDir reads the named directory
-// 	// and returns a list of directory entries sorted by filename.
-// 	ReadDir(name string) ([]DirEntry, error)
-// }
 
 type OS interface {
 	FS
@@ -147,4 +144,43 @@ func NewFileInfo(opts GenericFileInfoOpts) *GenericFileInfo {
 		modTime: opts.ModTime,
 		isDir:   opts.IsDir,
 	}
+}
+
+type GenericDirEntry struct {
+	name string
+	mode FileMode
+	info *GenericFileInfo
+}
+
+func (de *GenericDirEntry) Name() string   { return de.name }
+func (de *GenericDirEntry) IsDir() bool    { return de.mode.IsDir() }
+func (de *GenericDirEntry) Type() FileMode { return de.mode.Type() }
+func (de *GenericDirEntry) HasInfo() bool  { return de.info != nil }
+func (de *GenericDirEntry) Info() (FileInfo, error) {
+	if de.info == nil {
+		return nil, errors.New("file info not available")
+	}
+	return de.info, nil
+}
+
+type GenericDirEntryOpts struct {
+	Name string
+	Mode FileMode
+	Info *GenericFileInfo
+}
+
+func NewDirEntry(opts GenericDirEntryOpts) *GenericDirEntry {
+	return &GenericDirEntry{
+		name: opts.Name,
+		mode: opts.Mode,
+		info: opts.Info,
+	}
+}
+
+type DirEntryWrapper struct {
+	fs.DirEntry
+}
+
+func (de *DirEntryWrapper) HasInfo() bool {
+	return false
 }

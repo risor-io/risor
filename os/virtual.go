@@ -367,3 +367,11 @@ func (osObj *VirtualOS) WriteFile(name string, data []byte, perm FileMode) error
 	}
 	return mount.Source.WriteFile(resolvedPath, data, perm)
 }
+
+func (osObj *VirtualOS) ReadDir(name string) ([]DirEntry, error) {
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.ReadDir(resolvedPath)
+}

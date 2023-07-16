@@ -129,3 +129,15 @@ func (osObj *SimpleOS) UserHomeDir() (string, error) {
 func (osObj *SimpleOS) WriteFile(name string, data []byte, perm FileMode) error {
 	return os.WriteFile(name, data, perm)
 }
+
+func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
+	results, err := os.ReadDir(name)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]DirEntry, 0, len(results))
+	for _, result := range results {
+		entries = append(entries, &DirEntryWrapper{result})
+	}
+	return entries, nil
+}

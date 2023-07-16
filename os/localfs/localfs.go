@@ -190,3 +190,7 @@ func (fs *Filesystem) WriteFile(name string, data []byte, perm ros.FileMode) err
 	}
 	return nil
 }
+
+func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
+	return nil, nil
+}
