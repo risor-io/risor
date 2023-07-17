@@ -17,7 +17,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/errz"
-	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/os/s3fs"
 	"github.com/risor-io/risor/repl"
@@ -198,21 +197,27 @@ var rootCmd = &cobra.Command{
 		dt := time.Since(start)
 
 		// Print the result
-		if result != object.Nil {
-			if viper.GetString("output") == "json" {
-				var output []byte
-				if viper.GetBool("no-color") {
-					output, err = json.MarshalIndent(result, "", "  ")
-				} else {
-					output, err = prettyjson.Marshal(result)
-				}
-				if err != nil {
-					fatal(err.Error())
-				}
-				fmt.Println(string(output))
+		outputFmt := viper.GetString("output")
+		if outputFmt == "json" || outputFmt == "" {
+			var output []byte
+			if viper.GetBool("no-color") {
+				output, err = json.MarshalIndent(result, "", "  ")
 			} else {
-				fmt.Println(result.Inspect())
+				output, err = prettyjson.Marshal(result)
 			}
+			if err != nil {
+				if outputFmt == "json" {
+					fatal(err.Error())
+				} else {
+					// Fallback to inspect output if JSON fails, if the
+					// output format wasn't explicitly set to JSON.
+					fmt.Println(result.Inspect())
+				}
+			} else {
+				fmt.Println(string(output))
+			}
+		} else {
+			fmt.Println(result.Inspect())
 		}
 
 		// Optionally print the execution time
