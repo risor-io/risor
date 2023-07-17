@@ -1,6 +1,7 @@
 package os
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -244,14 +245,25 @@ func ReadFile(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func ReadDir(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("os.read_dir", 1, args); err != nil {
+	if err := arg.RequireRange("os.read_dir", 0, 1, args); err != nil {
 		return err
 	}
-	filename, err := object.AsString(args[0])
-	if err != nil {
-		return err
+	var dirName string
+	osObj := GetOS(ctx)
+	if len(args) == 0 {
+		var err error
+		dirName, err = osObj.Getwd()
+		if err != nil {
+			return object.NewError(err)
+		}
+	} else {
+		var err *object.Error
+		dirName, err = object.AsString(args[0])
+		if err != nil {
+			return err
+		}
 	}
-	entries, ioErr := GetOS(ctx).ReadDir(filename)
+	entries, ioErr := osObj.ReadDir(dirName)
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
@@ -419,6 +431,50 @@ func MkdirTemp(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(tempDir)
 }
 
+func Copy(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("cp", 2, args); err != nil {
+		return err
+	}
+	src, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	dst, err := object.AsString(args[1])
+	if err != nil {
+		return err
+	}
+	os := GetOS(ctx)
+	srcData, ioErr := os.ReadFile(src)
+	if err != nil {
+		return object.NewError(ioErr)
+	}
+	if ioErr := os.WriteFile(dst, srcData, 0644); ioErr != nil {
+		return object.NewError(ioErr)
+	}
+	return object.Nil
+}
+
+func Cat(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("cat", 1, 100, args); err != nil {
+		return err
+	}
+	os := GetOS(ctx)
+	var buf bytes.Buffer
+	for _, arg := range args {
+		// Read the file and append it to the buffer.
+		filename, err := object.AsString(arg)
+		if err != nil {
+			return err
+		}
+		bytes, ioErr := os.ReadFile(filename)
+		if ioErr != nil {
+			return object.NewError(ioErr)
+		}
+		buf.Write(bytes)
+	}
+	return object.NewByteSlice(buf.Bytes())
+}
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("os", map[string]object.Object{
 		"chdir":           object.NewBuiltin("chdir", Chdir),
@@ -449,4 +505,13 @@ func Module() *object.Module {
 		"user_home_dir":   object.NewBuiltin("user_home_dir", UserHomeDir),
 		"write_file":      object.NewBuiltin("write_file", WriteFile),
 	})
+}
+
+func Builtins() map[string]object.Object {
+	return map[string]object.Object{
+		"cat": object.NewBuiltin("cat", Cat),
+		"cd":  object.NewBuiltin("cd", Chdir),
+		"cp":  object.NewBuiltin("cp", Copy),
+		"ls":  object.NewBuiltin("ls", ReadDir),
+	}
 }

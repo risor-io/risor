@@ -52,6 +52,9 @@ func WithDefaultBuiltins() Option {
 		for k, v := range modHash.Builtins() {
 			t.builtins[k] = v
 		}
+		for k, v := range modOs.Builtins() {
+			t.builtins[k] = v
+		}
 	}
 }
 

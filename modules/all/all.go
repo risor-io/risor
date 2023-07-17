@@ -50,5 +50,8 @@ func Builtins() map[string]object.Object {
 	for k, v := range modHash.Builtins() {
 		result[k] = v
 	}
+	for k, v := range modOs.Builtins() {
+		result[k] = v
+	}
 	return result
 }
