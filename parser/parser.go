@@ -1207,7 +1207,7 @@ func (p *Parser) parseIn(leftNode ast.Node) ast.Node {
 	if err := p.nextToken(); err != nil {
 		return nil
 	}
-	right := p.parseExpression(IN)
+	right := p.parseExpression(PREFIX)
 	if right == nil {
 		p.setTokenError(p.curToken, "invalid in expression")
 		return nil

@@ -892,7 +892,7 @@ func TestBadInputs(t *testing.T) {
 	}
 }
 
-func TestPrecedence(t *testing.T) {
+func TestRangePrecedence(t *testing.T) {
 	// This confirms the correct precedence of the "range" vs. "call" operators
 	input := `range byte_slice(99)`
 
@@ -919,4 +919,23 @@ func TestPrecedence(t *testing.T) {
 	require.IsType(t, &ast.Int{}, callStmt.Arguments()[0])
 	intVal := callStmt.Arguments()[0].(*ast.Int)
 	require.Equal(t, int64(99), intVal.Value())
+}
+
+func TestInPrecedence(t *testing.T) {
+	// This confirms the correct precedence of the "in" vs. "call" operators
+	input := `2 in float_slice([1,2,3])`
+
+	// Parse the program, which should be 1 statement in length
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	stmt := program.First()
+
+	// The top-level of the AST should be an in statement
+	require.IsType(t, &ast.In{}, stmt)
+	inStmt := stmt.(*ast.In)
+	fmt.Println(inStmt.String())
+
+	require.Equal(t, "2", inStmt.Left().String())
+	require.Equal(t, "float_slice([1, 2, 3])", inStmt.Right().String())
 }
