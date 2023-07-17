@@ -142,6 +142,15 @@ var rootCmd = &cobra.Command{
 			defer pprof.StopCPUProfile()
 		}
 
+		// Build up a list of options to pass to the VM
+		var opts []risor.Option
+		if !viper.GetBool("no-default-modules") {
+			opts = append(opts, risor.WithDefaultModules())
+		}
+		if !viper.GetBool("no-default-builtins") {
+			opts = append(opts, risor.WithDefaultBuiltins())
+		}
+
 		// Determine what code is to be executed. The code may be supplied
 		// via the --code option, a path supplied as an arg, or stdin.
 		code := viper.GetString("code")
@@ -149,7 +158,7 @@ var rootCmd = &cobra.Command{
 			fatal(red("cannot specify both code and a filepath"))
 		}
 		if len(args) == 0 && code == "" && !viper.GetBool("stdin") {
-			if err := repl.Run(ctx); err != nil {
+			if err := repl.Run(ctx, opts); err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 				os.Exit(1)
 			}
@@ -170,15 +179,6 @@ var rootCmd = &cobra.Command{
 				fatal(err.Error())
 			}
 			code = string(bytes)
-		}
-
-		// Build up a list of options to pass to the VM
-		var opts []risor.Option
-		if !viper.GetBool("no-default-modules") {
-			opts = append(opts, risor.WithDefaultModules())
-		}
-		if !viper.GetBool("no-default-builtins") {
-			opts = append(opts, risor.WithDefaultBuiltins())
 		}
 
 		start := time.Now()

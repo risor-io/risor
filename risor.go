@@ -6,6 +6,7 @@ import (
 	"github.com/risor-io/risor/builtins"
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
+	"github.com/risor-io/risor/internal/cfg"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
 	modFetch "github.com/risor-io/risor/modules/fetch"
@@ -28,96 +29,88 @@ import (
 
 const Version = "0.0.1"
 
-type Risor struct {
-	compiler *compiler.Compiler
-	main     *object.Code
-	builtins map[string]object.Object
-	importer importer.Importer
-	offset   int
-}
-
-type Option func(*Risor)
+type Option func(*cfg.RisorConfig)
 
 func WithDefaultBuiltins() Option {
-	return func(t *Risor) {
+	return func(r *cfg.RisorConfig) {
 		for k, v := range builtins.Builtins() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 		for k, v := range modFetch.Builtins() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 		for k, v := range modFmt.Builtins() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 		for k, v := range modHash.Builtins() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 		for k, v := range modOs.Builtins() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 	}
 }
 
 func WithDefaultModules() Option {
-	return func(t *Risor) {
+	return func(r *cfg.RisorConfig) {
 		for k, v := range defaultModules() {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 	}
 }
 
 func WithBuiltins(builtins map[string]object.Object) Option {
-	return func(t *Risor) {
+	return func(r *cfg.RisorConfig) {
 		for k, v := range builtins {
-			t.builtins[k] = v
+			r.Builtins[k] = v
 		}
 	}
 }
 
 func WithCompiler(c *compiler.Compiler) Option {
-	return func(t *Risor) {
-		t.compiler = c
+	return func(r *cfg.RisorConfig) {
+		r.Compiler = c
 	}
 }
 
 func WithImporter(i importer.Importer) Option {
-	return func(t *Risor) {
-		t.importer = i
+	return func(r *cfg.RisorConfig) {
+		r.Importer = i
 	}
 }
 
 func WithCode(c *object.Code) Option {
-	return func(t *Risor) {
-		t.main = c
+	return func(r *cfg.RisorConfig) {
+		r.Main = c
 	}
 }
 
 func WithInstructionOffset(offset int) Option {
-	return func(t *Risor) {
-		t.offset = offset
+	return func(r *cfg.RisorConfig) {
+		r.Offset = offset
 	}
 }
 
 func Eval(ctx context.Context, source string, options ...Option) (object.Object, error) {
 
-	t := Risor{
-		builtins: map[string]object.Object{},
+	r := &cfg.RisorConfig{
+		Builtins: map[string]object.Object{},
 	}
 	for _, opt := range options {
-		opt(&t)
+		opt(r)
 	}
 
 	// Initialize a compiler if one was not provided via opts.
-	if t.compiler == nil {
+	if r.Compiler == nil {
 		var err error
 		var compilerOpts []compiler.Option
-		if t.builtins != nil {
-			compilerOpts = append(compilerOpts, compiler.WithBuiltins(t.builtins))
+		if r.Builtins != nil {
+			compilerOpts = append(compilerOpts, compiler.WithBuiltins(r.Builtins))
 		}
-		if t.main != nil {
-			compilerOpts = append(compilerOpts, compiler.WithCode(t.main))
+		if r.Main != nil {
+			compilerOpts = append(compilerOpts, compiler.WithCode(r.Main))
 		}
-		t.compiler, err = compiler.New(compilerOpts...)
+		r.Compiler, err = compiler.New(compilerOpts...)
 		if err != nil {
 			return nil, err
 		}
@@ -131,18 +124,18 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 
 	// Compile the AST to bytecode, appending these new instructions after any
 	// instructions that were previously compiled.
-	main, err := t.compiler.Compile(ast)
+	main, err := r.Compiler.Compile(ast)
 	if err != nil {
 		return nil, err
 	}
 
 	// Eval the bytecode in a new VM then return the top-of-stack (TOS) value.
 	var vmOpts []vm.Option
-	if t.importer != nil {
-		vmOpts = append(vmOpts, vm.WithImporter(t.importer))
+	if r.Importer != nil {
+		vmOpts = append(vmOpts, vm.WithImporter(r.Importer))
 	}
-	if t.offset != 0 {
-		vmOpts = append(vmOpts, vm.WithInstructionOffset(t.offset))
+	if r.Offset != 0 {
+		vmOpts = append(vmOpts, vm.WithInstructionOffset(r.Offset))
 	}
 	machine := vm.New(main, vmOpts...)
 	if err := machine.Run(ctx); err != nil {

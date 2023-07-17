@@ -13,7 +13,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/compiler"
-	"github.com/risor-io/risor/modules/all"
+	"github.com/risor-io/risor/internal/cfg"
 	"github.com/risor-io/risor/object"
 )
 
@@ -23,7 +23,7 @@ const (
 	moveForward = "\033[%dC"
 )
 
-func Run(ctx context.Context) error {
+func Run(ctx context.Context, options []risor.Option) error {
 
 	color.New(color.Bold).Println("Risor")
 	fmt.Println("")
@@ -61,9 +61,13 @@ func Run(ctx context.Context) error {
 		return clearLine + ">>> " + accumulate
 	}
 
-	compilerBuiltins := all.Builtins()
-
-	c, err := compiler.New(compiler.WithBuiltins(compilerBuiltins))
+	r := &cfg.RisorConfig{
+		Builtins: map[string]object.Object{},
+	}
+	for _, opt := range options {
+		opt(r)
+	}
+	c, err := compiler.New(compiler.WithBuiltins(r.Builtins))
 	if err != nil {
 		return err
 	}
@@ -73,7 +77,7 @@ func Run(ctx context.Context) error {
 		switch key.Code {
 		case keys.Enter:
 			fmt.Printf("\n")
-			execute(ctx, accumulate, c)
+			execute(ctx, accumulate, c, options)
 			appendToHistory(accumulate)
 			history = append(history, accumulate)
 			historyIndex = len(history)
@@ -168,11 +172,22 @@ func Run(ctx context.Context) error {
 	})
 }
 
-func execute(ctx context.Context, code string, c *compiler.Compiler) (object.Object, error) {
+func execute(
+	ctx context.Context,
+	code string,
+	c *compiler.Compiler,
+	options []risor.Option,
+) (object.Object, error) {
+
 	offset := len(c.MainInstructions())
-	result, err := risor.Eval(ctx, code,
+
+	combinedOpts := []risor.Option{
 		risor.WithCompiler(c),
-		risor.WithInstructionOffset(offset))
+		risor.WithInstructionOffset(offset),
+	}
+	combinedOpts = append(combinedOpts, options...)
+
+	result, err := risor.Eval(ctx, code, combinedOpts...)
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err
@@ -180,6 +195,7 @@ func execute(ctx context.Context, code string, c *compiler.Compiler) (object.Obj
 	if result == nil {
 		return object.Nil, nil
 	}
+
 	switch result := result.(type) {
 	case *object.Error:
 		color.Red(result.Value().Error())
