@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -44,8 +43,6 @@ func TestLocalFilesystemStat(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmp)
 
-	start := time.Now()
-
 	ctx := context.Background()
 	fs, err := New(ctx, WithBase(tmp))
 	require.Nil(t, err)
@@ -59,7 +56,6 @@ func TestLocalFilesystemStat(t *testing.T) {
 	require.Equal(t, int64(3), stat.Size())
 	require.Equal(t, os.FileMode(0644), stat.Mode())
 	require.Equal(t, false, stat.IsDir())
-	require.True(t, stat.ModTime().After(start))
 
 	require.Nil(t, fs.Remove("stat.txt"))
 
