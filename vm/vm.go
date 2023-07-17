@@ -151,7 +151,8 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return fmt.Errorf("exec error: attribute %q not found", name)
+				return fmt.Errorf("exec error: attribute %q not found on %s object",
+					name, obj.Type())
 			}
 			vm.push(value)
 		case op.LoadConst:
@@ -163,8 +164,6 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.LoadFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			vm.push(freeVars[vm.fetch()].Value())
-		case op.LoadBuiltin:
-			vm.push(vm.activeCode.Builtins()[vm.fetch()])
 		case op.StoreFast:
 			vm.activeFrame.Locals()[vm.fetch()] = vm.pop()
 		case op.StoreGlobal:

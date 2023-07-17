@@ -3,8 +3,20 @@ package os
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/risor-io/risor/limits"
 )
+
+var (
+	_ OS = (*VirtualOS)(nil)
+)
+
+type ExitHandler func(int)
 
 type Mount struct {
 	Source FS
@@ -14,6 +26,7 @@ type Mount struct {
 
 type VirtualOS struct {
 	ctx           context.Context
+	limits        limits.Limits
 	userCacheDir  string
 	userConfigDir string
 	userHomeDir   string
@@ -24,6 +37,7 @@ type VirtualOS struct {
 	pid           int
 	uid           int
 	mounts        map[string]*Mount
+	exitHandler   ExitHandler
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -98,8 +112,15 @@ func WithHostname(hostname string) Option {
 func WithMounts(mounts map[string]*Mount) Option {
 	return func(vos *VirtualOS) {
 		for k, v := range mounts {
-			mounts[k] = v
+			vos.mounts[k] = v
 		}
+	}
+}
+
+// WithExitHandler sets the exit handler.
+func WithExitHandler(exitHandler ExitHandler) Option {
+	return func(vos *VirtualOS) {
+		vos.exitHandler = exitHandler
 	}
 }
 
@@ -109,6 +130,12 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 		ctx:    ctx,
 		env:    map[string]string{},
 		mounts: map[string]*Mount{},
+		cwd:    "/",
+	}
+	if lim, ok := limits.GetLimits(ctx); ok {
+		vos.limits = lim
+	} else {
+		vos.limits = limits.New()
 	}
 	for _, opt := range opts {
 		opt(vos)
@@ -122,7 +149,11 @@ func (osObj *VirtualOS) Chdir(dir string) error {
 }
 
 func (osObj *VirtualOS) Create(name string) (File, error) {
-	return nil, errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.Create(resolvedPath)
 }
 
 func (osObj *VirtualOS) Environ() []string {
@@ -133,7 +164,11 @@ func (osObj *VirtualOS) Environ() []string {
 	return result
 }
 
-func (osObj *VirtualOS) Exit(code int) {}
+func (osObj *VirtualOS) Exit(code int) {
+	if osObj.exitHandler != nil {
+		osObj.exitHandler(code)
+	}
+}
 
 func (osObj *VirtualOS) Getenv(key string) string {
 	return osObj.env[key]
@@ -161,35 +196,110 @@ func (osObj *VirtualOS) LookupEnv(key string) (string, bool) {
 }
 
 func (osObj *VirtualOS) Mkdir(name string, perm FileMode) error {
-	return errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.Mkdir(resolvedPath, perm)
 }
 
 func (osObj *VirtualOS) MkdirAll(path string, perm FileMode) error {
-	return errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(path)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", path)
+	}
+	return mount.Source.MkdirAll(resolvedPath, perm)
 }
 
 func (osObj *VirtualOS) MkdirTemp(dir, pattern string) (string, error) {
-	return "", errors.New("not implemented")
+	if dir != "" {
+		return "", errors.New("cannot specify directory")
+	}
+	if osObj.tmp == "" {
+		return "", errors.New("no temporary directory")
+	}
+	mount, _, found := osObj.findMount(osObj.tmp)
+	if !found {
+		return "", fmt.Errorf("temporary directory not found: %s", osObj.tmp)
+	}
+	rint := rand.Int63()
+	dirName := fmt.Sprintf("%d-%s", rint, pattern)
+	if err := mount.Source.Mkdir(dirName, 0755); err != nil {
+		return "", err
+	}
+	return filepath.Join(osObj.tmp, dirName), nil
 }
 
 func (osObj *VirtualOS) Open(name string) (File, error) {
-	return nil, errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.Open(resolvedPath)
 }
 
-func (osObj *VirtualOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
-	return nil, errors.New("not implemented")
+func (osObj *VirtualOS) findMount(path string) (*Mount, string, bool) {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(osObj.cwd, path)
+	}
+	path = filepath.Clean(path)
+	var match *Mount
+	for k, v := range osObj.mounts {
+		if k == path {
+			// Exact match
+			return v, "/", true
+		}
+		if strings.HasPrefix(path, k) {
+			// Prefix match. Keep looking to confirm this is the longest match.
+			if match == nil || len(k) > len(match.Target) {
+				match = v
+			}
+		}
+	}
+	if match != nil {
+		relPath := strings.TrimPrefix(path, match.Target)
+		if relPath == "" {
+			relPath = "/"
+		}
+		return match, relPath, true
+	}
+	return nil, "", false
 }
 
 func (osObj *VirtualOS) ReadFile(name string) ([]byte, error) {
-	return nil, errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	file, err := mount.Source.Open(resolvedPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return osObj.limits.ReadAll(file)
 }
 
 func (osObj *VirtualOS) Remove(name string) error {
-	return errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.Remove(resolvedPath)
 }
 
 func (osObj *VirtualOS) Rename(oldpath, newpath string) error {
-	return errors.New("not implemented")
+	mountOld, resolvedPathOld, found := osObj.findMount(oldpath)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", oldpath)
+	}
+	mountNew, resolvedPathNew, found := osObj.findMount(newpath)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", newpath)
+	}
+	if mountOld != mountNew {
+		return fmt.Errorf("cannot rename across filesystems: %s -> %s", oldpath, newpath)
+	}
+	return mountOld.Source.Rename(resolvedPathOld, resolvedPathNew)
 }
 
 func (osObj *VirtualOS) Setenv(key, value string) error {
@@ -198,11 +308,26 @@ func (osObj *VirtualOS) Setenv(key, value string) error {
 }
 
 func (osObj *VirtualOS) Stat(name string) (os.FileInfo, error) {
-	return nil, errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.Stat(resolvedPath)
 }
 
 func (osObj *VirtualOS) Symlink(oldname, newname string) error {
-	return errors.New("not implemented")
+	mountOld, resolvedPathOld, found := osObj.findMount(oldname)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", oldname)
+	}
+	mountNew, resolvedPathNew, found := osObj.findMount(newname)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", newname)
+	}
+	if mountOld != mountNew {
+		return fmt.Errorf("cannot symlink across filesystems: %s -> %s", oldname, newname)
+	}
+	return mountOld.Source.Symlink(resolvedPathOld, resolvedPathNew)
 }
 
 func (osObj *VirtualOS) TempDir() string {
@@ -215,17 +340,38 @@ func (osObj *VirtualOS) Unsetenv(key string) error {
 }
 
 func (osObj *VirtualOS) UserCacheDir() (string, error) {
+	if osObj.userCacheDir == "" {
+		return "", errors.New("no user cache dir configured")
+	}
 	return osObj.userCacheDir, nil
 }
 
 func (osObj *VirtualOS) UserConfigDir() (string, error) {
+	if osObj.userConfigDir == "" {
+		return "", errors.New("no user config dir configured")
+	}
 	return osObj.userConfigDir, nil
 }
 
 func (osObj *VirtualOS) UserHomeDir() (string, error) {
+	if osObj.userHomeDir == "" {
+		return "", errors.New("no user home dir configured")
+	}
 	return osObj.userHomeDir, nil
 }
 
 func (osObj *VirtualOS) WriteFile(name string, data []byte, perm FileMode) error {
-	return errors.New("not implemented")
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.WriteFile(resolvedPath, data, perm)
+}
+
+func (osObj *VirtualOS) ReadDir(name string) ([]DirEntry, error) {
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.ReadDir(resolvedPath)
 }

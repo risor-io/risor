@@ -26,23 +26,23 @@ func TestTable(t *testing.T) {
 
 	c, err := table.InsertBuiltin("c")
 	require.Nil(t, err)
-	require.Equal(t, uint16(0), c.Index)
+	require.Equal(t, uint16(2), c.Index)
 	require.Equal(t, "c", c.Name)
 	require.Nil(t, c.Value)
 
-	// The size is the count of variables, not including builtins
-	require.Equal(t, uint16(2), table.Size())
+	// The size is the count of variables
+	require.Equal(t, uint16(3), table.Size())
 
 	require.True(t, table.IsVariable("a"))
 	require.True(t, table.IsVariable("b"))
-	require.False(t, table.IsVariable("c"))
+	require.True(t, table.IsVariable("c"))
 
-	require.False(t, table.IsBuiltin("a"))
-	require.False(t, table.IsBuiltin("b"))
-	require.True(t, table.IsBuiltin("c"))
+	// require.False(t, table.IsBuiltin("a"))
+	// require.False(t, table.IsBuiltin("b"))
+	// require.True(t, table.IsBuiltin("c"))
 
-	require.Len(t, table.Variables(), 2)
-	require.Len(t, table.Builtins(), 1)
+	require.Len(t, table.Variables(), 3)
+	// require.Len(t, table.Builtins(), 1)
 }
 
 func TestBlock(t *testing.T) {

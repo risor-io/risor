@@ -759,21 +759,6 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	return container.Iter()
 }
 
-func CodeObj(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("codeobj", 0, args); err != nil {
-		return err
-	}
-	codeFunc, found := object.GetCodeFunc(ctx)
-	if !found {
-		return object.Errorf("eval error: context did not contain a code function")
-	}
-	code, err := codeFunc(ctx)
-	if err != nil {
-		return object.Errorf(err.Error())
-	}
-	return object.NewCodeProxy(code)
-}
-
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"all":         object.NewBuiltin("all", All),
@@ -785,7 +770,6 @@ func Builtins() map[string]object.Object {
 		"buffer":      object.NewBuiltin("buffer", Buffer),
 		"call":        object.NewBuiltin("call", Call),
 		"chr":         object.NewBuiltin("chr", Chr),
-		"codeobj":     object.NewBuiltin("codeobj", CodeObj),
 		"decode":      object.NewBuiltin("decode", Decode),
 		"delete":      object.NewBuiltin("delete", Delete),
 		"encode":      object.NewBuiltin("encode", Encode),

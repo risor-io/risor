@@ -3,14 +3,27 @@ package os
 import (
 	"context"
 	"os"
+
+	"github.com/risor-io/risor/limits"
+)
+
+var (
+	_ OS = (*SimpleOS)(nil)
 )
 
 type SimpleOS struct {
-	ctx context.Context
+	ctx    context.Context
+	limits limits.Limits
 }
 
 func NewSimpleOS(ctx context.Context) *SimpleOS {
-	return &SimpleOS{ctx: ctx}
+	sos := &SimpleOS{ctx: ctx}
+	if lim, ok := limits.GetLimits(ctx); ok {
+		sos.limits = lim
+	} else {
+		sos.limits = limits.New()
+	}
+	return sos
 }
 
 func (osObj *SimpleOS) Chdir(dir string) error {
@@ -69,10 +82,6 @@ func (osObj *SimpleOS) Open(name string) (File, error) {
 	return os.Open(name)
 }
 
-func (osObj *SimpleOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
-	return os.OpenFile(name, flag, perm)
-}
-
 func (osObj *SimpleOS) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
 }
@@ -119,4 +128,16 @@ func (osObj *SimpleOS) UserHomeDir() (string, error) {
 
 func (osObj *SimpleOS) WriteFile(name string, data []byte, perm FileMode) error {
 	return os.WriteFile(name, data, perm)
+}
+
+func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
+	results, err := os.ReadDir(name)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]DirEntry, 0, len(results))
+	for _, result := range results {
+		entries = append(entries, &DirEntryWrapper{result})
+	}
+	return entries, nil
 }

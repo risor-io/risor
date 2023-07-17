@@ -25,7 +25,6 @@ const (
 	JumpForward
 	Length
 	LoadAttr
-	LoadBuiltin
 	LoadClosure
 	LoadConst
 	LoadFast
@@ -124,7 +123,6 @@ func init() {
 		{JumpForward, "JUMP_FORWARD", 1, []int{2}},
 		{Length, "LENGTH", 0, nil},
 		{LoadAttr, "LOAD_ATTR", 1, []int{2}},
-		{LoadBuiltin, "LOAD_BUILTIN", 1, []int{2}},
 		{LoadClosure, "LOAD_CLOSURE", 2, []int{2, 2}},
 		{LoadConst, "LOAD_CONST", 1, []int{2}},
 		{LoadFast, "LOAD_FAST", 1, []int{2}},

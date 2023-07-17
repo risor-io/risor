@@ -18,6 +18,7 @@ type HttpResponse struct {
 	readerLimit int64
 	once        sync.Once
 	closed      chan bool
+	bodyData    []byte
 }
 
 func (r *HttpResponse) Type() Type {
@@ -89,11 +90,19 @@ func (r *HttpResponse) Close() {
 }
 
 func (r *HttpResponse) readBody() ([]byte, error) {
+	if r.bodyData != nil {
+		return r.bodyData, nil
+	}
 	if r.readerLimit > 0 && r.resp.ContentLength > r.readerLimit {
 		return nil, limits.NewLimitsError("limit error: content length exceeded limit of %d bytes (got %d)",
 			r.readerLimit, r.resp.ContentLength)
 	}
-	return limits.ReadAll(r.resp.Body, r.readerLimit)
+	data, err := limits.ReadAll(r.resp.Body, r.readerLimit)
+	if err != nil {
+		return nil, err
+	}
+	r.bodyData = data
+	return data, nil
 }
 
 func (r *HttpResponse) JSON() Object {
@@ -161,7 +170,34 @@ func (r *HttpResponse) Cost() int {
 }
 
 func (r *HttpResponse) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal http.response")
+	var text string
+	var jsonObj Object
+	data, err := r.readBody()
+	if err != nil {
+		return nil, err
+	}
+	if r.resp.Header.Get("Content-Type") == "application/json" {
+		jsonObj = r.JSON()
+	} else {
+		text = string(data)
+	}
+	return json.Marshal(struct {
+		Status        string      `json:"status"`
+		StatusCode    int         `json:"status_code"`
+		Proto         string      `json:"proto"`
+		ContentLength int64       `json:"content_length"`
+		Header        http.Header `json:"header"`
+		Text          string      `json:"text,omitempty"`
+		JSON          Object      `json:"json,omitempty"`
+	}{
+		Status:        r.resp.Status,
+		StatusCode:    r.resp.StatusCode,
+		Proto:         r.resp.Proto,
+		ContentLength: r.resp.ContentLength,
+		Header:        r.resp.Header,
+		Text:          text,
+		JSON:          jsonObj,
+	})
 }
 
 func NewHttpResponse(

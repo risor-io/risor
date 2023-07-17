@@ -10,10 +10,9 @@ import (
 type ScopeName string
 
 const (
-	ScopeBuiltin ScopeName = "builtin"
-	ScopeLocal   ScopeName = "local"
-	ScopeGlobal  ScopeName = "global"
-	ScopeFree    ScopeName = "free"
+	ScopeLocal  ScopeName = "local"
+	ScopeGlobal ScopeName = "global"
+	ScopeFree   ScopeName = "free"
 )
 
 type Symbol struct {
@@ -39,7 +38,6 @@ type SymbolTable struct {
 	parent    *SymbolTable
 	symbols   map[string]*Symbol
 	variables map[string]*Symbol
-	builtins  map[string]*Symbol
 	accessed  map[string]bool
 	free      map[string]*Resolution
 	values    []Object
@@ -52,7 +50,6 @@ func (t *SymbolTable) NewChild() *SymbolTable {
 		parent:    t,
 		symbols:   map[string]*Symbol{},
 		variables: map[string]*Symbol{},
-		builtins:  map[string]*Symbol{},
 		accessed:  map[string]bool{},
 		free:      map[string]*Resolution{},
 		isBlock:   false,
@@ -111,23 +108,7 @@ func (t *SymbolTable) InsertBuiltin(name string, value ...Object) (*Symbol, erro
 	if t.parent != nil {
 		return nil, errors.New("cannot insert builtin in child table")
 	}
-	if _, ok := t.symbols[name]; ok {
-		return nil, fmt.Errorf("symbol %q already exists", name)
-	}
-	priorCount := len(t.builtins)
-	if priorCount >= math.MaxUint16 {
-		return nil, errors.New("too many symbols")
-	}
-	s := &Symbol{Name: name, Index: uint16(priorCount)}
-	valueCount := len(value)
-	if valueCount > 1 {
-		return nil, errors.New("expected at most one value")
-	} else if valueCount == 1 {
-		s.Value = value[0]
-	}
-	t.symbols[name] = s
-	t.builtins[name] = s
-	return s, nil
+	return t.InsertVariable(name, value...)
 }
 
 func (t *SymbolTable) SetValue(name string, value Object) error {
@@ -137,11 +118,6 @@ func (t *SymbolTable) SetValue(name string, value Object) error {
 	}
 	s.Value = value
 	return nil
-}
-
-func (t *SymbolTable) IsBuiltin(name string) bool {
-	_, ok := t.builtins[name]
-	return ok
 }
 
 func (t *SymbolTable) IsVariable(name string) bool {
@@ -169,9 +145,7 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 	if s, ok := t.symbols[name]; ok {
 		t.accessed[name] = true
 		var scope ScopeName
-		if t.IsBuiltin(name) {
-			scope = ScopeBuiltin
-		} else if t.IsGlobal() {
+		if t.IsGlobal() {
 			scope = ScopeGlobal
 		} else {
 			scope = ScopeLocal
@@ -192,9 +166,9 @@ func (t *SymbolTable) Lookup(name string) (*Resolution, bool) {
 		return nil, false
 	}
 	t.accessed[name] = true
-	// Check if this is a global or a builtin. These are simple in that we don't
+	// Check if this is a global. These are simple in that we don't
 	// care about their depth and their scope always stays unchanged.
-	if rs.Scope == ScopeGlobal || rs.Scope == ScopeBuiltin {
+	if rs.Scope == ScopeGlobal {
 		return rs, true
 	}
 	// Determine if this is a free variable which is defined in an outer scope.
@@ -260,14 +234,6 @@ func (t *SymbolTable) Variables() []Object {
 	return t.values
 }
 
-func (t *SymbolTable) Builtins() []Object {
-	result := make([]Object, len(t.builtins))
-	for _, s := range t.builtins {
-		result[s.Index] = s.Value
-	}
-	return result
-}
-
 func (t *SymbolTable) Free() []*Resolution {
 	result := make([]*Resolution, len(t.free))
 	for _, rs := range t.free {
@@ -280,7 +246,6 @@ func NewSymbolTable() *SymbolTable {
 	return &SymbolTable{
 		symbols:   map[string]*Symbol{},
 		variables: map[string]*Symbol{},
-		builtins:  map[string]*Symbol{},
 		accessed:  map[string]bool{},
 		free:      map[string]*Resolution{},
 	}

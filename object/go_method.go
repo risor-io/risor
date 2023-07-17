@@ -138,10 +138,14 @@ func (m *GoMethod) IsOutputError(index int) bool {
 }
 
 func (m *GoMethod) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
-		"name":    m.name.value,
-		"num_in":  m.numIn.value,
-		"num_out": m.numOut.value,
+	return json.Marshal(struct {
+		Name   string `json:"name"`
+		NumIn  int64  `json:"num_in"`
+		NumOut int64  `json:"num_out"`
+	}{
+		Name:   m.name.value,
+		NumIn:  m.numIn.value,
+		NumOut: m.numOut.value,
 	})
 }
 
