@@ -400,8 +400,6 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
 		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
-	case object.ScopeBuiltin:
-		c.emit(op.LoadBuiltin, sym.Index)
 	}
 	return nil
 }
@@ -447,8 +445,6 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 			c.emit(op.StoreFast, sym.Index)
 		case object.ScopeFree:
 			c.emit(op.StoreFree, sym.Index)
-		case object.ScopeBuiltin:
-			c.emit(op.LoadBuiltin, sym.Index)
 		}
 	}
 	return nil
@@ -729,8 +725,6 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
 		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
-	case object.ScopeBuiltin:
-		return fmt.Errorf("cannot assign to builtin: %s", name)
 	}
 	// Push the integer amount to the stack (1 or -1)
 	operator := node.Operator()
@@ -1111,8 +1105,6 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 			c.emit(op.StoreFast, sym.Index)
 		case object.ScopeFree:
 			c.emit(op.StoreFree, sym.Index)
-		case object.ScopeBuiltin:
-			c.emit(op.LoadBuiltin, sym.Index)
 		}
 		return nil
 	}
@@ -1124,8 +1116,6 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.LoadFast, sym.Index)
 	case object.ScopeFree:
 		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
-	case object.ScopeBuiltin:
-		c.emit(op.LoadBuiltin, sym.Index)
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -1150,8 +1140,6 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.StoreFast, sym.Index)
 	case object.ScopeFree:
 		c.emit(op.StoreFree, sym.Index)
-	case object.ScopeBuiltin:
-		c.emit(op.LoadBuiltin, sym.Index)
 	}
 	return nil
 }

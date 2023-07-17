@@ -29,7 +29,6 @@ const (
 	BYTE_SLICE    Type = "byte_slice"
 	BYTE          Type = "byte"
 	CELL          Type = "cell"
-	CODE          Type = "code"
 	COLOR         Type = "color"
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"

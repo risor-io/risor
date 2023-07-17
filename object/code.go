@@ -35,10 +35,6 @@ func (c *Code) Globals() []Object {
 	return c.Symbols.Root().Variables()
 }
 
-func (c *Code) Builtins() []Object {
-	return c.Symbols.Root().Builtins()
-}
-
 func NewCode(name string) *Code {
 	return &Code{Name: name, Symbols: NewSymbolTable()}
 }
