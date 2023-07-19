@@ -239,10 +239,14 @@ func (osObj *VirtualOS) Open(name string) (File, error) {
 }
 
 func (osObj *VirtualOS) findMount(path string) (*Mount, string, bool) {
+	endsWithSlash := strings.HasSuffix(path, "/")
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(osObj.cwd, path)
 	}
 	path = filepath.Clean(path)
+	if endsWithSlash && path != "/" {
+		path += "/"
+	}
 	var match *Mount
 	for k, v := range osObj.mounts {
 		if k == path {

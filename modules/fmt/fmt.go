@@ -13,6 +13,8 @@ func printableValue(obj object.Object) interface{} {
 		return obj.Value()
 	case *object.NilType:
 		return nil
+	case fmt.Stringer:
+		return obj.String()
 	default:
 		return obj.Inspect()
 	}

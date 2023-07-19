@@ -16,7 +16,8 @@ type DirEntry struct {
 }
 
 func (d *DirEntry) Inspect() string {
-	return fmt.Sprintf("dir_entry(name=%s)", d.value.Name())
+	return fmt.Sprintf("dir_entry(name=%s, type=%s)", d.value.Name(),
+		fileModeTypeString(d.value.Type()))
 }
 
 func (d *DirEntry) Type() Type {

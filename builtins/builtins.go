@@ -198,6 +198,9 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewString(string(bytes))
 	default:
+		if s, ok := arg.(fmt.Stringer); ok {
+			return object.NewString(s.String())
+		}
 		return object.NewString(args[0].Inspect())
 	}
 }
@@ -623,6 +626,8 @@ func Int(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Byte:
 		return object.NewInt(int64(obj.Value()))
 	case *object.Float:
+		return object.NewInt(int64(obj.Value()))
+	case *object.Duration:
 		return object.NewInt(int64(obj.Value()))
 	case *object.String:
 		if i, err := strconv.ParseInt(obj.Value(), 0, 64); err == nil {

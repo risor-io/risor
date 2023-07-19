@@ -51,11 +51,23 @@ func Sleep(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
+func Since(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("time.since", 1, args); err != nil {
+		return err
+	}
+	t, err := object.AsTime(args[0])
+	if err != nil {
+		return err
+	}
+	return object.NewDuration(time.Since(t))
+}
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("time", map[string]object.Object{
 		"now":         object.NewBuiltin("now", Now),
 		"parse":       object.NewBuiltin("parse", Parse),
 		"sleep":       object.NewBuiltin("sleep", Sleep),
+		"since":       object.NewBuiltin("since", Since),
 		"ANSIC":       object.NewString(time.ANSIC),
 		"UnixDate":    object.NewString(time.UnixDate),
 		"RubyDate":    object.NewString(time.RubyDate),

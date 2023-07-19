@@ -33,6 +33,7 @@ const (
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"
 	DIR_ENTRY     Type = "dir_entry"
+	DURATION      Type = "duration"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FILE_INFO     Type = "file_info"

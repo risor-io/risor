@@ -69,9 +69,9 @@ func (b *Builtin) Name() string {
 
 func (b *Builtin) GetAttr(name string) (Object, bool) {
 	switch name {
-	case "name":
+	case "__name__":
 		return NewString(b.Key()), true
-	case "module":
+	case "__module__":
 		if b.module != nil {
 			return b.module, true
 		}
