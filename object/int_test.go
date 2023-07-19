@@ -61,7 +61,7 @@ func TestIntBasics(t *testing.T) {
 	value := NewInt(-3)
 	require.Equal(t, INT, value.Type())
 	require.Equal(t, int64(-3), value.Value())
-	require.Equal(t, "int(-3)", value.String())
+	require.Equal(t, "-3", value.String())
 	require.Equal(t, "-3", value.Inspect())
 	require.Equal(t, int64(-3), value.Interface())
 }

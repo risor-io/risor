@@ -48,7 +48,7 @@ func (t *Time) Interface() interface{} {
 }
 
 func (t *Time) String() string {
-	return fmt.Sprintf("time(%s)", t.Inspect())
+	return t.value.String()
 }
 
 func (t *Time) Compare(other Object) (int, error) {

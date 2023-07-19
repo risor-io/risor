@@ -39,7 +39,7 @@ func (b *Bool) Interface() interface{} {
 }
 
 func (b *Bool) String() string {
-	return fmt.Sprintf("bool(%t)", b.value)
+	return fmt.Sprintf("%t", b.value)
 }
 
 func (b *Bool) Compare(other Object) (int, error) {

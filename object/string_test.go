@@ -11,7 +11,7 @@ func TestStringBasics(t *testing.T) {
 	value := NewString("abcd")
 	require.Equal(t, STRING, value.Type())
 	require.Equal(t, "abcd", value.Value())
-	require.Equal(t, "string(abcd)", value.String())
+	require.Equal(t, "abcd", value.String())
 	require.Equal(t, `"abcd"`, value.Inspect())
 	require.Equal(t, "abcd", value.Interface())
 	require.True(t, value.Equals(NewString("abcd")).(*Bool).value)
