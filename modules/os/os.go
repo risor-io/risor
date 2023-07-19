@@ -280,7 +280,7 @@ func ReadDir(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func WriteFile(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("os.write_file", 3, args); err != nil {
+	if err := arg.RequireRange("os.write_file", 2, 3, args); err != nil {
 		return err
 	}
 	filename, err := object.AsString(args[0])
@@ -296,9 +296,12 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	default:
 		return object.NewError(fmt.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type()))
 	}
-	perm, err := object.AsInt(args[2])
-	if err != nil {
-		return err
+	var perm int64 = 0644
+	if len(args) == 3 {
+		perm, err = object.AsInt(args[2])
+		if err != nil {
+			return err
+		}
 	}
 	if err := GetOS(ctx).WriteFile(filename, data, os.FileMode(perm)); err != nil {
 		return object.NewError(err)

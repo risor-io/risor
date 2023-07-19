@@ -36,7 +36,7 @@ func (f *Float) Interface() interface{} {
 }
 
 func (f *Float) String() string {
-	return fmt.Sprintf("float(%v)", f.value)
+	return f.Inspect()
 }
 
 func (f *Float) Compare(other Object) (int, error) {

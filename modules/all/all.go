@@ -38,6 +38,11 @@ func Builtins() map[string]object.Object {
 		"fmt":     modFmt.Module(),
 		"image":   modImage.Module(),
 	}
+
+	if awsMod := modAws.Module(); awsMod != nil {
+		result["aws"] = awsMod
+	}
+
 	for k, v := range modFetch.Builtins() {
 		result[k] = v
 	}

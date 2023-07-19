@@ -35,7 +35,7 @@ func (s *String) Inspect() string {
 }
 
 func (s *String) String() string {
-	return fmt.Sprintf("string(%s)", s.value)
+	return s.value
 }
 
 func (s *String) HashKey() HashKey {

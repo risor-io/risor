@@ -16,21 +16,21 @@ func TestObjectString(t *testing.T) {
 		input    Object
 		expected string
 	}{
-		{True, "bool(true)"},
-		{False, "bool(false)"},
+		{True, "true"},
+		{False, "false"},
 		{Nil, "nil"},
 		// {NewBreak(), "break"},
 		// {NewContinue(), "continue"},
 		{NewError(errors.New("kaboom")), "error(kaboom)"},
 		// {NewReturn(NewInt(42)), "return(int(42))"},
-		{NewFloat(3.0), "float(3)"},
-		{NewInt(-3), "int(-3)"},
-		{NewString("foo"), "string(foo)"},
+		{NewFloat(3.0), "3"},
+		{NewInt(-3), "-3"},
+		{NewString("foo"), "foo"},
 		// {NewModule("my-scope"), "module(my-scope)"},
-		{NewList([]Object{NewInt(1), NewInt(2)}), "list([int(1), int(2)])"},
-		{NewSet([]Object{True, Nil}), "set(bool(true), nil)"},
-		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `map("bar": int(2), "foo": int(1))`},
-		{NewTime(tm), "time(2009-11-10T23:00:00Z)"},
+		{NewList([]Object{NewInt(1), NewInt(2)}), "list([1, 2])"},
+		{NewSet([]Object{True, Nil}), "set(true, nil)"},
+		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `map("bar": 2, "foo": 1)`},
+		{NewTime(tm), "2009-11-10 23:00:00 +0000 UTC"},
 	}
 
 	for _, tt := range tests {

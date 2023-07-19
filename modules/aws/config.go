@@ -10,42 +10,18 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
-	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
-	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/ebs"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/aws/aws-sdk-go-v2/service/eks"
-	"github.com/aws/aws-sdk-go-v2/service/elasticache"
-	"github.com/aws/aws-sdk-go-v2/service/elasticsearchservice"
-	"github.com/aws/aws-sdk-go-v2/service/glue"
-	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/aws/aws-sdk-go-v2/service/kinesis"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/rds"
-	"github.com/aws/aws-sdk-go-v2/service/redshift"
-	"github.com/aws/aws-sdk-go-v2/service/route53"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/sfn"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/aws/aws-sdk-go-v2/service/wafv2"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
 
 type Config struct {
-	cfg aws.Config
+	value aws.Config
 }
 
 func (c *Config) Inspect() string {
-	return "aws.config()"
+	return fmt.Sprintf("aws.config(region=%s)", c.value.Region)
 }
 
 func (c *Config) Type() object.Type {
@@ -53,13 +29,13 @@ func (c *Config) Type() object.Type {
 }
 
 func (c *Config) Value() config.Config {
-	return c.cfg
+	return c.value
 }
 
 func (c *Config) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "region":
-		return object.NewString(c.cfg.Region), true
+		return object.NewString(c.value.Region), true
 	case "with_region":
 		return object.NewBuiltin("with_region", func(ctx context.Context, args ...object.Object) object.Object {
 			if err := arg.Require("aws.config.with_region", 1, args); err != nil {
@@ -69,17 +45,17 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 			if err != nil {
 				return err
 			}
-			new := c.cfg.Copy()
+			new := c.value.Copy()
 			new.Region = region
 			return NewConfig(new)
 		}), true
 	case "copy":
 		return object.NewBuiltin("copy", func(ctx context.Context, args ...object.Object) object.Object {
-			return NewConfig(c.cfg.Copy())
+			return NewConfig(c.value.Copy())
 		}), true
 	case "credentials":
 		return object.NewBuiltin("credentials", func(ctx context.Context, args ...object.Object) object.Object {
-			creds, err := c.cfg.Credentials.Retrieve(ctx)
+			creds, err := c.value.Credentials.Retrieve(ctx)
 			if err != nil {
 				return object.NewError(err)
 			}
@@ -95,70 +71,6 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 			}
 			return object.FromGoType(credsMap)
 		}), true
-	case "service":
-		return object.NewBuiltin("service", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("aws.config.service", 1, args); err != nil {
-				return err
-			}
-			service, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			switch service {
-			case "ec2":
-				return NewClient("ec2", ec2.NewFromConfig(c.cfg))
-			case "rds":
-				return NewClient("rds", rds.NewFromConfig(c.cfg))
-			case "s3":
-				return NewClient("s3", s3.NewFromConfig(c.cfg))
-			case "iam":
-				return NewClient("iam", iam.NewFromConfig(c.cfg))
-			case "ebs":
-				return NewClient("ebs", ebs.NewFromConfig(c.cfg))
-			case "lambda":
-				return NewClient("lambda", lambda.NewFromConfig(c.cfg))
-			case "cloudfront":
-				return NewClient("cloudfront", cloudfront.NewFromConfig(c.cfg))
-			case "sns":
-				return NewClient("sns", sns.NewFromConfig(c.cfg))
-			case "sqs":
-				return NewClient("sqs", sqs.NewFromConfig(c.cfg))
-			case "ddb":
-				return NewClient("ddb", dynamodb.NewFromConfig(c.cfg))
-			case "elasticache":
-				return NewClient("elasticache", elasticache.NewFromConfig(c.cfg))
-			case "elasticsearchservice":
-				return NewClient("elasticsearchservice", elasticsearchservice.NewFromConfig(c.cfg))
-			case "cloudwatch":
-				return NewClient("cloudwatch", cloudwatch.NewFromConfig(c.cfg))
-			case "kms":
-				return NewClient("kms", kms.NewFromConfig(c.cfg))
-			case "cloudformation":
-				return NewClient("cloudformation", cloudformation.NewFromConfig(c.cfg))
-			case "kinesis":
-				return NewClient("kinesis", kinesis.NewFromConfig(c.cfg))
-			case "route53":
-				return NewClient("route53", route53.NewFromConfig(c.cfg))
-			case "redshift":
-				return NewClient("redshift", redshift.NewFromConfig(c.cfg))
-			case "glue":
-				return NewClient("glue", glue.NewFromConfig(c.cfg))
-			case "cloudtrail":
-				return NewClient("cloudtrail", cloudtrail.NewFromConfig(c.cfg))
-			case "wafv2":
-				return NewClient("wafv2", wafv2.NewFromConfig(c.cfg))
-			case "sfn":
-				return NewClient("sfn", sfn.NewFromConfig(c.cfg))
-			case "eks":
-				return NewClient("eks", eks.NewFromConfig(c.cfg))
-			case "ecr":
-				return NewClient("ecr", ecr.NewFromConfig(c.cfg))
-			case "ecs":
-				return NewClient("ecs", ecs.NewFromConfig(c.cfg))
-			default:
-				return object.Errorf("unknown service: %s", service)
-			}
-		}), true
 	}
 	return nil, false
 }
@@ -168,7 +80,7 @@ func (c *Config) SetAttr(name string, value object.Object) error {
 }
 
 func (c *Config) Interface() interface{} {
-	return c.cfg
+	return c.value
 }
 
 func (c *Config) String() string {
@@ -202,6 +114,94 @@ func (c *Config) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("type error: unable to marshal aws.config")
 }
 
+func (c *Config) Region() string {
+	return c.value.Region
+}
+
 func NewConfig(cfg aws.Config) *Config {
-	return &Config{cfg: cfg}
+	return &Config{value: cfg}
+}
+
+func NewConfigFromMap(ctx context.Context, m *object.Map) (*Config, error) {
+	opts, err := getConfigOptions(m)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return NewConfig(cfg), nil
+}
+
+func getConfigOptions(m *object.Map) ([]func(*config.LoadOptions) error, error) {
+
+	// Options:
+	// {
+	//    "region": "us-east-1",
+	//    "credentials": {
+	//       "key": "AKID",
+	//       "secret": "SECRET",
+	//       "session": "SESSION_TOKEN"
+	//    },
+	//    "profile": "custom_profile",
+	//    "credentials_files": ["test/credentials"],
+	//    "config_files": ["test/config"],
+	// }
+
+	var opts []func(*config.LoadOptions) error
+
+	// Optional region
+	region, present, err := mapGetStr(m, "region")
+	if err != nil {
+		return nil, err
+	} else if present {
+		opts = append(opts, config.WithRegion(region))
+	}
+
+	// Optional credentials
+	creds, present, err := mapGetMap(m, "credentials")
+	if err != nil {
+		return nil, err
+	} else if present {
+		key, _, err := mapGetStr(creds, "key")
+		if err != nil {
+			return nil, err
+		}
+		secret, _, err := mapGetStr(creds, "secret")
+		if err != nil {
+			return nil, err
+		}
+		session, _, err := mapGetStr(creds, "session")
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(key, secret, session)))
+	}
+
+	// Optional profile
+	profile, present, err := mapGetStr(m, "profile")
+	if err != nil {
+		return nil, err
+	} else if present {
+		opts = append(opts, config.WithSharedConfigProfile(profile))
+	}
+
+	// Optional shared credentials files
+	credentialsFiles, present, err := mapGetStrList(m, "credentials_files")
+	if err != nil {
+		return nil, err
+	} else if present {
+		opts = append(opts, config.WithSharedCredentialsFiles(credentialsFiles))
+	}
+
+	// Optional shared config files
+	configFiles, present, err := mapGetStrList(m, "config_files")
+	if err != nil {
+		return nil, err
+	} else if present {
+		opts = append(opts, config.WithSharedConfigFiles(configFiles))
+	}
+	return opts, nil
 }

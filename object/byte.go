@@ -34,7 +34,7 @@ func (b *Byte) Interface() interface{} {
 }
 
 func (b *Byte) String() string {
-	return fmt.Sprintf("byte(%d)", b.value)
+	return fmt.Sprintf("%d", b.value)
 }
 
 func (b *Byte) Compare(other Object) (int, error) {

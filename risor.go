@@ -7,6 +7,7 @@ import (
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/internal/cfg"
+	modAws "github.com/risor-io/risor/modules/aws"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
 	modFetch "github.com/risor-io/risor/modules/fetch"
@@ -27,7 +28,7 @@ import (
 	"github.com/risor-io/risor/vm"
 )
 
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 type Option func(*cfg.RisorConfig)
 
@@ -148,7 +149,7 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 }
 
 func defaultModules() map[string]object.Object {
-	return map[string]object.Object{
+	result := map[string]object.Object{
 		"math":    modMath.Module(),
 		"json":    modJson.Module(),
 		"strings": modStrings.Module(),
@@ -163,4 +164,8 @@ func defaultModules() map[string]object.Object {
 		"fmt":     modFmt.Module(),
 		"image":   modImage.Module(),
 	}
+	if awsMod := modAws.Module(); awsMod != nil {
+		result["aws"] = awsMod
+	}
+	return result
 }

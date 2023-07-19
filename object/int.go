@@ -35,7 +35,7 @@ func (i *Int) Interface() interface{} {
 }
 
 func (i *Int) String() string {
-	return fmt.Sprintf("int(%v)", i.value)
+	return i.Inspect()
 }
 
 func (i *Int) Compare(other Object) (int, error) {

@@ -8,5 +8,5 @@ import (
 )
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule("aws", map[string]object.Object{})
+	return nil
 }

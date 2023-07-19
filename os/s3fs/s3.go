@@ -324,16 +324,27 @@ func (fs *Filesystem) WriteFile(name string, data []byte, perm ros.FileMode) err
 
 func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 	name = strings.TrimPrefix(name, "/")
-	result, err := fs.client.ListObjectsV2(fs.ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String(fs.bucket),
-		Prefix: aws.String(name),
+	if name != "" && !strings.HasSuffix(name, "/") {
+		name += "/"
+	}
+	result, err := fs.client.ListObjects(fs.ctx, &s3.ListObjectsInput{
+		Bucket:    aws.String(fs.bucket),
+		Prefix:    aws.String(name),
+		Delimiter: aws.String("/"),
 	})
 	if err != nil {
 		return nil, err
 	}
 	var entries []ros.DirEntry
+	for _, obj := range result.CommonPrefixes {
+		entries = append(entries, ros.NewDirEntry(ros.GenericDirEntryOpts{
+			Name: strings.TrimSuffix(strings.TrimPrefix(*obj.Prefix, name), "/"),
+			Mode: ros.FileMode(0660) | os.ModeDir | 0110,
+		}))
+	}
 	for _, obj := range result.Contents {
 		key := aws.ToString(obj.Key)
+		keyName := strings.TrimPrefix(key, name)
 		var mod time.Time
 		if obj.LastModified != nil {
 			mod = *obj.LastModified
@@ -345,10 +356,10 @@ func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 			mode |= os.ModeDir | 0110
 		}
 		entries = append(entries, ros.NewDirEntry(ros.GenericDirEntryOpts{
-			Name: key,
+			Name: keyName,
 			Mode: mode,
 			Info: ros.NewFileInfo(ros.GenericFileInfoOpts{
-				Name:    key,
+				Name:    keyName,
 				Size:    size,
 				Mode:    mode,
 				ModTime: mod,
