@@ -36,15 +36,7 @@ func (s *Set) Inspect() string {
 }
 
 func (s *Set) String() string {
-	var out bytes.Buffer
-	items := make([]string, 0, len(s.items))
-	for _, item := range s.SortedItems() {
-		items = append(items, fmt.Sprintf("%s", item))
-	}
-	out.WriteString("set(")
-	out.WriteString(strings.Join(items, ", "))
-	out.WriteString(")")
-	return out.String()
+	return s.Inspect()
 }
 
 func (s *Set) GetAttr(name string) (Object, bool) {
