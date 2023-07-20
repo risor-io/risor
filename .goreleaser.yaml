@@ -39,7 +39,7 @@ changelog:
       - "^test:"
 brews:
   - skip_upload: false
-    tap:
+    repository:
       owner: risor-io
       name: homebrew-risor
     commit_author:
