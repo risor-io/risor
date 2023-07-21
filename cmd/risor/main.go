@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/risor-io/risor"
 	"github.com/spf13/cobra"
 )
+
+const version = "dev"
 
 func main() {
 
@@ -24,7 +25,7 @@ func main() {
 		Short: "Print the version of Risor",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(risor.Version)
+			fmt.Println(version)
 		},
 	}
 
