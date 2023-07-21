@@ -1,4 +1,4 @@
-#!/usr/bin/env risor
+#!/usr/bin/env risor --
 
 func square(n) { n * n }
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env risor --
 
 x := 0
 

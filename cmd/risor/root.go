@@ -44,9 +44,6 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-default-builtins", false, "Disable the default builtins")
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Help for Risor")
 
-	rootCmd.Flags().Bool("timing", false, "Show timing information")
-	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
-
 	viper.BindPFlag("code", rootCmd.PersistentFlags().Lookup("code"))
 	viper.BindPFlag("stdin", rootCmd.PersistentFlags().Lookup("stdin"))
 	viper.BindPFlag("cpu-profile", rootCmd.PersistentFlags().Lookup("cpu-profile"))
@@ -58,6 +55,9 @@ func init() {
 	viper.BindPFlag("no-default-modules", rootCmd.PersistentFlags().Lookup("no-default-modules"))
 	viper.BindPFlag("no-default-builtins", rootCmd.PersistentFlags().Lookup("no-default-builtins"))
 	viper.BindPFlag("help", rootCmd.PersistentFlags().Lookup("help"))
+
+	rootCmd.Flags().Bool("timing", false, "Show timing information")
+	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
 
 	viper.AutomaticEnv()
 }
@@ -103,7 +103,7 @@ var rootCmd = &cobra.Command{
 	Use:   "risor",
 	Short: "Risor helps developers work with the cloud",
 	Long:  `https://risor.io`,
-	Args:  cobra.MaximumNArgs(1), // optional code filepath
+	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		ctx := context.Background()
