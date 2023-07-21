@@ -1,13 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-const version = "dev"
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
 
 func main() {
 
@@ -25,9 +31,25 @@ func main() {
 		Short: "Print the version of Risor",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(version)
+			outFmt := cmd.Flag("output").Value.String()
+			if strings.ToLower(outFmt) == "json" {
+				info, err := json.MarshalIndent(map[string]interface{}{
+					"version": version,
+					"commit":  commit,
+					"date":    date,
+				}, "", "  ")
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+				fmt.Println(string(info))
+			} else {
+				fmt.Println(version)
+			}
 		},
 	}
+
+	cmdVersion.Flags().StringP("output", "o", "", "Set the output format")
 
 	rootCmd.AddCommand(cmdServe)
 	rootCmd.AddCommand(cmdVersion)
