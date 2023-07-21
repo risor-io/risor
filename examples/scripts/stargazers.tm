@@ -1,3 +1,4 @@
+#!/usr/bin/env risor --
 
 // Returns a list of stargazers for a Github repository
 func get_stargazers(owner='golang', repo='go') {

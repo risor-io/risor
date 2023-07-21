@@ -1,3 +1,3 @@
-#!/usr/bin/env risor
+#!/usr/bin/env risor --
 
 print("Hello world!")
