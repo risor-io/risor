@@ -416,19 +416,7 @@ func (ls *List) Interface() interface{} {
 }
 
 func (ls *List) String() string {
-	// A list can contain itself. Detect if we're already inspecting the list
-	// and return a placeholder if so.
-	if ls.inspectActive {
-		return "[...]"
-	}
-	ls.inspectActive = true
-	defer func() { ls.inspectActive = false }()
-
-	items := make([]string, 0, len(ls.items))
-	for _, item := range ls.items {
-		items = append(items, fmt.Sprintf("%s", item))
-	}
-	return fmt.Sprintf("list([%s])", strings.Join(items, ", "))
+	return ls.Inspect()
 }
 
 func (ls *List) Compare(other Object) (int, error) {

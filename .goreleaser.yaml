@@ -1,23 +1,22 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
-    - go generate ./...
 builds:
-  - env:
+  - id: "standard"
+    env:
       - CGO_ENABLED=0
+    flags:
+      - -tags=aws
     goos:
       - linux
       - windows
       - darwin
     main: ./cmd/risor
-
 archives:
-  - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of uname.
+  - id: "standard"
+    builds:
+      - "standard"
+    format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -25,7 +24,6 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
@@ -41,7 +39,7 @@ changelog:
       - "^test:"
 brews:
   - skip_upload: false
-    tap:
+    repository:
       owner: risor-io
       name: homebrew-risor
     commit_author:
@@ -50,7 +48,7 @@ brews:
     folder: Formula
     homepage: "https://github.com/risor-io/risor"
     description: "An embedded scripting language for Go projects"
-    license: "MIT"
+    license: "Apache-2.0"
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

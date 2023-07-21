@@ -47,24 +47,7 @@ func (m *Map) Inspect() string {
 }
 
 func (m *Map) String() string {
-	// A map can contain itself. Detect if we're already inspecting the map
-	// and return a placeholder if so.
-	if m.inspectActive {
-		return "{...}"
-	}
-	m.inspectActive = true
-	defer func() { m.inspectActive = false }()
-
-	var out bytes.Buffer
-	pairs := make([]string, 0)
-	for _, k := range m.SortedKeys() {
-		v := m.items[k]
-		pairs = append(pairs, fmt.Sprintf("%q: %s", k, v))
-	}
-	out.WriteString("map(")
-	out.WriteString(strings.Join(pairs, ", "))
-	out.WriteString(")")
-	return out.String()
+	return m.Inspect()
 }
 
 func (m *Map) Value() map[string]Object {
