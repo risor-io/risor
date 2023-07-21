@@ -28,8 +28,6 @@ import (
 	"github.com/risor-io/risor/vm"
 )
 
-const Version = "0.3.0"
-
 type Option func(*cfg.RisorConfig)
 
 func WithDefaultBuiltins() Option {
