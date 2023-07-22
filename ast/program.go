@@ -39,8 +39,12 @@ func (p *Program) First() Node {
 
 func (p *Program) String() string {
 	var out bytes.Buffer
-	for _, stmt := range p.statements {
+	stmtCount := len(p.statements)
+	for i, stmt := range p.statements {
 		out.WriteString(stmt.String())
+		if i < stmtCount-1 {
+			out.WriteString("\n")
+		}
 	}
 	return out.String()
 }

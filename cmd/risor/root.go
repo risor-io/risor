@@ -17,6 +17,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/errz"
+	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/os/s3fs"
 	"github.com/risor-io/risor/repl"
@@ -30,8 +31,11 @@ var (
 )
 
 func init() {
+
 	cobra.OnInitialize(initConfig)
 	viper.SetEnvPrefix("risor")
+
+	// Global flags
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config file (default is $HOME/.risor.yaml)")
 	rootCmd.PersistentFlags().StringP("code", "c", "", "Code to evaluate")
@@ -50,14 +54,16 @@ func init() {
 	viper.BindPFlag("no-color", rootCmd.PersistentFlags().Lookup("no-color"))
 	viper.BindPFlag("virtual-os", rootCmd.PersistentFlags().Lookup("virtual-os"))
 	viper.BindPFlag("mount", rootCmd.PersistentFlags().Lookup("mount"))
-	viper.BindPFlag("timing", rootCmd.Flags().Lookup("timing"))
-	viper.BindPFlag("output", rootCmd.Flags().Lookup("output"))
 	viper.BindPFlag("no-default-modules", rootCmd.PersistentFlags().Lookup("no-default-modules"))
 	viper.BindPFlag("no-default-builtins", rootCmd.PersistentFlags().Lookup("no-default-builtins"))
 	viper.BindPFlag("help", rootCmd.PersistentFlags().Lookup("help"))
 
+	// Root command flags
+
 	rootCmd.Flags().Bool("timing", false, "Show timing information")
 	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
+	viper.BindPFlag("timing", rootCmd.Flags().Lookup("timing"))
+	viper.BindPFlag("output", rootCmd.Flags().Lookup("output"))
 
 	viper.AutomaticEnv()
 }
@@ -95,7 +101,7 @@ func initConfig() {
 // risor tunnel --url http://localhost:3000
 
 func fatal(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg, args...)
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }
 
@@ -153,11 +159,12 @@ var rootCmd = &cobra.Command{
 
 		// Determine what code is to be executed. The code may be supplied
 		// via the --code option, a path supplied as an arg, or stdin.
+		codeWasSupplied := cmd.Flags().Lookup("code").Changed
 		code := viper.GetString("code")
-		if len(args) > 0 && code != "" {
+		if len(args) > 0 && codeWasSupplied {
 			fatal(red("cannot specify both code and a filepath"))
 		}
-		if len(args) == 0 && code == "" && !viper.GetBool("stdin") {
+		if len(args) == 0 && !codeWasSupplied && !viper.GetBool("stdin") {
 			if err := repl.Run(ctx, opts); err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 				os.Exit(1)
@@ -167,16 +174,16 @@ var rootCmd = &cobra.Command{
 		if viper.GetBool("stdin") {
 			data, err := io.ReadAll(os.Stdin)
 			if err != nil {
-				fatal(err.Error())
+				fatal(red(err.Error()))
 			}
 			if len(data) == 0 {
-				fatal("no code supplied")
+				fatal(red("no code supplied"))
 			}
 			code = string(data)
 		} else if len(args) > 0 {
 			bytes, err := os.ReadFile(args[0])
 			if err != nil {
-				fatal(err.Error())
+				fatal(red(err.Error()))
 			}
 			code = string(bytes)
 		}
@@ -197,27 +204,11 @@ var rootCmd = &cobra.Command{
 		dt := time.Since(start)
 
 		// Print the result
-		outputFmt := viper.GetString("output")
-		if outputFmt == "json" || outputFmt == "" {
-			var output []byte
-			if viper.GetBool("no-color") {
-				output, err = json.MarshalIndent(result, "", "  ")
-			} else {
-				output, err = prettyjson.Marshal(result)
-			}
-			if err != nil {
-				if outputFmt == "json" {
-					fatal(err.Error())
-				} else {
-					// Fallback to inspect output if JSON fails, if the
-					// output format wasn't explicitly set to JSON.
-					fmt.Println(result.Inspect())
-				}
-			} else {
-				fmt.Println(string(output))
-			}
-		} else {
-			fmt.Println(result.Inspect())
+		output, err := getOutput(result, viper.GetString("output"))
+		if err != nil {
+			fatal(red(err.Error()))
+		} else if output != "" {
+			fmt.Println(output)
 		}
 
 		// Optionally print the execution time
@@ -225,6 +216,42 @@ var rootCmd = &cobra.Command{
 			fmt.Printf("%v\n", dt)
 		}
 	},
+}
+
+func getOutput(result object.Object, format string) (string, error) {
+	switch strings.ToLower(format) {
+	case "":
+		// With an unspecified format, we'll try to do the most helpful thing:
+		//  1. If the result is nil, we want to print nothing
+		//  2. If the result marshals to JSON, we'll print that
+		//  3. Otherwise, we'll print the result's string representation
+		if result == object.Nil {
+			return "", nil
+		}
+		output, err := getOutputJSON(result)
+		if err != nil {
+			return fmt.Sprintf("%v", result), nil
+		}
+		return string(output), nil
+	case "json":
+		output, err := getOutputJSON(result)
+		if err != nil {
+			return "", err
+		}
+		return string(output), nil
+	case "text":
+		return fmt.Sprintf("%v", result), nil
+	default:
+		return "", fmt.Errorf("unknown output format: %s", format)
+	}
+}
+
+func getOutputJSON(result object.Object) ([]byte, error) {
+	if viper.GetBool("no-color") {
+		return json.MarshalIndent(result, "", "  ")
+	} else {
+		return prettyjson.Marshal(result)
+	}
 }
 
 func mountFromSpec(ctx context.Context, spec string) (ros.FS, string, error) {

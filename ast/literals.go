@@ -164,8 +164,9 @@ func (f *Func) String() string {
 	}
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(") ")
+	out.WriteString(") { ")
 	out.WriteString(f.body.String())
+	out.WriteString(" }")
 	return out.String()
 }
 

@@ -403,6 +403,13 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 func (p *Parser) parseReturn() *ast.Control {
 	returnToken := p.curToken
 	p.nextToken()
+	if p.curTokenIs(token.SEMICOLON) {
+		p.nextToken()
+		return ast.NewControl(returnToken, nil)
+	}
+	if p.curTokenIs(token.NEWLINE) || p.curTokenIs(token.RBRACE) {
+		return ast.NewControl(returnToken, nil)
+	}
 	value := p.parseExpression(LOWEST)
 	for {
 		switch p.peekToken.Type {
@@ -881,6 +888,10 @@ func (p *Parser) parseBlock() *ast.Block {
 		}
 		if s := p.parseStatement(); s != nil {
 			statements = append(statements, s)
+		}
+		if p.curTokenIs(token.RBRACE) {
+			p.nextToken()
+			break
 		}
 		if err := p.nextToken(); err != nil {
 			return nil

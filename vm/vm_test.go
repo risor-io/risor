@@ -1152,6 +1152,12 @@ func TestHalt(t *testing.T) {
 	require.Equal(t, context.DeadlineExceeded, err)
 }
 
+func TestNakedReturn(t *testing.T) {
+	result, err := run(context.Background(), `func test(a) { return }; test(15)`)
+	require.Nil(t, err)
+	require.Equal(t, object.Nil, result)
+}
+
 func TestImports(t *testing.T) {
 	tests := []testCase{
 		// {`import strings; strings`, object.NewModule("strings", nil)},

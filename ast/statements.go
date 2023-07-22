@@ -176,11 +176,10 @@ func (c *Control) IsReturn() bool {
 
 func (c *Control) String() string {
 	var out bytes.Buffer
-	out.WriteString(c.Literal() + " ")
+	out.WriteString(c.Literal())
 	if c.value != nil {
-		out.WriteString(c.value.Literal())
+		out.WriteString(" " + c.value.Literal())
 	}
-	out.WriteString(";")
 	return out.String()
 }
 

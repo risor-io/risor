@@ -1036,8 +1036,13 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		if c.current.Parent == nil {
 			return fmt.Errorf("return outside of function")
 		}
-		if err := c.compile(node.Value()); err != nil {
-			return err
+		value := node.Value()
+		if value == nil {
+			c.emit(op.Nil)
+		} else {
+			if err := c.compile(value); err != nil {
+				return err
+			}
 		}
 		c.emit(op.ReturnValue)
 		return nil

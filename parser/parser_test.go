@@ -271,7 +271,7 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"a*b/c", "((a * b) / c)"},
 		{"a+b/c", "(a + (b / c))"},
 		{"a+b*c+d/e-f", "(((a + (b * c)) + (d / e)) - f)"},
-		{"3+4;-5*5", "(3 + 4)((-5) * 5)"},
+		{"3+4;-5*5", "(3 + 4)\n((-5) * 5)"},
 		{"5>4==3<4", "((5 > 4) == (3 < 4))"},
 		{"5<4!=3>4", "((5 < 4) != (3 > 4))"},
 		{"3+4*5==3*1+4*5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
@@ -938,4 +938,24 @@ func TestInPrecedence(t *testing.T) {
 
 	require.Equal(t, "2", inStmt.Left().String())
 	require.Equal(t, "float_slice([1, 2, 3])", inStmt.Right().String())
+}
+
+func TestNakedReturns(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`func test() { return }; test()`, "func test() { return }\ntest()"},
+		{`func test() {
+			return
+		}
+		test()`, "func test() { return }\ntest()"},
+		{`func test() { return; }; test()`, "func test() { return }\ntest()"},
+		{`func test() { continue; }; test()`, "func test() { continue }\ntest()"},
+	}
+	for _, tt := range tests {
+		result, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Equal(t, tt.expected, result.String())
+	}
 }
