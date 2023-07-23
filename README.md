@@ -22,7 +22,7 @@ the project. Thanks for bearing with me during this update!
 
 ## Documentation
 
-Documentation is available at [risor-io.github.io/risor](https://risor-io.github.io/risor/).
+Documentation is available at [risor.io](https://risor.io).
 
 ## Getting Started
 
