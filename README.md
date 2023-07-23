@@ -73,7 +73,7 @@ GOPHERS ARE BURROWING RODENTS
 
 ## Syntax Highlighting
 
-A [Risor VSCode extension](https://marketplace.visualstudio.com/items?itemName=CurtisMyzie.tamarin-language)
+A [Risor VSCode extension](https://marketplace.visualstudio.com/items?itemName=CurtisMyzie.risor-language)
 is already available which currently only offers syntax highlighting.
 
 You can also make use of the [Risor TextMate grammar](./vscode/syntaxes/risor.grammar.json).
