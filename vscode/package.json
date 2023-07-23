@@ -4,7 +4,7 @@
   "description": "Risor Language Support",
   "author": "Curtis Myzie",
   "license": "MIT",
-  "version": "0.0.8",
+  "version": "0.2.0",
   "icon": "images/logo-256.png",
   "repository": {
     "type": "git",
@@ -30,11 +30,12 @@
         "id": "risor",
         "aliases": [
           "Risor",
-          "risor"
+          "risor",
+          "rsr"
         ],
         "extensions": [
-          ".tam",
-          ".tm"
+          ".risor",
+          ".rsr"
         ],
         "configuration": "./language-configuration.json"
       }

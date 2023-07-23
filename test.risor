@@ -1,0 +1,7 @@
+#!/usr/bin/env risor --
+
+func test(a) {
+    return 42
+}
+
+test(15)
