@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -175,6 +176,8 @@ func getClient(service string, cfg *Config) object.Object {
 		return NewClient("ecr", ecr.NewFromConfig(cfg.value), cfg)
 	case "ecs":
 		return NewClient("ecs", ecs.NewFromConfig(cfg.value), cfg)
+	case "sts":
+		return NewClient("sts", sts.NewFromConfig(cfg.value), cfg)
 	default:
 		return object.Errorf("unknown aws service: %s", service)
 	}
