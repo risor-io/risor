@@ -144,6 +144,12 @@ func AsBytes(obj Object) ([]byte, *Error) {
 		return obj.value.Bytes(), nil
 	case *String:
 		return []byte(obj.value), nil
+	case io.Reader:
+		bytes, err := io.ReadAll(obj)
+		if err != nil {
+			return nil, NewError(err)
+		}
+		return bytes, nil
 	default:
 		return nil, Errorf("type error: expected bytes (%s given)", obj.Type())
 	}
