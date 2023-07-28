@@ -57,6 +57,14 @@ func (i *Int) Compare(other Object) (int, error) {
 			return 1, nil
 		}
 		return -1, nil
+	case *Byte:
+		if i.value == int64(other.value) {
+			return 0, nil
+		}
+		if i.value > int64(other.value) {
+			return 1, nil
+		}
+		return -1, nil
 	default:
 		return CompareTypes(i, other), nil
 	}
@@ -70,6 +78,10 @@ func (i *Int) Equals(other Object) Object {
 		}
 	case *Float:
 		if float64(i.value) == other.value {
+			return True
+		}
+	case *Byte:
+		if i.value == int64(other.value) {
 			return True
 		}
 	}
@@ -86,6 +98,9 @@ func (i *Int) RunOperation(opType op.BinaryOpType, right Object) Object {
 		return i.runOperationInt(opType, right.value)
 	case *Float:
 		return i.runOperationFloat(opType, right.value)
+	case *Byte:
+		rightInt := int64(right.value)
+		return i.runOperationInt(opType, rightInt)
 	default:
 		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type %s", opType, right.Type()))
 	}
