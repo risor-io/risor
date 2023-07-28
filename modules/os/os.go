@@ -29,8 +29,10 @@ func Exit(ctx context.Context, args ...object.Object) object.Object {
 	switch obj := args[0].(type) {
 	case *object.Int:
 		tos.Exit(int(obj.Value()))
+		return object.Nil
 	case *object.Error:
 		tos.Exit(1)
+		return object.Nil
 	}
 	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
 }

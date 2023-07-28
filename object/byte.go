@@ -34,21 +34,40 @@ func (b *Byte) Interface() interface{} {
 }
 
 func (b *Byte) String() string {
-	return fmt.Sprintf("%d", b.value)
+	return b.Inspect()
 }
 
 func (b *Byte) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(b, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	switch other := other.(type) {
+	case *Float:
+		thisFloat := float64(b.value)
+		if thisFloat == other.value {
+			return 0, nil
+		}
+		if thisFloat > other.value {
+			return 1, nil
+		}
+		return -1, nil
+	case *Int:
+		thisInt := int64(b.value)
+		if thisInt == other.value {
+			return 0, nil
+		}
+		if thisInt > other.value {
+			return 1, nil
+		}
+		return -1, nil
+	case *Byte:
+		if b.value == other.value {
+			return 0, nil
+		}
+		if b.value > other.value {
+			return 1, nil
+		}
+		return -1, nil
+	default:
+		return CompareTypes(b, other), nil
 	}
-	otherByte := other.(*Byte)
-	if b.value == otherByte.value {
-		return 0, nil
-	} else if b.value > otherByte.value {
-		return 1, nil
-	}
-	return -1, nil
 }
 
 func (b *Byte) Equals(other Object) Object {
@@ -57,7 +76,14 @@ func (b *Byte) Equals(other Object) Object {
 		if b.value == other.value {
 			return True
 		}
-		return False
+	case *Int:
+		if int64(b.value) == other.value {
+			return True
+		}
+	case *Float:
+		if float64(b.value) == other.value {
+			return True
+		}
 	}
 	return False
 }
@@ -72,6 +98,8 @@ func (b *Byte) RunOperation(opType op.BinaryOpType, right Object) Object {
 		return b.runOperationByte(opType, right.value)
 	case *Int:
 		return b.runOperationInt(opType, right.value)
+	case *Float:
+		return b.runOperationFloat(opType, right.value)
 	default:
 		return NewError(fmt.Errorf("eval error: unsupported operation for byte: %v on type %s", opType, right.Type()))
 	}
@@ -135,10 +163,36 @@ func (b *Byte) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	}
 }
 
+func (b *Byte) runOperationFloat(opType op.BinaryOpType, right float64) Object {
+	switch opType {
+	case op.Add:
+		return NewFloat(float64(b.value) + right)
+	case op.Subtract:
+		return NewFloat(float64(b.value) - right)
+	case op.Multiply:
+		return NewFloat(float64(b.value) * right)
+	case op.Divide:
+		return NewFloat(float64(b.value) / right)
+	case op.Power:
+		return NewFloat(math.Pow(float64(b.value), right))
+	default:
+		return NewError(fmt.Errorf("eval error: unsupported operation for byte: %v on type float", opType))
+	}
+}
+
 func (b *Byte) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("%d", b.value)), nil
 }
 
 func NewByte(value byte) *Byte {
-	return &Byte{value: value}
+	return byteCache[value]
+}
+
+var byteCache = []*Byte{}
+
+func init() {
+	byteCache = make([]*Byte, 256)
+	for i := 0; i < 256; i++ {
+		byteCache[i] = &Byte{value: byte(i)}
+	}
 }
