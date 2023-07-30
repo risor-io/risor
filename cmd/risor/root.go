@@ -46,6 +46,7 @@ func init() {
 	rootCmd.PersistentFlags().StringArrayP("mount", "m", []string{}, "Mount a filesystem")
 	rootCmd.PersistentFlags().Bool("no-default-modules", false, "Disable the default modules")
 	rootCmd.PersistentFlags().Bool("no-default-builtins", false, "Disable the default builtins")
+	rootCmd.PersistentFlags().String("modules", ".", "Path to library modules")
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Help for Risor")
 
 	viper.BindPFlag("code", rootCmd.PersistentFlags().Lookup("code"))
@@ -56,6 +57,7 @@ func init() {
 	viper.BindPFlag("mount", rootCmd.PersistentFlags().Lookup("mount"))
 	viper.BindPFlag("no-default-modules", rootCmd.PersistentFlags().Lookup("no-default-modules"))
 	viper.BindPFlag("no-default-builtins", rootCmd.PersistentFlags().Lookup("no-default-builtins"))
+	viper.BindPFlag("modules", rootCmd.PersistentFlags().Lookup("modules"))
 	viper.BindPFlag("help", rootCmd.PersistentFlags().Lookup("help"))
 
 	// Root command flags
@@ -84,21 +86,6 @@ func initConfig() {
 	}
 	viper.ReadInConfig()
 }
-
-// risor -c "2 + 2"                  // execute code
-// risor                             // start REPL
-// risor /path/to/script             // execute script
-// risor serve -p 8080               // start server
-// risor serve --domain api.foo.com  // start server
-// risor -c "2 + 2" --lib /my/lib    // execute code with custom library
-// --no-default-modules              // don't load default modules
-// --no-default-builtins             // don't load default builtins
-// --modules aws,math                // load specified modules
-// --builtins any,all                // load specified builtins
-// --alias foo=bar                   // alias foo to bar
-// --auth                            // enable authentication on the server
-// --virtual-os                      // enable virtual OS
-// risor tunnel --url http://localhost:3000
 
 func fatal(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
@@ -155,6 +142,9 @@ var rootCmd = &cobra.Command{
 		}
 		if !viper.GetBool("no-default-builtins") {
 			opts = append(opts, risor.WithDefaultBuiltins())
+		}
+		if modulesDir := viper.GetString("modules"); modulesDir != "" {
+			opts = append(opts, risor.WithLocalImporter(modulesDir))
 		}
 
 		// Determine what code is to be executed. The code may be supplied
