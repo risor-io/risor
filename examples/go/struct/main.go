@@ -11,9 +11,15 @@ import (
 	"github.com/risor-io/risor/object"
 )
 
+type Counts struct {
+	Start int
+	Stop  int
+}
+
 type State struct {
 	Name    string
 	Running bool
+	Counts  Counts
 }
 
 type Service struct {
@@ -53,6 +59,17 @@ func (s *Service) PrintState() {
 	fmt.Printf("printing state... name: %s running %t\n", s.name, s.running)
 }
 
+func (s *Service) GetState() State {
+	return State{
+		Name:    s.name,
+		Running: s.running,
+		Counts: Counts{
+			Start: s.startCount,
+			Stop:  s.stopCount,
+		},
+	}
+}
+
 func (s *Service) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"running":     s.running,
@@ -65,7 +82,8 @@ const defaultExample = `
 svc.SetName("My Service")
 svc.Start()
 svc.PrintState()
-svc.GetMetrics()
+print("metrics:", svc.GetMetrics())
+print("start count:", svc.GetState()["Counts"]["Start"])
 `
 
 var red = color.New(color.FgRed).SprintfFunc()
@@ -87,11 +105,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Build up options for Risor, including the proxy
-	opt := risor.WithBuiltins(map[string]object.Object{"svc": proxy})
+	// Build up options for Risor, including the proxy as a variable named "svc"
+	opts := []risor.Option{
+		risor.WithDefaultBuiltins(),
+		risor.WithBuiltins(map[string]object.Object{"svc": proxy}),
+	}
 
 	// Run the Risor code which can access the service as `svc`
-	if _, err = risor.Eval(ctx, code, opt); err != nil {
+	if _, err = risor.Eval(ctx, code, opts...); err != nil {
 		fmt.Println(red(err.Error()))
 		os.Exit(1)
 	}
