@@ -477,7 +477,7 @@ func Cat(ctx context.Context, args ...object.Object) object.Object {
 		}
 		buf.Write(bytes)
 	}
-	return object.NewByteSlice(buf.Bytes())
+	return object.NewString(buf.String())
 }
 
 func Module() *object.Module {
