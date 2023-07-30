@@ -8,11 +8,11 @@ import (
 )
 
 func printableValue(obj object.Object) interface{} {
+	iface := obj.Interface()
+	if iface != nil {
+		return iface
+	}
 	switch obj := obj.(type) {
-	case *object.String:
-		return obj.Value()
-	case *object.NilType:
-		return nil
 	case fmt.Stringer:
 		return obj.String()
 	default:
