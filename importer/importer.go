@@ -36,7 +36,7 @@ func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
 		opts.Builtins = map[string]object.Object{}
 	}
 	if opts.Extensions == nil {
-		opts.Extensions = []string{".tm"}
+		opts.Extensions = []string{".risor", ".rsr"}
 	}
 	return &LocalImporter{
 		builtins:   opts.Builtins,

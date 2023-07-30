@@ -78,6 +78,12 @@ func WithImporter(i importer.Importer) Option {
 	}
 }
 
+func WithLocalImporter(path string) Option {
+	return func(r *cfg.RisorConfig) {
+		r.LocalImportPath = path
+	}
+}
+
 func WithCode(c *object.Code) Option {
 	return func(r *cfg.RisorConfig) {
 		r.Main = c
@@ -97,6 +103,15 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 	}
 	for _, opt := range options {
 		opt(r)
+	}
+
+	// Set up a local module importer if LocalImportPath is set.
+	if r.Importer == nil && r.LocalImportPath != "" {
+		r.Importer = importer.NewLocalImporter(importer.LocalImporterOptions{
+			Builtins:   r.Builtins,
+			SourceDir:  r.LocalImportPath,
+			Extensions: []string{".risor", ".rsr"},
+		})
 	}
 
 	// Initialize a compiler if one was not provided via opts.

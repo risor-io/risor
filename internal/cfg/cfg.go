@@ -7,9 +7,10 @@ import (
 )
 
 type RisorConfig struct {
-	Compiler *compiler.Compiler
-	Main     *object.Code
-	Builtins map[string]object.Object
-	Importer importer.Importer
-	Offset   int
+	Compiler        *compiler.Compiler
+	Main            *object.Code
+	Builtins        map[string]object.Object
+	Importer        importer.Importer
+	LocalImportPath string
+	Offset          int
 }
