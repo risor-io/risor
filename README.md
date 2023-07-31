@@ -26,10 +26,10 @@ Documentation is available at [risor.io](https://risor.io).
 
 ## Getting Started
 
-The [Quick Start](https://risor-io.github.io/risor/quick-start/) in the
-documentation is where you should head to get started.
+Head over to [Getting Started](https://risor.io/docs/getting_started) in the
+documentation.
 
-If you use Homebrew, you can install the Risor CLI as follows:
+That said, if you use Homebrew, you can install the Risor CLI as follows:
 
 ```
 brew tap risor-io/risor
