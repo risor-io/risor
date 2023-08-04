@@ -514,9 +514,12 @@ func Module() *object.Module {
 
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
-		"cat": object.NewBuiltin("cat", Cat),
-		"cd":  object.NewBuiltin("cd", Chdir),
-		"cp":  object.NewBuiltin("cp", Copy),
-		"ls":  object.NewBuiltin("ls", ReadDir),
+		"cat":      object.NewBuiltin("cat", Cat),
+		"cd":       object.NewBuiltin("cd", Chdir),
+		"cp":       object.NewBuiltin("cp", Copy),
+		"getenv":   object.NewBuiltin("getenv", Getenv),
+		"ls":       object.NewBuiltin("ls", ReadDir),
+		"setenv":   object.NewBuiltin("setenv", Setenv),
+		"unsetenv": object.NewBuiltin("unsetenv", Unsetenv),
 	}
 }
