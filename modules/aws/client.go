@@ -9,10 +9,14 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go-v2/service/athena"
+	"github.com/aws/aws-sdk-go-v2/service/backup"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ebs"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -21,20 +25,26 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/elasticache"
 	"github.com/aws/aws-sdk-go-v2/service/elasticsearchservice"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	"github.com/aws/aws-sdk-go-v2/service/firehose"
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/ram"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
+	"github.com/aws/aws-sdk-go-v2/service/xray"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -67,6 +77,12 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewString(c.service), true
 	case "__region__":
 		return object.NewString(c.config.Region()), true
+	case "__api_methods__":
+		var names []object.Object
+		for name := range c.methods {
+			names = append(names, object.NewString(name))
+		}
+		return object.NewList(names), true
 	}
 	method, ok := c.methods[name]
 	if !ok {
@@ -178,6 +194,26 @@ func getClient(service string, cfg *Config) object.Object {
 		return NewClient("ecs", ecs.NewFromConfig(cfg.value), cfg)
 	case "sts":
 		return NewClient("sts", sts.NewFromConfig(cfg.value), cfg)
+	case "apigatewayv2":
+		return NewClient("apigatewayv2", apigatewayv2.NewFromConfig(cfg.value), cfg)
+	case "athena":
+		return NewClient("athena", athena.NewFromConfig(cfg.value), cfg)
+	case "backup":
+		return NewClient("backup", backup.NewFromConfig(cfg.value), cfg)
+	case "cloudwatchlogs":
+		return NewClient("cloudwatchlogs", cloudwatchlogs.NewFromConfig(cfg.value), cfg)
+	case "eventbridge":
+		return NewClient("eventbridge", eventbridge.NewFromConfig(cfg.value), cfg)
+	case "ram":
+		return NewClient("ram", ram.NewFromConfig(cfg.value), cfg)
+	case "secretsmanager":
+		return NewClient("secretsmanager", secretsmanager.NewFromConfig(cfg.value), cfg)
+	case "sesv2":
+		return NewClient("sesv2", sesv2.NewFromConfig(cfg.value), cfg)
+	case "xray":
+		return NewClient("xray", xray.NewFromConfig(cfg.value), cfg)
+	case "firehose":
+		return NewClient("firehose", firehose.NewFromConfig(cfg.value), cfg)
 	default:
 		return object.Errorf("unknown aws service: %s", service)
 	}
