@@ -6,23 +6,19 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/risor-io/risor?style=flat-square)](https://goreportcard.com/report/github.com/risor-io/risor)
 [![Releases](https://img.shields.io/github/release/risor-io/risor/all.svg?style=flat-square)](https://github.com/risor-io/risor/releases)
 
-A fast and flexible embedded scripting language for Go projects. Risor compiles
-scripts to bytecode internally which it then runs on a lightweight Virtual
-Machine (VM). Risor is written in pure Go.
+A fast and flexible scripting language for Go developers and DevOps.
 
-Risor modules integrate the Go standard library, making it easy to write
-scripts using functions that you're already familiar with as a Go developer.
+Risor modules integrate the Go standard library, making it easy to use functions
+that you're already familiar with as a Go developer.
 
-## Notice: Project Renamed
-
-Risor is a young project and until June 28, 2023 was known as _Tamarin_. For
-various reasons, the project needed a new name that would take the project into
-the future. Risor is a fun name, a bit shorter, and I can get a domain name for
-the project. Thanks for bearing with me during this update!
+Scripts are compiled to bytecode internally which it then runs on a lightweight
+virtual machine. Risor is written in pure Go.
 
 ## Documentation
 
 Documentation is available at [risor.io](https://risor.io).
+
+You might also want to try evaluating Risor scripts [from your browser](https://risor.io/#editor).
 
 ## Getting Started
 
@@ -91,6 +87,13 @@ Risor is intended to be a community project. You can lend a hand in various ways
 
 Please visit the [GitHub discussions](https://github.com/risor-io/risor/discussions)
 page to share thoughts and questions.
+
+## Notice: Project Renamed
+
+Risor is a young project and until June 28, 2023 was known as _Tamarin_. For
+various reasons, the project needed a new name that would take the project into
+the future. Risor is a fun name, a bit shorter, and I can get a domain name for
+the project. Thanks for bearing with me during this update!
 
 ## Credits
 
