@@ -62,6 +62,8 @@ type OS interface {
 	UserCacheDir() (string, error)
 	UserConfigDir() (string, error)
 	UserHomeDir() (string, error)
+	Stdin() File
+	Stdout() File
 }
 
 type contextKey string
@@ -79,6 +81,15 @@ func WithOS(ctx context.Context, osObj OS) context.Context {
 func GetOS(ctx context.Context) (OS, bool) {
 	osObj, ok := ctx.Value(osKey).(OS)
 	return osObj, ok
+}
+
+// GetDefaultOS returns the OS from the context, if it exists. Otherwise, it
+// returns a new SimpleOS.
+func GetDefaultOS(ctx context.Context) OS {
+	if osObj, found := GetOS(ctx); found {
+		return osObj
+	}
+	return NewSimpleOS(ctx)
 }
 
 // MassagePathError transforms a fs.PathError into a new one with the base path

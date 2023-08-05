@@ -154,7 +154,16 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				return fmt.Errorf("exec error: attribute %q not found on %s object",
 					name, obj.Type())
 			}
-			vm.push(value)
+			switch value := value.(type) {
+			case object.AttrResolver:
+				attr, err := value.ResolveAttr(ctx, name)
+				if err != nil {
+					return err
+				}
+				vm.push(attr)
+			default:
+				vm.push(value)
+			}
 		case op.LoadConst:
 			vm.push(vm.activeCode.Constants[vm.fetch()])
 		case op.LoadFast:
@@ -370,13 +379,14 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 			vm.push(object.NewString(strings.Join(items, "")))
 		case op.Range:
-			containerObj := vm.pop()
-			container, ok := containerObj.(object.Container)
+			iterableObj := vm.pop()
+			fmt.Println("RANGE", iterableObj, iterableObj.Type())
+			iterable, ok := iterableObj.(object.Iterable)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)",
-					containerObj.Type())
+				return fmt.Errorf("type error: object is not an iterable (got %s)",
+					iterableObj.Type())
 			}
-			vm.push(container.Iter())
+			vm.push(iterable.Iter())
 		case op.Slice:
 			start := vm.pop()
 			stop := vm.pop()
@@ -439,7 +449,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.GetIter:
 			obj := vm.pop()
 			switch obj := obj.(type) {
-			case object.Container:
+			case object.Iterable:
 				vm.push(obj.Iter())
 			case object.Iterator:
 				vm.push(obj)

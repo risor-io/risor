@@ -180,7 +180,7 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewString(string(arg.Value()))
+		return object.NewString(string(arg.Value().Bytes()))
 	case *object.ByteSlice:
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
@@ -261,7 +261,7 @@ func ByteSlice(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := arg.(type) {
 	case *object.Buffer:
-		return object.NewByteSlice(arg.Value())
+		return object.NewByteSlice(arg.Value().Bytes())
 	case *object.ByteSlice:
 		return arg.Clone()
 	case *object.String:
@@ -308,7 +308,7 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBufferFromBytes(arg.Value())
+		return object.NewBufferFromBytes(arg.Value().Bytes())
 	case *object.ByteSlice:
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
@@ -386,7 +386,7 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Buffer:
-		for _, val := range arg.Value() {
+		for _, val := range arg.Value().Bytes() {
 			if val != 0 {
 				return object.True
 			}
@@ -432,7 +432,7 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Buffer:
-		for _, val := range arg.Value() {
+		for _, val := range arg.Value().Bytes() {
 			if val == 0 {
 				return object.False
 			}

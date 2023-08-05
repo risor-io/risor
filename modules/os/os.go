@@ -11,10 +11,7 @@ import (
 )
 
 func GetOS(ctx context.Context) os.OS {
-	if osObj, found := os.GetOS(ctx); found {
-		return osObj
-	}
-	return os.NewSimpleOS(ctx)
+	return os.GetDefaultOS(ctx)
 }
 
 func Exit(ctx context.Context, args ...object.Object) object.Object {
@@ -509,6 +506,14 @@ func Module() *object.Module {
 		"user_config_dir": object.NewBuiltin("user_config_dir", UserConfigDir),
 		"user_home_dir":   object.NewBuiltin("user_home_dir", UserHomeDir),
 		"write_file":      object.NewBuiltin("write_file", WriteFile),
+		"stdin": object.NewDynamicAttr("stdin", func(ctx context.Context, name string) (object.Object, error) {
+			f := GetOS(ctx).Stdin()
+			return object.NewFile(ctx, f, "/dev/stdin"), nil
+		}),
+		"stdout": object.NewDynamicAttr("stdout", func(ctx context.Context, name string) (object.Object, error) {
+			f := GetOS(ctx).Stdout()
+			return object.NewFile(ctx, f, "/dev/stdout"), nil
+		}),
 	})
 }
 

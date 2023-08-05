@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/os"
 )
 
 func printableValue(obj object.Object) interface{} {
@@ -33,7 +34,10 @@ func Printf(ctx context.Context, args ...object.Object) object.Object {
 	for _, arg := range args[1:] {
 		values = append(values, printableValue(arg))
 	}
-	fmt.Printf(format, values...)
+	stdout := os.GetDefaultOS(ctx).Stdout()
+	if _, ioErr := fmt.Fprintf(stdout, format, values...); ioErr != nil {
+		return object.Errorf("io error: %v", ioErr)
+	}
 	return object.Nil
 }
 
@@ -42,7 +46,10 @@ func Println(ctx context.Context, args ...object.Object) object.Object {
 	for _, arg := range args {
 		values = append(values, printableValue(arg))
 	}
-	fmt.Println(values...)
+	stdout := os.GetDefaultOS(ctx).Stdout()
+	if _, ioErr := fmt.Fprintln(stdout, values...); ioErr != nil {
+		return object.Errorf("io error: %v", ioErr)
+	}
 	return object.Nil
 }
 

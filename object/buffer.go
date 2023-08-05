@@ -20,8 +20,8 @@ func (b *Buffer) Type() Type {
 	return BUFFER
 }
 
-func (b *Buffer) Value() []byte {
-	return b.value.Bytes()
+func (b *Buffer) Value() *bytes.Buffer {
+	return b.value
 }
 
 func (b *Buffer) Interface() interface{} {

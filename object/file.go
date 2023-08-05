@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
+	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -42,22 +44,58 @@ func (f *File) GetAttr(name string) (Object, bool) {
 		return NewInt(position), true
 	case "read":
 		return NewBuiltin("file.read", func(ctx context.Context, args ...Object) Object {
-			if len(args) != 1 {
-				return NewArgsError("file.read", 1, len(args))
+			if len(args) > 1 {
+				return NewArgsRangeError("file.read", 0, 1, len(args))
+			}
+			if len(args) == 0 {
+				stat, err := f.value.Stat()
+				if err != nil {
+					return NewError(err)
+				}
+				size := stat.Size()
+				if size > math.MaxInt32 {
+					return NewError(errors.New("file.read: file size exceeds maximum int32"))
+				}
+				if err := limits.TrackCost(ctx, int(size)); err != nil {
+					return NewError(err)
+				}
+				bytes := make([]byte, size)
+				n, ioErr := f.value.Read(bytes)
+				if ioErr != nil && ioErr != io.EOF {
+					return NewError(ioErr)
+				}
+				return NewByteSlice(bytes[:n])
 			}
 			switch obj := args[0].(type) {
 			case *ByteSlice:
-				n, ioErr := f.Read(obj.Value())
+				slice := obj.Value()
+				n, ioErr := f.Read(slice)
 				if ioErr != nil && ioErr != io.EOF {
 					return NewError(ioErr)
 				}
-				return NewInt(int64(n))
+				if n == len(slice) {
+					return obj
+				}
+				return NewByteSlice(slice[:n])
 			case *Buffer:
-				n, ioErr := f.Read(obj.Value())
+				stat, err := f.value.Stat()
+				if err != nil {
+					return NewError(err)
+				}
+				size := stat.Size()
+				if size > math.MaxInt32 {
+					return NewError(errors.New("file.read: file size exceeds maximum int32"))
+				}
+				if err := limits.TrackCost(ctx, int(size)); err != nil {
+					return NewError(err)
+				}
+				buf := obj.Value()
+				buf.Grow(int(size)) // review: this can panic
+				n, ioErr := f.Read(buf.Bytes())
 				if ioErr != nil && ioErr != io.EOF {
 					return NewError(ioErr)
 				}
-				return NewInt(int64(n))
+				return NewByteSlice(buf.Bytes()[:n])
 			default:
 				return Errorf("type error: file.read expects byte_slice or buffer (%s given)", obj.Type())
 			}
@@ -190,6 +228,10 @@ func (f *File) Cost() int {
 
 func (f *File) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("type error: unable to marshal file")
+}
+
+func (f *File) Iter() Iterator {
+	return NewFileIter(f)
 }
 
 func NewFile(ctx context.Context, value ros.File, path string) *File {

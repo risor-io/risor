@@ -130,6 +130,14 @@ func (osObj *SimpleOS) WriteFile(name string, data []byte, perm FileMode) error 
 	return os.WriteFile(name, data, perm)
 }
 
+func (osObj *SimpleOS) Stdin() File {
+	return os.Stdin
+}
+
+func (osObj *SimpleOS) Stdout() File {
+	return os.Stdout
+}
+
 func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
 	results, err := os.ReadDir(name)
 	if err != nil {

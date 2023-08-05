@@ -1,7 +1,7 @@
 #!/usr/bin/env risor --
 
-func test(a) {
-    return 42
-}
+stdin := os.stdin
 
-test(15)
+for i, line := range stdin {
+    print(i, line)
+}
