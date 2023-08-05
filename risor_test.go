@@ -7,6 +7,7 @@ import (
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/object"
+	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
@@ -95,4 +96,45 @@ func TestWithCode(t *testing.T) {
 	result, err := Eval(context.Background(), "x + 1", WithCode(main))
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestWithVirtualOSStdin(t *testing.T) {
+
+	ctx := context.Background()
+	stdinBuf := ros.NewInMemoryFile([]byte("hello"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "os.stdin.read()", WithDefaultModules())
+	require.Nil(t, err)
+	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
+}
+
+func TestWithVirtualOSStdout(t *testing.T) {
+
+	ctx := context.Background()
+	stdoutBuf := ros.NewInMemoryFile(nil)
+	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "os.stdout.write('foo')", WithDefaultModules())
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(int64(len("foo"))), result)
+
+	require.Equal(t, "foo", string(stdoutBuf.Bytes()))
+}
+
+func TestStdinList(t *testing.T) {
+
+	ctx := context.Background()
+	stdinBuf := ros.NewInMemoryFile([]byte("foo\nbar!"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "list(os.stdin)", WithDefaultModules(), WithDefaultBuiltins())
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("foo"),
+		object.NewString("bar!"),
+	}), result)
 }

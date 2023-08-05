@@ -28,5 +28,8 @@ func (f *NilFile) Write(p []byte) (n int, err error) {
 }
 
 func (f *NilFile) Stat() (FileInfo, error) {
-	return nil, errors.New("io error: unable to stat nil file")
+	return NewFileInfo(GenericFileInfoOpts{
+		Name: "",
+		Size: 0,
+	}), nil
 }

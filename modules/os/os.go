@@ -139,13 +139,7 @@ func Stat(ctx context.Context, args ...object.Object) object.Object {
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewMap(map[string]object.Object{
-		"name":     object.NewString(info.Name()),
-		"size":     object.NewInt(info.Size()),
-		"mode":     object.NewInt(int64(info.Mode())),
-		"mod_time": object.NewInt(info.ModTime().Unix()),
-		"is_dir":   object.NewBool(info.IsDir()),
-	})
+	return object.NewFileInfo(info)
 }
 
 func TempDir(ctx context.Context, args ...object.Object) object.Object {
@@ -526,5 +520,6 @@ func Builtins() map[string]object.Object {
 		"ls":       object.NewBuiltin("ls", ReadDir),
 		"setenv":   object.NewBuiltin("setenv", Setenv),
 		"unsetenv": object.NewBuiltin("unsetenv", Unsetenv),
+		"open":     object.NewBuiltin("open", Open),
 	}
 }

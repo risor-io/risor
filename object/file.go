@@ -1,11 +1,13 @@
 package object
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	"path/filepath"
 	"sync"
 
 	"github.com/risor-io/risor/limits"
@@ -36,6 +38,24 @@ func (f *File) Value() ros.File {
 
 func (f *File) GetAttr(name string) (Object, bool) {
 	switch name {
+	case "name":
+		return NewBuiltin("file.name", func(ctx context.Context, args ...Object) Object {
+			if len(args) != 0 {
+				return NewArgsError("file.name", 0, len(args))
+			}
+			return NewString(filepath.Base(f.path))
+		}), true
+	case "stat":
+		return NewBuiltin("file.stat", func(ctx context.Context, args ...Object) Object {
+			if len(args) != 0 {
+				return NewArgsError("file.stat", 0, len(args))
+			}
+			info, err := f.value.Stat()
+			if err != nil {
+				return NewError(err)
+			}
+			return NewFileInfo(info)
+		}), true
 	case "position":
 		position, err := f.Position()
 		if err != nil {
@@ -48,23 +68,15 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				return NewArgsRangeError("file.read", 0, 1, len(args))
 			}
 			if len(args) == 0 {
-				stat, err := f.value.Stat()
+				lim, ok := limits.GetLimits(ctx)
+				if !ok {
+					return NewError(limits.LimitsNotFound)
+				}
+				bytes, err := lim.ReadAll(f.value)
 				if err != nil {
 					return NewError(err)
 				}
-				size := stat.Size()
-				if size > math.MaxInt32 {
-					return NewError(errors.New("file.read: file size exceeds maximum int32"))
-				}
-				if err := limits.TrackCost(ctx, int(size)); err != nil {
-					return NewError(err)
-				}
-				bytes := make([]byte, size)
-				n, ioErr := f.value.Read(bytes)
-				if ioErr != nil && ioErr != io.EOF {
-					return NewError(ioErr)
-				}
-				return NewByteSlice(bytes[:n])
+				return NewByteSlice(bytes)
 			}
 			switch obj := args[0].(type) {
 			case *ByteSlice:
@@ -144,6 +156,21 @@ func (f *File) GetAttr(name string) (Object, bool) {
 			}
 			return NewInt(newPosition)
 		}), true
+	case "read_lines":
+		return NewBuiltin("file.read_lines", func(ctx context.Context, args ...Object) Object {
+			if len(args) > 0 {
+				return NewArgsError("file.read_lines", 0, len(args))
+			}
+			var lines []Object
+			scanner := bufio.NewScanner(f.value)
+			for scanner.Scan() {
+				lines = append(lines, NewString(scanner.Text()))
+			}
+			if err := scanner.Err(); err != nil {
+				return NewError(err)
+			}
+			return NewList(lines)
+		}), true
 	}
 	return nil, false
 }
@@ -204,7 +231,7 @@ func (f *File) Interface() interface{} {
 }
 
 func (f *File) String() string {
-	return fmt.Sprintf("file(%v)", f.value)
+	return f.Inspect()
 }
 
 func (f *File) Compare(other Object) (int, error) {
