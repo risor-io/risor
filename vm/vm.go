@@ -380,7 +380,6 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(object.NewString(strings.Join(items, "")))
 		case op.Range:
 			iterableObj := vm.pop()
-			fmt.Println("RANGE", iterableObj, iterableObj.Type())
 			iterable, ok := iterableObj.(object.Iterable)
 			if !ok {
 				return fmt.Errorf("type error: object is not an iterable (got %s)",
