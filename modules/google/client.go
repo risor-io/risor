@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"unicode"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/risor-io/risor/object"
@@ -16,6 +18,7 @@ import (
 type Client struct {
 	client  interface{}
 	service string
+	methods map[string]*GoMethod
 }
 
 func (c *Client) Inspect() string {
@@ -35,7 +38,12 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 	case "__service__":
 		return object.NewString(c.service), true
 	}
-	return nil, false
+	method, ok := c.methods[name]
+	if !ok {
+		return nil, false
+	}
+	methodName := fmt.Sprintf("google.%s.%s", c.service, method.Name)
+	return NewMethod(methodName, c.client, method), true
 }
 
 func (c *Client) SetAttr(name string, value object.Object) error {
@@ -81,18 +89,76 @@ func NewClient(service string, client interface{}) *Client {
 	return &Client{
 		service: service,
 		client:  client,
+		methods: loadMethods(client),
 	}
 }
 
-func getClient(ctx context.Context, service string) object.Object {
+func getClient(ctx context.Context, service, resource string) object.Object {
 	switch service {
 	case "compute":
-		c, err := compute.NewInstancesRESTClient(ctx)
-		if err != nil {
-			return object.NewError(err)
+		switch resource {
+		case "instances":
+			c, err := compute.NewInstancesRESTClient(ctx)
+			if err != nil {
+				return object.NewError(err)
+			}
+			return NewClient(service, c)
+		default:
+			return object.Errorf("unknown google compute resource: %s", resource)
 		}
-		return NewClient(service, c)
 	default:
 		return object.Errorf("unknown google service: %s", service)
 	}
+}
+
+func loadMethods(obj interface{}) map[string]*GoMethod {
+	typ := reflect.TypeOf(obj)
+	methods := make(map[string]*GoMethod, typ.NumMethod())
+	for i := 0; i < typ.NumMethod(); i++ {
+		m := typ.Method(i)
+		name := toSnakeCase(m.Name)
+		goMethod := &GoMethod{
+			Method:     m,
+			Name:       name,
+			NumIn:      m.Type.NumIn(),
+			NumOut:     m.Type.NumOut(),
+			IsVariadic: m.Type.IsVariadic(),
+		}
+		for i := 0; i < goMethod.NumIn; i++ {
+			goMethod.InTypes = append(goMethod.InTypes, m.Type.In(i))
+		}
+		for i := 0; i < goMethod.NumOut; i++ {
+			goMethod.OutTypes = append(goMethod.OutTypes, m.Type.Out(i))
+		}
+		methods[name] = goMethod
+	}
+	return methods
+}
+
+type GoMethod struct {
+	Name       string
+	Method     reflect.Method
+	NumIn      int
+	NumOut     int
+	InTypes    []reflect.Type
+	OutTypes   []reflect.Type
+	IsVariadic bool
+}
+
+func toSnakeCase(str string) string {
+	var lastUpper bool
+	var result string
+	for i, v := range str {
+		if unicode.IsUpper(v) {
+			if i != 0 && !lastUpper {
+				result += "_"
+			}
+			result += string(unicode.ToLower(v))
+			lastUpper = true
+		} else {
+			result += string(v)
+			lastUpper = false
+		}
+	}
+	return result
 }

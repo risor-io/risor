@@ -11,14 +11,18 @@ import (
 )
 
 func ClientFunc(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.RequireRange("aws.client", 1, 2, args); err != nil {
+	if err := arg.Require("aws.client", 2, args); err != nil {
 		return err
 	}
 	serviceName, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	return getClient(ctx, serviceName)
+	resourceName, err := object.AsString(args[1])
+	if err != nil {
+		return err
+	}
+	return getClient(ctx, serviceName, resourceName)
 }
 
 func Module() *object.Module {
