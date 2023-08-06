@@ -11,10 +11,7 @@ import (
 )
 
 func GetOS(ctx context.Context) os.OS {
-	if osObj, found := os.GetOS(ctx); found {
-		return osObj
-	}
-	return os.NewSimpleOS(ctx)
+	return os.GetDefaultOS(ctx)
 }
 
 func Exit(ctx context.Context, args ...object.Object) object.Object {
@@ -142,13 +139,7 @@ func Stat(ctx context.Context, args ...object.Object) object.Object {
 	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
-	return object.NewMap(map[string]object.Object{
-		"name":     object.NewString(info.Name()),
-		"size":     object.NewInt(info.Size()),
-		"mode":     object.NewInt(int64(info.Mode())),
-		"mod_time": object.NewInt(info.ModTime().Unix()),
-		"is_dir":   object.NewBool(info.IsDir()),
-	})
+	return object.NewFileInfo(info)
 }
 
 func TempDir(ctx context.Context, args ...object.Object) object.Object {
@@ -509,6 +500,14 @@ func Module() *object.Module {
 		"user_config_dir": object.NewBuiltin("user_config_dir", UserConfigDir),
 		"user_home_dir":   object.NewBuiltin("user_home_dir", UserHomeDir),
 		"write_file":      object.NewBuiltin("write_file", WriteFile),
+		"stdin": object.NewDynamicAttr("stdin", func(ctx context.Context, name string) (object.Object, error) {
+			f := GetOS(ctx).Stdin()
+			return object.NewFile(ctx, f, "/dev/stdin"), nil
+		}),
+		"stdout": object.NewDynamicAttr("stdout", func(ctx context.Context, name string) (object.Object, error) {
+			f := GetOS(ctx).Stdout()
+			return object.NewFile(ctx, f, "/dev/stdout"), nil
+		}),
 	})
 }
 
@@ -521,5 +520,6 @@ func Builtins() map[string]object.Object {
 		"ls":       object.NewBuiltin("ls", ReadDir),
 		"setenv":   object.NewBuiltin("setenv", Setenv),
 		"unsetenv": object.NewBuiltin("unsetenv", Unsetenv),
+		"open":     object.NewBuiltin("open", Open),
 	}
 }

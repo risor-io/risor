@@ -69,11 +69,10 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
 		return object.NewError(err)
 	}
-	container, ok := arg.(object.Container)
-	if !ok {
-		return object.Errorf("type error: set() unsupported argument (%s given)", arg.Type())
+	iter, err := object.AsIterator(arg)
+	if err != nil {
+		return err
 	}
-	iter := container.Iter()
 	for {
 		val, ok := iter.Next()
 		if !ok {
@@ -97,12 +96,11 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
 		return object.NewError(err)
 	}
-	container, ok := arg.(object.Container)
-	if !ok {
-		return object.Errorf("type error: list() unsupported argument (%s given)", arg.Type())
+	iter, err := object.AsIterator(arg)
+	if err != nil {
+		return err
 	}
-	items := make([]object.Object, 0, container.Len().Value())
-	iter := container.Iter()
+	var items []object.Object
 	for {
 		val, ok := iter.Next()
 		if !ok {
@@ -141,11 +139,10 @@ func Map(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return result
 	}
-	container, ok := arg.(object.Container)
-	if !ok {
-		return object.Errorf("type error: map() unsupported argument (%s given)", arg.Type())
+	iter, err := object.AsIterator(arg)
+	if err != nil {
+		return err
 	}
-	iter := container.Iter()
 	for {
 		if _, ok := iter.Next(); !ok {
 			break
@@ -180,7 +177,7 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewString(string(arg.Value()))
+		return object.NewString(string(arg.Value().Bytes()))
 	case *object.ByteSlice:
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
@@ -261,7 +258,7 @@ func ByteSlice(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := arg.(type) {
 	case *object.Buffer:
-		return object.NewByteSlice(arg.Value())
+		return object.NewByteSlice(arg.Value().Bytes())
 	case *object.ByteSlice:
 		return arg.Clone()
 	case *object.String:
@@ -308,7 +305,7 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewBufferFromBytes(arg.Value())
+		return object.NewBufferFromBytes(arg.Value().Bytes())
 	case *object.ByteSlice:
 		if err := lim.TrackCost(arg.Cost()); err != nil {
 			return object.NewError(err)
@@ -386,15 +383,25 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Buffer:
-		for _, val := range arg.Value() {
+		for _, val := range arg.Value().Bytes() {
 			if val != 0 {
 				return object.True
 			}
 		}
-	case object.Container:
+	case object.Iterable:
 		iter := arg.Iter()
 		for {
 			val, ok := iter.Next()
+			if !ok {
+				break
+			}
+			if val.IsTruthy() {
+				return object.True
+			}
+		}
+	case object.Iterator:
+		for {
+			val, ok := arg.Next()
 			if !ok {
 				break
 			}
@@ -432,15 +439,25 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	case *object.Buffer:
-		for _, val := range arg.Value() {
+		for _, val := range arg.Value().Bytes() {
 			if val == 0 {
 				return object.False
 			}
 		}
-	case object.Container:
+	case object.Iterable:
 		iter := arg.Iter()
 		for {
 			val, ok := iter.Next()
+			if !ok {
+				break
+			}
+			if !val.IsTruthy() {
+				return object.False
+			}
+		}
+	case object.Iterator:
+		for {
+			val, ok := arg.Next()
 			if !ok {
 				break
 			}
@@ -573,20 +590,25 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 		return arg.Keys()
 	case *object.Set:
 		return arg.List()
-	case object.Container:
-		iter := arg.Iter()
-		var keys []object.Object
-		for {
-			if _, ok := iter.Next(); !ok {
-				break
-			}
-			entry, _ := iter.Entry()
-			keys = append(keys, entry.Key())
-		}
-		return object.NewList(keys)
+	case object.Iterable:
+		return iterKeys(arg.Iter())
+	case object.Iterator:
+		return iterKeys(arg)
 	default:
 		return object.Errorf("type error: keys() unsupported argument (%s given)", arg.Type())
 	}
+}
+
+func iterKeys(iter object.Iterator) object.Object {
+	var keys []object.Object
+	for {
+		if _, ok := iter.Next(); !ok {
+			break
+		}
+		entry, _ := iter.Entry()
+		keys = append(keys, entry.Key())
+	}
+	return object.NewList(keys)
 }
 
 func Byte(ctx context.Context, args ...object.Object) object.Object {
@@ -757,9 +779,9 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("iter", 1, args); err != nil {
 		return err
 	}
-	container, ok := args[0].(object.Container)
+	container, ok := args[0].(object.Iterable)
 	if !ok {
-		return object.Errorf("type error: iter() expected a container (%s given)", args[0].Type())
+		return object.Errorf("type error: iter() expected an iterable (%s given)", args[0].Type())
 	}
 	return container.Iter()
 }

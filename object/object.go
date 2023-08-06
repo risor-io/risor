@@ -16,7 +16,11 @@
 // name of the object type, such as "string" or "float".
 package object
 
-import "github.com/risor-io/risor/op"
+import (
+	"context"
+
+	"github.com/risor-io/risor/op"
+)
 
 // Type of an object as a string.
 type Type string
@@ -33,10 +37,12 @@ const (
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"
 	DIR_ENTRY     Type = "dir_entry"
+	DYNAMIC_ATTR  Type = "dynamic_attr"
 	DURATION      Type = "duration"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FILE_INFO     Type = "file_info"
+	FILE_ITER     Type = "file_iter"
 	FILE_MODE     Type = "file_mode"
 	FLOAT         Type = "float"
 	FLOAT_SLICE   Type = "float_slice"
@@ -131,7 +137,13 @@ type Iterator interface {
 	Entry() (IteratorEntry, bool)
 }
 
+// Iterable is an interface that exposes an iterator for an Object.
+type Iterable interface {
+	Iter() Iterator
+}
+
 type Container interface {
+	Iterable
 
 	// GetItem implements the [key] operator for a container type.
 	GetItem(key Object) (Object, *Error)
@@ -150,9 +162,6 @@ type Container interface {
 
 	// Len returns the number of items in this container.
 	Len() *Int
-
-	// Iter returns an iterator for this container.
-	Iter() Iterator
 }
 
 // Hashable types can be hashed and consequently used in a set.
@@ -194,3 +203,10 @@ type HashKey struct {
 	// StrValue is used as the key for strings.
 	StrValue string
 }
+
+// AttrResolver is an interface used to resolve dynamic attributes on an object.
+type AttrResolver interface {
+	ResolveAttr(ctx context.Context, name string) (Object, error)
+}
+
+type ResolveAttrFunc func(ctx context.Context, name string) (Object, error)

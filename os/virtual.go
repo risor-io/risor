@@ -38,6 +38,8 @@ type VirtualOS struct {
 	uid           int
 	mounts        map[string]*Mount
 	exitHandler   ExitHandler
+	stdin         File
+	stdout        File
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -124,6 +126,20 @@ func WithExitHandler(exitHandler ExitHandler) Option {
 	}
 }
 
+// WithStdin sets the stdin.
+func WithStdin(stdin File) Option {
+	return func(vos *VirtualOS) {
+		vos.stdin = stdin
+	}
+}
+
+// WithStdout sets the stdout.
+func WithStdout(stdout File) Option {
+	return func(vos *VirtualOS) {
+		vos.stdout = stdout
+	}
+}
+
 // NewVirtualOS creates a new VirtualOS configured with the given options.
 func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 	vos := &VirtualOS{
@@ -131,6 +147,8 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 		env:    map[string]string{},
 		mounts: map[string]*Mount{},
 		cwd:    "/",
+		stdin:  &NilFile{},
+		stdout: &NilFile{},
 	}
 	if lim, ok := limits.GetLimits(ctx); ok {
 		vos.limits = lim
@@ -378,4 +396,12 @@ func (osObj *VirtualOS) ReadDir(name string) ([]DirEntry, error) {
 		return nil, fmt.Errorf("no such file or directory: %s", name)
 	}
 	return mount.Source.ReadDir(resolvedPath)
+}
+
+func (osObj *VirtualOS) Stdin() File {
+	return osObj.stdin
+}
+
+func (osObj *VirtualOS) Stdout() File {
+	return osObj.stdout
 }

@@ -172,6 +172,17 @@ func AsReader(obj Object) (io.Reader, *Error) {
 	}
 }
 
+func AsIterator(obj Object) (Iterator, *Error) {
+	switch obj := obj.(type) {
+	case Iterator:
+		return obj, nil
+	case Iterable:
+		return obj.Iter(), nil
+	default:
+		return nil, Errorf("type error: expected an iterable object (%s given)", obj.Type())
+	}
+}
+
 // *****************************************************************************
 // Converting types from Go to Risor
 // *****************************************************************************
