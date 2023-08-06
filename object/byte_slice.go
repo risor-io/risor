@@ -308,14 +308,11 @@ func (b *ByteSlice) DelItem(key Object) *Error {
 }
 
 func (b *ByteSlice) Contains(obj Object) *Bool {
-	data, err := AsInt(obj)
+	data, err := AsBytes(obj)
 	if err != nil {
 		return False
 	}
-	if data < 0 || data > 255 {
-		return False
-	}
-	return NewBool(bytes.Contains(b.value, []byte{byte(data)}))
+	return NewBool(bytes.Contains(b.value, data))
 }
 
 func (b *ByteSlice) Len() *Int {

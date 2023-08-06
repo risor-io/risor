@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"image"
-	"io"
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/risor-io/risor/builtins"
@@ -17,9 +16,9 @@ func Decode(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("image.decode", 1, args); err != nil {
 		return err
 	}
-	reader, ok := args[0].(io.Reader)
-	if !ok {
-		return object.Errorf("type error: image.decode() expected a reader (got %s)", args[0].Type())
+	reader, typErr := object.AsReader(args[0])
+	if typErr != nil {
+		return typErr
 	}
 	img, format, err := image.Decode(reader)
 	if err != nil {
@@ -29,7 +28,7 @@ func Decode(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Encode(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.RequireRange("image.encode", 2, 3, args); err != nil {
+	if err := arg.RequireRange("image.encode", 1, 2, args); err != nil {
 		return err
 	}
 	img, ok := args[0].(*Image)
@@ -37,10 +36,10 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 		return object.Errorf("type error: image.encode() expected an image (got %s)", args[0].Type())
 	}
 	encoding := "png"
-	if len(args) == 3 {
-		encObj, ok := args[2].(*object.String)
+	if len(args) == 2 {
+		encObj, ok := args[1].(*object.String)
 		if !ok {
-			return object.Errorf("type error: image.encode() expected a string (got %s)", args[2].Type())
+			return object.Errorf("type error: image.encode() expected a string (got %s)", args[1].Type())
 		}
 		encoding = encObj.Value()
 	}
