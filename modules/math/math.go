@@ -334,27 +334,43 @@ func Round(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(math.Round(x))
 }
 
+func Inf(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("math.inf", 0, 1, args); err != nil {
+		return err
+	}
+	sign := 1
+	if len(args) == 1 {
+		arg, err := object.AsInt(args[0])
+		if err != nil {
+			return err
+		}
+		sign = int(arg)
+	}
+	return object.NewFloat(math.Inf(sign))
+}
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("math", map[string]object.Object{
 		"abs":    object.NewBuiltin("abs", Abs),
-		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
-		"min":    object.NewBuiltin("min", Min),
-		"max":    object.NewBuiltin("max", Max),
-		"floor":  object.NewBuiltin("floor", Floor),
 		"ceil":   object.NewBuiltin("ceil", Ceil),
-		"sin":    object.NewBuiltin("sin", Sin),
 		"cos":    object.NewBuiltin("cos", Cos),
-		"tan":    object.NewBuiltin("tan", Tan),
-		"mod":    object.NewBuiltin("mod", Mod),
+		"E":      object.NewFloat(math.E),
+		"floor":  object.NewBuiltin("floor", Floor),
+		"inf":    object.NewBuiltin("inf", Inf),
+		"is_inf": object.NewBuiltin("is_inf", IsInf),
 		"log":    object.NewBuiltin("log", Log),
 		"log10":  object.NewBuiltin("log10", Log10),
 		"log2":   object.NewBuiltin("log2", Log2),
+		"max":    object.NewBuiltin("max", Max),
+		"min":    object.NewBuiltin("min", Min),
+		"mod":    object.NewBuiltin("mod", Mod),
+		"PI":     object.NewFloat(math.Pi),
 		"pow":    object.NewBuiltin("pow", Pow),
 		"pow10":  object.NewBuiltin("pow10", Pow10),
-		"is_inf": object.NewBuiltin("is_inf", IsInf),
 		"round":  object.NewBuiltin("round", Round),
+		"sin":    object.NewBuiltin("sin", Sin),
+		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
 		"sum":    object.NewBuiltin("sum", Sum),
-		"PI":     object.NewFloat(math.Pi),
-		"E":      object.NewFloat(math.E),
+		"tan":    object.NewBuiltin("tan", Tan),
 	})
 }
