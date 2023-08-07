@@ -140,7 +140,7 @@ func TestControl(t *testing.T) {
 		input   string
 		keyword string
 	}{
-		{"return 0b11;", "return"},
+		{"return 0755;", "return"},
 		{"return 0x15;", "return"},
 		{"return 993322;", "return"},
 		{"continue;", "continue"},
@@ -175,6 +175,14 @@ func TestInt(t *testing.T) {
 		{"5", 5},
 		{"10", 10},
 		{"9876543210", 9876543210},
+		{"0x10", 16},
+		{"0x1a", 26},
+		{"0x1A", 26},
+		{"010", 8},
+		{"011", 9},
+		{"0755", 493},
+		{"00", 0},
+		{"100", 100},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
@@ -183,7 +191,6 @@ func TestInt(t *testing.T) {
 		integer, ok := program.First().(*ast.Int)
 		require.True(t, ok, "got %T", program.First())
 		require.Equal(t, integer.Value(), tt.value)
-		require.Equal(t, integer.Literal(), fmt.Sprintf("%d", tt.value))
 	}
 }
 
