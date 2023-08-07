@@ -366,7 +366,7 @@ var a = 1;
 }
 
 func TestIntegers(t *testing.T) {
-	input := `10 0x10 0xF0 0xFE 0b0101 0xFF 0b101 0xFF;`
+	input := `10 0x10 0xF0 0xFE 00101 0xFF 0101 0xFF;`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -376,9 +376,9 @@ func TestIntegers(t *testing.T) {
 		{token.INT, "0x10"},
 		{token.INT, "0xF0"},
 		{token.INT, "0xFE"},
-		{token.INT, "0b0101"},
+		{token.INT, "00101"},
 		{token.INT, "0xFF"},
-		{token.INT, "0b101"},
+		{token.INT, "0101"},
 		{token.INT, "0xFF"},
 		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
@@ -404,7 +404,7 @@ func TestInvalidIntegers(t *testing.T) {
 		{"42.foo()", "invalid decimal literal: 42.f"},
 		{"12ab", "invalid decimal literal: 12a"},
 		{"0x1aZ", "invalid decimal literal: 0x1aZ"},
-		{"0b01017", "invalid decimal literal: 0b01017"},
+		{"078", "invalid decimal literal: 078"},
 	}
 	for _, tt := range tests {
 		l := New(tt.input)
@@ -719,7 +719,7 @@ func TestInvalids(t *testing.T) {
 		{"4.f", "invalid decimal literal: 4.f"},
 		{"4a.f", "invalid decimal literal: 4a"},
 		{"0x.1", "invalid decimal literal: 0x."},
-		{"0b.1", "invalid decimal literal: 0b."},
+		{"0b.1", "invalid decimal literal: 0b"},
 		{`"foo`, "unterminated string literal"},
 		{"`foo", "unterminated string literal"},
 		{"'foo", "unterminated string literal"},

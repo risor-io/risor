@@ -548,12 +548,12 @@ func (p *Parser) parseInt() ast.Node {
 	tok, lit := p.curToken, p.curToken.Literal
 	var value int64
 	var err error
-	if strings.HasPrefix(lit, "0b") {
-		value, err = strconv.ParseInt(lit[2:], 2, 64)
-	} else if strings.HasPrefix(lit, "0x") {
-		value, err = strconv.ParseInt(lit[2:], 16, 64)
+	if strings.HasPrefix(lit, "0x") {
+		value, err = strconv.ParseInt(lit[2:], 16, 64) // hexadecimal
+	} else if strings.HasPrefix(lit, "0") && len(lit) > 1 {
+		value, err = strconv.ParseInt(lit[1:], 8, 64) // octal
 	} else {
-		value, err = strconv.ParseInt(lit, 10, 64)
+		value, err = strconv.ParseInt(lit, 10, 64) // decimal
 	}
 	if err != nil {
 		p.setError(NewParserError(ErrorOpts{

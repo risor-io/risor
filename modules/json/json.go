@@ -31,22 +31,18 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("json.marshal", 1, 2, args); err != nil {
 		return err
 	}
-	obj := args[0].Interface()
-	if err, ok := obj.(error); ok {
-		return object.NewError(err)
-	}
 	if len(args) == 2 {
 		indent, objErr := object.AsString(args[1])
 		if objErr != nil {
 			return objErr
 		}
-		b, err := json.MarshalIndent(obj, "", indent)
+		b, err := json.MarshalIndent(args[0], "", indent)
 		if err != nil {
 			return object.Errorf("value error: json.marshal failed: %s", object.NewError(err))
 		}
 		return object.NewString(string(b))
 	}
-	b, err := json.Marshal(obj)
+	b, err := json.Marshal(args[0])
 	if err != nil {
 		return object.Errorf("value error: json.marshal failed: %s", object.NewError(err))
 	}

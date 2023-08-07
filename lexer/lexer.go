@@ -17,7 +17,7 @@ const (
 	NumberTypeInvalid NumberType = "invalid"
 	NumberTypeDecimal NumberType = "decimal"
 	NumberTypeHex     NumberType = "hex"
-	NumberTypeBinary  NumberType = "binary"
+	NumberTypeOctal   NumberType = "octal"
 )
 
 // Lexer holds our object-state.
@@ -420,20 +420,22 @@ func (l *Lexer) skipMultiLineComment() {
 	l.skipTabsAndSpaces()
 }
 
-// Read a decimal, hex, or binary number
-func (l *Lexer) readNumber() (NumberType, string, error) {
+// Read a decimal, hex, or octal number
+func (l *Lexer) readNumber(onlyDecimal bool) (NumberType, string, error) {
 	str := string(l.ch)
 	// We usually just accept digits
 	accept := "0123456789"
 	numberType := NumberTypeDecimal
-	if l.ch == '0' && l.peekChar() == 'x' {
-		// 0x prefix => hexadecimal
-		accept = "0x123456789abcdefABCDEF"
-		numberType = NumberTypeHex
-	} else if l.ch == '0' && l.peekChar() == 'b' {
-		// 0b prefix => binary
-		accept = "b01"
-		numberType = NumberTypeBinary
+	if !onlyDecimal {
+		if l.ch == '0' && l.peekChar() == 'x' {
+			// 0x prefix => hexadecimal
+			accept = "0x123456789abcdefABCDEF"
+			numberType = NumberTypeHex
+		} else if l.ch == '0' && l.peekChar() != '.' {
+			// 0 prefix => octal
+			accept = "01234567"
+			numberType = NumberTypeOctal
+		}
 	}
 	for strings.Contains(accept, string(l.peekChar())) {
 		l.readChar()
@@ -449,7 +451,7 @@ func (l *Lexer) readNumber() (NumberType, string, error) {
 // Read an integer or floating point number
 func (l *Lexer) readDecimal() (token.Token, error) {
 	// Read an integer
-	numberType, integer, err := l.readNumber()
+	numberType, integer, err := l.readNumber(false)
 	if err != nil {
 		return token.Token{}, err
 	}
@@ -464,7 +466,7 @@ func (l *Lexer) readDecimal() (token.Token, error) {
 	l.readChar()
 	if isDigit(l.peekChar()) {
 		l.readChar()
-		numberType, fraction, err := l.readNumber()
+		numberType, fraction, err := l.readNumber(true)
 		if err != nil {
 			return token.Token{}, err
 		}
