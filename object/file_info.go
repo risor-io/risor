@@ -16,7 +16,7 @@ type FileInfo struct {
 }
 
 func (f *FileInfo) Inspect() string {
-	return fmt.Sprintf("file_info(name=%s)", f.value.Name())
+	return f.String()
 }
 
 func (f *FileInfo) Type() Type {
@@ -33,7 +33,8 @@ func (f *FileInfo) Interface() interface{} {
 
 func (f *FileInfo) String() string {
 	v := f.value
-	return fmt.Sprintf("%v %d %v %s", v.Mode(), v.Size(), v.ModTime().Round(0), v.Name())
+	return fmt.Sprintf("file_info(name=%s, mode=%s, size=%d, mod_time=%v)",
+		v.Name(), v.Mode().String(), v.Size(), v.ModTime().Format(time.RFC3339))
 }
 
 func (f *FileInfo) Compare(other Object) (int, error) {
