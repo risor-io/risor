@@ -19,7 +19,7 @@ var (
 
 func IsProxyableType(typ reflect.Type) bool {
 	switch typ.Kind() {
-	case reflect.Interface, reflect.Slice:
+	case reflect.Interface, reflect.Slice, reflect.Struct:
 		return true
 	case reflect.Ptr:
 		return typ.Elem().Kind() == reflect.Struct
@@ -73,6 +73,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 		return p.typ, true
 	}
 	attr, found := p.typ.GetAttribute(name)
+	fmt.Println("Proxy.GetAttr", name, attr, found, p.typ)
 	if !found {
 		return nil, false
 	}
@@ -161,15 +162,18 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	}
 	for i := 1; i < numIn; i++ {
 		inType := m.inputTypes[i]
-		converter := inType.converter
-		if _, ok := converter.(*ContextConverter); ok {
+		inConv, err := inType.GetConverter()
+		if err != nil {
+			return NewError(err)
+		}
+		if _, ok := inConv.(*ContextConverter); ok {
 			inputs = append(inputs, reflect.ValueOf(ctx))
 			continue
 		}
 		if argIndex >= len(args) {
 			break
 		}
-		input, err := converter.To(args[argIndex])
+		input, err := inConv.To(args[argIndex])
 		if err != nil {
 			return Errorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
 		}
@@ -195,10 +199,15 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		for i, output := range outputs {
 			if !m.IsOutputError(i) {
 				outType := m.outputTypes[i]
-				result, err := outType.converter.From(output.Interface())
+				outConv, err := outType.GetConverter()
+				if err != nil {
+					return NewError(err)
+				}
+				result, err := outConv.From(output.Interface())
 				if err != nil {
 					return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 				}
+				fmt.Println("OUT", i, output, reflect.TypeOf(outConv), result)
 				return result
 			}
 		}
@@ -208,7 +217,11 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	for i, output := range outputs {
 		if !m.IsOutputError(i) {
 			outType := m.outputTypes[i]
-			result, err := outType.converter.From(output.Interface())
+			outConv, err := outType.GetConverter()
+			if err != nil {
+				return NewError(err)
+			}
+			result, err := outConv.From(output.Interface())
 			if err != nil {
 				return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 			}

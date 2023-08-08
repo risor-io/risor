@@ -104,6 +104,18 @@ func (t *GoType) IndirectType() (*GoType, bool) {
 	return t.indirectType, t.indirectType != nil
 }
 
+func (t *GoType) GetConverter() (TypeConverter, error) {
+	if t.converter != nil {
+		return t.converter, nil
+	}
+	conv, err := getTypeConverter(t.typ)
+	if err != nil {
+		return nil, err
+	}
+	t.converter = conv
+	return conv, nil
+}
+
 func (t *GoType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Name       string            `json:"name"`
@@ -125,6 +137,7 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 	if goType, ok := goTypeRegistry[typ]; ok {
 		return goType, nil
 	}
+	fmt.Println("newGoType", typ)
 
 	isPointer := kind == reflect.Ptr
 
@@ -140,11 +153,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		name = typ.String()
 	}
 
-	conv, err := getTypeConverter(typ)
-	if err != nil {
-		return nil, err
-	}
-
 	// Add the new type to the registry
 	goType := &GoType{
 		attributes:   map[string]GoAttribute{},
@@ -152,7 +160,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		indirectKind: indirectKind,
 		name:         NewString(name),
 		packagePath:  NewString(typ.PkgPath()),
-		converter:    conv,
 	}
 	goTypeRegistry[typ] = goType
 
@@ -197,6 +204,7 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 			continue
 		}
 		goType.attributes[method.Name] = methodGoType
+		fmt.Println("method", typ, method.Name, methodGoType)
 	}
 
 	// Now that all attributes have been discovered, create a sorted list of

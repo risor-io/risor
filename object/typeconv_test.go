@@ -180,22 +180,27 @@ func TestStructConverter(t *testing.T) {
 
 	f := foo{A: 1, B: "two"}
 
-	tF, err := c.From(f)
-	require.Nil(t, err)
-	require.Equal(t, NewMap(map[string]Object{
-		"A": NewInt(1),
-		"B": NewString("two"),
-	}), tF)
-
-	gF, err := c.To(NewMap(map[string]Object{
-		"A": NewInt(3),
-		"B": NewString("four"),
-	}))
+	proxyObj, err := c.From(f)
 	require.Nil(t, err)
 
-	gFStruct, ok := gF.(foo)
+	proxy, ok := proxyObj.(*Proxy)
 	require.True(t, ok)
-	require.Equal(t, foo{A: 3, B: "four"}, gFStruct)
+
+	value, ok := proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, NewInt(1), value)
+
+	value, ok = proxy.GetAttr("B")
+	require.True(t, ok)
+	require.Equal(t, NewString("two"), value)
+
+	fObj, err := c.To(proxyObj)
+	require.Nil(t, err)
+	fCopy, ok := fObj.(foo)
+	require.True(t, ok)
+
+	require.Equal(t, 1, fCopy.A)
+	require.Equal(t, "two", fCopy.B)
 }
 
 func TestTimeConverter(t *testing.T) {
