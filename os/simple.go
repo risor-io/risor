@@ -90,6 +90,10 @@ func (osObj *SimpleOS) Remove(name string) error {
 	return os.Remove(name)
 }
 
+func (osObj *SimpleOS) RemoveAll(path string) error {
+	return os.RemoveAll(path)
+}
+
 func (osObj *SimpleOS) Rename(oldpath, newpath string) error {
 	return os.Rename(oldpath, newpath)
 }

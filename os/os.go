@@ -37,6 +37,7 @@ type FS interface {
 	Open(name string) (File, error)
 	ReadFile(name string) ([]byte, error)
 	Remove(name string) error
+	RemoveAll(path string) error
 	Rename(oldpath, newpath string) error
 	Stat(name string) (FileInfo, error)
 	Symlink(oldname, newname string) error

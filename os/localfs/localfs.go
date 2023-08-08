@@ -138,6 +138,17 @@ func (fs *Filesystem) Remove(name string) error {
 	return nil
 }
 
+func (fs *Filesystem) RemoveAll(path string) error {
+	resolvedPath, err := fs.resolvePath(path, "remove")
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(resolvedPath); err != nil {
+		return ros.MassagePathError(fs.base, err)
+	}
+	return nil
+}
+
 func (fs *Filesystem) Rename(oldpath, newpath string) error {
 	resolvedOld, err := fs.resolvePath(oldpath, "rename")
 	if err != nil {
