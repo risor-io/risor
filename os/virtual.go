@@ -309,6 +309,14 @@ func (osObj *VirtualOS) Remove(name string) error {
 	return mount.Source.Remove(resolvedPath)
 }
 
+func (osObj *VirtualOS) RemoveAll(path string) error {
+	mount, resolvedPath, found := osObj.findMount(path)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", path)
+	}
+	return mount.Source.RemoveAll(resolvedPath)
+}
+
 func (osObj *VirtualOS) Rename(oldpath, newpath string) error {
 	mountOld, resolvedPathOld, found := osObj.findMount(oldpath)
 	if !found {

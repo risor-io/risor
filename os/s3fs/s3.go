@@ -285,6 +285,10 @@ func (fs *Filesystem) Remove(name string) error {
 	return nil
 }
 
+func (fs *Filesystem) RemoveAll(path string) error {
+	return errors.New("remove all is not yet implemented for s3")
+}
+
 func (fs *Filesystem) Rename(oldpath, newpath string) error {
 	return errors.New("not implemented")
 }

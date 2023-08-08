@@ -94,6 +94,20 @@ func Remove(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
+func RemoveAll(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.remove_all", 1, args); err != nil {
+		return err
+	}
+	path, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	if err := GetOS(ctx).RemoveAll(path); err != nil {
+		return object.NewError(err)
+	}
+	return object.Nil
+}
+
 func Open(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.open", 1, args); err != nil {
 		return err
@@ -354,16 +368,20 @@ func Symlink(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func MkdirAll(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("os.mkdir_all", 2, args); err != nil {
+	if err := arg.RequireRange("os.mkdir_all", 1, 2, args); err != nil {
 		return err
 	}
 	path, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	perm, err := object.AsInt(args[1])
-	if err != nil {
-		return err
+	perm := 0755
+	if len(args) == 2 {
+		givenPerm, err := object.AsInt(args[1])
+		if err != nil {
+			return err
+		}
+		perm = int(givenPerm)
 	}
 	if err := GetOS(ctx).MkdirAll(path, os.FileMode(perm)); err != nil {
 		return object.NewError(err)
@@ -490,6 +508,7 @@ func Module() *object.Module {
 		"read_dir":        object.NewBuiltin("read_dir", ReadDir),
 		"read_file":       object.NewBuiltin("read_file", ReadFile),
 		"remove":          object.NewBuiltin("remove", Remove),
+		"remove_all":      object.NewBuiltin("remove_all", RemoveAll),
 		"rename":          object.NewBuiltin("rename", Rename),
 		"setenv":          object.NewBuiltin("setenv", Setenv),
 		"stat":            object.NewBuiltin("stat", Stat),
