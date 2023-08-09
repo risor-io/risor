@@ -73,7 +73,6 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 		return p.typ, true
 	}
 	attr, found := p.typ.GetAttribute(name)
-	fmt.Println("Proxy.GetAttr", name, attr, found, p.typ)
 	if !found {
 		return nil, false
 	}
@@ -207,7 +206,6 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 				if err != nil {
 					return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 				}
-				fmt.Println("OUT", i, output, reflect.TypeOf(outConv), result)
 				return result
 			}
 		}

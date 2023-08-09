@@ -94,7 +94,10 @@ func newGoField(f reflect.StructField) (*GoField, error) {
 	if err != nil {
 		return nil, err
 	}
-	conv := kindConverters[f.Type.Kind()]
+	conv, err := fieldGoType.GetConverter()
+	if err != nil {
+		return nil, err
+	}
 	return &GoField{
 		field:     f,
 		fieldType: fieldGoType,

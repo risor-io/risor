@@ -98,8 +98,10 @@ func main() {
 	}
 
 	// Run the Risor code which can access the service as `svc`
-	if _, err = risor.Eval(ctx, code, opts...); err != nil {
+	result, err := risor.Eval(ctx, code, opts...)
+	if err != nil {
 		fmt.Println(red(err.Error()))
 		os.Exit(1)
 	}
+	fmt.Println("RESULT:", result)
 }

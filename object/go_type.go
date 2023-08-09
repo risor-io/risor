@@ -83,6 +83,10 @@ func (t *GoType) PackagePath() string {
 	return t.packagePath.value
 }
 
+func (t *GoType) Attributes() map[string]GoAttribute {
+	return t.attributes
+}
+
 func (t *GoType) AttributeNames() []string {
 	return t.attributeNames
 }
@@ -100,8 +104,23 @@ func (t *GoType) Warnings() []error {
 	return t.warnings
 }
 
+func (t *GoType) IsPointerType() bool {
+	return t.indirectType != nil
+}
+
 func (t *GoType) IndirectType() (*GoType, bool) {
 	return t.indirectType, t.indirectType != nil
+}
+
+func (t *GoType) ValueType() *GoType {
+	if t.indirectType != nil {
+		return t.indirectType
+	}
+	return t
+}
+
+func (t *GoType) New() reflect.Value {
+	return reflect.New(t.ValueType().typ)
 }
 
 func (t *GoType) GetConverter() (TypeConverter, error) {
@@ -137,7 +156,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 	if goType, ok := goTypeRegistry[typ]; ok {
 		return goType, nil
 	}
-	fmt.Println("newGoType", typ)
 
 	isPointer := kind == reflect.Ptr
 
@@ -204,7 +222,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 			continue
 		}
 		goType.attributes[method.Name] = methodGoType
-		fmt.Println("method", typ, method.Name, methodGoType)
 	}
 
 	// Now that all attributes have been discovered, create a sorted list of
@@ -213,7 +230,6 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		goType.attributeNames = append(goType.attributeNames, attrName)
 	}
 	sort.Strings(goType.attributeNames)
-
 	return goType, nil
 }
 
