@@ -188,7 +188,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				obj := vm.pop()
 				switch obj := obj.(type) {
 				case *object.Cell:
-					free[i] = obj
+					free[freeCount-i-1] = obj
 				default:
 					return errors.New("exec error: expected cell")
 				}

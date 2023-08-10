@@ -591,6 +591,19 @@ func TestClosureOverLocal(t *testing.T) {
 	require.Equal(t, object.NewInt(101), result)
 }
 
+func TestClosureManyVariables(t *testing.T) {
+	result, err := run(context.Background(), `
+	func foo(a, b, c) {
+		return func(d) {
+			return [a, b, c, d]
+		}
+	}
+	foo("hello", "world", "risor")("go")
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewStringList([]string{"hello", "world", "risor", "go"}), result)
+}
+
 func TestRecursiveExample1(t *testing.T) {
 	result, err := run(context.Background(), `
 	func twoexp(n) {
