@@ -35,11 +35,6 @@ type GoAttribute interface {
 	Name() string
 }
 
-func LookupGoType(obj interface{}) (*GoType, bool) {
-	goType, found := goTypeRegistry[reflect.TypeOf(obj)]
-	return goType, found
-}
-
 // Proxy is a Risor type that proxies method calls to a wrapped Go struct.
 // Only the public methods of the Go type are proxied.
 type Proxy struct {
@@ -83,7 +78,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 			return Errorf("type error: no converter for field %s", name), true
 		}
 		var value interface{}
-		if _, ok := p.typ.IndirectType(); ok {
+		if p.typ.IsPointerType() {
 			value = reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
 		} else {
 			value = reflect.ValueOf(p.obj).FieldByName(name).Interface()
@@ -116,7 +111,7 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			return fmt.Errorf("type error: no converter for field %s", name)
 		}
 		var field reflect.Value
-		if _, ok := p.typ.IndirectType(); ok {
+		if p.typ.IsPointerType() {
 			field = reflect.ValueOf(p.obj).Elem().FieldByName(name)
 		} else {
 			field = reflect.ValueOf(p.obj).FieldByName(name)
@@ -149,12 +144,26 @@ func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
-	methodName := fmt.Sprintf("%s.%s", p.typ.Name(), m.name)
+	methodName := m.Name()
+	methodFullName := fmt.Sprintf("%s.%s", p.typ.Name(), methodName)
 	isVariadic := m.method.Type.IsVariadic()
 	var argIndex int
 	numIn := m.NumIn()
 	inputs := make([]reflect.Value, 1, numIn)
-	inputs[0] = reflect.ValueOf(p.obj)
+	if p.typ.HasDirectMethod(methodName) {
+		inputs[0] = reflect.ValueOf(p.obj)
+	} else if p.typ.IsPointerType() {
+		inputs[0] = reflect.ValueOf(p.obj).Elem()
+	} else {
+		// TODO: unsure why nested structs aren't addressable in some cases
+		if v := reflect.ValueOf(p.obj); v.CanAddr() {
+			inputs[0] = v.Addr()
+		}
+	}
+	if !inputs[0].IsValid() || inputs[0].IsZero() {
+		return NewError(fmt.Errorf("eval error: unable to call method %s on %s (check pointer receiver)",
+			methodName, p.typ.Name()))
+	}
 	minArgs := numIn
 	if isVariadic {
 		minArgs--
@@ -181,7 +190,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	}
 	if len(inputs) < minArgs {
 		return Errorf("type error: %s() requires %d arguments, but %d were given",
-			methodName, minArgs, len(inputs))
+			methodFullName, minArgs, len(inputs))
 	}
 	outputs := m.method.Func.Call(inputs)
 	if len(outputs) == 0 {
