@@ -19,7 +19,7 @@ var (
 
 func IsProxyableType(typ reflect.Type) bool {
 	switch typ.Kind() {
-	case reflect.Interface, reflect.Slice:
+	case reflect.Interface, reflect.Slice, reflect.Struct:
 		return true
 	case reflect.Ptr:
 		return typ.Elem().Kind() == reflect.Struct
@@ -33,11 +33,6 @@ func IsProxyableType(typ reflect.Type) bool {
 type GoAttribute interface {
 	// Name of the attribute.
 	Name() string
-}
-
-func LookupGoType(obj interface{}) (*GoType, bool) {
-	goType, found := goTypeRegistry[reflect.TypeOf(obj)]
-	return goType, found
 }
 
 // Proxy is a Risor type that proxies method calls to a wrapped Go struct.
@@ -83,7 +78,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 			return Errorf("type error: no converter for field %s", name), true
 		}
 		var value interface{}
-		if _, ok := p.typ.IndirectType(); ok {
+		if p.typ.IsPointerType() {
 			value = reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
 		} else {
 			value = reflect.ValueOf(p.obj).FieldByName(name).Interface()
@@ -116,7 +111,7 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			return fmt.Errorf("type error: no converter for field %s", name)
 		}
 		var field reflect.Value
-		if _, ok := p.typ.IndirectType(); ok {
+		if p.typ.IsPointerType() {
 			field = reflect.ValueOf(p.obj).Elem().FieldByName(name)
 		} else {
 			field = reflect.ValueOf(p.obj).FieldByName(name)
@@ -149,27 +144,44 @@ func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
-	methodName := fmt.Sprintf("%s.%s", p.typ.Name(), m.name)
+	methodName := m.Name()
+	methodFullName := fmt.Sprintf("%s.%s", p.typ.Name(), methodName)
 	isVariadic := m.method.Type.IsVariadic()
 	var argIndex int
 	numIn := m.NumIn()
 	inputs := make([]reflect.Value, 1, numIn)
-	inputs[0] = reflect.ValueOf(p.obj)
+	if p.typ.HasDirectMethod(methodName) {
+		inputs[0] = reflect.ValueOf(p.obj)
+	} else if p.typ.IsPointerType() {
+		inputs[0] = reflect.ValueOf(p.obj).Elem()
+	} else {
+		// TODO: unsure why nested structs aren't addressable in some cases
+		if v := reflect.ValueOf(p.obj); v.CanAddr() {
+			inputs[0] = v.Addr()
+		}
+	}
+	if !inputs[0].IsValid() || inputs[0].IsZero() {
+		return NewError(fmt.Errorf("eval error: unable to call method %s on %s (check pointer receiver)",
+			methodName, p.typ.Name()))
+	}
 	minArgs := numIn
 	if isVariadic {
 		minArgs--
 	}
 	for i := 1; i < numIn; i++ {
 		inType := m.inputTypes[i]
-		converter := inType.converter
-		if _, ok := converter.(*ContextConverter); ok {
+		inConv, err := inType.GetConverter()
+		if err != nil {
+			return NewError(err)
+		}
+		if _, ok := inConv.(*ContextConverter); ok {
 			inputs = append(inputs, reflect.ValueOf(ctx))
 			continue
 		}
 		if argIndex >= len(args) {
 			break
 		}
-		input, err := converter.To(args[argIndex])
+		input, err := inConv.To(args[argIndex])
 		if err != nil {
 			return Errorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
 		}
@@ -178,7 +190,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	}
 	if len(inputs) < minArgs {
 		return Errorf("type error: %s() requires %d arguments, but %d were given",
-			methodName, minArgs, len(inputs))
+			methodFullName, minArgs, len(inputs))
 	}
 	outputs := m.method.Func.Call(inputs)
 	if len(outputs) == 0 {
@@ -195,7 +207,11 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		for i, output := range outputs {
 			if !m.IsOutputError(i) {
 				outType := m.outputTypes[i]
-				result, err := outType.converter.From(output.Interface())
+				outConv, err := outType.GetConverter()
+				if err != nil {
+					return NewError(err)
+				}
+				result, err := outConv.From(output.Interface())
 				if err != nil {
 					return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 				}
@@ -208,7 +224,11 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	for i, output := range outputs {
 		if !m.IsOutputError(i) {
 			outType := m.outputTypes[i]
-			result, err := outType.converter.From(output.Interface())
+			outConv, err := outType.GetConverter()
+			if err != nil {
+				return NewError(err)
+			}
+			result, err := outConv.From(output.Interface())
 			if err != nil {
 				return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 			}

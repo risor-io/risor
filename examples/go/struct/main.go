@@ -11,15 +11,9 @@ import (
 	"github.com/risor-io/risor/object"
 )
 
-type Counts struct {
-	Start int
-	Stop  int
-}
-
 type State struct {
 	Name    string
 	Running bool
-	Counts  Counts
 }
 
 type Service struct {
@@ -27,6 +21,10 @@ type Service struct {
 	running    bool
 	startCount int
 	stopCount  int
+}
+
+func (s *State) IsRunning() bool {
+	return s.Running
 }
 
 func (s *Service) Start() error {
@@ -59,31 +57,19 @@ func (s *Service) PrintState() {
 	fmt.Printf("printing state... name: %s running %t\n", s.name, s.running)
 }
 
-func (s *Service) GetState() State {
-	return State{
+func (s *Service) GetState() *State {
+	return &State{
 		Name:    s.name,
 		Running: s.running,
-		Counts: Counts{
-			Start: s.startCount,
-			Stop:  s.stopCount,
-		},
-	}
-}
-
-func (s *Service) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"running":     s.running,
-		"start_count": s.startCount,
-		"stop_count":  s.stopCount,
 	}
 }
 
 const defaultExample = `
 svc.SetName("My Service")
 svc.Start()
-svc.PrintState()
-print("metrics:", svc.GetMetrics())
-print("start count:", svc.GetState()["Counts"]["Start"])
+state := svc.GetState()
+print("STATE:", state, type(state))
+state.IsRunning()
 `
 
 var red = color.New(color.FgRed).SprintfFunc()
@@ -112,10 +98,10 @@ func main() {
 	}
 
 	// Run the Risor code which can access the service as `svc`
-	if _, err = risor.Eval(ctx, code, opts...); err != nil {
+	result, err := risor.Eval(ctx, code, opts...)
+	if err != nil {
 		fmt.Println(red(err.Error()))
 		os.Exit(1)
 	}
-
-	fmt.Println(svc.GetMetrics())
+	fmt.Println("RESULT:", result)
 }

@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -169,33 +170,159 @@ func TestSliceConverter(t *testing.T) {
 }
 
 func TestStructConverter(t *testing.T) {
-
 	type foo struct {
 		A int
 		B string
 	}
-
-	c, err := newStructConverter(reflect.TypeOf(foo{}))
-	require.Nil(t, err)
-
 	f := foo{A: 1, B: "two"}
 
-	tF, err := c.From(f)
+	// Create a StructConverter for the type foo
+	c, err := newStructConverter(reflect.TypeOf(f))
 	require.Nil(t, err)
-	require.Equal(t, NewMap(map[string]Object{
+
+	// "From" should wrap the foo in a Proxy. The Proxy will hold a copy of the
+	// foo struct since it is a value type.
+	proxyObj, err := c.From(f)
+	require.Nil(t, err)
+	proxy, ok := proxyObj.(*Proxy)
+	require.True(t, ok)
+	value, ok := proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, NewInt(1), value)
+	value, ok = proxy.GetAttr("B")
+	require.True(t, ok)
+	require.Equal(t, NewString("two"), value)
+
+	// Given a Proxy, "To" should unwrap it back to a foo struct
+	fObj, err := c.To(proxyObj)
+	require.Nil(t, err)
+	fCopy, ok := fObj.(foo)
+	require.True(t, ok)
+	require.Equal(t, f, fCopy)
+
+	// Given a Map, "To" should unwrap it back to a foo struct
+	fObj, err = c.To(NewMap(map[string]Object{
 		"A": NewInt(1),
 		"B": NewString("two"),
-	}), tF)
-
-	gF, err := c.To(NewMap(map[string]Object{
-		"A": NewInt(3),
-		"B": NewString("four"),
+		"C": NewString("ignored"),
 	}))
 	require.Nil(t, err)
-
-	gFStruct, ok := gF.(foo)
+	fCopy, ok = fObj.(foo)
 	require.True(t, ok)
-	require.Equal(t, foo{A: 3, B: "four"}, gFStruct)
+	require.Equal(t, f, fCopy)
+}
+
+func TestStructPointerConverter(t *testing.T) {
+	type foo struct {
+		A int
+		B string
+	}
+	f := foo{A: 1, B: "two"}
+	fPtr := &f
+
+	// Create a StructConverter for the pointer type *foo
+	c, err := newStructConverter(reflect.TypeOf(fPtr))
+	require.Nil(t, err)
+
+	// "From" should wrap the *foo in a Proxy
+	proxyObj, err := c.From(fPtr)
+	require.Nil(t, err)
+	proxy, ok := proxyObj.(*Proxy)
+	require.True(t, ok)
+	value, ok := proxy.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, NewInt(1), value)
+	value, ok = proxy.GetAttr("B")
+	require.True(t, ok)
+	require.Equal(t, NewString("two"), value)
+
+	// Given a Proxy, "To" should unwrap it back to the exact same *foo pointer
+	fObj, err := c.To(proxyObj)
+	require.Nil(t, err)
+	fPtrCopy, ok := fObj.(*foo)
+	require.True(t, ok)
+	require.Equal(t, fPtr, fPtrCopy)
+
+	// Given a Map, "To" should return a new *foo pointer, where the underlying
+	// foo struct has the same values as the Map
+	fObj, err = c.To(NewMap(map[string]Object{
+		"A": NewInt(1),
+		"B": NewString("two"),
+		"C": NewString("ignored"),
+	}))
+	require.Nil(t, err)
+	fPtrCopy, ok = fObj.(*foo)
+	require.True(t, ok)
+	require.Equal(t, fPtr, fPtrCopy)
+}
+
+type testState struct {
+	Count int
+}
+
+func (s *testState) GetCount() int {
+	return s.Count
+}
+
+type testService struct {
+	Name  string
+	State testState
+}
+
+func (s *testService) GetName() string {
+	return s.Name
+}
+
+func (s *testService) GetState() *testState {
+	return &s.State
+}
+
+func TestNestedStructsConverter(t *testing.T) {
+
+	svc := &testService{
+		Name: "sauron",
+		State: testState{
+			Count: 42,
+		},
+	}
+
+	// Create a StructConverter for the pointer type *testService
+	c, err := newStructConverter(reflect.TypeOf(svc))
+	require.Nil(t, err)
+
+	// "From" should wrap the *testService in a Proxy
+	proxyObj, err := c.From(svc)
+	require.Nil(t, err)
+	proxy, ok := proxyObj.(*Proxy)
+	require.True(t, ok)
+	value, ok := proxy.GetAttr("Name")
+	require.True(t, ok)
+	require.Equal(t, NewString("sauron"), value)
+
+	// Access the State attribute, which is a nested struct
+	value, ok = proxy.GetAttr("State")
+	require.True(t, ok)
+	stateProxy, ok := value.(*Proxy)
+	require.True(t, ok)
+	value, ok = stateProxy.GetAttr("Count")
+	require.True(t, ok)
+	require.Equal(t, NewInt(42), value)
+
+	// Access the GetState method
+	value, ok = proxy.GetAttr("GetState")
+	require.True(t, ok)
+	stateFunc, ok := value.(*Builtin)
+	require.True(t, ok)
+	require.NotNil(t, stateFunc)
+	require.Equal(t, "*object.testService.GetState", stateFunc.Name())
+
+	// Call GetState and confirm a Proxy is returned that wraps the *testState
+	result := stateFunc.Call(context.Background())
+	resultProxy, ok := result.(*Proxy)
+	require.True(t, ok)
+	value, ok = resultProxy.GetAttr("Count")
+	require.True(t, ok)
+	require.Equal(t, NewInt(42), value)
 }
 
 func TestTimeConverter(t *testing.T) {

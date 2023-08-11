@@ -320,9 +320,17 @@ func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
 			return nil, err
 		}
 	case reflect.Pointer:
-		converter, err = newPointerConverter(typ.Elem())
-		if err != nil {
-			return nil, err
+		indirectType := typ.Elem()
+		if indirectKind := indirectType.Kind(); indirectKind == reflect.Struct {
+			converter, err = newStructConverter(typ)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			converter, err = newPointerConverter(typ.Elem())
+			if err != nil {
+				return nil, err
+			}
 		}
 	case reflect.Slice:
 		converter, err = newSliceConverter(typ.Elem())
@@ -811,75 +819,63 @@ func newMapConverter(valueType reflect.Type) (*MapConverter, error) {
 	}, nil
 }
 
-// StructConverter converts between a Go struct and a Risor Map.
+// StructConverter converts between a Go struct and a Risor Proxy.
+// Works with structs as values or pointers.
 type StructConverter struct {
-	typ             reflect.Type
-	fieldConverters []TypeConverter
-	fieldNames      []string
+	typ    reflect.Type
+	goType *GoType
 }
 
 func (c *StructConverter) To(obj Object) (interface{}, error) {
-	m, ok := obj.(*Map)
-	if !ok {
-		return nil, fmt.Errorf("type error: expected a map (%s given)", obj.Type())
-	}
-	v := reflect.New(c.typ).Elem()
-	for i := 0; i < v.NumField(); i++ {
-		attrName := c.fieldNames[i]
-		if item, ok := m.items[attrName]; ok {
-			if f := v.Field(i); f.CanSet() {
-				conv := c.fieldConverters[i]
-				attrValue, err := conv.To(item)
-				if err != nil {
-					return nil, err
+	switch obj := obj.(type) {
+	case *Proxy:
+		// Return the object wrapped by the proxy
+		return obj.obj, nil
+	case *Map:
+		// Create a new struct. The "value" here is a pointer to the new struct.
+		value := c.goType.New()
+		// Get the underlying struct so that we can set its fields.
+		structValue := value.Elem()
+		for k, value := range obj.items {
+			// If the struct has a field with the same name as a key, set it.
+			if f := structValue.FieldByName(k); f.CanSet() {
+				if attr, ok := c.goType.GetAttribute(k); ok {
+					if attrField, ok := attr.(*GoField); ok {
+						attrValue, err := attrField.converter.To(value)
+						if err != nil {
+							return nil, err
+						}
+						f.Set(reflect.ValueOf(attrValue))
+					}
 				}
-				f.Set(reflect.ValueOf(attrValue))
 			}
 		}
+		if c.goType.IsPointerType() {
+			return value.Interface(), nil
+		}
+		return structValue.Interface(), nil
+	default:
+		return nil, fmt.Errorf("type error: expected a proxy or map (%s given)", obj.Type())
 	}
-	return v.Interface(), nil
 }
 
 func (c *StructConverter) From(obj interface{}) (Object, error) {
-	items := map[string]Object{}
-	objValue := reflect.ValueOf(obj)
-	for i, conv := range c.fieldConverters {
-		f := objValue.Field(i)
-		if !f.CanInterface() {
-			continue
-		}
-		item, err := conv.From(f.Interface())
-		if err != nil {
-			return nil, err
-		}
-		items[c.fieldNames[i]] = item
+	// Sanity check that the object is of the expected type
+	typ := reflect.TypeOf(obj)
+	if typ != c.typ {
+		return nil, fmt.Errorf("type error: expected %s (%s given)", c.typ, typ)
 	}
-	return NewMap(items), nil
+	// Wrap the object in a proxy
+	return NewProxy(obj)
 }
 
 // newStructConverter creates a TypeConverter for a given type of struct.
 func newStructConverter(typ reflect.Type) (*StructConverter, error) {
-	if typ.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("type error: expected a struct (%s given)", typ)
+	goType, err := newGoType(typ)
+	if err != nil {
+		return nil, err
 	}
-	numField := typ.NumField()
-	fieldConverters := make([]TypeConverter, numField)
-	fieldNames := make([]string, numField)
-	for i := 0; i < numField; i++ {
-		field := typ.Field(i)
-		fieldType := field.Type
-		fieldNames[i] = field.Name
-		conv, err := createTypeConverter(fieldType)
-		if err != nil {
-			return nil, err
-		}
-		fieldConverters[i] = conv
-	}
-	return &StructConverter{
-		typ:             typ,
-		fieldConverters: fieldConverters,
-		fieldNames:      fieldNames,
-	}, nil
+	return &StructConverter{typ: typ, goType: goType}, nil
 }
 
 // PointerConverter converts between *T and the Risor equivalent of T.

@@ -228,11 +228,13 @@ func TestProxySetGetAttr(t *testing.T) {
 
 }
 
-func TestAttemptProxyOnStructValue(t *testing.T) {
-	// Cannot create a proxy on a struct value. It has to be a pointer.
-	_, err := object.NewProxy(proxyTestType2{})
-	require.NotNil(t, err)
-	require.Equal(t, "type error: unable to proxy type (object_test.proxyTestType2 given)", err.Error())
+func TestProxyOnStructValue(t *testing.T) {
+	p, err := object.NewProxy(proxyTestType2{A: 99})
+	require.NoError(t, err)
+	require.Equal(t, "proxyTestType2", p.GoType().Name())
+	attr, ok := p.GetAttr("A")
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(99), attr)
 }
 
 func TestProxyBytesBuffer(t *testing.T) {

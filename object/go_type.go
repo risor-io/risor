@@ -9,7 +9,8 @@ import (
 	"github.com/risor-io/risor/op"
 )
 
-// GoType represents a single Go type whose methods and fields can be proxied.
+// GoType wraps a single native Go type to make it easier to work with in Risor
+// and also to be able to represent the type as a Risor object.
 type GoType struct {
 	*base
 	typ            reflect.Type
@@ -18,9 +19,9 @@ type GoType struct {
 	attributes     map[string]GoAttribute
 	attributeNames []string
 	indirectType   *GoType
-	indirectKind   reflect.Kind
-	warnings       []error
 	converter      TypeConverter
+	isPointerType  bool
+	isDirectMethod map[string]bool
 }
 
 func (t *GoType) Type() Type {
@@ -50,6 +51,8 @@ func (t *GoType) GetAttr(name string) (Object, bool) {
 		return t.packagePath, true
 	case "attributes":
 		return NewMap(t.attrMap()), true
+	case "is_pointer_type":
+		return NewBool(t.isPointerType), true
 	}
 	return nil, false
 }
@@ -96,23 +99,59 @@ func (t *GoType) ReflectType() reflect.Type {
 	return t.typ
 }
 
-func (t *GoType) Warnings() []error {
-	return t.warnings
+func (t *GoType) IsPointerType() bool {
+	return t.isPointerType
 }
 
-func (t *GoType) IndirectType() (*GoType, bool) {
-	return t.indirectType, t.indirectType != nil
+func (t *GoType) IndirectType() *GoType {
+	return t.indirectType
+}
+
+func (t *GoType) ValueType() *GoType {
+	if t.isPointerType {
+		return t.indirectType
+	}
+	return t
+}
+
+func (t *GoType) PointerType() *GoType {
+	if t.isPointerType {
+		return t
+	}
+	return t.indirectType
+}
+
+func (t *GoType) New() reflect.Value {
+	return reflect.New(t.ValueType().typ)
+}
+
+func (t *GoType) HasDirectMethod(name string) bool {
+	return t.isDirectMethod[name]
+}
+
+func (t *GoType) GetConverter() (TypeConverter, error) {
+	if t.converter != nil {
+		return t.converter, nil
+	}
+	conv, err := getTypeConverter(t.typ)
+	if err != nil {
+		return nil, err
+	}
+	t.converter = conv
+	return conv, nil
 }
 
 func (t *GoType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Name       string            `json:"name"`
-		Package    string            `json:"package"`
-		Attributes map[string]Object `json:"attributes"`
+		Name          string            `json:"name"`
+		Package       string            `json:"package"`
+		Attributes    map[string]Object `json:"attributes"`
+		IsPointerType bool              `json:"is_pointer_type"`
 	}{
-		Name:       t.name.value,
-		Package:    t.packagePath.value,
-		Attributes: t.attrMap(),
+		Name:          t.name.value,
+		Package:       t.packagePath.value,
+		Attributes:    t.attrMap(),
+		IsPointerType: t.isPointerType,
 	})
 }
 
@@ -120,19 +159,26 @@ func (t *GoType) MarshalJSON() ([]byte, error) {
 // This is NOT threadsafe. The caller must be holding goTypeMutex.
 func newGoType(typ reflect.Type) (*GoType, error) {
 
-	// Is this type already registered?
-	kind := typ.Kind()
+	// Return the existing type if it's already registered
 	if goType, ok := goTypeRegistry[typ]; ok {
 		return goType, nil
 	}
 
+	// Just like Go does, we want to provide some equivalence between a type and
+	// a pointer to that type. The "indirect type" is the opposite form from
+	// what we're given.
+	kind := typ.Kind()
 	isPointer := kind == reflect.Ptr
-
 	var indirectType reflect.Type
 	var indirectKind reflect.Kind
 	if isPointer {
+		// Get the corresponding non-pointer type
 		indirectType = typ.Elem()
 		indirectKind = indirectType.Kind()
+	} else {
+		// Get the corresponding pointer type
+		indirectType = reflect.PtrTo(typ)
+		indirectKind = reflect.Ptr
 	}
 
 	name := typ.Name()
@@ -140,32 +186,27 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		name = typ.String()
 	}
 
-	conv, err := getTypeConverter(typ)
+	// Add the new type to the registry
+	goType := &GoType{
+		attributes:     map[string]GoAttribute{},
+		typ:            typ,
+		name:           NewString(name),
+		packagePath:    NewString(typ.PkgPath()),
+		isPointerType:  isPointer,
+		isDirectMethod: map[string]bool{},
+	}
+
+	// Add the new type to the registry before calling newGoType recursively
+	goTypeRegistry[typ] = goType
+
+	// Register the indirect type as well (recursive call!)
+	indirectGoType, err := newGoType(indirectType)
 	if err != nil {
 		return nil, err
 	}
+	goType.indirectType = indirectGoType
 
-	// Add the new type to the registry
-	goType := &GoType{
-		attributes:   map[string]GoAttribute{},
-		typ:          typ,
-		indirectKind: indirectKind,
-		name:         NewString(name),
-		packagePath:  NewString(typ.PkgPath()),
-		converter:    conv,
-	}
-	goTypeRegistry[typ] = goType
-
-	// Create/lookup the indirect type if there is one
-	if indirectType != nil {
-		indirectGoType, err := newGoType(indirectType)
-		if err != nil {
-			return nil, err
-		}
-		goType.indirectType = indirectGoType
-	}
-
-	// Discover and register the type of each field for struct types
+	// If this is a struct, discover all its exported fields
 	if kind == reflect.Struct || indirectKind == reflect.Struct {
 		structType := typ
 		if isPointer {
@@ -178,25 +219,29 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 			}
 			goField, err := newGoField(field)
 			if err != nil {
-				goType.warnings = append(goType.warnings, err)
-				continue
+				return nil, err
 			}
 			goType.attributes[field.Name] = goField
 		}
 	}
 
-	// Discover methods and register the types of their inputs and outputs
-	for i := 0; i < typ.NumMethod(); i++ {
-		method := typ.Method(i)
-		if !method.IsExported() {
-			continue
-		}
-		methodGoType, err := newGoMethod(method)
-		if err != nil {
-			goType.warnings = append(goType.warnings, err)
-			continue
-		}
-		goType.attributes[method.Name] = methodGoType
+	// Discover methods on the indirect type
+	indirectMethods, err := getMethods(indirectType)
+	if err != nil {
+		return nil, err
+	}
+	for name, method := range indirectMethods {
+		goType.attributes[name] = method
+	}
+
+	// Discover methods on the direct type (higher precedence)
+	directMethods, err := getMethods(typ)
+	if err != nil {
+		return nil, err
+	}
+	for name, method := range directMethods {
+		goType.attributes[name] = method
+		goType.isDirectMethod[name] = true
 	}
 
 	// Now that all attributes have been discovered, create a sorted list of
@@ -205,13 +250,13 @@ func newGoType(typ reflect.Type) (*GoType, error) {
 		goType.attributeNames = append(goType.attributeNames, attrName)
 	}
 	sort.Strings(goType.attributeNames)
-
 	return goType, nil
 }
 
-// NewGoType creates and registers a new GoType for the type of the given Go object.
-// This is safe for use by multiple goroutines. A type registry is maintained
-// behind the scenes to ensure that each type is only registered once.
+// NewGoType registers and returns a Risor GoType for the type of the given
+// native Go object. This is safe for concurrent use by multiple goroutines.
+// A type registry is maintained behind the scenes to ensure that each type
+// is only registered once.
 func NewGoType(typ reflect.Type) (*GoType, error) {
 	goTypeMutex.Lock()
 	defer goTypeMutex.Unlock()

@@ -1157,6 +1157,59 @@ func TestIncorrectArgCount(t *testing.T) {
 	}
 }
 
+type testData struct {
+	Count int
+}
+
+func (t *testData) Increment() {
+	t.Count++
+}
+
+func (t testData) GetCount() int {
+	return t.Count
+}
+
+type testStruct struct {
+	A int
+	B string
+	C *testData
+}
+
+func TestNestedProxies(t *testing.T) {
+	s := &testStruct{
+		A: 1,
+		B: "foo",
+		C: &testData{
+			Count: 3,
+		},
+	}
+	opts := runOpts{
+		Inject: map[string]interface{}{
+			"s": s,
+		},
+	}
+	result, err := run(context.Background(), `
+	s.C.Increment()
+	s.C.GetCount()
+	`, opts)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestProxy(t *testing.T) {
+	type test struct {
+		Data []byte
+	}
+	opts := runOpts{
+		Inject: map[string]interface{}{
+			"s": &test{Data: []byte("foo")},
+		},
+	}
+	result, err := run(context.Background(), `s.Data`, opts)
+	require.Nil(t, err)
+	require.Equal(t, object.NewByteSlice([]byte("foo")), result)
+}
+
 func TestHalt(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancel()

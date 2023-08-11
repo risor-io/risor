@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/risor-io/risor/builtins"
 	"github.com/risor-io/risor/compiler"
@@ -18,7 +19,11 @@ import (
 	"github.com/risor-io/risor/parser"
 )
 
-func run(ctx context.Context, code string) (object.Object, error) {
+type runOpts struct {
+	Inject map[string]interface{}
+}
+
+func run(ctx context.Context, code string, opts ...runOpts) (object.Object, error) {
 
 	builtins := builtins.Builtins()
 	for k, v := range modFmt.Builtins() {
@@ -26,6 +31,19 @@ func run(ctx context.Context, code string) (object.Object, error) {
 	}
 	for k, v := range defaultModules() {
 		builtins[k] = v
+	}
+	if len(opts) > 0 {
+		for k, v := range opts[0].Inject {
+			conv, err := object.NewTypeConverter(reflect.TypeOf(v))
+			if err != nil {
+				return nil, err
+			}
+			wrapped, err := conv.From(v)
+			if err != nil {
+				return nil, err
+			}
+			builtins[k] = wrapped
+		}
 	}
 
 	im := importer.NewLocalImporter(importer.LocalImporterOptions{
