@@ -2,7 +2,6 @@ package vm
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/risor-io/risor/builtins"
 	"github.com/risor-io/risor/compiler"
@@ -20,63 +19,52 @@ import (
 )
 
 type runOpts struct {
-	Inject map[string]interface{}
+	Globals map[string]interface{}
 }
 
-func run(ctx context.Context, code string, opts ...runOpts) (object.Object, error) {
-
-	builtins := builtins.Builtins()
-	for k, v := range modFmt.Builtins() {
-		builtins[k] = v
-	}
-	for k, v := range defaultModules() {
-		builtins[k] = v
-	}
-	if len(opts) > 0 {
-		for k, v := range opts[0].Inject {
-			conv, err := object.NewTypeConverter(reflect.TypeOf(v))
-			if err != nil {
-				return nil, err
-			}
-			wrapped, err := conv.From(v)
-			if err != nil {
-				return nil, err
-			}
-			builtins[k] = wrapped
-		}
-	}
-
-	im := importer.NewLocalImporter(importer.LocalImporterOptions{
-		SourceDir:  ".",
-		Extensions: []string{".tm"},
-		Builtins:   builtins,
-	})
-
-	// Parse
-	ast, err := parser.Parse(ctx, code)
+func run(ctx context.Context, source string, opts ...runOpts) (object.Object, error) {
+	vm, err := newVM(ctx, source, opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	// Compile
-	main, err := compiler.Compile(ast, compiler.WithBuiltins(builtins))
-	if err != nil {
+	if err := vm.Run(ctx); err != nil {
 		return nil, err
 	}
-
-	// Execute
-	machine := New(main, WithImporter(im))
-	if err := machine.Run(ctx); err != nil {
-		return nil, err
-	}
-	if result, exists := machine.TOS(); exists {
+	if result, exists := vm.TOS(); exists {
 		return result, nil
 	}
 	return object.Nil, nil
 }
 
-func defaultModules() map[string]object.Object {
-	return map[string]object.Object{
+func newVM(ctx context.Context, source string, opts ...runOpts) (*VirtualMachine, error) {
+	ast, err := parser.Parse(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	globals := basicBuiltins()
+	if len(opts) > 0 {
+		for k, v := range opts[0].Globals {
+			globals[k] = v
+		}
+	}
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+	main, err := compiler.Compile(ast, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		return nil, err
+	}
+	im := importer.NewLocalImporter(importer.LocalImporterOptions{
+		SourceDir:   ".",
+		Extensions:  []string{".risor", ".rsr"},
+		GlobalNames: globalNames,
+	})
+	return New(main, WithImporter(im), WithGlobals(globals)), nil
+}
+
+func basicBuiltins() map[string]any {
+	globals := map[string]any{
 		"math":    modMath.Module(),
 		"json":    modJson.Module(),
 		"strings": modStrings.Module(),
@@ -85,4 +73,11 @@ func defaultModules() map[string]object.Object {
 		"strconv": modStrconv.Module(),
 		"bytes":   modBytes.Module(),
 	}
+	for k, v := range builtins.Builtins() {
+		globals[k] = v
+	}
+	for k, v := range modFmt.Builtins() {
+		globals[k] = v
+	}
+	return globals
 }

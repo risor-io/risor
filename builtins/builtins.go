@@ -92,6 +92,20 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) == 0 {
 		return object.NewList(nil)
 	}
+	if intObj, ok := args[0].(*object.Int); ok {
+		count := intObj.Value()
+		if count < 0 {
+			return object.Errorf("value error: list() argument must be >= 0 (%d given)", count)
+		}
+		if err := limits.TrackCost(ctx, int(count)*8); err != nil {
+			return object.NewError(err)
+		}
+		arr := make([]object.Object, count)
+		for i := 0; i < int(count); i++ {
+			arr[i] = object.Nil
+		}
+		return object.NewList(arr)
+	}
 	arg := args[0]
 	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
 		return object.NewError(err)

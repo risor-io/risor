@@ -26,25 +26,25 @@ func TestConfirmNoBuiltins(t *testing.T) {
 	testCases := []testCase{
 		{
 			input:       "keys({foo: 1})",
-			expectedErr: "undefined variable: keys",
+			expectedErr: "compile error: undefined variable \"keys\"",
 		},
 		{
 			input:       "any([0, 0, 1])",
-			expectedErr: "undefined variable: any",
+			expectedErr: "compile error: undefined variable \"any\"",
 		},
 		{
 			input:       "string(42)",
-			expectedErr: "undefined variable: string",
+			expectedErr: "compile error: undefined variable \"string\"",
 		},
 	}
 	for _, tc := range testCases {
-		_, err := Eval(context.Background(), tc.input)
+		_, err := Eval(context.Background(), tc.input, WithoutDefaultGlobals())
 		require.NotNil(t, err)
 		require.Equal(t, tc.expectedErr, err.Error())
 	}
 }
 
-func TestWithBuiltins(t *testing.T) {
+func TestDefaultGlobals(t *testing.T) {
 	type testCase struct {
 		input    string
 		expected object.Object
@@ -66,36 +66,22 @@ func TestWithBuiltins(t *testing.T) {
 			input:    "string(42)",
 			expected: object.NewString("42"),
 		},
+		{
+			input:    "json.marshal(42)",
+			expected: object.NewString("42"),
+		},
 	}
 	for _, tc := range testCases {
-		result, err := Eval(context.Background(), tc.input, WithDefaultBuiltins())
+		result, err := Eval(context.Background(), tc.input)
 		require.Nil(t, err)
 		require.Equal(t, tc.expected, result)
 	}
 }
 
-func TestConfirmNoModules(t *testing.T) {
-	_, err := Eval(context.Background(), "json.marshal(42)")
+func TestWithoutDefaultGlobals(t *testing.T) {
+	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobals())
 	require.NotNil(t, err)
-	require.Equal(t, errors.New("undefined variable: json"), err)
-}
-
-func TestWithModules(t *testing.T) {
-	result, err := Eval(context.Background(), "json.marshal(42)", WithDefaultModules())
-	require.Nil(t, err)
-	require.Equal(t, object.NewString("42"), result)
-}
-
-func TestWithCode(t *testing.T) {
-	ast, err := parser.Parse(context.Background(), "x := 3")
-	require.Nil(t, err)
-
-	main, err := compiler.Compile(ast)
-	require.Nil(t, err)
-
-	result, err := Eval(context.Background(), "x + 1", WithCode(main))
-	require.Nil(t, err)
-	require.Equal(t, object.NewInt(4), result)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
 }
 
 func TestWithVirtualOSStdin(t *testing.T) {
@@ -105,7 +91,7 @@ func TestWithVirtualOSStdin(t *testing.T) {
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
 	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "os.stdin.read()", WithDefaultModules())
+	result, err := Eval(ctx, "os.stdin.read()")
 	require.Nil(t, err)
 	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
 }
@@ -117,7 +103,7 @@ func TestWithVirtualOSStdout(t *testing.T) {
 	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
 	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "os.stdout.write('foo')", WithDefaultModules())
+	result, err := Eval(ctx, "os.stdout.write('foo')")
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(int64(len("foo"))), result)
 
@@ -131,10 +117,54 @@ func TestStdinList(t *testing.T) {
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
 	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "list(os.stdin)", WithDefaultModules(), WithDefaultBuiltins())
+	result, err := Eval(ctx, "list(os.stdin)")
 	require.Nil(t, err)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewString("foo"),
 		object.NewString("bar!"),
 	}), result)
+}
+
+func TestEvalCode(t *testing.T) {
+
+	ctx := context.Background()
+
+	source := `
+	x := 2
+	y := 3
+	func add(a, b) { a + b }
+	result := add(x, y)
+	x = 99
+	result
+	`
+
+	ast, err := parser.Parse(ctx, source)
+	require.Nil(t, err)
+	code, err := compiler.Compile(ast)
+	require.Nil(t, err)
+
+	// Should be able to evaluate the precompiled code any number of times
+	for i := 0; i < 100; i++ {
+		result, err := EvalCode(ctx, code)
+		require.Nil(t, err)
+		require.Equal(t, object.NewInt(5), result)
+	}
+}
+
+func TestCall(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	func add(a, b) { a + b }
+	`
+	ast, err := parser.Parse(ctx, source)
+	require.Nil(t, err)
+	code, err := compiler.Compile(ast)
+	require.Nil(t, err)
+
+	result, err := Call(ctx, code, "add", []object.Object{
+		object.NewInt(9),
+		object.NewInt(1),
+	})
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), result)
 }

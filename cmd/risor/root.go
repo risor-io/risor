@@ -44,8 +44,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable colored output")
 	rootCmd.PersistentFlags().Bool("virtual-os", false, "Enable a virtual operating system")
 	rootCmd.PersistentFlags().StringArrayP("mount", "m", []string{}, "Mount a filesystem")
-	rootCmd.PersistentFlags().Bool("no-default-modules", false, "Disable the default modules")
-	rootCmd.PersistentFlags().Bool("no-default-builtins", false, "Disable the default builtins")
+	rootCmd.PersistentFlags().Bool("no-default-globals", false, "Disable the default globals")
 	rootCmd.PersistentFlags().String("modules", ".", "Path to library modules")
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Help for Risor")
 
@@ -55,8 +54,7 @@ func init() {
 	viper.BindPFlag("no-color", rootCmd.PersistentFlags().Lookup("no-color"))
 	viper.BindPFlag("virtual-os", rootCmd.PersistentFlags().Lookup("virtual-os"))
 	viper.BindPFlag("mount", rootCmd.PersistentFlags().Lookup("mount"))
-	viper.BindPFlag("no-default-modules", rootCmd.PersistentFlags().Lookup("no-default-modules"))
-	viper.BindPFlag("no-default-builtins", rootCmd.PersistentFlags().Lookup("no-default-builtins"))
+	viper.BindPFlag("no-default-globals", rootCmd.PersistentFlags().Lookup("no-default-globals"))
 	viper.BindPFlag("modules", rootCmd.PersistentFlags().Lookup("modules"))
 	viper.BindPFlag("help", rootCmd.PersistentFlags().Lookup("help"))
 
@@ -94,7 +92,7 @@ func fatal(msg string, args ...interface{}) {
 
 var rootCmd = &cobra.Command{
 	Use:   "risor",
-	Short: "Risor helps developers work with the cloud",
+	Short: "Fast and flexible scripting for Go developers and DevOps",
 	Long:  `https://risor.io`,
 	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -137,11 +135,8 @@ var rootCmd = &cobra.Command{
 
 		// Build up a list of options to pass to the VM
 		var opts []risor.Option
-		if !viper.GetBool("no-default-modules") {
-			opts = append(opts, risor.WithDefaultModules())
-		}
-		if !viper.GetBool("no-default-builtins") {
-			opts = append(opts, risor.WithDefaultBuiltins())
+		if viper.GetBool("no-default-globals") {
+			opts = append(opts, risor.WithoutDefaultGlobals())
 		}
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {
 			opts = append(opts, risor.WithLocalImporter(modulesDir))

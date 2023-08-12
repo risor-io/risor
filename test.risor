@@ -1,7 +1,8 @@
 #!/usr/bin/env risor --
 
-stdin := os.stdin
+i := 0
 
-for i, line := range stdin {
-    print(i, line)
+for i < 10 {
+    print(i)
+    i++
 }

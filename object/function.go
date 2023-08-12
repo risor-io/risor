@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/op"
 )
 
@@ -15,7 +16,9 @@ type Function struct {
 	parameters    []string
 	defaults      []Object
 	defaultsCount int
-	code          *Code
+	code          *compiler.Code
+	fn            *compiler.Function
+	instructions  []op.Code
 	freeVars      []*Cell
 }
 
@@ -43,7 +46,7 @@ func (f *Function) Inspect() string {
 	out.WriteString("(")
 	out.WriteString(strings.Join(parameters, ", "))
 	out.WriteString(") {")
-	lines := strings.Split(f.Code().Source, "\n")
+	lines := strings.Split(f.code.Source(), "\n")
 	if len(lines) == 1 {
 		out.WriteString(" " + lines[0] + " }")
 	} else if len(lines) == 0 {
@@ -80,15 +83,26 @@ func (f *Function) Equals(other Object) Object {
 }
 
 func (f *Function) Instructions() []op.Code {
-	return f.code.Instructions
+	if f.instructions == nil {
+		count := f.code.InstructionCount()
+		f.instructions = make([]op.Code, count)
+		for i := 0; i < count; i++ {
+			f.instructions[i] = f.code.Instruction(i)
+		}
+	}
+	return f.instructions
 }
 
 func (f *Function) FreeVars() []*Cell {
 	return f.freeVars
 }
 
-func (f *Function) Code() *Code {
+func (f *Function) Code() *compiler.Code {
 	return f.code
+}
+
+func (f *Function) Function() *compiler.Function {
+	return f.fn
 }
 
 func (f *Function) Parameters() []string {
@@ -104,7 +118,7 @@ func (f *Function) RequiredArgsCount() int {
 }
 
 func (f *Function) LocalsCount() int {
-	return int(f.code.Symbols.Size())
+	return int(f.code.LocalsCount())
 }
 
 func (f *Function) MarshalJSON() ([]byte, error) {
@@ -115,28 +129,41 @@ type FunctionOpts struct {
 	Name           string
 	ParameterNames []string
 	Defaults       []Object
-	Code           *Code
+	Code           *compiler.Code
 }
 
-func NewFunction(opts FunctionOpts) *Function {
+func NewFunction(fn *compiler.Function) *Function {
+
+	// Parameter defaults
+	var defaults []Object
 	var defaultsCount int
-	for _, value := range opts.Defaults {
+	for i := 0; i < fn.DefaultsCount(); i++ {
+		value := fn.Default(i)
 		if value != nil {
 			defaultsCount++
+			defaults = append(defaults, FromGoType(value))
+		} else {
+			defaults = append(defaults, nil)
 		}
 	}
+
+	// Parameter names
+	var parameters []string
+	for i := 0; i < fn.ParametersCount(); i++ {
+		parameters = append(parameters, fn.Parameter(i))
+	}
+
 	return &Function{
-		name:          opts.Name,
-		parameters:    opts.ParameterNames,
-		defaults:      opts.Defaults,
+		name:          fn.Name(),
+		code:          fn.Code(),
+		parameters:    parameters,
+		defaults:      defaults,
 		defaultsCount: defaultsCount,
-		code:          opts.Code,
 	}
 }
 
 func NewClosure(
 	fn *Function,
-	code *Code,
 	freeVars []*Cell,
 ) *Function {
 	return &Function{
@@ -144,7 +171,7 @@ func NewClosure(
 		parameters:    fn.parameters,
 		defaults:      fn.defaults,
 		defaultsCount: fn.defaultsCount,
-		code:          code,
+		code:          fn.Code(),
 		freeVars:      freeVars,
 	}
 }

@@ -43,10 +43,7 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := risor.Eval(ctx,
-		string(code),
-		risor.WithDefaultBuiltins(),
-		risor.WithDefaultModules())
+	result, err := risor.Eval(ctx, string(code))
 	if err != nil {
 		if friendlyErr, ok := err.(errz.FriendlyError); ok {
 			http.Error(w, friendlyErr.FriendlyErrorMessage(), http.StatusBadRequest)

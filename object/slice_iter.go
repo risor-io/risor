@@ -30,13 +30,13 @@ func (iter *SliceIter) String() string {
 }
 
 func (iter *SliceIter) Interface() interface{} {
-	var entries []map[string]interface{}
+	var entries []any
 	for {
 		entry, ok := iter.Next()
 		if !ok {
 			break
 		}
-		entries = append(entries, entry.Interface().(map[string]interface{}))
+		entries = append(entries, entry.Interface())
 	}
 	return entries
 }

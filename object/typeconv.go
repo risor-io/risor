@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/risor-io/risor/compiler"
 )
 
 var kindConverters = map[reflect.Kind]TypeConverter{
@@ -219,6 +220,8 @@ func FromGoType(obj interface{}) Object {
 		return NewByteSlice(obj)
 	case *bytes.Buffer:
 		return NewBuffer(obj)
+	case *compiler.Function:
+		return NewFunction(obj)
 	case bool:
 		if obj {
 			return True
@@ -252,6 +255,30 @@ func FromGoType(obj interface{}) Object {
 		return Errorf("type error: unmarshaling %v (%v)",
 			obj, reflect.TypeOf(obj))
 	}
+}
+
+// AsObjects transform a map containing arbitrary Go types to a map of
+// Risor objects, using the best type converter for each type. If an item
+// in the map is of a type that can't be converted, an error is returned.
+func AsObjects(m map[string]any) (map[string]Object, error) {
+	result := make(map[string]Object, len(m))
+	for k, v := range m {
+		switch v := v.(type) {
+		case Object:
+			result[k] = v
+		default:
+			converter, err := NewTypeConverter(reflect.TypeOf(v))
+			if err != nil {
+				return nil, err
+			}
+			value, err := converter.From(v)
+			if err != nil {
+				return nil, err
+			}
+			result[k] = value
+		}
+	}
+	return result, nil
 }
 
 // *****************************************************************************

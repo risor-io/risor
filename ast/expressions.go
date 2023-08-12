@@ -478,11 +478,13 @@ func (c *Case) String() string {
 		out.WriteString(strings.Join(tmp, ","))
 	}
 	out.WriteString(":\n")
-	for i, exp := range c.block.statements {
-		if i > 0 {
-			out.WriteString("\n")
+	if c.block != nil {
+		for i, exp := range c.block.statements {
+			if i > 0 {
+				out.WriteString("\n")
+			}
+			out.WriteString("\t" + exp.String())
 		}
-		out.WriteString("\t" + exp.String())
 	}
 	out.WriteString("\n")
 	return out.String()
@@ -522,9 +524,9 @@ func (s *Switch) String() string {
 	out.WriteString("\nswitch ")
 	out.WriteString(s.value.String())
 	out.WriteString(" {\n")
-	for _, tmp := range s.choices {
-		if tmp != nil {
-			out.WriteString(tmp.String())
+	for _, choice := range s.choices {
+		if choice != nil {
+			out.WriteString(choice.String())
 		}
 	}
 	out.WriteString("}\n")
