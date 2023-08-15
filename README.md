@@ -22,7 +22,7 @@ You might also want to try evaluating Risor scripts [from your browser](https://
 
 ## Getting Started
 
-Head over to [Getting Started](https://risor.io/docs/getting_started) in the
+Head over to [Getting Started](https://risor.io/docs) in the
 documentation.
 
 That said, if you use Homebrew, you can install the Risor CLI as follows:
