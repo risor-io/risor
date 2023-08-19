@@ -8,7 +8,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/risor-io/risor"
-	"github.com/risor-io/risor/object"
 )
 
 type State struct {
@@ -84,21 +83,8 @@ func main() {
 	// Initialize the service
 	svc := &Service{}
 
-	// Create a Risor proxy for the service
-	proxy, err := object.NewProxy(svc)
-	if err != nil {
-		fmt.Println(red(err.Error()))
-		os.Exit(1)
-	}
-
-	// Build up options for Risor, including the proxy as a variable named "svc"
-	opts := []risor.Option{
-		risor.WithDefaultBuiltins(),
-		risor.WithBuiltins(map[string]object.Object{"svc": proxy}),
-	}
-
 	// Run the Risor code which can access the service as `svc`
-	result, err := risor.Eval(ctx, code, opts...)
+	result, err := risor.Eval(ctx, code, risor.WithGlobal("svc", svc))
 	if err != nil {
 		fmt.Println(red(err.Error()))
 		os.Exit(1)

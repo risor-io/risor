@@ -7,38 +7,9 @@ import (
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
-
-func TestAdd(t *testing.T) {
-	constants := []object.Object{
-		object.NewInt(3),
-		object.NewInt(4),
-	}
-	code := []op.Code{
-		op.LoadConst,
-		0,
-		0,
-		op.LoadConst,
-		1,
-		0,
-		op.BinaryOp,
-		op.Code(op.Add),
-	}
-	vm := New(&object.Code{
-		Constants:    constants,
-		Instructions: code,
-		Symbols:      object.NewSymbolTable(),
-	})
-	err := vm.Run(context.Background())
-	require.Nil(t, err)
-
-	tos, ok := vm.TOS()
-	require.True(t, ok)
-	require.Equal(t, object.NewInt(7), tos)
-}
 
 func TestAddCompilationAndExecution(t *testing.T) {
 	program, err := parser.Parse(context.Background(), `
@@ -54,16 +25,16 @@ func TestAddCompilationAndExecution(t *testing.T) {
 	main, err := c.Compile(program)
 	require.Nil(t, err)
 
-	consts := main.Constants
-	require.Len(t, consts, 2)
+	constsCount := main.ConstantsCount()
+	require.Equal(t, 2, constsCount)
 
-	c1, ok := consts[0].(*object.Int)
+	c1, ok := main.Constant(0).(int64)
 	require.True(t, ok)
-	require.Equal(t, int64(11), c1.Value())
+	require.Equal(t, int64(11), c1)
 
-	c2, ok := consts[1].(*object.Int)
+	c2, ok := main.Constant(1).(int64)
 	require.True(t, ok)
-	require.Equal(t, int64(12), c2.Value())
+	require.Equal(t, int64(12), c2)
 
 	vm := New(main)
 	require.Nil(t, vm.Run(context.Background()))
@@ -144,6 +115,12 @@ func TestForLoop2(t *testing.T) {
 		`x := 0; for y := 0; y < 5; y++ { x = y }; x`)
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestForLoop3(t *testing.T) {
+	result, err := run(context.Background(), `x := 0; for x < 10 { x++ }; x`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), result)
 }
 
 func TestForRange1(t *testing.T) {
@@ -640,7 +617,7 @@ func TestRecursiveExample2(t *testing.T) {
 func TestConstant(t *testing.T) {
 	_, err := run(context.Background(), `const x = 1; x = 2`)
 	require.NotNil(t, err)
-	require.Equal(t, "cannot assign to constant: x", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"x\"", err.Error())
 }
 
 func TestConstantFunction(t *testing.T) {
@@ -649,7 +626,7 @@ func TestConstantFunction(t *testing.T) {
 	add = "bloop"
 	`)
 	require.NotNil(t, err)
-	require.Equal(t, "cannot assign to constant: add", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"add\"", err.Error())
 }
 
 func TestStatementsNilValue(t *testing.T) {
@@ -969,7 +946,7 @@ func TestPipes(t *testing.T) {
 		{`func() { "a" } | call`, object.NewString("a")},
 		{`"abc" | getattr("to_upper") | call`, object.NewString("ABC")},
 		{`"abc" | func(s) { s.to_upper() }`, object.NewString("ABC")},
-		{`[11, 12, 3] | math.max`, object.NewFloat(12)},
+		{`[11, 12, 3] | math.max`, object.NewInt(12)},
 		{`"42" | json.unmarshal`, object.NewFloat(42)},
 	}
 	runTests(t, tests)
@@ -997,6 +974,90 @@ func TestQuicksort(t *testing.T) {
 			object.NewInt(5),
 			object.NewInt(10),
 		}), result)
+}
+
+func TestMergesort(t *testing.T) {
+	result, err := run(context.Background(), `
+	func mergesort(arr) {
+		print()
+		print("mergesort", arr)
+		length := len(arr)
+		if length <= 1 {
+			return arr
+		}
+		mid := length / 2
+		left := mergesort(arr[:mid])
+		right := mergesort(arr[mid:])
+		output := list(length)
+		i, j, k := [0, 0, 0]
+		for i < len(left) {
+			for j < len(right) && right[j] <= left[i] {
+				output[k] = right[j]
+				k++
+				j++
+			}
+			output[k] = left[i]
+			k++
+			i++
+		}
+		for j < len(right) {
+			output[k] = right[j]
+			k++
+			j++
+		}
+		return output
+	}
+	", ".join(mergesort([1, 9, -1, 4, 3, 2, 7, 8, 5, 6, 0]).map(string))
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9"), result)
+}
+
+func TestRecursiveIsPrime(t *testing.T) {
+	result, err := run(context.Background(), `
+	func is_prime(n, i=2) {
+		// Base cases
+		if (n <= 2) { return n == 2 }
+		if (n % i == 0) { return false }
+		if (i * i > n) { return true }
+		// Check for next divisor
+    	return is_prime(n, i + 1);
+	}
+	ints := []
+	for i := 1; i < 30; i++ { ints.append(i) }
+	primes := ints.filter(is_prime)
+	", ".join(primes.map(string))
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("2, 3, 5, 7, 11, 13, 17, 19, 23, 29"), result)
+}
+
+func TestAndShortCircuit(t *testing.T) {
+	// AND should short-circuit, so data[5] should not be evaluated
+	result, err := run(context.Background(), `
+	data := []
+	if len(data) && data[5] {
+		"nope!"
+	} else {
+		"worked!"
+	}
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("worked!"), result)
+}
+
+func TestOrShortCircuit(t *testing.T) {
+	// OR should short-circuit, so data[5] should not be evaluated
+	result, err := run(context.Background(), `
+	data := [1]
+	if len(data) || data[5] {
+		"worked!"
+	} else {
+		"nope!"
+	}
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("worked!"), result)
 }
 
 func TestLoopBreak(t *testing.T) {
@@ -1184,9 +1245,7 @@ func TestNestedProxies(t *testing.T) {
 		},
 	}
 	opts := runOpts{
-		Inject: map[string]interface{}{
-			"s": s,
-		},
+		Globals: map[string]interface{}{"s": s},
 	}
 	result, err := run(context.Background(), `
 	s.C.Increment()
@@ -1201,7 +1260,7 @@ func TestProxy(t *testing.T) {
 		Data []byte
 	}
 	opts := runOpts{
-		Inject: map[string]interface{}{
+		Globals: map[string]interface{}{
 			"s": &test{Data: []byte("foo")},
 		},
 	}
@@ -1218,10 +1277,173 @@ func TestHalt(t *testing.T) {
 	require.Equal(t, context.DeadlineExceeded, err)
 }
 
+func TestReturnGlobalVariable(t *testing.T) {
+	result, err := run(context.Background(), `
+	x := 3
+	func test() { x }
+	test()
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), result)
+}
+
 func TestNakedReturn(t *testing.T) {
 	result, err := run(context.Background(), `func test(a) { return }; test(15)`)
 	require.Nil(t, err)
 	require.Equal(t, object.Nil, result)
+}
+
+func TestGlobalNames(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	count := 1
+	func inc(a, b) { a + b }
+	m := {one: 1}
+	foo := func() { "bar" }
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+
+	globals := vm.GlobalNames()
+	globalsMap := map[string]bool{}
+	for _, g := range globals {
+		globalsMap[g] = true
+	}
+	require.True(t, globalsMap["count"])
+	require.True(t, globalsMap["inc"])
+	require.True(t, globalsMap["m"])
+	require.True(t, globalsMap["foo"])
+}
+
+func TestGetGlobal(t *testing.T) {
+	ctx := context.Background()
+	source := `func inc(a, b) { a + b }`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+
+	obj, err := vm.Get("inc")
+	require.Nil(t, err)
+	fn, ok := obj.(*object.Function)
+	require.True(t, ok)
+	require.Equal(t, "inc", fn.Name())
+}
+
+func TestCall(t *testing.T) {
+	ctx := context.Background()
+	source := `func inc(a, b) { a + b }`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+
+	obj, err := vm.Call(ctx, "inc", []object.Object{
+		object.NewInt(9),
+		object.NewInt(1),
+	})
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), obj)
+}
+
+func TestCallWithClosure(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	func get_counter() {
+		count := 10
+		return func() {
+			count++
+			return count
+		}
+	}
+	counter := get_counter()
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+
+	// The counter's first value will be 11. Confirm it counts up from there.
+	for i := int64(11); i < 100; i++ {
+		obj, err := vm.Call(ctx, "counter", []object.Object{})
+		require.Nil(t, err)
+		require.Equal(t, object.NewInt(i), obj)
+	}
+}
+
+func TestFreeVariableAssignment(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	func get_counters() {
+		a := 0
+		b := 0
+		c := 0
+		func incA() {
+			a++
+			return a
+		}
+		func incB() {
+			b++
+			return b
+		}
+		func incC() {
+			c++
+			return c
+		}
+		return [incA, incB, incC]
+	}
+	incA, incB, incC := get_counters()
+	incA(); incA()                 // 1, 2
+	incB(); incB(); incB()         // 1, 2, 3
+	incC(); incC(); incC(); incC() // 1, 2, 3, 4
+	[incA(), incB(), incC()]       // [3, 4, 5]
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	result, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(3),
+		object.NewInt(4),
+		object.NewInt(5),
+	}), result)
+}
+
+func TestInterpolatedStringClosures1(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	func foo(a, b, c) {
+		return func(d) {
+			return '{strings.to_upper(a)}-{b}-{c}-{d}'
+		}
+	}
+	foo("foo", "bar", "baz")("go")
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	result, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewString("FOO-bar-baz-go"), result)
+}
+
+func TestInterpolatedStringClosures2(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	x := 3
+	func foo(a, b="bar") {
+		count := 42
+		return func(a) {
+			return 'a: {a} b: {b} count: {count-2} x: {x+1}'
+		}
+	}
+	foo("IGNORED")("HEY")
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	result, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewString("a: HEY b: bar count: 40 x: 4"), result)
 }
 
 func TestImports(t *testing.T) {
@@ -1229,6 +1451,25 @@ func TestImports(t *testing.T) {
 		// {`import strings; strings`, object.NewModule("strings", nil)},
 	}
 	runTests(t, tests)
+}
+
+func TestContextDone(t *testing.T) {
+	// Context with no deadline does not return a Done channel
+	ctx := context.Background()
+	d := ctx.Done()
+	require.Nil(t, d)
+
+	// Context with deadline returns a Done channel
+	tctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	d = tctx.Done()
+	require.NotNil(t, d)
+
+	// Context with cancel returns a Done channel
+	cctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	d = cctx.Done()
+	require.NotNil(t, d)
 }
 
 type testCase struct {

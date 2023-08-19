@@ -6,22 +6,22 @@ import (
 
 const DefaultFrameLocals = 8
 
-type Frame struct {
+type frame struct {
 	returnAddr     int
 	localsCount    uint16
 	fn             *object.Function
-	code           *object.Code
+	code           *code
 	storage        [DefaultFrameLocals]object.Object
 	locals         []object.Object
 	extendedLocals []object.Object
 	capturedLocals []object.Object
 }
 
-func (f *Frame) ActivateCode(code *object.Code) {
+func (f *frame) ActivateCode(code *code) {
 	f.code = code
 	f.fn = nil
 	f.returnAddr = 0
-	f.localsCount = code.Symbols.Size()
+	f.localsCount = uint16(code.LocalsCount())
 	f.capturedLocals = nil
 	for i := 0; i < DefaultFrameLocals; i++ {
 		f.storage[i] = nil
@@ -38,9 +38,9 @@ func (f *Frame) ActivateCode(code *object.Code) {
 	}
 }
 
-func (f *Frame) ActivateFunction(fn *object.Function, returnAddr int, localValues []object.Object) {
+func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr int, localValues []object.Object) {
 	// Activate the function's code
-	f.ActivateCode(fn.Code())
+	f.ActivateCode(code)
 	f.fn = fn
 	// Save the instruction pointer of the caller
 	f.returnAddr = returnAddr
@@ -51,15 +51,15 @@ func (f *Frame) ActivateFunction(fn *object.Function, returnAddr int, localValue
 	}
 }
 
-func (f *Frame) SetReturnAddr(addr int) {
+func (f *frame) SetReturnAddr(addr int) {
 	f.returnAddr = addr
 }
 
-func (f *Frame) Locals() []object.Object {
+func (f *frame) Locals() []object.Object {
 	return f.locals
 }
 
-func (f *Frame) CaptureLocals() []object.Object {
+func (f *frame) CaptureLocals() []object.Object {
 	if f.capturedLocals != nil {
 		return f.capturedLocals
 	}
@@ -74,10 +74,10 @@ func (f *Frame) CaptureLocals() []object.Object {
 	return newStorage
 }
 
-func (f *Frame) Function() *object.Function {
+func (f *frame) Function() *object.Function {
 	return f.fn
 }
 
-func (f *Frame) Code() *object.Code {
+func (f *frame) Code() *code {
 	return f.code
 }

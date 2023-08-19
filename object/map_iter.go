@@ -28,13 +28,13 @@ func (iter *MapIter) String() string {
 }
 
 func (iter *MapIter) Interface() interface{} {
-	var entries []map[string]interface{}
+	var entries []any
 	for {
 		entry, ok := iter.Next()
 		if !ok {
 			break
 		}
-		entries = append(entries, entry.Interface().(map[string]interface{}))
+		entries = append(entries, entry.Interface())
 	}
 	return entries
 }

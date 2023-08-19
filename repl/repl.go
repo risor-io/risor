@@ -15,6 +15,8 @@ import (
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/internal/cfg"
 	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
+	"github.com/risor-io/risor/vm"
 )
 
 const (
@@ -61,13 +63,11 @@ func Run(ctx context.Context, options []risor.Option) error {
 		return clearLine + ">>> " + accumulate
 	}
 
-	r := &cfg.RisorConfig{
-		Builtins: map[string]object.Object{},
-	}
+	r := cfg.NewRisorConfig()
 	for _, opt := range options {
 		opt(r)
 	}
-	c, err := compiler.New(compiler.WithBuiltins(r.Builtins))
+	c, err := compiler.New(r.CompilerOpts()...)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func Run(ctx context.Context, options []risor.Option) error {
 		switch key.Code {
 		case keys.Enter:
 			fmt.Printf("\n")
-			execute(ctx, accumulate, c, options)
+			execute(ctx, r, c, accumulate)
 			appendToHistory(accumulate)
 			history = append(history, accumulate)
 			historyIndex = len(history)
@@ -174,20 +174,27 @@ func Run(ctx context.Context, options []risor.Option) error {
 
 func execute(
 	ctx context.Context,
-	code string,
+	cfg *cfg.RisorConfig,
 	c *compiler.Compiler,
-	options []risor.Option,
+	source string,
 ) (object.Object, error) {
 
-	offset := len(c.MainInstructions())
+	instructionOffset := c.Code().InstructionCount()
 
-	combinedOpts := []risor.Option{
-		risor.WithCompiler(c),
-		risor.WithInstructionOffset(offset),
+	ast, err := parser.Parse(ctx, source)
+	if err != nil {
+		color.Red(err.Error())
+		return nil, err
 	}
-	combinedOpts = append(combinedOpts, options...)
 
-	result, err := risor.Eval(ctx, code, combinedOpts...)
+	code, err := c.Compile(ast)
+	if err != nil {
+		color.Red(err.Error())
+		return nil, err
+	}
+
+	vmOpts := append(cfg.VMOpts(), vm.WithInstructionOffset(instructionOffset))
+	result, err := vm.Run(ctx, code, vmOpts...)
 	if err != nil {
 		color.Red(err.Error())
 		return nil, err

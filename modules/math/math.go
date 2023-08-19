@@ -90,7 +90,7 @@ func Max(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewFloat(maxFlt)
 	}
-	return object.NewFloat(float64(maxInt))
+	return object.NewInt(maxInt)
 }
 
 func Min(ctx context.Context, args ...object.Object) object.Object {
@@ -137,7 +137,7 @@ func Min(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewFloat(minFlt)
 	}
-	return object.NewFloat(float64(minInt))
+	return object.NewInt(minInt)
 }
 
 func Sum(ctx context.Context, args ...object.Object) object.Object {

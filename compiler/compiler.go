@@ -8,9 +8,7 @@ import (
 	"sort"
 
 	"github.com/risor-io/risor/ast"
-	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
-	"github.com/risor-io/risor/token"
 )
 
 const (
@@ -28,31 +26,35 @@ type Compiler struct {
 
 	// The entrypoint code we are compiling. This remains fixed throughout
 	// the compilation process.
-	main *object.Code
+	main *Code
 
 	// The current code we are compiling into. This changes as we enter
 	// and leave functions.
-	current *object.Code
+	current *Code
 
 	// Set on a compilation error
 	failure error
 
-	// Built in objects available to the code being compiled
-	builtins map[string]object.Object
+	// Names of globals to be available during compilation
+	globalNames []string
+
+	// Increments with each function compiled
+	funcIndex int
 }
 
 // Option is a configuration function for a Compiler.
 type Option func(*Compiler)
 
-// WithBuiltins configures the compiler with the given built-in objects.
-func WithBuiltins(builtins map[string]object.Object) Option {
+// WithGlobalNames configures the compiler with the given global variable names.
+func WithGlobalNames(names []string) Option {
 	return func(c *Compiler) {
-		c.builtins = builtins
+		c.globalNames = make([]string, len(names))
+		copy(c.globalNames, names) // isolate from caller
 	}
 }
 
 // WithCode configures the compiler to compile into the given code object.
-func WithCode(code *object.Code) Option {
+func WithCode(code *Code) Option {
 	return func(c *Compiler) {
 		c.main = code
 	}
@@ -60,7 +62,7 @@ func WithCode(code *object.Code) Option {
 
 // Compile the given AST node and return the compiled code object. This is a
 // shorthand for compiler.New(options).Compile(node).
-func Compile(node ast.Node, options ...Option) (*object.Code, error) {
+func Compile(node ast.Node, options ...Option) (*Code, error) {
 	c, err := New(options...)
 	if err != nil {
 		return nil, err
@@ -79,35 +81,36 @@ func New(options ...Option) (*Compiler, error) {
 	// supply one. If the caller did supply one, it may be a situation like the
 	// REPL where compilation is done incrementally, as new code is entered.
 	if c.main == nil {
-		c.main = &object.Code{Name: "main", Symbols: object.NewSymbolTable()}
+		c.main = &Code{
+			id:      "__main__",
+			name:    "__main__",
+			symbols: NewSymbolTable(),
+		}
 	}
-	// Insert any supplied builtins into the symbol table.
-	for _, name := range sortedKeys(c.builtins) {
-		obj := c.builtins[name]
-		if _, err := c.main.Symbols.InsertBuiltin(name, obj); err != nil {
+	// Insert any supplied names for globals into the symbol table
+	sort.Strings(c.globalNames)
+	for _, name := range c.globalNames {
+		if c.main.symbols.IsDefined(name) {
+			continue
+		}
+		if _, err := c.main.symbols.InsertVariable(name); err != nil {
 			return nil, err
 		}
 	}
-	// Start compiling into the main code object.
+	// Start compiling into the main code object
 	c.current = c.main
 	return c, nil
 }
 
-// MainInstructions returns the compiled instructions for the main code object.
-func (c *Compiler) MainInstructions() []op.Code {
-	return c.main.Instructions
-}
-
-// CurrentInstructions returns the compiled instructions for the code that is
-// currently being compiled. This may be the main code object, or it may be
-// a function that is being compiled.
-func (c *Compiler) CurrentInstructions() []op.Code {
-	return c.current.Instructions
+// Code returns the compiled code for the entrypoint.
+func (c *Compiler) Code() *Code {
+	return c.main
 }
 
 // Compile the given AST node and return the compiled code object.
-func (c *Compiler) Compile(node ast.Node) (*object.Code, error) {
+func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	c.failure = nil
+	c.main.source = node.String()
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -255,29 +258,29 @@ func (c *Compiler) compile(node ast.Node) error {
 			return err
 		}
 	default:
-		panic(fmt.Sprintf("unknown ast node type: %T", node))
+		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
 	}
 	return nil
 }
 
 // startLoop should be called when starting to compile a new loop. This is used
 // to understand which loop that "break" and "continue" statements should target.
-func (c *Compiler) startLoop() *object.Loop {
-	loop := &object.Loop{}
-	c.current.Loops = append(c.current.Loops, loop)
+func (c *Compiler) startLoop() *loop {
+	loop := &loop{}
+	c.current.loops = append(c.current.loops, loop)
 	return loop
 }
 
 // endLoop should be called when the compilation of a loop is done.
 func (c *Compiler) endLoop() {
 	code := c.current
-	code.Loops = code.Loops[:len(code.Loops)-1]
+	code.loops = code.loops[:len(code.loops)-1]
 }
 
 // currentLoop returns the loop that is currently being compiled, which is the
 // loop that "break" and "continue" statements should target.
-func (c *Compiler) currentLoop() *object.Loop {
-	loops := c.current.Loops
+func (c *Compiler) currentLoop() *loop {
+	loops := c.current.loops
 	if len(loops) == 0 {
 		return nil
 	}
@@ -285,7 +288,7 @@ func (c *Compiler) currentLoop() *object.Loop {
 }
 
 func (c *Compiler) currentPosition() int {
-	return len(c.CurrentInstructions())
+	return len(c.current.instructions)
 }
 
 func (c *Compiler) compileNil(node *ast.Nil) error {
@@ -294,12 +297,12 @@ func (c *Compiler) compileNil(node *ast.Nil) error {
 }
 
 func (c *Compiler) compileInt(node *ast.Int) error {
-	c.emit(op.LoadConst, c.constant(object.NewInt(node.Value())))
+	c.emit(op.LoadConst, c.constant(node.Value()))
 	return nil
 }
 
 func (c *Compiler) compileFloat(node *ast.Float) error {
-	c.emit(op.LoadConst, c.constant(object.NewFloat(node.Value())))
+	c.emit(op.LoadConst, c.constant(node.Value()))
 	return nil
 }
 
@@ -340,9 +343,9 @@ func (c *Compiler) compileProgram(node *ast.Program) error {
 
 func (c *Compiler) compileBlock(node *ast.Block) error {
 	code := c.current
-	code.Symbols = code.Symbols.NewBlock()
+	code.symbols = code.symbols.NewBlock()
 	defer func() {
-		code.Symbols = code.Symbols.Parent()
+		code.symbols = code.symbols.parent
 	}()
 	statements := node.Statements()
 	count := len(statements)
@@ -374,32 +377,31 @@ func (c *Compiler) compileVar(node *ast.Var) error {
 	if err := c.compile(expr); err != nil {
 		return err
 	}
-	sym, err := c.current.Symbols.InsertVariable(name)
+	sym, err := c.current.symbols.InsertVariable(name)
 	if err != nil {
 		return err
 	}
-	if c.current.Parent == nil {
-		c.emit(op.StoreGlobal, sym.Index)
+	if c.current.parent == nil {
+		c.emit(op.StoreGlobal, sym.Index())
 	} else {
-		c.emit(op.StoreFast, sym.Index)
+		c.emit(op.StoreFast, sym.Index())
 	}
 	return nil
 }
 
 func (c *Compiler) compileIdent(node *ast.Ident) error {
 	name := node.Literal()
-	resolution, found := c.current.Symbols.Lookup(name)
+	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("undefined variable: %s", name)
+		return fmt.Errorf("compile error: undefined variable %q", name)
 	}
-	sym := resolution.Symbol
-	switch resolution.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Index)
-	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Index)
-	case object.ScopeFree:
-		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
+	switch resolution.scope {
+	case Global:
+		c.emit(op.LoadGlobal, resolution.symbol.Index())
+	case Local:
+		c.emit(op.LoadFast, resolution.symbol.Index())
+	case Free:
+		c.emit(op.LoadFree, uint16(resolution.freeIndex))
 	}
 	return nil
 }
@@ -407,7 +409,7 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 	names, expr := node.Value()
 	if len(names) > math.MaxUint16 {
-		return fmt.Errorf("too many variables in multi-variable assignment")
+		return fmt.Errorf("compile error: too many variables in multi-variable assignment")
 	}
 	// Compile the RHS value
 	if err := c.compile(expr); err != nil {
@@ -419,32 +421,32 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 	if node.IsWalrus() {
 		for i := len(names) - 1; i >= 0; i-- {
 			name := names[i]
-			sym, err := c.current.Symbols.InsertVariable(name)
+			sym, err := c.current.symbols.InsertVariable(name)
 			if err != nil {
 				return err
 			}
-			if c.current.Parent == nil {
-				c.emit(op.StoreGlobal, sym.Index)
+			if c.current.parent == nil {
+				c.emit(op.StoreGlobal, sym.Index())
 			} else {
-				c.emit(op.StoreFast, sym.Index)
+				c.emit(op.StoreFast, sym.Index())
 			}
 		}
 		return nil
 	}
 	for i := len(names) - 1; i >= 0; i-- {
 		name := names[i]
-		resolution, found := c.current.Symbols.Lookup(name)
+		resolution, found := c.current.symbols.Resolve(name)
 		if !found {
-			return fmt.Errorf("undefined variable: %s", name)
+			return fmt.Errorf("compile error: undefined variable %q", name)
 		}
-		sym := resolution.Symbol
-		switch resolution.Scope {
-		case object.ScopeGlobal:
-			c.emit(op.StoreGlobal, sym.Index)
-		case object.ScopeLocal:
-			c.emit(op.StoreFast, sym.Index)
-		case object.ScopeFree:
-			c.emit(op.StoreFree, sym.Index)
+		symbolIndex := resolution.symbol.Index()
+		switch resolution.scope {
+		case Global:
+			c.emit(op.StoreGlobal, symbolIndex)
+		case Local:
+			c.emit(op.StoreFast, symbolIndex)
+		case Free:
+			c.emit(op.StoreFree, uint16(resolution.freeIndex))
 		}
 	}
 	return nil
@@ -543,16 +545,16 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 
 func (c *Compiler) compileImport(node *ast.Import) error {
 	name := node.Module().String()
-	c.emit(op.LoadConst, c.constant(object.NewString(name)))
+	c.emit(op.LoadConst, c.constant(name))
 	c.emit(op.Import)
-	sym, err := c.current.Symbols.InsertConstant(name)
+	sym, err := c.current.symbols.InsertConstant(name)
 	if err != nil {
 		return err
 	}
-	if c.current.Parent == nil {
-		c.emit(op.StoreGlobal, sym.Index)
+	if c.current.parent == nil {
+		c.emit(op.StoreGlobal, sym.Index())
 	} else {
-		c.emit(op.StoreFast, sym.Index)
+		c.emit(op.StoreFast, sym.Index())
 	}
 	return nil
 }
@@ -572,7 +574,7 @@ func (c *Compiler) compileSlice(node *ast.Slice) error {
 	}
 	from := node.FromIndex()
 	if from == nil {
-		c.emit(op.LoadConst, c.constant(object.NewInt(0)))
+		c.emit(op.LoadConst, c.constant(int64(0)))
 	} else {
 		if err := c.compile(from); err != nil {
 			return err
@@ -631,13 +633,13 @@ func (c *Compiler) compileString(node *ast.String) error {
 
 	// Simple strings are just emitted as a constant
 	if tmpl == nil {
-		c.emit(op.LoadConst, c.constant(object.NewString(node.Value())))
+		c.emit(op.LoadConst, c.constant(node.Value()))
 		return nil
 	}
 
 	fragments := tmpl.Fragments()
 	if len(fragments) > math.MaxUint16 {
-		return fmt.Errorf("string template exceeded max fragment size")
+		return fmt.Errorf("compile error: string template exceeded max fragment size")
 	}
 
 	var expressionIndex int
@@ -651,26 +653,15 @@ func (c *Compiler) compileString(node *ast.String) error {
 			expressionIndex++
 			// Nil expression should be treated as empty string
 			if expr == nil {
-				c.emit(op.LoadConst, c.constant(object.NewString("")))
+				c.emit(op.LoadConst, c.constant(""))
 				continue
 			}
-			// Transform the expression into a *ast.Func
-			astFn := ast.NewFunc(
-				token.Token{},
-				nil, // no name
-				nil, // no params
-				nil, // no defaults
-				ast.NewBlock(token.Token{}, []ast.Node{expr}),
-			)
-			// Emit code to push the compiled function as TOS
-			if err := c.compileFunc(astFn); err != nil {
+			if err := c.compile(expr); err != nil {
 				return err
 			}
-			// Emit code to call the function to build the fragment
-			c.emit(op.Call, 0)
 		case false:
 			// Push the fragment as a constant as TOS
-			c.emit(op.LoadConst, c.constant(object.NewString(f.Value())))
+			c.emit(op.LoadConst, c.constant(f.Value()))
 		}
 	}
 	// Emit a BuildString to concatenate all the fragments
@@ -679,21 +670,21 @@ func (c *Compiler) compileString(node *ast.String) error {
 }
 
 func (c *Compiler) compilePipe(node *ast.Pipe) error {
-	if c.current.PipeActive {
-		return fmt.Errorf("invalid nested pipe")
+	if c.current.pipeActive {
+		return fmt.Errorf("compile error: invalid nested pipe")
 	}
 	exprs := node.Expressions()
 	if len(exprs) < 2 {
-		return fmt.Errorf("pipe operator requires at least two expressions")
+		return fmt.Errorf("compile error: the pipe operator requires at least two expressions")
 	}
 	// Compile the first expression (filling TOS with the initial pipe value)
 	if err := c.compile(exprs[0]); err != nil {
 		return err
 	}
 	// Set the pipe active flag for the remainder of the pipe
-	c.current.PipeActive = true
+	c.current.pipeActive = true
 	defer func() {
-		c.current.PipeActive = false
+		c.current.pipeActive = false
 	}()
 	// Iterate over the remaining expressions. Each should eval to a function.
 	// TODO: may need to compile to a partial as well.
@@ -712,39 +703,39 @@ func (c *Compiler) compilePipe(node *ast.Pipe) error {
 
 func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	name := node.Literal()
-	resolution, found := c.current.Symbols.Lookup(name)
+	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("undefined variable: %s", name)
+		return fmt.Errorf("compile error: undefined variable %q", name)
 	}
-	sym := resolution.Symbol
+	symbolIndex := resolution.symbol.Index()
 	// Push the named variable onto the stack
-	switch resolution.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Index)
-	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Index)
-	case object.ScopeFree:
-		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
+	switch resolution.scope {
+	case Global:
+		c.emit(op.LoadGlobal, symbolIndex)
+	case Local:
+		c.emit(op.LoadFast, symbolIndex)
+	case Free:
+		c.emit(op.LoadFree, uint16(resolution.freeIndex))
 	}
 	// Push the integer amount to the stack (1 or -1)
 	operator := node.Operator()
 	if operator == "++" {
-		c.emit(op.LoadConst, c.constant(object.NewInt(1)))
+		c.emit(op.LoadConst, c.constant(int64(1)))
 	} else if operator == "--" {
-		c.emit(op.LoadConst, c.constant(object.NewInt(-1)))
+		c.emit(op.LoadConst, c.constant(int64(-1)))
 	} else {
-		return fmt.Errorf("unknown operator: %q", operator)
+		return fmt.Errorf("compile error: unknown postfix operator %q", operator)
 	}
 	// Run increment or decrement as an Add BinaryOp
 	c.emit(op.BinaryOp, uint16(op.Add))
 	// Store TOS in LHS
-	switch resolution.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.StoreGlobal, sym.Index)
-	case object.ScopeLocal:
-		c.emit(op.StoreFast, sym.Index)
-	case object.ScopeFree:
-		c.emit(op.StoreFree, sym.Index)
+	switch resolution.scope {
+	case Global:
+		c.emit(op.StoreGlobal, symbolIndex)
+	case Local:
+		c.emit(op.StoreFast, symbolIndex)
+	case Free:
+		c.emit(op.StoreFree, uint16(resolution.freeIndex))
 	}
 	return nil
 }
@@ -754,14 +745,14 @@ func (c *Compiler) compileConst(node *ast.Const) error {
 	if err := c.compile(expr); err != nil {
 		return err
 	}
-	sym, err := c.current.Symbols.InsertConstant(name)
+	sym, err := c.current.symbols.InsertConstant(name)
 	if err != nil {
 		return err
 	}
-	if c.current.Parent == nil {
-		c.emit(op.StoreGlobal, sym.Index)
+	if c.current.parent == nil {
+		c.emit(op.StoreGlobal, sym.Index())
 	} else {
-		c.emit(op.StoreFast, sym.Index)
+		c.emit(op.StoreFast, sym.Index())
 	}
 	return nil
 }
@@ -794,7 +785,7 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 	args := node.Arguments()
 	argc := len(args)
 	if argc > MaxArgs {
-		return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, argc)
+		return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
 	}
 	if err := c.compile(node.Function()); err != nil {
 		return err
@@ -804,7 +795,7 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 			return err
 		}
 	}
-	if c.current.PipeActive {
+	if c.current.pipeActive {
 		c.emit(op.Partial, uint16(argc))
 	} else {
 		c.emit(op.Call, uint16(argc))
@@ -819,21 +810,21 @@ func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 	expr := node.Call()
 	method, ok := expr.(*ast.Call)
 	if !ok {
-		return fmt.Errorf("invalid call expression")
+		return fmt.Errorf("compile error: invalid call expression")
 	}
 	name := method.Function().String()
-	c.emit(op.LoadAttr, c.current.AddName(name))
+	c.emit(op.LoadAttr, c.current.addName(name))
 	args := method.Arguments()
 	argc := len(args)
 	if argc > MaxArgs {
-		return fmt.Errorf("max arguments limit of %d exceeded (got %d)", MaxArgs, argc)
+		return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
 	}
 	for _, arg := range args {
 		if err := c.compile(arg); err != nil {
 			return err
 		}
 	}
-	if c.current.PipeActive {
+	if c.current.pipeActive {
 		c.emit(op.Partial, uint16(len(args)))
 	} else {
 		c.emit(op.Call, uint16(len(args)))
@@ -845,7 +836,7 @@ func (c *Compiler) compileGetAttr(node *ast.GetAttr) error {
 	if err := c.compile(node.Object()); err != nil {
 		return err
 	}
-	idx := c.current.AddName(node.Name())
+	idx := c.current.addName(node.Name())
 	c.emit(op.LoadAttr, idx)
 	return nil
 }
@@ -865,7 +856,7 @@ func (c *Compiler) compileList(node *ast.List) error {
 	items := node.Items()
 	count := len(items)
 	if count > math.MaxUint16 {
-		return fmt.Errorf("list literal exceeds max size")
+		return fmt.Errorf("compile error: list literal exceeds max size")
 	}
 	for _, expr := range items {
 		if err := c.compile(expr); err != nil {
@@ -886,9 +877,9 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 				return err
 			}
 		case *ast.Ident:
-			c.emit(op.LoadConst, c.constant(object.NewString(k.String())))
+			c.emit(op.LoadConst, c.constant(k.String()))
 		default:
-			return fmt.Errorf("invalid map key type: %v", k)
+			return fmt.Errorf("compile error: invalid map key type: %v", k)
 		}
 		if err := c.compile(v); err != nil {
 			return err
@@ -916,7 +907,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
 	if len(node.Parameters()) > 255 {
-		return fmt.Errorf("function exceeded parameter limit of 255")
+		return fmt.Errorf("compile error: function exceeded parameter limit of 255")
 	}
 
 	// The function has an optional name. If it is named, the name will be
@@ -926,14 +917,10 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		functionName = ident.Literal()
 	}
 
-	// This new code object will store the compiled code for this function
-	code := &object.Code{
-		Name:    functionName,
-		IsNamed: functionName != "",
-		Parent:  c.current,
-		Symbols: c.current.Symbols.NewChild(),
-		Source:  node.Body().String(),
-	}
+	// This new code object will store the compiled code for this function.
+	c.funcIndex++
+	functionID := fmt.Sprintf("%d", c.funcIndex)
+	code := c.current.newChild(functionName, node.Body().String(), functionID)
 
 	// Setting current here means subsequent calls to compile will add to this
 	// code object instead of the parent.
@@ -948,35 +935,40 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 	// Build an array of default values for parameters, supporting only
 	// the basic types of int, string, bool, float, and nil.
-	defaults := make([]object.Object, len(params))
+	defaults := make([]any, len(params))
 	for name, expr := range node.Defaults() {
-		var value object.Object
+		var value any
 		switch expr := expr.(type) {
 		case *ast.Int:
-			value = object.NewInt(expr.Value())
+			value = expr.Value()
 		case *ast.String:
-			value = object.NewString(expr.Value())
+			value = expr.Value()
 		case *ast.Bool:
-			value = object.NewBool(expr.Value())
+			value = expr.Value()
 		case *ast.Float:
-			value = object.NewFloat(expr.Value())
+			value = expr.Value()
 		case *ast.Nil:
-			value = object.Nil
+			value = nil
 		default:
-			return fmt.Errorf("unsupported default value: %s", expr)
+			return fmt.Errorf("compile error: unsupported default value (got %s)", expr)
 		}
 		defaults[paramsIdx[name]] = value
 	}
 
-	// Add the parameter names to the symbol table.
+	// Add the parameter names to the symbol table
 	for _, arg := range node.Parameters() {
-		code.Symbols.InsertVariable(arg.Literal())
+		if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
+			return err
+		}
 	}
+
 	// Add the function's own name to its symbol table. This supports recursive
 	// calls to the function. Later when we create the function object, we'll
 	// add the object value to the table.
-	if code.IsNamed {
-		code.Symbols.InsertConstant(functionName)
+	if code.isNamed {
+		if _, err := code.symbols.InsertConstant(functionName); err != nil {
+			return err
+		}
 	}
 
 	// Compile the function body
@@ -989,42 +981,41 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	}
 
 	// We're done compiling the function, so switch back to compiling the parent
-	c.current = c.current.Parent
+	c.current = c.current.parent
 
-	// Create the function object that contains the compiled code
-	fn := object.NewFunction(object.FunctionOpts{
-		Name:           functionName,
-		ParameterNames: params,
-		Defaults:       defaults,
-		Code:           code,
+	// Create the function that contains the compiled code
+	fn := NewFunction(FunctionOpts{
+		ID:         functionID,
+		Name:       functionName,
+		Parameters: params,
+		Defaults:   defaults,
+		Code:       code,
 	})
-	if code.IsNamed {
-		code.Symbols.SetValue(functionName, fn)
-	}
 
 	// Emit the code to load the function object onto the stack. If there are
 	// free variables, we use LoadClosure, otherwise we use LoadConst.
-	freeSymbols := code.Symbols.Free()
-	if len(freeSymbols) > 0 {
-		for _, resolution := range freeSymbols {
-			c.emit(op.MakeCell, resolution.Symbol.Index, uint16(resolution.Depth-1))
+	freeCount := code.symbols.FreeCount()
+	if freeCount > 0 {
+		for i := uint16(0); i < freeCount; i++ {
+			resolution := code.symbols.Free(i)
+			c.emit(op.MakeCell, resolution.symbol.Index(), uint16(resolution.depth-1))
 		}
-		c.emit(op.LoadClosure, c.constant(fn), uint16(len(freeSymbols)))
+		c.emit(op.LoadClosure, c.constant(fn), freeCount)
 	} else {
 		c.emit(op.LoadConst, c.constant(fn))
 	}
 
 	// If the function was named, we store it as a named variable in the current
 	// code. Otherwise, we just leave it on the stack.
-	if functionName != "" {
-		funcSymbol, err := c.current.Symbols.InsertConstant(functionName)
+	if code.isNamed {
+		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
 		if err != nil {
 			return err
 		}
-		if c.current.Parent == nil {
-			c.emit(op.StoreGlobal, funcSymbol.Index)
+		if c.current.parent == nil {
+			c.emit(op.StoreGlobal, funcSymbol.Index())
 		} else {
-			c.emit(op.StoreFast, funcSymbol.Index)
+			c.emit(op.StoreFast, funcSymbol.Index())
 		}
 	}
 	return nil
@@ -1033,8 +1024,8 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 func (c *Compiler) compileControl(node *ast.Control) error {
 	literal := node.Literal()
 	if literal == "return" {
-		if c.current.Parent == nil {
-			return fmt.Errorf("return outside of function")
+		if c.current.parent == nil {
+			return fmt.Errorf("compile error: invalid return statement outside of a function")
 		}
 		value := node.Value()
 		if value == nil {
@@ -1050,16 +1041,16 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 	loop := c.currentLoop()
 	if loop == nil {
 		if literal == "break" {
-			return fmt.Errorf("break outside of loop")
+			return fmt.Errorf("compile error: invalid break statement outside of a loop")
 		}
-		return fmt.Errorf("continue outside of loop")
+		return fmt.Errorf("compile error: invalid continue statement outside of a loop")
 	}
 	if literal == "break" {
 		position := c.emit(op.JumpForward, Placeholder)
-		loop.BreakPos = append(loop.BreakPos, position)
+		loop.breakPos = append(loop.breakPos, position)
 	} else {
 		position := c.emit(op.JumpForward, Placeholder)
-		loop.ContinuePos = append(loop.ContinuePos, position)
+		loop.continuePos = append(loop.continuePos, position)
 	}
 	return nil
 }
@@ -1091,36 +1082,37 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		return c.compileSetItem(node)
 	}
 	name := node.Name()
-	resolution, found := c.current.Symbols.Lookup(name)
+	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("undefined variable: %s", name)
+		return fmt.Errorf("compile error: undefined variable %q", name)
 	}
-	sym := resolution.Symbol
-	if sym.IsConstant {
-		return fmt.Errorf("cannot assign to constant: %s", name)
+	sym := resolution.symbol
+	if sym.IsConstant() {
+		return fmt.Errorf("compile error: cannot assign to constant %q", name)
 	}
+	symbolIndex := sym.Index()
 	if node.Operator() == "=" {
 		if err := c.compile(node.Value()); err != nil {
 			return err
 		}
-		switch resolution.Scope {
-		case object.ScopeGlobal:
-			c.emit(op.StoreGlobal, sym.Index)
-		case object.ScopeLocal:
-			c.emit(op.StoreFast, sym.Index)
-		case object.ScopeFree:
-			c.emit(op.StoreFree, sym.Index)
+		switch resolution.scope {
+		case Global:
+			c.emit(op.StoreGlobal, symbolIndex)
+		case Local:
+			c.emit(op.StoreFast, symbolIndex)
+		case Free:
+			c.emit(op.StoreFree, uint16(resolution.freeIndex))
 		}
 		return nil
 	}
 	// Push LHS as TOS
-	switch resolution.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.LoadGlobal, sym.Index)
-	case object.ScopeLocal:
-		c.emit(op.LoadFast, sym.Index)
-	case object.ScopeFree:
-		c.emit(op.LoadFree, uint16(resolution.FreeIndex))
+	switch resolution.scope {
+	case Global:
+		c.emit(op.LoadGlobal, symbolIndex)
+	case Local:
+		c.emit(op.LoadFast, symbolIndex)
+	case Free:
+		c.emit(op.LoadFree, uint16(resolution.freeIndex))
 	}
 	// Push RHS as TOS
 	if err := c.compile(node.Value()); err != nil {
@@ -1138,13 +1130,13 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 		c.emit(op.BinaryOp, uint16(op.Divide))
 	}
 	// Store TOS in LHS
-	switch resolution.Scope {
-	case object.ScopeGlobal:
-		c.emit(op.StoreGlobal, sym.Index)
-	case object.ScopeLocal:
-		c.emit(op.StoreFast, sym.Index)
-	case object.ScopeFree:
-		c.emit(op.StoreFree, sym.Index)
+	switch resolution.scope {
+	case Global:
+		c.emit(op.StoreGlobal, symbolIndex)
+	case Local:
+		c.emit(op.StoreFast, symbolIndex)
+	case Free:
+		c.emit(op.StoreFree, uint16(resolution.freeIndex))
 	}
 	return nil
 }
@@ -1158,25 +1150,25 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	c.emit(op.GetIter)
 
 	code := c.current
-	code.Symbols = code.Symbols.NewBlock()
+	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
-		code.Symbols = code.Symbols.Parent()
+		code.symbols = code.symbols.parent
 	}()
 
 	iterPos := c.emit(op.ForIter, 0, uint16(len(names)))
 
 	// assign the current value of the iterator to the loop variable
 	for _, name := range names {
-		sym, err := code.Symbols.InsertVariable(name)
+		sym, err := code.symbols.InsertVariable(name)
 		if err != nil {
 			return err
 		}
-		if code.Symbols.IsGlobal() {
-			c.emit(op.StoreGlobal, sym.Index)
+		if code.symbols.IsGlobal() {
+			c.emit(op.StoreGlobal, sym.Index())
 		} else {
-			c.emit(op.StoreFast, sym.Index)
+			c.emit(op.StoreFast, sym.Index())
 		}
 	}
 
@@ -1201,7 +1193,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	c.changeOperand(iterPos, delta)
 
 	// Update breaks to jump to this point
-	for _, pos := range loop.BreakPos {
+	for _, pos := range loop.breakPos {
 		delta, err = c.calculateDelta(pos)
 		if err != nil {
 			return err
@@ -1210,13 +1202,58 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	}
 
 	// Update continues
-	for _, pos := range loop.ContinuePos {
+	for _, pos := range loop.continuePos {
 		delta := jumpBackPos - pos
 		if delta > math.MaxUint16 {
-			return fmt.Errorf("loop size exceeded limits")
+			return fmt.Errorf("compile error: loop code size exceeded limits")
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
+	return nil
+}
+
+func (c *Compiler) compileForCondition(forNode *ast.For, condition ast.Expression) error {
+	code := c.current
+	code.symbols = code.symbols.NewBlock()
+	loop := c.startLoop()
+	defer func() {
+		c.endLoop()
+		code.symbols = code.symbols.parent
+	}()
+	startPos := c.currentPosition()
+	if err := c.compile(condition); err != nil {
+		return err
+	}
+	jumpDefaultPos := c.emit(op.PopJumpForwardIfFalse, Placeholder)
+	if err := c.compile(forNode.Consequence()); err != nil {
+		return err
+	}
+	c.emit(op.PopTop)
+	delta, err := c.calculateDelta(startPos)
+	if err != nil {
+		return err
+	}
+	jumpBackPos := c.emit(op.JumpBackward, delta)
+	nopPos := c.emit(op.Nop)
+	for _, pos := range loop.breakPos {
+		delta := nopPos - pos
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("compile error: loop code size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+	for _, pos := range loop.continuePos {
+		delta := jumpBackPos - pos
+		if delta > math.MaxUint16 {
+			return fmt.Errorf("compile error: loop code size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+	delta, err = c.calculateDelta(jumpDefaultPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(jumpDefaultPos, delta)
 	return nil
 }
 
@@ -1241,7 +1278,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		case *ast.MultiVar:
 			names, rhs := cond.Value()
 			if len(names) != 2 {
-				return fmt.Errorf("invalid for loop")
+				return fmt.Errorf("compile error: invalid for loop")
 			}
 			if rangeNode, ok := rhs.(*ast.Range); ok {
 				return c.compileForRange(node, names, rangeNode.Container())
@@ -1250,6 +1287,8 @@ func (c *Compiler) compileFor(node *ast.For) error {
 			}
 		case *ast.Range:
 			return c.compileForRange(node, nil, cond.Container())
+		case *ast.Infix:
+			return c.compileForCondition(node, cond)
 		default:
 			return c.compileForRange(node, nil, cond)
 		}
@@ -1257,11 +1296,11 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 	// For-Condition loop e.g. `for i := 0; i < 10; i++ { ... }`
 	code := c.current
-	code.Symbols = code.Symbols.NewBlock()
+	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
-		code.Symbols = code.Symbols.Parent()
+		code.symbols = code.symbols.parent
 	}()
 
 	// Compile the init statement if present
@@ -1292,7 +1331,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 	// This is where "continue" statements should jump to so that they pick
 	// up the "post" statement if there is one before going back to the beginning.
-	continueDst := len(c.current.Instructions)
+	continueDst := len(c.current.instructions)
 
 	// Compile the post statement if present
 	if node.Post() != nil {
@@ -1323,7 +1362,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	}
 
 	// Update breaks to jump to this point
-	for _, pos := range loop.BreakPos {
+	for _, pos := range loop.breakPos {
 		delta, err = c.calculateDelta(pos)
 		if err != nil {
 			return err
@@ -1332,10 +1371,10 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	}
 
 	// Update continues to jump to the post statement
-	for _, pos := range loop.ContinuePos {
+	for _, pos := range loop.continuePos {
 		delta := continueDst - pos
 		if delta > math.MaxUint16 {
-			return fmt.Errorf("loop size exceeded limits")
+			return fmt.Errorf("compile error: loop code size exceeded limits")
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
@@ -1344,11 +1383,11 @@ func (c *Compiler) compileFor(node *ast.For) error {
 
 func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	code := c.current
-	code.Symbols = code.Symbols.NewBlock()
+	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
 		c.endLoop()
-		code.Symbols = code.Symbols.Parent()
+		code.symbols = code.symbols.parent
 	}()
 	startPos := c.currentPosition()
 	if err := c.compile(node.Consequence()); err != nil {
@@ -1361,17 +1400,17 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	}
 	jumpBackPos := c.emit(op.JumpBackward, delta)
 	nopPos := c.emit(op.Nop)
-	for _, pos := range loop.BreakPos {
+	for _, pos := range loop.breakPos {
 		delta := nopPos - pos
 		if delta > math.MaxUint16 {
-			return fmt.Errorf("loop size exceeded limits")
+			return fmt.Errorf("compile error: loop code size exceeded limits")
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
-	for _, pos := range loop.ContinuePos {
+	for _, pos := range loop.continuePos {
 		delta := jumpBackPos - pos
 		if delta > math.MaxUint16 {
-			return fmt.Errorf("loop size exceeded limits")
+			return fmt.Errorf("compile error: loop code size exceeded limits")
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
@@ -1428,30 +1467,34 @@ func (c *Compiler) compileIf(node *ast.If) error {
 }
 
 func (c *Compiler) calculateDelta(pos int) (uint16, error) {
-	instrCount := len(c.current.Instructions)
+	instrCount := len(c.current.instructions)
 	delta := instrCount - pos
 	if delta > math.MaxUint16 {
-		return 0, fmt.Errorf("jump destination too far away")
+		return 0, fmt.Errorf("compile error: jump destination is too far away")
 	}
 	return uint16(delta), nil
 }
 
 func (c *Compiler) changeOperand(instructionIndex int, operand uint16) {
-	c.current.Instructions[instructionIndex+1] = op.Code(operand)
+	c.current.instructions[instructionIndex+1] = op.Code(operand)
 }
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
+	operator := node.Operator()
+	// Short-circuit operators
+	if operator == "&&" {
+		return c.compileAnd(node)
+	} else if operator == "||" {
+		return c.compileOr(node)
+	}
+	// Non-short-circuit operators
 	if err := c.compile(node.Left()); err != nil {
 		return err
 	}
 	if err := c.compile(node.Right()); err != nil {
 		return err
 	}
-	switch node.Operator() {
-	case "&&":
-		c.emit(op.BinaryOp, uint16(op.And))
-	case "||":
-		c.emit(op.BinaryOp, uint16(op.Or))
+	switch operator {
 	case "+":
 		c.emit(op.BinaryOp, uint16(op.Add))
 	case "-":
@@ -1481,34 +1524,73 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 	case "!=":
 		c.emit(op.CompareOp, uint16(op.NotEqual))
 	default:
-		return fmt.Errorf("unknown operator: %s", node.Operator())
+		return fmt.Errorf("compile error: unknown operator %q", node.Operator())
 	}
 	return nil
 }
 
-func (c *Compiler) constant(obj object.Object) uint16 {
+func (c *Compiler) compileAnd(node *ast.Infix) error {
+	// The "&&" AND operator needs to have "short circuit" behavior
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	c.emit(op.Copy, 0) // Duplicate LHS
+	jumpPos := c.emit(op.PopJumpForwardIfFalse, Placeholder)
+	if err := c.compile(node.Right()); err != nil {
+		return err
+	}
+	c.emit(op.BinaryOp, uint16(op.And))
+	c.emit(op.Nop)
+	delta, err := c.calculateDelta(jumpPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(jumpPos, delta)
+	return nil
+}
+
+func (c *Compiler) compileOr(node *ast.Infix) error {
+	// The "||" OR operator needs to have "short circuit" behavior
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	c.emit(op.Copy, 0) // Duplicate LHS
+	jumpPos := c.emit(op.PopJumpForwardIfTrue, Placeholder)
+	if err := c.compile(node.Right()); err != nil {
+		return err
+	}
+	c.emit(op.BinaryOp, uint16(op.Or))
+	c.emit(op.Nop)
+	delta, err := c.calculateDelta(jumpPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(jumpPos, delta)
+	return nil
+}
+
+func (c *Compiler) constant(obj any) uint16 {
 	code := c.current
-	if len(code.Constants) >= math.MaxUint16 {
-		c.failure = fmt.Errorf("number of constants exceeded limits")
+	if len(code.constants) >= math.MaxUint16 {
+		c.failure = fmt.Errorf("compile error: number of constants exceeded limits")
 		return 0
 	}
-	code.Constants = append(code.Constants, obj)
-	return uint16(len(code.Constants) - 1)
+	code.constants = append(code.constants, obj)
+	return uint16(len(code.constants) - 1)
 }
 
 func (c *Compiler) emit(opcode op.Code, operands ...uint16) int {
-	inst := MakeInstruction(opcode, operands...)
+	inst := makeInstruction(opcode, operands...)
 	code := c.current
-	pos := len(code.Instructions)
-	// fmt.Println("EMIT", len(code.Instructions), op.GetInfo(opcode).Name, operands)
-	code.Instructions = append(code.Instructions, inst...)
+	pos := len(code.instructions)
+	code.instructions = append(code.instructions, inst...)
 	return pos
 }
 
-func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
-	opInfo := op.OperandCount[opcode]
+func makeInstruction(opcode op.Code, operands ...uint16) []op.Code {
+	opInfo := op.GetInfo(opcode)
 	if len(operands) != opInfo.OperandCount {
-		panic("wrong operand count")
+		panic("compile error: wrong operand count")
 	}
 	instruction := make([]op.Code, 1+opInfo.OperandCount)
 	instruction[0] = opcode
@@ -1519,48 +1601,3 @@ func MakeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 	}
 	return instruction
 }
-
-func sortedKeys(objects map[string]object.Object) []string {
-	keys := make([]string, 0, len(objects))
-	for k := range objects {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-// func ReadInstruction(data []uint16) (op.Code, []int, []byte) {
-// 	opcode := op.Code(bytes[0])
-// 	opInfo := op.OperandCount[opcode]
-// 	totalWidth := 0
-// 	var operands []int
-// 	for i := 0; i < opInfo.OperandCount; i++ {
-// 		width := opInfo.OperandWidths[i]
-// 		totalWidth += width
-// 		switch width {
-// 		case 1:
-// 			operands = append(operands, int(bytes[1]))
-// 		case 2:
-// 			operands = append(operands, int(binary.LittleEndian.Uint16(bytes[1:3])))
-// 		}
-// 	}
-// 	return opcode, operands, bytes[1+totalWidth:]
-// }
-
-// func ReadOp(instructions []op.Code) (op.Code, []int) {
-// 	opcode := instructions[0]
-// 	opInfo := op.OperandCount[opcode]
-// 	var operands []int
-// 	offset := 0
-// 	for i := 0; i < opInfo.OperandCount; i++ {
-// 		width := opInfo.OperandWidths[i]
-// 		switch width {
-// 		case 1:
-// 			operands = append(operands, int(instructions[offset+1]))
-// 		case 2:
-// 			operands = append(operands, int(binary.LittleEndian.Uint16([]byte{byte(instructions[offset+1]), byte(instructions[offset+2])})))
-// 		}
-// 		offset += width
-// 	}
-// 	return opcode, operands
-// }

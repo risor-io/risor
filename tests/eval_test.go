@@ -79,9 +79,7 @@ func getTestCase(name string) (TestCase, error) {
 }
 
 func execute(ctx context.Context, input string) (object.Object, error) {
-	return risor.Eval(ctx, input,
-		risor.WithDefaultBuiltins(),
-		risor.WithDefaultModules())
+	return risor.Eval(ctx, input)
 }
 
 func listTestFiles() []string {

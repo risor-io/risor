@@ -26,24 +26,3 @@ func GetCallFunc(ctx context.Context) (CallFunc, bool) {
 	fn, ok := ctx.Value(callFuncKey).(CallFunc)
 	return fn, ok
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// Store and retrieve a function that can retrieve the active code
-////////////////////////////////////////////////////////////////////////////////
-
-// CodeFunc is a type signature for a function that can retrieve the active code.
-type CodeFunc func(ctx context.Context) (*Code, error)
-
-const codeFuncKey = contextKey("risor:code")
-
-// WithCodeFunc adds an CodeFunc to the context, which can be used by
-// objects to retrieve the active code at runtime
-func WithCodeFunc(ctx context.Context, fn CodeFunc) context.Context {
-	return context.WithValue(ctx, codeFuncKey, fn)
-}
-
-// GetCodeFunc returns the CodeFunc from the context, if it exists.
-func GetCodeFunc(ctx context.Context) (CodeFunc, bool) {
-	fn, ok := ctx.Value(codeFuncKey).(CodeFunc)
-	return fn, ok
-}

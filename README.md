@@ -6,13 +6,13 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/risor-io/risor?style=flat-square)](https://goreportcard.com/report/github.com/risor-io/risor)
 [![Releases](https://img.shields.io/github/release/risor-io/risor/all.svg?style=flat-square)](https://github.com/risor-io/risor/releases)
 
-A fast and flexible scripting language for Go developers and DevOps.
+Risor is a fast and flexible scripting language for Go developers and DevOps.
 
-Risor modules integrate the Go standard library, making it easy to use functions
+Its modules integrate the Go standard library, making it easy to use functions
 that you're already familiar with as a Go developer.
 
-Scripts are compiled to bytecode internally which it then runs on a lightweight
-virtual machine. Risor is written in pure Go.
+Scripts are compiled to bytecode and then run on a lightweight virtual machine.
+Risor is written in pure Go.
 
 ## Documentation
 
@@ -35,17 +35,12 @@ brew install risor
 Having done that, just run `risor` to start the CLI or `risor -h` to see
 usage information.
 
-## Using Risor
+Execute a code snippet directly using the `-c` option:
 
-Risor is designed to be versatile and accommodate a variety of usage patterns. You can leverage Risor in the following ways:
-
-- **REPL**: Risor offers a Read-Evaluate-Print-Loop (REPL) that you can use to interactively write and test scripts. This is perfect for experimentation and debugging.
-
-- **Library**: Risor can be imported as a library into existing Go projects. It provides a simple API for running scripts and interacting with the results, in isolated environments for sandboxing.
-
-- **Executable script runner**: Risor scripts can also be marked as executable, providing a simple way to leverage Risor in your build scripts, automation, and other tasks.
-
-- **API**: (Coming soon) A service and API will be provided for remotely executing and managing Risor scripts. This will allow integration into various web applications, potentially with self-hosted and a managed cloud version.
+```go
+risor -c "time.now()"
+"2023-08-19T16:15:46-04:00"
+```
 
 ## Quick Example
 
@@ -65,6 +60,63 @@ Output:
 
 ```
 GOPHERS ARE BURROWING RODENTS
+```
+
+## Built-in Functions and Modules
+
+30+ built-in functions are included and are documented [here](https://risor.io/docs/builtins).
+
+Modules are included that generally wrap the equivalent Go package. For example,
+there is direct correspondence between `base64`, `bytes`, `json`, `math`, `os`,
+`rand`, `strconv`, `strings`, and `time` Risor modules and the Go standard library.
+
+Risor modules that are beyond the Go standard library include `aws`, `pgx`, and
+`uuid`. Additional modules are being added regularly.
+
+## Using Risor
+
+Risor is designed to be versatile and accommodate a variety of usage patterns. You can leverage Risor in the following ways:
+
+- **REPL**: Risor offers a Read-Evaluate-Print-Loop (REPL) that you can use to interactively write and test scripts. This is perfect for experimentation and debugging.
+
+- **Library**: Risor can be imported as a library into existing Go projects. It provides a simple API for running scripts and interacting with the results, in isolated environments for sandboxing.
+
+- **Executable script runner**: Risor scripts can also be marked as executable, providing a simple way to leverage Risor in your build scripts, automation, and other tasks.
+
+- **API**: (Coming soon) A service and API will be provided for remotely executing and managing Risor scripts. This will allow integration into various web applications, potentially with self-hosted and a managed cloud version.
+
+## Go Interface
+
+It is trivial to embed Risor in your Go program in order to evaluate scripts
+that have access to arbitrary Go structs and other types.
+
+The simplest way to use Risor is to call the `Eval` function and provide the
+Risor script source code. The result of the script is returned as a Risor object:
+
+```go
+result, err := risor.Eval(ctx, "math.min([5, 3, 7])")
+min := result.(*object.Int).Value()
+```
+
+Provide input to the script using Risor options:
+
+```go
+result, err := risor.Eval(ctx, "input | strings.to_upper", risor.WithGlobal("input", "hello"))
+fmt.Println(result) // HELLO
+```
+
+Use the same mechanism to inject a struct. You can then access fields or call
+methods on the struct from the Risor script:
+
+```go
+type Example struct {
+    Message string
+}
+
+ex := &Example{"abc"}
+
+result, err := risor.Eval(ctx, "len(ex.Message)", risor.WithGlobal("ex", ex))
+fmt.Println(result) // 3
 ```
 
 ## Syntax Highlighting
@@ -87,13 +139,6 @@ Risor is intended to be a community project. You can lend a hand in various ways
 
 Please visit the [GitHub discussions](https://github.com/risor-io/risor/discussions)
 page to share thoughts and questions.
-
-## Notice: Project Renamed
-
-Risor is a young project and until June 28, 2023 was known as _Tamarin_. For
-various reasons, the project needed a new name that would take the project into
-the future. Risor is a fun name, a bit shorter, and I can get a domain name for
-the project. Thanks for bearing with me during this update!
 
 ## Credits
 

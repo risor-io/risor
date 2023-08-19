@@ -225,8 +225,15 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	var numParameters int
 	switch obj := fn.(type) {
 	case *Builtin:
-		// numParameters = 1
-		return Errorf("todo")
+		result := make([]Object, 0, len(ls.items))
+		for _, value := range ls.items {
+			outputValue := obj.fn(ctx, value)
+			if IsError(outputValue) {
+				return outputValue
+			}
+			result = append(result, outputValue)
+		}
+		return NewList(result)
 	case *Function:
 		numParameters = len(obj.parameters)
 	default:

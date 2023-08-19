@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
@@ -21,26 +22,24 @@ const (
 	MB            = 1024 * 1024
 )
 
-type Options struct {
-	Main              *object.Code
-	InstructionOffset int
-	Importer          importer.Importer
-}
-
 type VirtualMachine struct {
-	ip          int // instruction pointer
-	sp          int // stack pointer
-	fp          int // frame pointer
-	halt        int32
-	stack       [MaxStackDepth]object.Object
-	frames      [MaxFrameDepth]Frame
-	tmp         [MaxArgs]object.Object
-	activeFrame *Frame
-	activeCode  *object.Code
-	main        *object.Code
-	importer    importer.Importer
-	modules     map[string]*object.Module
-	limits      limits.Limits
+	ip           int // instruction pointer
+	sp           int // stack pointer
+	fp           int // frame pointer
+	halt         int32
+	stack        [MaxStackDepth]object.Object
+	frames       [MaxFrameDepth]frame
+	tmp          [MaxArgs]object.Object
+	activeFrame  *frame
+	activeCode   *code
+	main         *compiler.Code
+	importer     importer.Importer
+	modules      map[string]*object.Module
+	inputGlobals map[string]any
+	globals      map[string]object.Object
+	limits       limits.Limits
+	loadedCode   map[*compiler.Code]*code
+	running      bool
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -67,17 +66,41 @@ func WithLimits(limits limits.Limits) Option {
 	}
 }
 
+// WithGlobals provides global variables with the given names.
+func WithGlobals(globals map[string]any) Option {
+	return func(vm *VirtualMachine) {
+		for name, value := range globals {
+			vm.inputGlobals[name] = value
+		}
+	}
+}
+
 func defaultLimits() limits.Limits {
 	return limits.New(limits.WithMaxBufferSize(100 * MB))
 }
 
+// Run the given code in a new Virtual Machine and return the result.
+func Run(ctx context.Context, main *compiler.Code, options ...Option) (object.Object, error) {
+	machine := New(main, options...)
+	if err := machine.Run(ctx); err != nil {
+		return nil, err
+	}
+	if result, exists := machine.TOS(); exists {
+		return result, nil
+	}
+	return object.Nil, nil
+}
+
 // New creates a new Virtual Machine.
-func New(main *object.Code, options ...Option) *VirtualMachine {
+func New(main *compiler.Code, options ...Option) *VirtualMachine {
 	vm := &VirtualMachine{
-		sp:      -1,
-		ip:      0,
-		main:    main,
-		modules: map[string]*object.Module{},
+		sp:           -1,
+		ip:           0,
+		main:         main,
+		modules:      map[string]*object.Module{},
+		inputGlobals: map[string]any{},
+		globals:      map[string]object.Object{},
+		loadedCode:   map[*compiler.Code]*code{},
 	}
 	for _, opt := range options {
 		opt(vm)
@@ -98,21 +121,63 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	}()
 
 	// Halt execution when the context is cancelled
-	go func() {
-		<-ctx.Done()
-		atomic.StoreInt32(&vm.halt, 1)
-	}()
+	if doneChan := ctx.Done(); doneChan != nil {
+		go func() {
+			<-doneChan
+			atomic.StoreInt32(&vm.halt, 1)
+		}()
+	}
+
+	// Disallow providing a context with a preset call function
+	if _, found := object.GetCallFunc(ctx); found {
+		return errors.New("exec error: context should not contain a call function")
+	}
+
+	// Convert globals
+	vm.globals, err = object.AsObjects(vm.inputGlobals)
+	if err != nil {
+		return err
+	}
+
+	// Keep `running` flag up-to-date
+	vm.running = true
+	defer func() { vm.running = false }()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
-	vm.fp = 0
-	vm.activeFrame = &vm.frames[vm.fp]
-	vm.activeFrame.ActivateCode(vm.main)
-	vm.activeCode = vm.main
+	code := vm.load(vm.main)
+	vm.activateCode(0, 0, code)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
-	ctx = object.WithCodeFunc(ctx, vm.codeFunction)
 	ctx = limits.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
 	return
+}
+
+// Get a global variable by name as a Risor Object. Returns an error if the
+// variable can't be found.
+func (vm *VirtualMachine) Get(name string) (object.Object, error) {
+	code := vm.activeCode
+	if code == nil {
+		return nil, errors.New("no active code")
+	}
+	for i := 0; i < code.GlobalsCount(); i++ {
+		if g := code.Global(i); g.Name() == name {
+			return code.Globals[g.Index()], nil
+		}
+	}
+	return nil, fmt.Errorf("global with name %q not found", name)
+}
+
+// GlobalNames returns the names of all global variables in the active code.
+func (vm *VirtualMachine) GlobalNames() []string {
+	if vm.activeCode == nil {
+		return nil
+	}
+	count := vm.activeCode.GlobalsCount()
+	names := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		names = append(names, vm.activeCode.Global(i).Name())
+	}
+	return names
 }
 
 // Evaluate the active code. The caller must initialize the following variables
@@ -169,14 +234,14 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.LoadFast:
 			vm.push(vm.activeFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
-			vm.push(vm.activeCode.Globals()[vm.fetch()])
+			vm.push(vm.activeCode.Globals[vm.fetch()])
 		case op.LoadFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			vm.push(freeVars[vm.fetch()].Value())
 		case op.StoreFast:
 			vm.activeFrame.Locals()[vm.fetch()] = vm.pop()
 		case op.StoreGlobal:
-			vm.activeCode.Globals()[vm.fetch()] = vm.pop()
+			vm.activeCode.Globals[vm.fetch()] = vm.pop()
 		case op.StoreFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			freeVars[vm.fetch()].Set(vm.pop())
@@ -194,8 +259,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				}
 			}
 			fn := vm.activeCode.Constants[constIndex].(*object.Function)
-			closure := object.NewClosure(fn, fn.Code(), free)
-			vm.push(closure)
+			vm.push(object.NewClosure(fn, free))
 		case op.MakeCell:
 			symbolIndex := vm.fetch()
 			framesBack := int(vm.fetch())
@@ -242,10 +306,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(partial)
 		case op.ReturnValue:
 			returnAddr := vm.frames[vm.fp].returnAddr
-			vm.fp--
-			vm.activeFrame = &vm.frames[vm.fp]
-			vm.activeCode = vm.activeFrame.Code()
-			vm.ip = returnAddr
+			vm.activateFrame(vm.fp-1, returnAddr)
 			if returnAddr == StopSignal {
 				// If StopSignal is found as the return address, it means the
 				// current eval call should stop.
@@ -495,34 +556,17 @@ func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.
 	if err != nil {
 		return nil, err
 	}
-	code := module.Code()
-
-	// Allocate a new frame to evaluate the module code
-	baseFrame := vm.fp
-	vm.fp++
-	frame := &vm.frames[vm.fp]
-	frame.ActivateCode(code)
-	frame.SetReturnAddr(vm.ip)
-	vm.activeFrame = &vm.frames[vm.fp]
-	vm.activeCode = vm.activeFrame.code
-	vm.ip = 0
-
+	// Activate a new frame to evaluate the module code
+	baseFP := vm.fp
+	baseIP := vm.ip
+	code := vm.load(module.Code())
+	vm.activateCode(vm.fp+1, 0, code)
+	// Restore the previous frame when done
+	defer vm.activateFrame(baseFP, baseIP)
 	// Evaluate the module code
 	if err := vm.eval(ctx); err != nil {
-		// Unwind the stack
-		vm.fp = baseFrame
-		vm.activeFrame = &vm.frames[vm.fp]
-		vm.activeCode = vm.activeFrame.code
-		vm.ip = frame.returnAddr
 		return nil, err
 	}
-
-	// Resume the previous frame
-	vm.fp--
-	vm.ip = vm.activeFrame.returnAddr
-	vm.activeFrame = &vm.frames[vm.fp]
-	vm.activeCode = vm.activeFrame.code
-
 	// Cache the module
 	vm.modules[name] = module
 	return module, nil
@@ -539,8 +583,6 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 		}
 		vm.push(result)
 	case *object.Function:
-		vm.fp++
-		frame := &vm.frames[vm.fp]
 		paramsCount := len(fn.Parameters())
 		if err := checkCallArgs(fn, argc); err != nil {
 			return err
@@ -553,14 +595,11 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 			argc = paramsCount
 		}
 		code := fn.Code()
-		if code.IsNamed {
+		if code.IsNamed() {
 			vm.tmp[paramsCount] = fn
 			argc++
 		}
-		frame.ActivateFunction(fn, vm.ip, vm.tmp[:argc])
-		vm.activeFrame = frame
-		vm.activeCode = code
-		vm.ip = 0
+		vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
 	case *object.Partial:
 		// Combine the current arguments with the partial's arguments
 		expandedCount := argc + len(fn.Args())
@@ -585,6 +624,7 @@ func (vm *VirtualMachine) TOS() (object.Object, bool) {
 
 func (vm *VirtualMachine) pop() object.Object {
 	obj := vm.stack[vm.sp]
+	vm.stack[vm.sp] = nil
 	vm.sp--
 	return obj
 }
@@ -608,24 +648,37 @@ func (vm *VirtualMachine) fetch() uint16 {
 	return uint16(vm.activeCode.Instructions[ip])
 }
 
-func (vm *VirtualMachine) codeFunction(ctx context.Context) (*object.Code, error) {
-	return vm.activeCode, nil
+// Call a named function with the given arguments. The function is expected to
+// be present in the global scope of the active code. If the function can't be
+// found then an error is returned.
+func (vm *VirtualMachine) Call(ctx context.Context, functionName string, args []object.Object) (object.Object, error) {
+	if vm.running {
+		return nil, errors.New("exec error: cannot call function while the vm is running")
+	}
+	obj, err := vm.Get(functionName)
+	if err != nil {
+		return nil, err
+	}
+	fn, ok := obj.(*object.Function)
+	if !ok {
+		return nil, fmt.Errorf("type error: object is not a function (got %s)", obj.Type())
+	}
+	return vm.callFunction(ctx, fn, args)
 }
 
 // Calls a compiled function with the given arguments. This is used internally
 // when a Risor object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
 func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
-	baseFrame := vm.fp
+	baseFP := vm.fp
 	baseIP := vm.ip
-	// Advance to the next frame
-	vm.fp++
-	frame := &vm.frames[vm.fp]
+
 	// Check that the argument count is appropriate
 	paramsCount := len(fn.Parameters())
 	argc := len(args)
 	if err := checkCallArgs(fn, argc); err != nil {
 		return nil, err
 	}
+
 	// Assemble frame local variables in vm.tmp. The local variable order is:
 	// 1. Function parameters
 	// 2. Function name (if the function is named)
@@ -635,29 +688,83 @@ func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function,
 		for i := argc; i < len(defaults); i++ {
 			vm.tmp[i] = defaults[i]
 		}
+		argc = paramsCount
 	}
 	code := fn.Code()
-	if code.IsNamed {
+	if code.IsNamed() {
 		vm.tmp[paramsCount] = fn
 		argc++
 	}
-	// Activate this new frame with the function code and local variables
-	frame.ActivateFunction(fn, StopSignal, vm.tmp[:argc])
-	vm.activeFrame = frame
-	vm.activeCode = code
-	vm.ip = 0
+
+	// Activate a frame for the function call
+	vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
+
+	// Setting StopSignal as the return address will cause the eval function to
+	// stop execution when it reaches the end of the active code.
+	vm.activeFrame.returnAddr = StopSignal
+
+	// Restore the previous frame when done
+	defer vm.activateFrame(baseFP, baseIP)
+
 	// Evaluate the function code then return the result from TOS
 	if err := vm.eval(ctx); err != nil {
-		// Unwind the stack
-		vm.fp = baseFrame
-		vm.activeFrame = &vm.frames[vm.fp]
-		vm.activeCode = vm.activeFrame.code
-		vm.ip = baseIP
 		return nil, err
 	}
-	vm.ip = baseIP
-	value := vm.pop()
-	return value, nil
+	return vm.pop(), nil
+}
+
+// Wrap the *compiler.Code in a *code object to make it usable by the VM.
+func (vm *VirtualMachine) load(cc *compiler.Code) *code {
+	if code, ok := vm.loadedCode[cc]; ok {
+		return code
+	}
+	// Loading is slightly different if this is the "root" (entrypoint) code
+	// vs. a child of that. The root code owns the globals array, while the
+	// children will reuse the globals from the root.
+	rootCompiled := cc.Root()
+	if rootCompiled == cc {
+		c := loadRootCode(cc, vm.globals)
+		vm.loadedCode[cc] = c
+		return c
+	}
+	rootLoaded := vm.load(rootCompiled)
+	c := loadChildCode(rootLoaded, cc)
+	vm.loadedCode[cc] = c
+	return c
+}
+
+// Activate the frame at the given frame pointer and instruction pointer.
+// This is typically used to resume execution of a previous frame, because
+// that frame's code is left as-is.
+func (vm *VirtualMachine) activateFrame(fp, ip int) *frame {
+	vm.fp = fp
+	vm.ip = ip
+	vm.activeFrame = &vm.frames[fp]
+	vm.activeCode = vm.activeFrame.code
+	return vm.activeFrame
+}
+
+// Activate a frame with the given code. This is typically used to begin
+// running the entrypoint for a module or script.
+func (vm *VirtualMachine) activateCode(fp, ip int, code *code) *frame {
+	vm.fp = fp
+	vm.ip = ip
+	vm.activeFrame = &vm.frames[fp]
+	vm.activeFrame.ActivateCode(code)
+	vm.activeCode = code
+	return vm.activeFrame
+}
+
+// Activate a frame with the given function, to implement a function call.
+func (vm *VirtualMachine) activateFunction(fp, ip int, fn *object.Function, locals []object.Object) *frame {
+	code := vm.load(fn.Code())
+	returnAddr := vm.ip
+	vm.fp = fp
+	vm.ip = ip
+	vm.activeFrame = &vm.frames[fp]
+	vm.activeFrame.ActivateFunction(fn, code, returnAddr, locals)
+	vm.activeCode = code
+	return vm.activeFrame
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {

@@ -19,54 +19,64 @@ type Importer interface {
 }
 
 type LocalImporter struct {
-	builtins   map[string]object.Object
-	modules    map[string]*object.Module
-	sourceDir  string
-	extensions []string
+	globalNames []string
+	codeCache   map[string]*compiler.Code
+	sourceDir   string
+	extensions  []string
 }
 
+// LocalImporterOptions configure an Importer that can read from the local
+// filesystem.
 type LocalImporterOptions struct {
-	Builtins   map[string]object.Object
-	SourceDir  string
+
+	// Global names that should be available when the module is compiled.
+	GlobalNames []string
+
+	// The directory to search for Risor modules.
+	SourceDir string
+
+	// Optional list of file extensions to try when locating a Risor module.
 	Extensions []string
 }
 
+// NewLocalImporter returns an Importer that can read Risor code modules from
+// the local filesystem. Internally, loaded code is cached in memory. However,
+// a new Module is created for each Import call. If the caller wants to reuse
+// the same Module, it should be cached by the caller. It is safe to reuse the
+// same local importer across multiple VMs and evaluations, because the cached
+// code is immutable.
 func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
-	if opts.Builtins == nil {
-		opts.Builtins = map[string]object.Object{}
-	}
 	if opts.Extensions == nil {
 		opts.Extensions = []string{".risor", ".rsr"}
 	}
 	return &LocalImporter{
-		builtins:   opts.Builtins,
-		modules:    map[string]*object.Module{},
-		sourceDir:  opts.SourceDir,
-		extensions: opts.Extensions,
+		globalNames: opts.GlobalNames,
+		codeCache:   map[string]*compiler.Code{},
+		sourceDir:   opts.SourceDir,
+		extensions:  opts.Extensions,
 	}
 }
 
 func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
-	if m, ok := i.modules[name]; ok {
-		return m, nil
+	if code, ok := i.codeCache[name]; ok {
+		return object.NewModule(name, code), nil
 	}
 	source, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
 		return nil, fmt.Errorf("module not found: %s", name)
 	}
-	cmp, err := compiler.New(compiler.WithBuiltins(i.builtins))
-	if err != nil {
-		return nil, err
-	}
 	ast, err := parser.Parse(ctx, source)
 	if err != nil {
 		return nil, err
 	}
-	code, err := cmp.Compile(ast)
+	var opts []compiler.Option
+	if len(i.globalNames) > 0 {
+		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
+	}
+	code, err := compiler.Compile(ast, opts...)
 	if err != nil {
 		return nil, err
 	}
-	code.Name = fmt.Sprintf("module: %s", name)
 	return object.NewModule(name, code), nil
 }
 

@@ -18,6 +18,7 @@ package object
 
 import (
 	"context"
+	"sort"
 
 	"github.com/risor-io/risor/op"
 )
@@ -30,15 +31,15 @@ const (
 	BOOL          Type = "bool"
 	BUFFER        Type = "buffer"
 	BUILTIN       Type = "builtin"
-	BYTE_SLICE    Type = "byte_slice"
 	BYTE          Type = "byte"
+	BYTE_SLICE    Type = "byte_slice"
 	CELL          Type = "cell"
 	COLOR         Type = "color"
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"
 	DIR_ENTRY     Type = "dir_entry"
-	DYNAMIC_ATTR  Type = "dynamic_attr"
 	DURATION      Type = "duration"
+	DYNAMIC_ATTR  Type = "dynamic_attr"
 	ERROR         Type = "error"
 	FILE          Type = "file"
 	FILE_INFO     Type = "file_info"
@@ -47,9 +48,9 @@ const (
 	FLOAT         Type = "float"
 	FLOAT_SLICE   Type = "float_slice"
 	FUNCTION      Type = "function"
-	GO_TYPE       Type = "go_type"
 	GO_FIELD      Type = "go_field"
 	GO_METHOD     Type = "go_method"
+	GO_TYPE       Type = "go_type"
 	HTTP_RESPONSE Type = "http_response"
 	INT           Type = "int"
 	ITER_ENTRY    Type = "iter_entry"
@@ -210,3 +211,13 @@ type AttrResolver interface {
 }
 
 type ResolveAttrFunc func(ctx context.Context, name string) (Object, error)
+
+// Keys returns the keys of an object map as a sorted slice of strings.
+func Keys(m map[string]Object) []string {
+	var names []string
+	for k := range m {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return names
+}
