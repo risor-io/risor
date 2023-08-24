@@ -4,19 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/risor-io/risor/ast"
 )
-
-func printMultiError(err error) {
-	if mErr, ok := err.(*multierror.Error); ok {
-		for _, e := range mErr.Errors {
-			fmt.Println(e)
-		}
-	} else {
-		fmt.Println(err)
-	}
-}
 
 func testVarStatement(t *testing.T, s *ast.Var, name string) bool {
 	t.Helper()

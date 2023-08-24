@@ -1337,12 +1337,17 @@ func TestCall(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, vm.Run(ctx))
 
-	obj, err := vm.Call(ctx, "inc", []object.Object{
+	obj, err := vm.Get("inc")
+	require.Nil(t, err)
+	fn, ok := obj.(*object.Function)
+	require.True(t, ok)
+
+	result, err := vm.Call(ctx, fn, []object.Object{
 		object.NewInt(9),
 		object.NewInt(1),
 	})
 	require.Nil(t, err)
-	require.Equal(t, object.NewInt(10), obj)
+	require.Equal(t, object.NewInt(10), result)
 }
 
 func TestCallWithClosure(t *testing.T) {
@@ -1361,9 +1366,14 @@ func TestCallWithClosure(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, vm.Run(ctx))
 
+	obj, err := vm.Get("counter")
+	require.Nil(t, err)
+	counter, ok := obj.(*object.Function)
+	require.True(t, ok)
+
 	// The counter's first value will be 11. Confirm it counts up from there.
 	for i := int64(11); i < 100; i++ {
-		obj, err := vm.Call(ctx, "counter", []object.Object{})
+		obj, err := vm.Call(ctx, counter, []object.Object{})
 		require.Nil(t, err)
 		require.Equal(t, object.NewInt(i), obj)
 	}
@@ -1446,9 +1456,110 @@ func TestInterpolatedStringClosures2(t *testing.T) {
 	require.Equal(t, object.NewString("a: HEY b: bar count: 40 x: 4"), result)
 }
 
+func TestClone(t *testing.T) {
+	ctx := context.Background()
+	source := `
+	x := 3
+	func inc() {
+		x++
+	}
+	inc()
+	x
+	`
+	vm, err := newVM(ctx, source)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	result, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(4), result)
+
+	clone, err := vm.Clone()
+	require.Nil(t, err)
+	value, err := clone.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), value)
+}
+
+func TestCloneWithAnonymousFunc(t *testing.T) {
+
+	registered := map[string]*object.Function{}
+
+	// Custom built-in function to be called from the Risor script to register
+	// an anonymous function
+	registerFunc := func(ctx context.Context, args ...object.Object) object.Object {
+		name := args[0].(*object.String).Value()
+		fn := args[1].(*object.Function)
+		registered[name] = fn
+		return object.Nil
+	}
+
+	ctx := context.Background()
+	source := `
+	x := 3
+	register("inc", func() {
+		x++
+		return x
+	})
+	`
+	globals := map[string]any{
+		"register": object.NewBuiltin("register", registerFunc),
+	}
+	machine, err := newVM(ctx, source, runOpts{Globals: globals})
+	require.Nil(t, err)
+	require.Nil(t, machine.Run(ctx))
+
+	// x should be 3 in the original VM
+	value, err := machine.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+
+	// Confirm the "inc" function was registered
+	incFunc, ok := registered["inc"]
+	require.True(t, ok)
+
+	// Create a clone of the VM and confirm it also has x = 3
+	clone, err := machine.Clone()
+	require.Nil(t, err)
+	value, err = clone.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+
+	// Call the "inc" function in the clone and confirm it increments x to 4
+	// in the clone but not the original VM
+	_, err = clone.Call(ctx, incFunc, nil)
+	require.Nil(t, err)
+
+	// Clone's x is now 4
+	value, err = clone.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), value)
+
+	// Original's x is still 3
+	value, err = machine.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+
+	// Repeat again for good measure
+	_, err = clone.Call(ctx, incFunc, nil)
+	require.Nil(t, err)
+
+	// Clone's x is now 5
+	value, err = clone.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(5), value)
+
+	// Original's x is still 3
+	value, err = machine.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+}
+
 func TestImports(t *testing.T) {
 	tests := []testCase{
-		// {`import strings; strings`, object.NewModule("strings", nil)},
+		{`import simple_math; simple_math.add(3, 4)`, object.NewInt(7)},
+		{`import simple_math; int(simple_math.pi)`, object.NewInt(3)},
+		{`import data; data.mydata["count"]`, object.NewInt(1)},
+		{`import data; data.mydata["count"] = 3; data.mydata["count"]`, object.NewInt(3)},
 	}
 	runTests(t, tests)
 }

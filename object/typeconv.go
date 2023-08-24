@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/risor-io/risor/compiler"
 )
 
@@ -227,8 +226,8 @@ func FromGoType(obj interface{}) Object {
 			return True
 		}
 		return False
-	case [16]uint8:
-		return NewString(uuid.UUID(obj).String())
+	// case [16]uint8:
+	// 	return NewString(uuid.UUID(obj).String())
 	case time.Time:
 		return NewTime(obj)
 	case []interface{}:

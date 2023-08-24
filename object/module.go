@@ -85,6 +85,14 @@ func (m *Module) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("type error: unable to marshal module")
 }
 
+func (m *Module) UseGlobals(globals []Object) {
+	if len(globals) != len(m.globals) {
+		panic(fmt.Sprintf("invalid module globals length: %d, expected: %d",
+			len(globals), len(m.globals)))
+	}
+	m.globals = globals
+}
+
 func NewModule(name string, code *compiler.Code) *Module {
 	globalsIndex := map[string]int{}
 	globalsCount := code.GlobalsCount()
