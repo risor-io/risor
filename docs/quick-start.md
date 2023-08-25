@@ -5,10 +5,9 @@ If this is your first time trying Risor, we recommend trying the CLI first.
 
 ## Install using Homebrew
 
-Install the Risor v2 CLI using Homebrew as follows:
+Install the [Risor](https://formulae.brew.sh/formula/risor) v2 CLI using [Homebrew](https://brew.sh/) as follows:
 
 ```bash
-brew tap risor-io/risor
 brew install risor
 ```
 

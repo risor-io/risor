@@ -25,10 +25,9 @@ You might also want to try evaluating Risor scripts [from your browser](https://
 Head over to [Getting Started](https://risor.io/docs) in the
 documentation.
 
-That said, if you use Homebrew, you can install the Risor CLI as follows:
+That said, if you use [Homebrew](https://brew.sh/), you can install the [Risor](https://formulae.brew.sh/formula/risor) CLI as follows:
 
 ```
-brew tap risor-io/risor
 brew install risor
 ```
 
