@@ -46,10 +46,10 @@ documentation. That said, here are tips for both the CLI and the Go library.
 
 ### Risor CLI and REPL
 
-If you use Homebrew, you can install the Risor CLI as follows:
+If you use [Homebrew](https://brew.sh/), you can install the
+[Risor](https://formulae.brew.sh/formula/risor) CLI as follows:
 
 ```
-brew tap risor-io/risor
 brew install risor
 ```
 
