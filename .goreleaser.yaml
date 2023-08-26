@@ -11,7 +11,8 @@ builds:
       - linux
       - windows
       - darwin
-    main: ./cmd/risor
+    dir: ./cmd/risor
+    main: .
 archives:
   - id: "standard"
     builds:
