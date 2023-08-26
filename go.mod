@@ -17,12 +17,3 @@ retract (
 	v1.0.1 // ignores Tamarin release
 	v1.0.0 // ignores Tamarin release
 )
-
-replace (
-	github.com/risor-io/risor/cmd/risor => ./cmd/risor
-	github.com/risor-io/risor/modules/aws => ./modules/aws
-	github.com/risor-io/risor/modules/image => ./modules/image
-	github.com/risor-io/risor/modules/pgx => ./modules/pgx
-	github.com/risor-io/risor/modules/uuid => ./modules/uuid
-	github.com/risor-io/risor/os/s3fs => ./os/s3fs
-)
