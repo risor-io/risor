@@ -221,21 +221,6 @@ func Unsetenv(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
-func LookupEnv(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("os.lookup_env", 1, args); err != nil {
-		return err
-	}
-	key, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	value, ok := GetOS(ctx).LookupEnv(key)
-	return object.NewMap(map[string]object.Object{
-		"value":  object.NewString(value),
-		"exists": object.NewBool(ok),
-	})
-}
-
 func ReadFile(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("os.read_file", 1, args); err != nil {
 		return err
@@ -500,7 +485,6 @@ func Module() *object.Module {
 		"getuid":          object.NewBuiltin("getuid", Getuid),
 		"getwd":           object.NewBuiltin("getwd", Getwd),
 		"hostname":        object.NewBuiltin("hostname", Hostname),
-		"lookup_env":      object.NewBuiltin("lookup_env", LookupEnv),
 		"mkdir_all":       object.NewBuiltin("mkdir_all", MkdirAll),
 		"mkdir_temp":      object.NewBuiltin("mkdir_temp", MkdirTemp),
 		"mkdir":           object.NewBuiltin("mkdir", Mkdir),
