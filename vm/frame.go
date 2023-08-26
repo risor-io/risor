@@ -44,11 +44,10 @@ func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr int
 	f.fn = fn
 	// Save the instruction pointer of the caller
 	f.returnAddr = returnAddr
-	// Initialize any local variables that were provided.
-	// Note the copy builtin is slower than this loop.
+	// Initialize any local variables that were provided
 	for i := 0; i < len(localValues); i++ {
 		f.locals[i] = localValues[i]
-	}
+	} //lint:ignore S1001 - this loop is faster than using copy
 }
 
 func (f *frame) SetReturnAddr(addr int) {
