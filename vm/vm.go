@@ -1,3 +1,4 @@
+// Package vm provides a VirtualMachine that executes compiled Risor code.
 package vm
 
 import (

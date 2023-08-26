@@ -1,5 +1,4 @@
-// Package parser is used to parse an input program from its tokens and produce
-// an abstract syntax tree (AST) as output.
+// Package parser is used to generate the abstract syntax tree (AST) for a program.
 //
 // A parser is created by calling New() with a lexer as input. The parser should
 // then be used only once, by calling parser.Parse() to produce the AST.

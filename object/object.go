@@ -1,4 +1,4 @@
-// Package object defines the standard set of object types in Risor.
+// Package object provides the standard set of Risor object types.
 //
 // For external users of Risor, often an object.Object interface
 // will be type asserted to a specific object type, such as *object.Float.

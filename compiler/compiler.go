@@ -1,5 +1,5 @@
-// Package compiler is used to compile an Abstract Syntax Tree (AST) into
-// its corresponding bytecode.
+// Package compiler is used to compile a Risor abstract syntax tree (AST) into
+// the corresponding bytecode.
 package compiler
 
 import (

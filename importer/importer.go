@@ -1,3 +1,4 @@
+// Package importer provides a common interface used to import Risor modules.
 package importer
 
 import (

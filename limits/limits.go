@@ -1,3 +1,5 @@
+// Package limits provides an interface and helpers for restricting resource
+// usage during Risor evaluations.
 package limits
 
 import (
