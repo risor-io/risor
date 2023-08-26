@@ -1,4 +1,8 @@
 
+.PHONY: test
+test:
+	gotestsum --format-hide-empty-pkg ./...
+
 .PHONY: bench
 bench:
 	go build
@@ -26,10 +30,6 @@ postgres:
 cover:
 	go test -coverprofile cover.out ./...
 	go tool cover -html=cover.out
-
-.PHONY: test
-test:
-	gotestsum --format-hide-empty-pkg ./...
 
 .PHONY: test-s3fs
 test-s3fs:
