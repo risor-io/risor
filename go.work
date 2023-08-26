@@ -1,0 +1,11 @@
+go 1.21.0
+
+use (
+	.
+	./cmd/risor
+	./modules/aws
+	./modules/image
+	./modules/pgx
+	./modules/uuid
+	./os/s3fs
+)
