@@ -9,7 +9,4 @@ require (
 	github.com/risor-io/risor v0.14.1-0.20230825185206-8956c356a975
 )
 
-require (
-	github.com/gofrs/uuid v4.4.0+incompatible // indirect
-	golang.org/x/image v0.5.0 // indirect
-)
+require golang.org/x/image v0.5.0 // indirect
