@@ -128,11 +128,6 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 		}()
 	}
 
-	// Disallow providing a context with a preset call function
-	if _, found := object.GetCallFunc(ctx); found {
-		return errors.New("exec error: context should not contain a call function")
-	}
-
 	// Convert globals
 	vm.globals, err = object.AsObjects(vm.inputGlobals)
 	if err != nil {
@@ -567,6 +562,7 @@ func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.
 	if err := vm.eval(ctx); err != nil {
 		return nil, err
 	}
+	module.UseGlobals(code.Globals)
 	// Cache the module
 	vm.modules[name] = module
 	return module, nil
@@ -648,20 +644,14 @@ func (vm *VirtualMachine) fetch() uint16 {
 	return uint16(vm.activeCode.Instructions[ip])
 }
 
-// Call a named function with the given arguments. The function is expected to
-// be present in the global scope of the active code. If the function can't be
-// found then an error is returned.
-func (vm *VirtualMachine) Call(ctx context.Context, functionName string, args []object.Object) (object.Object, error) {
+// Call a function with the supplied arguments. If isolation between VMs is
+// important to you, do not provide a function here that was obtained from
+// another VM, since it could be a closure over variables in that VM. This
+// method should only be called after this VM stops running. Otherwise, an
+// error is returned.
+func (vm *VirtualMachine) Call(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 	if vm.running {
 		return nil, errors.New("exec error: cannot call function while the vm is running")
-	}
-	obj, err := vm.Get(functionName)
-	if err != nil {
-		return nil, err
-	}
-	fn, ok := obj.(*object.Function)
-	if !ok {
-		return nil, fmt.Errorf("type error: object is not a function (got %s)", obj.Type())
 	}
 	return vm.callFunction(ctx, fn, args)
 }
@@ -765,6 +755,53 @@ func (vm *VirtualMachine) activateFunction(fp, ip int, fn *object.Function, loca
 	vm.activeFrame.ActivateFunction(fn, code, returnAddr, locals)
 	vm.activeCode = code
 	return vm.activeFrame
+}
+
+// Clone a stopped Virtual Machine. An error is returned if the Virtual Machine
+// is running. The returned clone will have the same code, globals, modules,
+// stack, and limits as the original. Any Risor objects present as global
+// variables will be carried over to the clone. And since multiple clones can be
+// created, the caller is responsible for ensuring that the global variables are
+// not mutated, or that the mutations are safe for concurrent use. Do not use
+// this function if you need isolation between clones, as this is not provided.
+func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
+	if vm.running {
+		return nil, errors.New("cannot clone while the vm is running")
+	}
+	if vm.fp != 0 {
+		return nil, errors.New("cannot clone while a frame is active")
+	}
+	modules := map[string]*object.Module{}
+	for name, module := range vm.modules {
+		modules[name] = module
+	}
+	inputGlobals := map[string]any{}
+	for name, value := range vm.inputGlobals {
+		inputGlobals[name] = value
+	}
+	globals := map[string]object.Object{}
+	for name, value := range vm.globals {
+		globals[name] = value
+	}
+	loadedCode := map[*compiler.Code]*code{}
+	for code, loaded := range vm.loadedCode {
+		loadedCode[code] = loaded.Clone()
+	}
+	clone := &VirtualMachine{
+		sp:           vm.sp,
+		ip:           vm.ip,
+		fp:           0,
+		stack:        vm.stack,
+		main:         vm.main,
+		importer:     vm.importer,
+		modules:      modules,
+		inputGlobals: inputGlobals,
+		globals:      globals,
+		limits:       vm.limits,
+		loadedCode:   loadedCode,
+	}
+	clone.activateCode(0, vm.ip, loadedCode[vm.main])
+	return clone, nil
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {

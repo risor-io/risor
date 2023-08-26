@@ -20,33 +20,10 @@ Documentation is available at [risor.io](https://risor.io).
 
 You might also want to try evaluating Risor scripts [from your browser](https://risor.io/#editor).
 
-## Getting Started
+## Syntax Example
 
-Head over to [Getting Started](https://risor.io/docs) in the
-documentation.
-
-That said, if you use Homebrew, you can install the Risor CLI as follows:
-
-```
-brew tap risor-io/risor
-brew install risor
-```
-
-Having done that, just run `risor` to start the CLI or `risor -h` to see
-usage information.
-
-Execute a code snippet directly using the `-c` option:
-
-```go
-risor -c "time.now()"
-"2023-08-19T16:15:46-04:00"
-```
-
-## Quick Example
-
-Here's a short example of how Risor feels like a hybrid of Go and Python, with
-new features like pipe expressions for transformations, and with access to portions
-of the Go standard library (like the `strings` package):
+Here's a short example of how Risor feels like a hybrid of Go and Python. This
+demonstrates using Risor's pipe expressions to apply a series of transformations:
 
 ```go
 array := ["gophers", "are", "burrowing", "rodents"]
@@ -62,6 +39,63 @@ Output:
 GOPHERS ARE BURROWING RODENTS
 ```
 
+## Getting Started
+
+You might want to head over to [Getting Started](https://risor.io/docs) in the
+documentation. That said, here are tips for both the CLI and the Go library.
+
+### Risor CLI and REPL
+
+If you use Homebrew, you can install the Risor CLI as follows:
+
+```
+brew tap risor-io/risor
+brew install risor
+```
+
+Having done that, just run `risor` to start the CLI or `risor -h` to see
+usage information.
+
+Execute a code snippet directly using the `-c` option:
+
+```go
+risor -c "time.now()"
+```
+
+Start the REPL by running `risor` with no options.
+
+### Go Library
+
+Use `go get` to install Risor as a dependency of your Go program:
+
+```bash
+go get github.com/risor-io/risor@v0.14.0
+```
+
+Here's an example of using the `risor.Eval` API to evaluate some code:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/risor-io/risor"
+)
+
+func main() {
+	ctx := context.Background()
+	script := "math.sqrt(input)"
+	result, err := risor.Eval(ctx, script, risor.WithGlobal("input", 4))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("The square root of 4 is:", result)
+}
+```
+
 ## Built-in Functions and Modules
 
 30+ built-in functions are included and are documented [here](https://risor.io/docs/builtins).
@@ -70,39 +104,27 @@ Modules are included that generally wrap the equivalent Go package. For example,
 there is direct correspondence between `base64`, `bytes`, `json`, `math`, `os`,
 `rand`, `strconv`, `strings`, and `time` Risor modules and the Go standard library.
 
-Risor modules that are beyond the Go standard library include `aws`, `pgx`, and
-`uuid`. Additional modules are being added regularly.
-
-## Using Risor
-
-Risor is designed to be versatile and accommodate a variety of usage patterns. You can leverage Risor in the following ways:
-
-- **REPL**: Risor offers a Read-Evaluate-Print-Loop (REPL) that you can use to interactively write and test scripts. This is perfect for experimentation and debugging.
-
-- **Library**: Risor can be imported as a library into existing Go projects. It provides a simple API for running scripts and interacting with the results, in isolated environments for sandboxing.
-
-- **Executable script runner**: Risor scripts can also be marked as executable, providing a simple way to leverage Risor in your build scripts, automation, and other tasks.
-
-- **API**: (Coming soon) A service and API will be provided for remotely executing and managing Risor scripts. This will allow integration into various web applications, potentially with self-hosted and a managed cloud version.
+Risor modules that are beyond the Go standard library currently include
+`aws`, `pgx`, and `uuid`.
 
 ## Go Interface
 
 It is trivial to embed Risor in your Go program in order to evaluate scripts
 that have access to arbitrary Go structs and other types.
 
-The simplest way to use Risor is to call the `Eval` function and provide the
-Risor script source code. The result of the script is returned as a Risor object:
+The simplest way to use Risor is to call the `Eval` function and provide the script source code.
+The result is returned as a Risor object:
 
 ```go
-result, err := risor.Eval(ctx, "math.min([5, 3, 7])")
-min := result.(*object.Int).Value()
+result, err := risor.Eval(ctx, "math.min([5, 2, 7])")
+// result is 2, as an *object.Int
 ```
 
 Provide input to the script using Risor options:
 
 ```go
 result, err := risor.Eval(ctx, "input | strings.to_upper", risor.WithGlobal("input", "hello"))
-fmt.Println(result) // HELLO
+// result is "HELLO", as an *object.String
 ```
 
 Use the same mechanism to inject a struct. You can then access fields or call
@@ -112,11 +134,53 @@ methods on the struct from the Risor script:
 type Example struct {
     Message string
 }
+example := &Example{"abc"}
+result, err := risor.Eval(ctx, "len(ex.Message)", risor.WithGlobal("ex", example))
+// result is 3, as an *object.Int
+```
 
-ex := &Example{"abc"}
+## Dependencies and Build Options
 
-result, err := risor.Eval(ctx, "len(ex.Message)", risor.WithGlobal("ex", ex))
-fmt.Println(result) // 3
+Risor is designed to have zero external dependencies in its core libraries.
+Although, strictly speaking, the core does have one external dependency on
+`github.com/stretchr/testify` for unit tests only.
+
+You can choose to opt into various add-on modules if they are of value in your
+application. The modules are present in this same Git repository, but must be
+installed with `go get` as separate dependencies:
+
+| Name  | Path                             | Go Get Command                                           |
+| ----- | -------------------------------- | -------------------------------------------------------- |
+| aws   | [modules/aws](./modules/aws)     | `go get github.com/risor-io/risor/modules/aws@v0.14.0`   |
+| image | [modules/image](./modules/image) | `go get github.com/risor-io/risor/modules/image@v0.14.0` |
+| pgx   | [modules/pgx](./modules/pgx)     | `go get github.com/risor-io/risor/modules/pgx@v0.14.0`   |
+| uuid  | [modules/uuid](./modules/uuid)   | `go get github.com/risor-io/risor/modules/uuid@v0.14.0`  |
+| s3fs  | [os/s3fs](./os/s3fs)             | `go get github.com/risor-io/risor/os/s3fs@v0.14.0`       |
+
+These add-ons are included by default when using the Risor CLI. However, when
+building Risor into your own program, you'll need to opt-in using `go get` as
+described above and then add the modules as globals in Risor scripts as follows:
+
+```go
+import (
+    "github.com/risor-io/risor"
+    "github.com/risor-io/risor/modules/aws"
+    "github.com/risor-io/risor/modules/image"
+    "github.com/risor-io/risor/modules/pgx"
+    "github.com/risor-io/risor/modules/uuid"
+)
+
+func main() {
+    source := `"nice modules!"`
+    result, err := risor.Eval(ctx, source,
+        risor.WithGlobals(map[string]any{
+            "aws":   aws.Module(),
+            "image": image.Module(),
+            "pgx":   pgx.Module(),
+            "uuid":  uuid.Module(),
+        }))
+    // ...
+}
 ```
 
 ## Syntax Highlighting

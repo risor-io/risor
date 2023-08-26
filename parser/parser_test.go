@@ -77,7 +77,6 @@ func TestDeclareStatements(t *testing.T) {
 	y := foo.bar()
 	`
 	program, err := Parse(context.Background(), input)
-	printMultiError(err)
 	require.Nil(t, err)
 	statements := program.Statements()
 	require.Len(t, statements, 2)
@@ -700,7 +699,6 @@ func TestForLoop(t *testing.T) {
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
-		printMultiError(err)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		expr, ok := program.First().(*ast.For)

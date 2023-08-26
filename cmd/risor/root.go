@@ -16,11 +16,15 @@ import (
 	"github.com/hokaccha/go-prettyjson"
 	"github.com/mitchellh/go-homedir"
 	"github.com/risor-io/risor"
+	"github.com/risor-io/risor/cmd/risor/repl"
 	"github.com/risor-io/risor/errz"
+	"github.com/risor-io/risor/modules/aws"
+	"github.com/risor-io/risor/modules/image"
+	"github.com/risor-io/risor/modules/pgx"
+	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/os/s3fs"
-	"github.com/risor-io/risor/repl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -137,6 +141,16 @@ var rootCmd = &cobra.Command{
 		var opts []risor.Option
 		if viper.GetBool("no-default-globals") {
 			opts = append(opts, risor.WithoutDefaultGlobals())
+		} else {
+			opts = append(opts, risor.WithGlobals(map[string]any{
+				"image": image.Module(),
+				"pgx":   pgx.Module(),
+				"uuid":  uuid.Module(),
+			}))
+			// AWS support may or may not be compiled in based on build tags
+			if aws := aws.Module(); aws != nil {
+				opts = append(opts, risor.WithGlobal("aws", aws))
+			}
 		}
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {
 			opts = append(opts, risor.WithLocalImporter(modulesDir))
