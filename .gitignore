@@ -1,22 +1,20 @@
-cmd/cli/cli
 .vscode
-/risor
-/cmd/risor/risor
-cpu.out
 node_modules
+
 risor*.vsix
 risor-language-server.log
-cmd/risor-lsp/risor-lsp
-cmd/simple-example/simple-example
+
+/cmd/risor/risor
+/cmd/risor-lsp/risor-lsp
+/cmd/risor-api/risor-api
+
+cpu.out
 cover.out
 profile.out
 
 dist/
 venv/
 site/
-
-risor_v1
-risor_v2
 
 terraform.tfstate
 terraform.tfstate.backup

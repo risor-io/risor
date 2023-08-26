@@ -3,9 +3,12 @@ go 1.21
 use (
 	.
 	./cmd/risor
+	./cmd/risor-api
+	./cmd/risor-lsp
 	./modules/aws
 	./modules/image
 	./modules/pgx
 	./modules/uuid
 	./os/s3fs
+	./examples/go/struct
 )
