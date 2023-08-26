@@ -19,6 +19,10 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/risor-io/risor v0.14.1-0.20230825185206-8956c356a975
+	github.com/risor-io/risor/modules/aws v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/image v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/pgx v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/uuid v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/os/s3fs v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -91,10 +95,6 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/risor-io/risor/modules/aws v0.0.0-00010101000000-000000000000 // indirect
-	github.com/risor-io/risor/modules/image v0.0.0-00010101000000-000000000000 // indirect
-	github.com/risor-io/risor/modules/pgx v0.0.0-00010101000000-000000000000 // indirect
-	github.com/risor-io/risor/modules/uuid v0.0.0-00010101000000-000000000000 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
