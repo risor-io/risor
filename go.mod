@@ -24,4 +24,5 @@ replace (
 	github.com/risor-io/risor/modules/pgx v0.0.0 => ./modules/pgx
 	github.com/risor-io/risor/modules/uuid v0.0.0 => ./modules/uuid
 	github.com/risor-io/risor/os/s3fs v0.0.0 => ./os/s3fs
+	github.com/risor-io/risor/cmd/risor v0.0.0 => ./cmd/risor
 )
