@@ -115,11 +115,11 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// }()
 
 	// Halt execution when the context is cancelled
 	if doneChan := ctx.Done(); doneChan != nil {
@@ -141,7 +141,7 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
 	code := vm.load(vm.main)
-	vm.activateCode(0, 0, code)
+	vm.activateCode(0, vm.ip, code)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	ctx = limits.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
@@ -241,6 +241,14 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.StoreFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			freeVars[vm.fetch()].Set(vm.pop())
+		case op.StoreAttr:
+			idx := vm.fetch()
+			obj := vm.pop()
+			value := vm.pop()
+			name := vm.activeCode.Names[idx]
+			if err := obj.SetAttr(name, value); err != nil {
+				return err
+			}
 		case op.LoadClosure:
 			constIndex := vm.fetch()
 			freeCount := vm.fetch()
@@ -478,6 +486,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+			fmt.Println("Import:", module)
 			vm.push(module)
 		case op.PopTop:
 			vm.pop()
@@ -573,12 +582,6 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 	// The arguments are understood to be stored in vm.tmp here
 	args := vm.tmp[:argc]
 	switch fn := fn.(type) {
-	case *object.Builtin:
-		result := fn.Call(ctx, args...)
-		if err, ok := result.(*object.Error); ok {
-			return err.Value()
-		}
-		vm.push(result)
 	case *object.Function:
 		paramsCount := len(fn.Parameters())
 		if err := checkCallArgs(fn, argc); err != nil {
@@ -606,6 +609,12 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 		// We can just append arguments from the partial into vm.tmp
 		copy(vm.tmp[argc:], fn.Args())
 		return vm.call(ctx, fn.Function(), expandedCount)
+	case object.Callable:
+		result := fn.Call(ctx, args...)
+		if err, ok := result.(*object.Error); ok {
+			return err.Value()
+		}
+		vm.push(result)
 	default:
 		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
 	}

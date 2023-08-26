@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -15,6 +16,7 @@ type Module struct {
 	builtins     map[string]Object
 	globals      []Object
 	globalsIndex map[string]int
+	callable     BuiltinFunction
 }
 
 func (m *Module) Type() Type {
@@ -37,6 +39,20 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 		return m.globals[index], true
 	}
 	return nil, false
+}
+
+func (m *Module) SetAttr(name string, value Object) error {
+	if name == "__name__" {
+		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+	}
+	if _, found := m.builtins[name]; found {
+		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+	}
+	if index, found := m.globalsIndex[name]; found {
+		m.globals[index] = value
+		return nil
+	}
+	return fmt.Errorf("attribute error: module has no attribute %q", name)
 }
 
 func (m *Module) Interface() interface{} {
@@ -93,6 +109,13 @@ func (m *Module) UseGlobals(globals []Object) {
 	m.globals = globals
 }
 
+func (m *Module) Call(ctx context.Context, args ...Object) Object {
+	if m.callable == nil {
+		return NewError(fmt.Errorf("exec error: module %q is not callable", m.name))
+	}
+	return m.callable(ctx, args...)
+}
+
 func NewModule(name string, code *compiler.Code) *Module {
 	globalsIndex := map[string]int{}
 	globalsCount := code.GlobalsCount()
@@ -119,19 +142,26 @@ func NewModule(name string, code *compiler.Code) *Module {
 	}
 	return &Module{
 		name:         name,
+		builtins:     map[string]Object{},
 		code:         code,
 		globals:      globals,
 		globalsIndex: globalsIndex,
 	}
 }
 
-func NewBuiltinsModule(name string, contents map[string]Object) *Module {
+func NewBuiltinsModule(name string, contents map[string]Object, callableOption ...BuiltinFunction) *Module {
 	builtins := map[string]Object{}
 	for k, v := range contents {
 		builtins[k] = v
 	}
+	var callable BuiltinFunction
+	if len(callableOption) > 0 {
+		callable = callableOption[0]
+	}
 	return &Module{
-		name:     name,
-		builtins: builtins,
+		name:         name,
+		builtins:     builtins,
+		callable:     callable,
+		globalsIndex: map[string]int{},
 	}
 }

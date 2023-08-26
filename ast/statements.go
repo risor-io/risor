@@ -429,3 +429,46 @@ func (p *Postfix) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+// SetAttr is a statement node that describes setting an attribute on an object.
+type SetAttr struct {
+	token token.Token
+
+	// object whose attribute is being accessed
+	object Expression
+
+	// The attribute itself
+	attribute *Ident
+
+	// The value for the attribute
+	value Expression
+}
+
+// NewSetAttr creates a new SetAttr node.
+func NewSetAttr(token token.Token, object Expression, attribute *Ident, value Expression) *SetAttr {
+	return &SetAttr{token: token, object: object, attribute: attribute, value: value}
+}
+
+func (p *SetAttr) StatementNode() {}
+
+func (e *SetAttr) IsExpression() bool { return false }
+
+func (e *SetAttr) Token() token.Token { return e.token }
+
+func (e *SetAttr) Literal() string { return e.token.Literal }
+
+func (e *SetAttr) Object() Expression { return e.object }
+
+func (e *SetAttr) Name() string { return e.attribute.value }
+
+func (e *SetAttr) Value() Expression { return e.value }
+
+func (e *SetAttr) String() string {
+	var out bytes.Buffer
+	out.WriteString(e.object.String())
+	out.WriteString(".")
+	out.WriteString(e.attribute.value)
+	out.WriteString(" = ")
+	out.WriteString(e.value.String())
+	return out.String()
+}
