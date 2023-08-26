@@ -547,9 +547,15 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 	name := node.Module().String()
 	c.emit(op.LoadConst, c.constant(name))
 	c.emit(op.Import)
-	sym, err := c.current.symbols.InsertConstant(name)
-	if err != nil {
-		return err
+	var sym *Symbol
+	var found bool
+	sym, found = c.current.symbols.Get(name)
+	if !found {
+		var err error
+		sym, err = c.current.symbols.InsertConstant(name)
+		if err != nil {
+			return err
+		}
 	}
 	if c.current.parent == nil {
 		c.emit(op.StoreGlobal, sym.Index())

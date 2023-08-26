@@ -22,10 +22,18 @@ extension:
 postgres:
 	docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=pwd -d postgres
 
-.PHONY: test
-test:
+.PHONY: cover
+cover:
 	go test -coverprofile cover.out ./...
 	go tool cover -html=cover.out
+
+.PHONY: test
+test:
+	gotestsum --format-hide-empty-pkg ./...
+
+.PHONY: test-s3fs
+test-s3fs:
+	cd ./os/s3fs && go test -tags awstests .
 
 .PHONY: lambda
 lambda:

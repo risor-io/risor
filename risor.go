@@ -2,6 +2,7 @@ package risor
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
@@ -103,5 +104,13 @@ func Call(
 	if err := vm.Run(ctx); err != nil {
 		return nil, err
 	}
-	return vm.Call(ctx, functionName, args)
+	obj, err := vm.Get(functionName)
+	if err != nil {
+		return nil, err
+	}
+	fn, ok := obj.(*object.Function)
+	if !ok {
+		return nil, fmt.Errorf("object is not a function (got: %s)", obj.Type())
+	}
+	return vm.Call(ctx, fn, args)
 }
