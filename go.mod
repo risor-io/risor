@@ -19,10 +19,10 @@ retract (
 )
 
 replace (
-	github.com/risor-io/risor/modules/aws v0.0.0 => ./modules/aws
-	github.com/risor-io/risor/modules/image v0.0.0 => ./modules/image
-	github.com/risor-io/risor/modules/pgx v0.0.0 => ./modules/pgx
-	github.com/risor-io/risor/modules/uuid v0.0.0 => ./modules/uuid
-	github.com/risor-io/risor/os/s3fs v0.0.0 => ./os/s3fs
-	github.com/risor-io/risor/cmd/risor v0.0.0 => ./cmd/risor
+	github.com/risor-io/risor/cmd/risor => ./cmd/risor
+	github.com/risor-io/risor/modules/aws => ./modules/aws
+	github.com/risor-io/risor/modules/image => ./modules/image
+	github.com/risor-io/risor/modules/pgx => ./modules/pgx
+	github.com/risor-io/risor/modules/uuid => ./modules/uuid
+	github.com/risor-io/risor/os/s3fs => ./os/s3fs
 )
