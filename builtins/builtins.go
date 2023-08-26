@@ -1,4 +1,4 @@
-// Package builtins defines the default set of builtin functions for Risor.
+// Package builtins defines a default set of built-in functions.
 package builtins
 
 import (

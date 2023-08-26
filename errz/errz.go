@@ -1,3 +1,5 @@
+// Package errz defines a FriendlyError interface for errors that have a human
+// friendly message in addition to the default error message.
 package errz
 
 // FriendlyError is an interface for errors that have a human friendly message

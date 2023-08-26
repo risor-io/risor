@@ -1,4 +1,4 @@
-// Package token defines the tokens that are produced when lexing Risor code.
+// Package token defines language keywords and tokens used when lexing source code.
 package token
 
 // Type describes the type of a token as a string.

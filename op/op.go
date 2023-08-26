@@ -1,4 +1,4 @@
-// Package op defines the opcodes that are used in the Risor virtual machine.
+// Package op defines opcodes used by the Risor compiler and virtual machine.
 package op
 
 // Code is an integer opcode that indicates an operation to execute.

@@ -1,4 +1,4 @@
-// Package ast defines abstract syntax tree types that represent Risor code.
+// Package ast defines the abstract syntax tree representation of Risor code.
 package ast
 
 import "github.com/risor-io/risor/token"

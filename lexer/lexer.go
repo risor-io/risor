@@ -1,5 +1,5 @@
-// Package lexer contains the code to lex input programs into a stream
-// of tokens. The stream of tokens can then be parsed into an AST.
+// Package lexer provides a Lexer that takes Risor source code as input and
+// outputs a stream of tokens to be consumed by a parser.
 package lexer
 
 import (
