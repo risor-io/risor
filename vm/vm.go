@@ -115,11 +115,11 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 
 	// Translate any panic into an error so the caller has a good guarantee
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		err = fmt.Errorf("panic: %v", r)
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
 
 	// Halt execution when the context is cancelled
 	if doneChan := ctx.Done(); doneChan != nil {
@@ -140,7 +140,12 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	defer func() { vm.running = false }()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
-	code := vm.load(vm.main)
+	var code *code
+	if len(vm.loadedCode) > 0 {
+		code = vm.reload(vm.main)
+	} else {
+		code = vm.load(vm.main)
+	}
 	vm.activateCode(0, vm.ip, code)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	ctx = limits.WithLimits(ctx, vm.limits)
@@ -486,7 +491,6 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			fmt.Println("Import:", module)
 			vm.push(module)
 		case op.PopTop:
 			vm.pop()
@@ -731,6 +735,18 @@ func (vm *VirtualMachine) load(cc *compiler.Code) *code {
 	c := loadChildCode(rootLoaded, cc)
 	vm.loadedCode[cc] = c
 	return c
+}
+
+// Reloads the main code while preserving global variables.
+func (vm *VirtualMachine) reload(main *compiler.Code) *code {
+	oldWrappedMain, ok := vm.loadedCode[main]
+	if !ok {
+		panic("main code not loaded")
+	}
+	vm.loadedCode = map[*compiler.Code]*code{}
+	newWrappedMain := vm.load(main)
+	copy(newWrappedMain.Globals, oldWrappedMain.Globals)
+	return newWrappedMain
 }
 
 // Activate the frame at the given frame pointer and instruction pointer.

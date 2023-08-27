@@ -110,7 +110,11 @@ func (c *Compiler) Code() *Code {
 // Compile the given AST node and return the compiled code object.
 func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	c.failure = nil
-	c.main.source = node.String()
+	if c.main.source == "" {
+		c.main.source = node.String()
+	} else {
+		c.main.source = fmt.Sprintf("%s\n%s", c.main.source, node.String())
+	}
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
