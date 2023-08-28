@@ -2,6 +2,7 @@
 package builtins
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -307,7 +308,7 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	if len(args) == 0 {
-		return object.NewBuffer(nil)
+		return object.NewBuffer(new(bytes.Buffer))
 	}
 	arg := args[0]
 	lim, ok := limits.GetLimits(ctx)
@@ -572,8 +573,6 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	switch fn := args[0].(type) {
-	case *object.Builtin:
-		return fn.Call(ctx, args[1:]...)
 	case *object.Function:
 		callFunc, found := object.GetCallFunc(ctx)
 		if !found {
@@ -584,6 +583,8 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 			return object.Errorf(err.Error())
 		}
 		return result
+	case object.Callable:
+		return fn.Call(ctx, args[1:]...)
 	default:
 		return object.Errorf("type error: call() unsupported argument (%s given)", args[0].Type())
 	}
@@ -768,7 +769,7 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			default:
 				return result, nil
 			}
-		case *object.Builtin:
+		case object.Callable:
 			result := obj.Call(ctx)
 			switch result := result.(type) {
 			case *object.Error:

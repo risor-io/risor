@@ -8,6 +8,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modExec "github.com/risor-io/risor/modules/exec"
 	modFetch "github.com/risor-io/risor/modules/fetch"
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modHash "github.com/risor-io/risor/modules/hash"
@@ -90,16 +91,17 @@ func (cfg *RisorConfig) addDefaultGlobals() {
 	}
 	// Add default modules
 	modules := map[string]object.Object{
-		"math":    modMath.Module(),
+		"base64":  modBase64.Module(),
+		"bytes":   modBytes.Module(),
+		"exec":    modExec.Module(),
+		"fmt":     modFmt.Module(),
 		"json":    modJson.Module(),
-		"strings": modStrings.Module(),
-		"time":    modTime.Module(),
+		"math":    modMath.Module(),
+		"os":      modOs.Module(),
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
-		"os":      modOs.Module(),
-		"bytes":   modBytes.Module(),
-		"base64":  modBase64.Module(),
-		"fmt":     modFmt.Module(),
+		"strings": modStrings.Module(),
+		"time":    modTime.Module(),
 	}
 	addGlobals(modules)
 }

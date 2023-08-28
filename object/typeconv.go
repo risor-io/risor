@@ -172,6 +172,19 @@ func AsReader(obj Object) (io.Reader, *Error) {
 	}
 }
 
+func AsWriter(obj Object) (io.Writer, *Error) {
+	switch obj := obj.(type) {
+	case *Buffer:
+		return obj.value, nil
+	case *File:
+		return obj.value, nil
+	case io.Writer:
+		return obj, nil
+	default:
+		return nil, Errorf("type error: expected a writable object (%s given)", obj.Type())
+	}
+}
+
 func AsIterator(obj Object) (Iterator, *Error) {
 	switch obj := obj.(type) {
 	case Iterator:

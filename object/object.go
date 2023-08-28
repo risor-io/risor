@@ -165,6 +165,13 @@ type Container interface {
 	Len() *Int
 }
 
+// Callable is an interface that exposes a Call method.
+type Callable interface {
+
+	// Call invokes the callable with the given arguments and returns the result.
+	Call(ctx context.Context, args ...Object) Object
+}
+
 // Hashable types can be hashed and consequently used in a set.
 type Hashable interface {
 

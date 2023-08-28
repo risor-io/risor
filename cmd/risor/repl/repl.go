@@ -67,17 +67,15 @@ func Run(ctx context.Context, options []risor.Option) error {
 	for _, opt := range options {
 		opt(r)
 	}
-	c, err := compiler.New(r.CompilerOpts()...)
-	if err != nil {
-		return err
-	}
+
+	evalFunc := getEvaluator(r)
 
 	// This could certainly use a refactor! But it works for now.
 	return keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.Enter:
 			fmt.Printf("\n")
-			execute(ctx, r, c, accumulate)
+			evalFunc(ctx, accumulate)
 			appendToHistory(accumulate)
 			history = append(history, accumulate)
 			historyIndex = len(history)
@@ -172,43 +170,53 @@ func Run(ctx context.Context, options []risor.Option) error {
 	})
 }
 
-func execute(
-	ctx context.Context,
-	cfg *cfg.RisorConfig,
-	c *compiler.Compiler,
-	source string,
-) (object.Object, error) {
+func getEvaluator(cfg *cfg.RisorConfig) func(ctx context.Context, source string) (object.Object, error) {
 
-	instructionOffset := c.Code().InstructionCount()
+	var c *compiler.Compiler
+	var v *vm.VirtualMachine
 
-	ast, err := parser.Parse(ctx, source)
-	if err != nil {
-		color.Red(err.Error())
-		return nil, err
-	}
+	return func(ctx context.Context, source string) (object.Object, error) {
 
-	code, err := c.Compile(ast)
-	if err != nil {
-		color.Red(err.Error())
-		return nil, err
-	}
+		if c == nil {
+			var err error
+			c, err = compiler.New(cfg.CompilerOpts()...)
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	vmOpts := append(cfg.VMOpts(), vm.WithInstructionOffset(instructionOffset))
-	result, err := vm.Run(ctx, code, vmOpts...)
-	if err != nil {
-		color.Red(err.Error())
-		return nil, err
-	}
-	if result == nil {
-		return object.Nil, nil
-	}
+		ast, err := parser.Parse(ctx, source)
+		if err != nil {
+			color.Red(err.Error())
+			return nil, err
+		}
 
-	switch result := result.(type) {
-	case *object.Error:
-		color.Red(result.Value().Error())
-	case *object.NilType:
-	default:
-		fmt.Println(result.Inspect())
+		code, err := c.Compile(ast)
+		if err != nil {
+			color.Red(err.Error())
+			return nil, err
+		}
+
+		if v == nil {
+			v = vm.New(code, cfg.VMOpts()...)
+		}
+		if err := v.Run(ctx); err != nil {
+			color.Red(err.Error())
+			return nil, err
+		}
+
+		result, ok := v.TOS()
+		if !ok || result == nil {
+			return object.Nil, nil
+		}
+
+		switch result := result.(type) {
+		case *object.Error:
+			color.Red(result.Value().Error())
+		case *object.NilType:
+		default:
+			fmt.Println(result.Inspect())
+		}
+		return result, nil
 	}
-	return result, nil
 }

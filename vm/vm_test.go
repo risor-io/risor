@@ -1554,6 +1554,36 @@ func TestCloneWithAnonymousFunc(t *testing.T) {
 	require.Equal(t, object.NewInt(3), value)
 }
 
+func TestIncrementalEvaluation(t *testing.T) {
+	ctx := context.Background()
+	ast, err := parser.Parse(ctx, "x := 3")
+	require.Nil(t, err)
+
+	comp, err := compiler.New()
+	require.Nil(t, err)
+	main, err := comp.Compile(ast)
+	require.Nil(t, err)
+
+	v := New(main)
+	require.Nil(t, v.Run(ctx))
+	value, err := v.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+
+	ast, err = parser.Parse(ctx, "x + 7")
+	require.Nil(t, err)
+	_, err = comp.Compile(ast)
+	require.Nil(t, err)
+	require.Nil(t, v.Run(ctx))
+	value, err = v.Get("x")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(3), value)
+
+	tos, ok := v.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(10), tos)
+}
+
 func TestImports(t *testing.T) {
 	tests := []testCase{
 		{`import simple_math; simple_math.add(3, 4)`, object.NewInt(7)},

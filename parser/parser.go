@@ -7,6 +7,7 @@ package parser
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -1136,6 +1137,7 @@ func (p *Parser) parseAssign(name ast.Node) ast.Node {
 	case *ast.Index:
 		index = node
 	default:
+		fmt.Println("parseAssign", name, reflect.TypeOf(name))
 		p.setTokenError(operator, "unexpected token for assignment: %s", name.Literal())
 		return nil
 	}
@@ -1358,6 +1360,15 @@ func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
 			return nil
 		}
 		return ast.NewObjectCall(period, obj, call)
+	} else if p.peekTokenIs(token.ASSIGN) {
+		p.nextToken() // move to the "="
+		p.nextToken() // move to the value
+		right := p.parseExpression(LOWEST)
+		if right == nil {
+			p.setTokenError(p.curToken, "invalid assignment statement value")
+			return nil
+		}
+		return ast.NewSetAttr(obj.Token(), obj, name, right)
 	}
 	return ast.NewGetAttr(period, obj, name)
 }

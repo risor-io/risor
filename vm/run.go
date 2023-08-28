@@ -7,6 +7,7 @@ import (
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modExec "github.com/risor-io/risor/modules/exec"
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
@@ -72,6 +73,7 @@ func basicBuiltins() map[string]any {
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
 		"bytes":   modBytes.Module(),
+		"exec":    modExec.Module(),
 	}
 	for k, v := range builtins.Builtins() {
 		globals[k] = v

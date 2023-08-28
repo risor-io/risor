@@ -110,7 +110,11 @@ func (c *Compiler) Code() *Code {
 // Compile the given AST node and return the compiled code object.
 func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	c.failure = nil
-	c.main.source = node.String()
+	if c.main.source == "" {
+		c.main.source = node.String()
+	} else {
+		c.main.source = fmt.Sprintf("%s\n%s", c.main.source, node.String())
+	}
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -255,6 +259,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 	case *ast.MultiVar:
 		if err := c.compileMultiVar(node); err != nil {
+			return err
+		}
+	case *ast.SetAttr:
+		if err := c.compileSetAttr(node); err != nil {
 			return err
 		}
 	default:
@@ -1144,6 +1152,18 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	case Free:
 		c.emit(op.StoreFree, uint16(resolution.freeIndex))
 	}
+	return nil
+}
+
+func (c *Compiler) compileSetAttr(node *ast.SetAttr) error {
+	if err := c.compile(node.Value()); err != nil {
+		return err
+	}
+	if err := c.compile(node.Object()); err != nil {
+		return err
+	}
+	idx := c.current.addName(node.Name())
+	c.emit(op.StoreAttr, idx)
 	return nil
 }
 

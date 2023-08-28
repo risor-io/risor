@@ -140,8 +140,13 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	defer func() { vm.running = false }()
 
 	// Activate the "main" entrypoint code in frame 0 and then run it
-	code := vm.load(vm.main)
-	vm.activateCode(0, 0, code)
+	var code *code
+	if len(vm.loadedCode) > 0 {
+		code = vm.reload(vm.main)
+	} else {
+		code = vm.load(vm.main)
+	}
+	vm.activateCode(0, vm.ip, code)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	ctx = limits.WithLimits(ctx, vm.limits)
 	err = vm.eval(ctx)
@@ -241,6 +246,14 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.StoreFree:
 			freeVars := vm.activeFrame.fn.FreeVars()
 			freeVars[vm.fetch()].Set(vm.pop())
+		case op.StoreAttr:
+			idx := vm.fetch()
+			obj := vm.pop()
+			value := vm.pop()
+			name := vm.activeCode.Names[idx]
+			if err := obj.SetAttr(name, value); err != nil {
+				return err
+			}
 		case op.LoadClosure:
 			constIndex := vm.fetch()
 			freeCount := vm.fetch()
@@ -573,12 +586,6 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 	// The arguments are understood to be stored in vm.tmp here
 	args := vm.tmp[:argc]
 	switch fn := fn.(type) {
-	case *object.Builtin:
-		result := fn.Call(ctx, args...)
-		if err, ok := result.(*object.Error); ok {
-			return err.Value()
-		}
-		vm.push(result)
 	case *object.Function:
 		paramsCount := len(fn.Parameters())
 		if err := checkCallArgs(fn, argc); err != nil {
@@ -606,6 +613,12 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 		// We can just append arguments from the partial into vm.tmp
 		copy(vm.tmp[argc:], fn.Args())
 		return vm.call(ctx, fn.Function(), expandedCount)
+	case object.Callable:
+		result := fn.Call(ctx, args...)
+		if err, ok := result.(*object.Error); ok {
+			return err.Value()
+		}
+		vm.push(result)
 	default:
 		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
 	}
@@ -722,6 +735,18 @@ func (vm *VirtualMachine) load(cc *compiler.Code) *code {
 	c := loadChildCode(rootLoaded, cc)
 	vm.loadedCode[cc] = c
 	return c
+}
+
+// Reloads the main code while preserving global variables.
+func (vm *VirtualMachine) reload(main *compiler.Code) *code {
+	oldWrappedMain, ok := vm.loadedCode[main]
+	if !ok {
+		panic("main code not loaded")
+	}
+	vm.loadedCode = map[*compiler.Code]*code{}
+	newWrappedMain := vm.load(main)
+	copy(newWrappedMain.Globals, oldWrappedMain.Globals)
+	return newWrappedMain
 }
 
 // Activate the frame at the given frame pointer and instruction pointer.
