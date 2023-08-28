@@ -160,8 +160,10 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 		}
 		c.value.Stderr = stderr
 		c.stderr = value
+	default:
+		return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
 	}
-	return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
+	return nil
 }
 
 func (c *Command) Interface() interface{} {

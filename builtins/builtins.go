@@ -2,6 +2,7 @@
 package builtins
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -307,7 +308,7 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	if len(args) == 0 {
-		return object.NewBuffer(nil)
+		return object.NewBuffer(new(bytes.Buffer))
 	}
 	arg := args[0]
 	lim, ok := limits.GetLimits(ctx)
