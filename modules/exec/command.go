@@ -63,7 +63,7 @@ func (c *Command) GetAttr(name string) (object.Object, bool) {
 		return c.stderr, true
 	case "run":
 		return object.NewBuiltin("exec.command.run", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := c.value.Run(); err != nil {
+			if err := c.Run(ctx); err != nil {
 				return object.NewError(err)
 			}
 			return object.Nil
@@ -164,6 +164,10 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 		return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
 	}
 	return nil
+}
+
+func (c *Command) Run(ctx context.Context) error {
+	return c.value.Run()
 }
 
 func (c *Command) Interface() interface{} {
