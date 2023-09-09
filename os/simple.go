@@ -14,6 +14,7 @@ var (
 type SimpleOS struct {
 	ctx    context.Context
 	limits limits.Limits
+	args   []string
 }
 
 func NewSimpleOS(ctx context.Context) *SimpleOS {
@@ -23,7 +24,18 @@ func NewSimpleOS(ctx context.Context) *SimpleOS {
 	} else {
 		sos.limits = limits.New()
 	}
+	sos.args = globalScriptargs
 	return sos
+}
+
+func (osObj *SimpleOS) Args() []string {
+	return osObj.args
+}
+
+// a way to override or set the args passed to the os package
+// would typically be used when risor is employed in an embedded manner
+func (osObj *SimpleOS) SetArgs(args []string) {
+	osObj.args = args
 }
 
 func (osObj *SimpleOS) Chdir(dir string) error {

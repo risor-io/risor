@@ -40,6 +40,7 @@ type VirtualOS struct {
 	exitHandler   ExitHandler
 	stdin         File
 	stdout        File
+	args          []string
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -158,7 +159,18 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 	for _, opt := range opts {
 		opt(vos)
 	}
+	vos.args = globalScriptargs
 	return vos
+}
+
+func (osObj *VirtualOS) Args() []string {
+	return osObj.args
+}
+
+// a way to override or set the args passed to the os package
+// would typically be used when risor is employed in an embedded manner
+func (osObj *VirtualOS) SetArgs(args []string) {
+	osObj.args = args
 }
 
 func (osObj *VirtualOS) Chdir(dir string) error {
