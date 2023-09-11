@@ -76,6 +76,13 @@ func WithEnvironment(env map[string]string) Option {
 	}
 }
 
+// set the args passed to the os package for os.args()
+func WithArgs(args []string) Option {
+	return func(vos *VirtualOS) {
+		vos.args = args
+	}
+}
+
 // WithCwd sets the current working directory.
 func WithCwd(cwd string) Option {
 	return func(vos *VirtualOS) {
@@ -159,7 +166,6 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 	for _, opt := range opts {
 		opt(vos)
 	}
-	vos.args = globalScriptargs
 	return vos
 }
 

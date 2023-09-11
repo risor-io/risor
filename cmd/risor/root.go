@@ -162,7 +162,7 @@ var rootCmd = &cobra.Command{
 					Target: dst,
 				}
 			}
-			vos := ros.NewVirtualOS(ctx, ros.WithMounts(mounts))
+			vos := ros.NewVirtualOS(ctx, ros.WithMounts(mounts), ros.WithArgs(passedargs))
 			ctx = ros.WithOS(ctx, vos)
 		}
 

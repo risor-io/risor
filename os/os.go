@@ -48,7 +48,6 @@ type FS interface {
 type OS interface {
 	FS
 	Args() []string
-	SetArgs(args []string)
 	Chdir(dir string) error
 	Environ() []string
 	Exit(code int)
