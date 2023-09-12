@@ -488,7 +488,7 @@ func Cat(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("os", map[string]object.Object{
-		"args":            object.NewBuiltin("chdir", Args),
+		"args":            object.NewBuiltin("args", Args),
 		"chdir":           object.NewBuiltin("chdir", Chdir),
 		"create":          object.NewBuiltin("create", Create),
 		"environ":         object.NewBuiltin("environ", Environ),
