@@ -1,4 +1,4 @@
-package cfg
+package risor
 
 import (
 	"sort"
@@ -24,8 +24,8 @@ import (
 	"github.com/risor-io/risor/vm"
 )
 
-// RisorConfig assists in configuring a Risor evaluation.
-type RisorConfig struct {
+// Config assists in configuring a Risor evaluation.
+type Config struct {
 	Globals               map[string]any
 	DefaultGlobals        map[string]object.Object
 	Importer              importer.Importer
@@ -33,8 +33,8 @@ type RisorConfig struct {
 	WithoutDefaultGlobals bool
 }
 
-func NewRisorConfig() *RisorConfig {
-	cfg := &RisorConfig{
+func NewConfig() *Config {
+	cfg := &Config{
 		Globals:        map[string]any{},
 		DefaultGlobals: map[string]object.Object{},
 	}
@@ -44,7 +44,7 @@ func NewRisorConfig() *RisorConfig {
 
 // CombinedGlobals returns a map of all global variables that should be
 // available in a Risor evaluation.
-func (cfg *RisorConfig) CombinedGlobals() map[string]any {
+func (cfg *Config) CombinedGlobals() map[string]any {
 	combined := map[string]any{}
 	for k, v := range cfg.DefaultGlobals {
 		combined[k] = v
@@ -57,7 +57,7 @@ func (cfg *RisorConfig) CombinedGlobals() map[string]any {
 
 // GlobalNames returns a list of all global variables names that should be
 // available in a Risor evaluation.
-func (cfg *RisorConfig) GlobalNames() []string {
+func (cfg *Config) GlobalNames() []string {
 	nameMap := map[string]bool{}
 	for k := range cfg.DefaultGlobals {
 		nameMap[k] = true
@@ -73,7 +73,7 @@ func (cfg *RisorConfig) GlobalNames() []string {
 	return names
 }
 
-func (cfg *RisorConfig) addDefaultGlobals() {
+func (cfg *Config) addDefaultGlobals() {
 	addGlobals := func(globals map[string]object.Object) {
 		for k, v := range globals {
 			cfg.DefaultGlobals[k] = v
@@ -109,7 +109,7 @@ func (cfg *RisorConfig) addDefaultGlobals() {
 }
 
 // CompilerOpts returns compiler options derived from this configuration.
-func (cfg *RisorConfig) CompilerOpts() []compiler.Option {
+func (cfg *Config) CompilerOpts() []compiler.Option {
 	globalNames := cfg.GlobalNames()
 	var opts []compiler.Option
 	if len(globalNames) > 0 {
@@ -119,7 +119,7 @@ func (cfg *RisorConfig) CompilerOpts() []compiler.Option {
 }
 
 // VMOpts returns virtual machine options derived from this configuration.
-func (cfg *RisorConfig) VMOpts() []vm.Option {
+func (cfg *Config) VMOpts() []vm.Option {
 	var opts []vm.Option
 	combinedGlobals := cfg.CombinedGlobals()
 	if len(combinedGlobals) > 0 {
@@ -146,21 +146,3 @@ func newLocalImporter(globalNames []string, sourceDir string) importer.Importer 
 		Extensions:  []string{".risor", ".rsr"},
 	})
 }
-
-// func WithCompiler(c *compiler.Compiler) Option {
-// 	return func(r *cfg.RisorConfig) {
-// 		r.Compiler = c
-// 	}
-// }
-
-// func WithCode(c *compiler.Code) Option {
-// 	return func(r *cfg.RisorConfig) {
-// 		r.Code = c
-// 	}
-// }
-
-// func WithInstructionOffset(offset int) Option {
-// 	return func(r *cfg.RisorConfig) {
-// 		r.InstructionOffset = offset
-// 	}
-// }
