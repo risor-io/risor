@@ -14,6 +14,18 @@ func GetOS(ctx context.Context) os.OS {
 	return os.GetDefaultOS(ctx)
 }
 
+func Args(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.args", 0, args); err != nil {
+		return err
+	}
+	argz := GetOS(ctx).Args()
+	items := make([]object.Object, len(argz))
+	for i, arg := range argz {
+		items[i] = object.NewString(arg)
+	}
+	return object.NewList(items)
+}
+
 func Exit(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs > 1 {
@@ -476,6 +488,7 @@ func Cat(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("os", map[string]object.Object{
+		"args":            object.NewBuiltin("args", Args),
 		"chdir":           object.NewBuiltin("chdir", Chdir),
 		"create":          object.NewBuiltin("create", Create),
 		"environ":         object.NewBuiltin("environ", Environ),

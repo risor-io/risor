@@ -47,6 +47,7 @@ type FS interface {
 
 type OS interface {
 	FS
+	Args() []string
 	Chdir(dir string) error
 	Environ() []string
 	Exit(code int)
@@ -68,6 +69,8 @@ type OS interface {
 }
 
 type contextKey string
+
+var globalScriptargs []string
 
 const osKey = contextKey("risor:os")
 
@@ -91,6 +94,18 @@ func GetDefaultOS(ctx context.Context) OS {
 		return osObj
 	}
 	return NewSimpleOS(ctx)
+}
+
+// if risor is started from the comand line and args
+// are passed in, this is is how the to tell the os package about them
+func SetScriptArgs(args []string) {
+	globalScriptargs = args
+}
+
+// if risor is started from the comand line and args
+// are passed in, this is is how the to get them
+func GetScriptArgs() []string {
+	return globalScriptargs
 }
 
 // MassagePathError transforms a fs.PathError into a new one with the base path

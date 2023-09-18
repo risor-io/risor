@@ -66,6 +66,7 @@ func init() {
 
 	rootCmd.Flags().Bool("timing", false, "Show timing information")
 	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
+	rootCmd.Flags().SetInterspersed(false)
 	viper.BindPFlag("timing", rootCmd.Flags().Lookup("timing"))
 	viper.BindPFlag("output", rootCmd.Flags().Lookup("output"))
 
@@ -94,6 +95,45 @@ func fatal(msg string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// this works around issues with cobra not passing args after -- to the script
+// see: https://github.com/spf13/cobra/issues/1877
+// passedargs is everything after the '--'
+// If dropped is true, cobra dropped the double dash in its 'args' slice.
+// argsout returns the cobra args but without the '--' and the items behind it
+// this also supports multiple '--' in the args	list
+func getpassthruargs(args []string) (argsout []string, passedargs []string, dropped bool) {
+	//		lenArgs := len(args)
+	argsout = args
+	ddashcnt := 0
+	for n, arg := range os.Args {
+		if arg == "--" {
+			ddashcnt++
+			if len(passedargs) == 0 {
+				if len(os.Args) > n {
+					passedargs = os.Args[n+1:]
+				}
+			}
+		}
+	}
+	// drop arg0 from count
+	noddash := true
+	for n2, argz := range args {
+		// don't go past the first '--' - this allows one to pass '--' to risor also
+		if argz == "--" {
+			noddash = false
+			argsout = args[:n2]
+			break
+		}
+	}
+	// cobra seems to drop the '--' in its args if everything before it was a flag
+	// if thats the case then args is just empty b/c evrything else is the '--' and the passed args
+	if (noddash || ddashcnt > 1) && len(passedargs) > 0 {
+		dropped = true
+		argsout = []string{}
+	}
+	return
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "risor",
 	Short: "Fast and flexible scripting for Go developers and DevOps",
@@ -102,7 +142,11 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		ctx := context.Background()
+		var passedargs []string
 
+		args, passedargs, _ = getpassthruargs(args)
+		// pass the 'passthru' args to risor's os package
+		ros.SetScriptArgs(passedargs)
 		// Optionally enable a virtual operating system and add it to
 		// the context so that it's made available to Risor VM.
 		if viper.GetBool("virtual-os") {
@@ -118,7 +162,7 @@ var rootCmd = &cobra.Command{
 					Target: dst,
 				}
 			}
-			vos := ros.NewVirtualOS(ctx, ros.WithMounts(mounts))
+			vos := ros.NewVirtualOS(ctx, ros.WithMounts(mounts), ros.WithArgs(passedargs))
 			ctx = ros.WithOS(ctx, vos)
 		}
 
