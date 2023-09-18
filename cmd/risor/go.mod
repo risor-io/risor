@@ -20,7 +20,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/risor-io/risor v0.14.1-0.20230825185206-8956c356a975
+	github.com/risor-io/risor v1.1.0
 	github.com/risor-io/risor/modules/aws v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/image v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/pgx v0.0.0-00010101000000-000000000000

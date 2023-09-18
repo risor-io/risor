@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.37
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.38.5
-	github.com/risor-io/risor v0.14.1-0.20230825185206-8956c356a975
+	github.com/risor-io/risor v1.1.0
 	github.com/stretchr/testify v1.8.3
 )
 
