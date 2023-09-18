@@ -201,6 +201,9 @@ func getEvaluator(cfg *cfg.RisorConfig) func(ctx context.Context, source string)
 			v = vm.New(code, cfg.VMOpts()...)
 		}
 		if err := v.Run(ctx); err != nil {
+			// Update the IP to be after the last instruction, so that next
+			// time around we start in the right location.
+			v.SetIP(code.InstructionCount())
 			color.Red(err.Error())
 			return nil, err
 		}
