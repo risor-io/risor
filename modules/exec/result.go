@@ -20,7 +20,7 @@ func (r *Result) Type() object.Type {
 }
 
 func (r *Result) Inspect() string {
-	return fmt.Sprintf("exec.result(status: %d)", 200)
+	return fmt.Sprintf("exec.result(pid: %d)", r.cmd.Process.Pid)
 }
 
 func (r *Result) GetAttr(name string) (object.Object, bool) {
@@ -28,17 +28,9 @@ func (r *Result) GetAttr(name string) (object.Object, bool) {
 	case "pid":
 		return object.NewInt(int64(r.cmd.Process.Pid)), true
 	case "stdout":
-		buffer, ok := r.cmd.Stdout.(*object.Buffer)
-		if !ok {
-			return object.NewError(fmt.Errorf("eval error: exec.result.stdout does not support stdout type %T", r.cmd.Stdout)), true
-		}
-		return buffer, true
+		return r.Stdout(), true
 	case "stderr":
-		buffer, ok := r.cmd.Stderr.(*object.Buffer)
-		if !ok {
-			return object.NewError(fmt.Errorf("eval error: exec.result.stderr does not support stderr type %T", r.cmd.Stderr)), true
-		}
-		return buffer, true
+		return r.Stderr(), true
 	case "json":
 		return object.NewBuiltin("exec.result.json",
 			func(ctx context.Context, args ...object.Object) object.Object {
@@ -50,6 +42,26 @@ func (r *Result) GetAttr(name string) (object.Object, bool) {
 		), true
 	}
 	return nil, false
+}
+
+func (r *Result) Stdout() object.Object {
+	value := r.cmd.Stdout
+	switch value := value.(type) {
+	case *object.Buffer:
+		return object.NewString(value.Value().String())
+	default:
+		return object.Nil
+	}
+}
+
+func (r *Result) Stderr() object.Object {
+	value := r.cmd.Stderr
+	switch value := value.(type) {
+	case *object.Buffer:
+		return object.NewString(value.Value().String())
+	default:
+		return object.Nil
+	}
 }
 
 func (r *Result) JSON() object.Object {
@@ -76,7 +88,7 @@ func (r *Result) SetAttr(name string, value object.Object) error {
 }
 
 func (r *Result) Interface() interface{} {
-	return ""
+	return r.cmd
 }
 
 func (r *Result) Compare(other object.Object) (int, error) {
@@ -104,9 +116,13 @@ func (r *Result) Cost() int {
 
 func (r *Result) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Status string `json:"status"`
+		Stdout interface{} `json:"stdout"`
+		Stderr interface{} `json:"stderr"`
+		Pid    int         `json:"pid"`
 	}{
-		Status: "200",
+		Stdout: r.Stdout(),
+		Stderr: r.Stderr(),
+		Pid:    r.cmd.Process.Pid,
 	})
 }
 
