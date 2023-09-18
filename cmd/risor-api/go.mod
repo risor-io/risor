@@ -1,6 +1,8 @@
 module github.com/risor-io/risor/cmd/risor-api
 
-go 1.20
+go 1.21
+
+toolchain go1.21.0
 
 replace github.com/risor-io/risor => ../..
 
@@ -12,9 +14,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gofrs/uuid v4.4.0+incompatible // indirect
-	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
