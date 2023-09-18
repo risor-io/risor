@@ -102,7 +102,8 @@ func main() {
 
 Modules are included that generally wrap the equivalent Go package. For example,
 there is direct correspondence between `base64`, `bytes`, `json`, `math`, `os`,
-`rand`, `strconv`, `strings`, and `time` Risor modules and the Go standard library.
+`rand`, `regexp`, `strconv`, `strings`, and `time` Risor modules and the Go
+standard library.
 
 Risor modules that are beyond the Go standard library currently include
 `aws`, `pgx`, and `uuid`.
