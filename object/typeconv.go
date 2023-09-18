@@ -107,15 +107,31 @@ func AsFloat(obj Object) (float64, *Error) {
 func AsList(obj Object) (*List, *Error) {
 	list, ok := obj.(*List)
 	if !ok {
-		return nil, Errorf("type error: expected a list (%s given", obj.Type())
+		return nil, Errorf("type error: expected a list (%s given)", obj.Type())
 	}
 	return list, nil
+}
+
+func AsStringSlice(obj Object) ([]string, *Error) {
+	list, ok := obj.(*List)
+	if !ok {
+		return nil, Errorf("type error: expected a list (%s given)", obj.Type())
+	}
+	result := make([]string, 0, len(list.items))
+	for _, item := range list.items {
+		s, err := AsString(item)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, s)
+	}
+	return result, nil
 }
 
 func AsMap(obj Object) (*Map, *Error) {
 	m, ok := obj.(*Map)
 	if !ok {
-		return nil, Errorf("type error: expected a map (%s given", obj.Type())
+		return nil, Errorf("type error: expected a map (%s given)", obj.Type())
 	}
 	return m, nil
 }
@@ -123,7 +139,7 @@ func AsMap(obj Object) (*Map, *Error) {
 func AsTime(obj Object) (result time.Time, err *Error) {
 	s, ok := obj.(*Time)
 	if !ok {
-		return time.Time{}, Errorf("type error: expected a time (%s given", obj.Type())
+		return time.Time{}, Errorf("type error: expected a time (%s given)", obj.Type())
 	}
 	return s.value, nil
 }
@@ -131,7 +147,7 @@ func AsTime(obj Object) (result time.Time, err *Error) {
 func AsSet(obj Object) (*Set, *Error) {
 	set, ok := obj.(*Set)
 	if !ok {
-		return nil, Errorf("type error: expected a set (%s given", obj.Type())
+		return nil, Errorf("type error: expected a set (%s given)", obj.Type())
 	}
 	return set, nil
 }

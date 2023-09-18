@@ -12,10 +12,7 @@ import (
 )
 
 type Command struct {
-	value  *exec.Cmd
-	stdin  object.Object
-	stdout object.Object
-	stderr object.Object
+	value *exec.Cmd
 }
 
 func (c *Command) Inspect() string {
@@ -46,24 +43,13 @@ func (c *Command) GetAttr(name string) (object.Object, bool) {
 			env = append(env, object.NewString(e))
 		}
 		return object.NewList(env), true
-	case "stdin":
-		if c.stdin == nil {
-			return object.Nil, true
-		}
-		return c.stdin, true
 	case "stdout":
-		if c.stdout == nil {
-			return object.Nil, true
-		}
-		return c.stdout, true
+		return c.Stdout(), true
 	case "stderr":
-		if c.stderr == nil {
-			return object.Nil, true
-		}
-		return c.stderr, true
+		return c.Stderr(), true
 	case "run":
 		return object.NewBuiltin("exec.command.run", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := c.value.Run(); err != nil {
+			if err := c.Run(ctx); err != nil {
 				return object.NewError(err)
 			}
 			return object.Nil
@@ -145,25 +131,56 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 			return err.Value()
 		}
 		c.value.Stdin = stdin
-		c.stdin = value
 	case "stdout":
 		stdout, err := object.AsWriter(value)
 		if err != nil {
 			return err.Value()
 		}
 		c.value.Stdout = stdout
-		c.stdout = value
 	case "stderr":
 		stderr, err := object.AsWriter(value)
 		if err != nil {
 			return err.Value()
 		}
 		c.value.Stderr = stderr
-		c.stderr = value
 	default:
 		return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
 	}
 	return nil
+}
+
+func (c *Command) Stdout() object.Object {
+	if c.value.Stdout == nil {
+		return object.Nil
+	}
+	switch value := c.value.Stdout.(type) {
+	case *object.Buffer:
+		return object.NewString(value.Value().String())
+	default:
+		return object.Nil
+	}
+}
+
+func (c *Command) Stderr() object.Object {
+	if c.value.Stderr == nil {
+		return object.Nil
+	}
+	switch value := c.value.Stderr.(type) {
+	case *object.Buffer:
+		return object.NewString(value.Value().String())
+	default:
+		return object.Nil
+	}
+}
+
+func (c *Command) Run(ctx context.Context) error {
+	if c.value.Stdout == nil {
+		c.value.Stdout = object.NewBuffer(nil)
+	}
+	if c.value.Stderr == nil {
+		c.value.Stderr = object.NewBuffer(nil)
+	}
+	return c.value.Run()
 }
 
 func (c *Command) Interface() interface{} {

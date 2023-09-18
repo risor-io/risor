@@ -122,6 +122,9 @@ func (b *Buffer) MarshalJSON() ([]byte, error) {
 }
 
 func NewBuffer(buf *bytes.Buffer) *Buffer {
+	if buf == nil {
+		buf = bytes.NewBuffer(nil)
+	}
 	return &Buffer{value: buf}
 }
 
