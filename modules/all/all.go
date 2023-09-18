@@ -12,6 +12,7 @@ import (
 	modMath "github.com/risor-io/risor/modules/math"
 	modOs "github.com/risor-io/risor/modules/os"
 	modRand "github.com/risor-io/risor/modules/rand"
+	modRegexp "github.com/risor-io/risor/modules/regexp"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTime "github.com/risor-io/risor/modules/time"
@@ -28,6 +29,7 @@ func Builtins() map[string]object.Object {
 		"math":    modMath.Module(),
 		"os":      modOs.Module(),
 		"rand":    modRand.Module(),
+		"regexp":  modRegexp.Module(),
 		"strconv": modStrconv.Module(),
 		"strings": modStrings.Module(),
 		"time":    modTime.Module(),
