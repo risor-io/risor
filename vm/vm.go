@@ -625,6 +625,16 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 	return nil
 }
 
+// GetIP returns the current instruction pointer.
+func (vm *VirtualMachine) GetIP() int {
+	return vm.ip
+}
+
+// SetIP sets the current instruction pointer.
+func (vm *VirtualMachine) SetIP(value int) {
+	vm.ip = value
+}
+
 func (vm *VirtualMachine) TOS() (object.Object, bool) {
 	if vm.sp >= 0 {
 		return vm.stack[vm.sp], true
