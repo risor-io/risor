@@ -79,7 +79,7 @@ go install -tags aws .
 Use `go get` to add Risor as a dependency of your Go program:
 
 ```bash
-go get github.com/risor-io/risor@v1.1.0
+go get github.com/risor-io/risor@v1.1.2
 ```
 
 Here's an example of using the `risor.Eval` API to evaluate some code:
@@ -162,11 +162,11 @@ installed with `go get` as separate dependencies:
 
 | Name  | Path                             | Go Get Command                                          |
 | ----- | -------------------------------- | ------------------------------------------------------- |
-| aws   | [modules/aws](./modules/aws)     | `go get github.com/risor-io/risor/modules/aws@v1.1.0`   |
-| image | [modules/image](./modules/image) | `go get github.com/risor-io/risor/modules/image@v1.1.0` |
-| pgx   | [modules/pgx](./modules/pgx)     | `go get github.com/risor-io/risor/modules/pgx@v1.1.0`   |
-| uuid  | [modules/uuid](./modules/uuid)   | `go get github.com/risor-io/risor/modules/uuid@v1.1.0`  |
-| s3fs  | [os/s3fs](./os/s3fs)             | `go get github.com/risor-io/risor/os/s3fs@v1.1.0`       |
+| aws   | [modules/aws](./modules/aws)     | `go get github.com/risor-io/risor/modules/aws@v1.1.2`   |
+| image | [modules/image](./modules/image) | `go get github.com/risor-io/risor/modules/image@v1.1.2` |
+| pgx   | [modules/pgx](./modules/pgx)     | `go get github.com/risor-io/risor/modules/pgx@v1.1.2`   |
+| uuid  | [modules/uuid](./modules/uuid)   | `go get github.com/risor-io/risor/modules/uuid@v1.1.2`  |
+| s3fs  | [os/s3fs](./os/s3fs)             | `go get github.com/risor-io/risor/os/s3fs@v1.1.2`       |
 
 These add-ons are included by default when using the Risor CLI. However, when
 building Risor into your own program, you'll need to opt-in using `go get` as
