@@ -64,9 +64,19 @@ risor -c "time.now()"
 
 Start the REPL by running `risor` with no options.
 
+### Build and Install the CLI from Source
+
+Build the CLI from source as follows:
+
+```bash
+git clone git@github.com:risor-io/risor.git
+cd risor/cmd/risor
+go install -tags aws .
+```
+
 ### Go Library
 
-Use `go get` to install Risor as a dependency of your Go program:
+Use `go get` to add Risor as a dependency of your Go program:
 
 ```bash
 go get github.com/risor-io/risor@v1.1.0
