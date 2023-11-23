@@ -11,4 +11,4 @@ require (
 	github.com/risor-io/risor v1.1.0
 )
 
-require golang.org/x/image v0.5.0 // indirect
+require golang.org/x/image v0.14.0 // indirect
