@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 
@@ -492,6 +493,40 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				return err
 			}
 			vm.push(module)
+		case op.FromImport:
+			parentLen := vm.fetch()
+			nameLen := vm.fetch()
+			if nameLen != 1 {
+				return fmt.Errorf("exec error: from-import name length is not 1: %d", nameLen)
+			}
+			name, ok := vm.pop().(*object.String)
+			if !ok {
+				return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
+			}
+			from := make([]string, parentLen)
+			for i := int(parentLen - 1); i >= 0; i-- {
+				val, ok := vm.pop().(*object.String)
+				if !ok {
+					return fmt.Errorf("type error: object is not a string (got %s)", val.Type())
+				}
+				from[i] = val.Value()
+			}
+			// name is a real module name
+			module, err := vm.loadModule(ctx, filepath.Join(filepath.Join(from...), name.Value()))
+			if err == nil {
+				vm.push(module)
+			} else {
+				// name is a symbol
+				module, err := vm.loadModule(ctx, filepath.Join(from...))
+				if err != nil {
+					return err
+				}
+				attr, found := module.GetAttr(name.String())
+				if !found {
+					return fmt.Errorf("exec error: symbol not found: %s", name.String())
+				}
+				vm.push(attr)
+			}
 		case op.PopTop:
 			vm.pop()
 		case op.Unpack:

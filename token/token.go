@@ -98,6 +98,8 @@ const (
 	VAR             = "VAR"
 	IN              = "IN"
 	RANGE           = "RANGE"
+	FROM            = "FROM"
+	AS              = "AS"
 )
 
 // Reserved keywords
@@ -120,6 +122,8 @@ var keywords = map[string]Type{
 	"switch":   SWITCH,
 	"true":     TRUE,
 	"var":      VAR,
+	"from":     FROM,
+	"as":       AS,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

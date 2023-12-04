@@ -78,6 +78,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if err != nil {
 		return nil, err
 	}
+	i.codeCache[name] = code
 	return object.NewModule(name, code), nil
 }
 

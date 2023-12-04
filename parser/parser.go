@@ -118,6 +118,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	p.registerPrefix(token.IF, p.parseIf)
 	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.IMPORT, p.parseImport)
+	p.registerPrefix(token.FROM, p.parseFromImport)
 	p.registerPrefix(token.INT, p.parseInt)
 	p.registerPrefix(token.LBRACE, p.parseMapOrSet)
 	p.registerPrefix(token.LBRACKET, p.parseList)
@@ -694,6 +695,51 @@ func (p *Parser) parseImport() ast.Node {
 		return nil
 	}
 	return ast.NewImport(importToken, ast.NewIdent(p.curToken))
+}
+
+func (p *Parser) parseFromImport() ast.Node {
+	fromToken := p.curToken
+	if !p.expectPeek("an from-import statement", token.IDENT) {
+		return nil
+	}
+	parentModule := make([]*ast.Ident, 0)
+	for p.curTokenIs(token.IDENT) {
+		parentModule = append(parentModule, ast.NewIdent(p.curToken))
+		if err := p.nextToken(); err != nil {
+			return nil
+		}
+		if !p.curTokenIs(token.PERIOD) {
+			break
+		}
+		if err := p.nextToken(); err != nil {
+			return nil
+		}
+	}
+	if !p.curTokenIs(token.IMPORT) {
+		p.setError(NewParserError(ErrorOpts{
+			ErrType:       "parse error",
+			Message:       "from-import is missing import statement",
+			File:          p.l.Filename(),
+			StartPosition: p.prevToken.EndPosition,
+			EndPosition:   p.prevToken.EndPosition,
+			SourceCode:    p.l.GetLineText(p.prevToken),
+		}))
+		return nil
+	}
+	if !p.expectPeek("an from-import statement", token.IDENT) {
+		return nil
+	}
+	moduleName := ast.NewIdent(p.curToken)
+	var alias *ast.Ident
+	if p.peekTokenIs(token.AS) {
+		p.nextToken()
+		if !p.expectPeek("an from-import statement", token.IDENT) {
+			return nil
+		}
+		alias = ast.NewIdent(p.curToken)
+	}
+	return ast.NewFromImport(fromToken, parentModule, moduleName, alias)
+
 }
 
 func (p *Parser) parseBoolean() ast.Node {

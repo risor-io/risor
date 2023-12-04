@@ -399,6 +399,47 @@ func (i *Import) String() string {
 	return out.String()
 }
 
+// FromImport is a statement node that describes a module import statement.
+type FromImport struct {
+	token   token.Token // the "from" token
+	parents []*Ident    // parent modules
+	name    *Ident      // name of the module to import
+	alias   *Ident      // optional alias for the module
+}
+
+// NewFromImport creates a new FromImport node.
+func NewFromImport(token token.Token, parents []*Ident, name *Ident, alias *Ident) *FromImport {
+	return &FromImport{token: token, parents: parents, name: name, alias: alias}
+}
+
+func (i *FromImport) StatementNode() {}
+
+func (i *FromImport) IsExpression() bool { return false }
+
+func (i *FromImport) Token() token.Token { return i.token }
+
+func (i *FromImport) Literal() string { return i.token.Literal }
+
+func (i *FromImport) Parents() []*Ident { return i.parents }
+
+func (i *FromImport) Module() *Ident { return i.name }
+
+func (i *FromImport) Alias() *Ident { return i.alias }
+
+func (i *FromImport) String() string {
+	var out bytes.Buffer
+	out.WriteString(i.Literal() + " ")
+	for _, parent := range i.parents {
+		out.WriteString(parent.Literal() + ".")
+	}
+	out.WriteString(i.name.Literal())
+	if i.alias != nil {
+		out.WriteString(" as " + i.alias.Literal())
+	}
+	out.WriteString(";")
+	return out.String()
+}
+
 // Postfix is a statement node that describes a postfix expression like "x++".
 type Postfix struct {
 	token token.Token
