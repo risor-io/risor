@@ -1,0 +1,3 @@
+func plusOne(data ) {
+    return data + 1;
+}

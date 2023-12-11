@@ -1594,6 +1594,16 @@ func TestImports(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestFromImport(t *testing.T) {
+	tests := []testCase{
+		{`from a.data import mapValue; mapValue["3"]`, object.NewInt(3)},
+		{`from a.function import plusOne; plusOne(1)`, object.NewInt(2)},
+		{`from a import function; function.plusOne(1)`, object.NewInt(2)},
+		{`from a.b import data as b_data; from a.function import plusOne; plusOne(b_data.mapValue["1"]) `, object.NewInt(2)},
+	}
+	runTests(t, tests)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
