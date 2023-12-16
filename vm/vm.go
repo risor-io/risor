@@ -597,7 +597,6 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 }
 
 func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.Module, error) {
-	fmt.Println("loadModule", name, vm.modules[name])
 	if module, ok := vm.modules[name]; ok {
 		return module, nil
 	}
