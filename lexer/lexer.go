@@ -481,7 +481,7 @@ func (l *Lexer) readDecimal() (token.Token, error) {
 
 func (l *Lexer) readString(end rune) (string, error) {
 	var err error
-	var out []string
+	var sb strings.Builder
 	for {
 		peekChar := l.peekChar()
 		if peekChar == rune(0) || peekChar == rune('\n') {
@@ -495,22 +495,24 @@ func (l *Lexer) readString(end rune) (string, error) {
 		// Handle \n, \r, \t, \", etc
 		if l.ch == '\\' {
 			l.readChar()
-			if l.ch == rune('n') {
+			switch l.ch {
+			case rune('n'):
 				l.ch = '\n'
-			}
-			if l.ch == rune('r') {
+			case rune('r'):
 				l.ch = '\r'
-			}
-			if l.ch == rune('t') {
+			case rune('t'):
 				l.ch = '\t'
-			}
-			if l.ch == rune('\\') {
+			case rune('\\'):
 				l.ch = '\\'
+			case end:
+				// Keep the rune
+			default:
+				return "", fmt.Errorf("invalid escape sequence: \"\\%c\"", l.ch)
 			}
 		}
-		out = append(out, string(l.ch))
+		sb.WriteRune(l.ch)
 	}
-	return strings.Join(out, ""), err
+	return sb.String(), err
 }
 
 func (l *Lexer) readBacktick() (string, error) {

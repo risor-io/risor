@@ -697,6 +697,44 @@ func TestInvalidIdentifiers(t *testing.T) {
 	}
 }
 
+func TestEscapeSequences(t *testing.T) {
+	tests := []struct {
+		name string
+		input           string
+		expectedLiteral string
+	}{
+		{"lf", `"\n"`, "\n"},
+		{"cr", `"\r_"`, "\r"},
+		{"tab", `"\t"`, "\t"},
+		{"backslash", `"\\"`, "\\"},
+		{"escape", `"\e"`, "\x1B"}, // Escape code
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.name), func(t *testing.T) {
+			l := New(tt.input)
+			tok, err := l.Next()
+			require.Nil(t, err)
+			require.Equal(t, token.STRING, tok.Type)
+			require.Equal(t, tt.expectedLiteral, tok.Literal)
+		})
+	}
+}
+
+func TestInvalidEscapeSequences(t *testing.T) {
+	tests := []struct {
+		input           string
+	}{
+		{`"\P"`}, // unknown escape code, keep as-is
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			tok, err := l.Next()
+			require.Errorf(t, err, "Unexpected result: token=%s, literal=%q", tok.Type, tok.Literal)
+		})
+	}
+}
+
 func TestTokenLineText(t *testing.T) {
 	l := New(` var x = 32; foo = bar
 bar = baz
