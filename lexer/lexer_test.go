@@ -704,7 +704,7 @@ func TestEscapeSequences(t *testing.T) {
 		expectedLiteral string
 	}{
 		{"lf", `"\n"`, "\n"},
-		{"cr", `"\r_"`, "\r"},
+		{"cr", `"\r"`, "\r"},
 		{"tab", `"\t"`, "\t"},
 		{"backslash", `"\\"`, "\\"},
 		{"escape", `"\e"`, "\x1B"}, // Escape code
@@ -714,7 +714,7 @@ func TestEscapeSequences(t *testing.T) {
 			l := New(tt.input)
 			tok, err := l.Next()
 			require.Nil(t, err)
-			require.Equal(t, token.STRING, tok.Type)
+			require.Equal(t, token.Type(token.STRING), tok.Type)
 			require.Equal(t, tt.expectedLiteral, tok.Literal)
 		})
 	}

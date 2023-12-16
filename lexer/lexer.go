@@ -504,6 +504,8 @@ func (l *Lexer) readString(end rune) (string, error) {
 				l.ch = '\t'
 			case rune('\\'):
 				l.ch = '\\'
+			case rune('e'):
+				l.ch = 0x1B
 			case end:
 				// Keep the rune
 			default:
