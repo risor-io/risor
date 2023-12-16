@@ -1,6 +1,0 @@
-x := 42
-
-m := { hey: "there" }
-
-import bar
-
