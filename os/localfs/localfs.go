@@ -203,5 +203,30 @@ func (fs *Filesystem) WriteFile(name string, data []byte, perm ros.FileMode) err
 }
 
 func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
-	return nil, nil
+	resolvedPath, err := fs.resolvePath(name, "read")
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(resolvedPath)
+	if err != nil {
+		return nil, ros.MassagePathError(fs.base, err)
+	}
+	results := make([]ros.DirEntry, 0, len(entries))
+	for _, entry := range entries {
+		results = append(results, &ros.DirEntryWrapper{DirEntry: entry})
+	}
+	return results, nil
+}
+
+func (fs *Filesystem) WalkDir(root string, fn ros.WalkDirFunc) error {
+	resolvedRoot, err := fs.resolvePath(root, "read")
+	if err != nil {
+		return err
+	}
+	return filepath.WalkDir(resolvedRoot, func(path string, info os.DirEntry, err error) error {
+		if err != nil {
+			return fn(path, nil, err)
+		}
+		return fn(path, &ros.DirEntryWrapper{DirEntry: info}, nil)
+	})
 }
