@@ -22,6 +22,7 @@ const (
 	GetIter
 	Halt
 	Import
+	FromImport
 	JumpBackward
 	JumpForward
 	Length
@@ -121,6 +122,7 @@ func init() {
 		{GetIter, "GET_ITER", 0},
 		{Halt, "HALT", 0},
 		{Import, "IMPORT", 0},
+		{FromImport, "FROM_IMPORT", 2},
 		{JumpBackward, "JUMP_BACKWARD", 1},
 		{JumpForward, "JUMP_FORWARD", 1},
 		{Length, "LENGTH", 0},

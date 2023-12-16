@@ -253,6 +253,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileImport(node); err != nil {
 			return err
 		}
+	case *ast.FromImport:
+		if err := c.compileFromImport(node); err != nil {
+			return err
+		}
 	case *ast.Switch:
 		if err := c.compileSwitch(node); err != nil {
 			return err
@@ -555,6 +559,38 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 	name := node.Module().String()
 	c.emit(op.LoadConst, c.constant(name))
 	c.emit(op.Import)
+	var sym *Symbol
+	var found bool
+	sym, found = c.current.symbols.Get(name)
+	if !found {
+		var err error
+		sym, err = c.current.symbols.InsertConstant(name)
+		if err != nil {
+			return err
+		}
+	}
+	if c.current.parent == nil {
+		c.emit(op.StoreGlobal, sym.Index())
+	} else {
+		c.emit(op.StoreFast, sym.Index())
+	}
+	return nil
+}
+
+func (c *Compiler) compileFromImport(node *ast.FromImport) error {
+	if len(node.Parents()) > math.MaxUint16 {
+		return fmt.Errorf("compile error: too many parents in from import")
+	}
+	for _, parent := range node.Parents() {
+		c.emit(op.LoadConst, c.constant(parent.String()))
+	}
+	model := node.Module().String()
+	c.emit(op.LoadConst, c.constant(model))
+	c.emit(op.FromImport, uint16(len(node.Parents())), 1)
+	name := model
+	if node.Alias() != nil {
+		name = node.Alias().String()
+	}
 	var sym *Symbol
 	var found bool
 	sym, found = c.current.symbols.Get(name)
