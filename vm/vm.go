@@ -136,6 +136,13 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Add any globals that are modules cache
+	for name, value := range vm.globals {
+		if module, ok := value.(*object.Module); ok {
+			vm.modules[name] = module
+		}
+	}
+
 	// Keep `running` flag up-to-date
 	vm.running = true
 	defer func() { vm.running = false }()
@@ -523,7 +530,8 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				}
 				attr, found := module.GetAttr(name.String())
 				if !found {
-					return fmt.Errorf("exec error: symbol not found: %s", name.String())
+					return fmt.Errorf("import error: cannot import name %q from %q",
+						name.String(), module.Name())
 				}
 				vm.push(attr)
 			}
