@@ -20,6 +20,8 @@ type FileInfo = fs.FileInfo
 
 type ReadDirFile = fs.ReadDirFile
 
+type WalkDirFunc = fs.WalkDirFunc
+
 type DirEntry interface {
 	fs.DirEntry
 	HasInfo() bool
@@ -43,6 +45,7 @@ type FS interface {
 	Symlink(oldname, newname string) error
 	WriteFile(name string, data []byte, perm FileMode) error
 	ReadDir(name string) ([]DirEntry, error)
+	WalkDir(root string, fn WalkDirFunc) error
 }
 
 type OS interface {
