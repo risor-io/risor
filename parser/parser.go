@@ -699,7 +699,7 @@ func (p *Parser) parseImport() ast.Node {
 
 func (p *Parser) parseFromImport() ast.Node {
 	fromToken := p.curToken
-	if !p.expectPeek("an from-import statement", token.IDENT) {
+	if !p.expectPeek("a from-import statement", token.IDENT) {
 		return nil
 	}
 	parentModule := make([]*ast.Ident, 0)
@@ -726,14 +726,14 @@ func (p *Parser) parseFromImport() ast.Node {
 		}))
 		return nil
 	}
-	if !p.expectPeek("an from-import statement", token.IDENT) {
+	if !p.expectPeek("a from-import statement", token.IDENT) {
 		return nil
 	}
 	moduleName := ast.NewIdent(p.curToken)
 	var alias *ast.Ident
 	if p.peekTokenIs(token.AS) {
 		p.nextToken()
-		if !p.expectPeek("an from-import statement", token.IDENT) {
+		if !p.expectPeek("a from-import statement", token.IDENT) {
 			return nil
 		}
 		alias = ast.NewIdent(p.curToken)

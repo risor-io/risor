@@ -64,7 +64,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	}
 	source, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
-		return nil, fmt.Errorf("module not found: %s", name)
+		return nil, fmt.Errorf("import error: module %q not found", name)
 	}
 	ast, err := parser.Parse(ctx, source)
 	if err != nil {

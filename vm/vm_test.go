@@ -1600,8 +1600,33 @@ func TestFromImport(t *testing.T) {
 		{`from a.function import plusOne; plusOne(1)`, object.NewInt(2)},
 		{`from a import function; function.plusOne(1)`, object.NewInt(2)},
 		{`from a.b import data as b_data; from a.function import plusOne; plusOne(b_data.mapValue["1"]) `, object.NewInt(2)},
+		{`from math import min; min([3,-7,9])`, object.NewInt(-7)},
+		{`from math import min as m; m([3,-7,9])`, object.NewInt(-7)},
 	}
 	runTests(t, tests)
+}
+
+func TestBadImports(t *testing.T) {
+	ctx := context.Background()
+	type testCase struct {
+		input     string
+		expectErr string
+	}
+	tests := []testCase{
+		{`import foo`, `import error: module "foo" not found`},
+		{`from foo import bar`, `import error: module "foo" not found`},
+		{`from a.b import c`, `import error: module "a/b" not found`},
+		{`from a.b import c as d`, `import error: module "a/b" not found`},
+		{`from math import foo`, `import error: cannot import name "foo" from "math"`},
+		{`from math`, `parse error: from-import is missing import statement`},
+		{`from math import`, `parse error: unexpected end of file while parsing a from-import statement (expected identifier)`},
+		{`from math import min as`, `parse error: unexpected end of file while parsing a from-import statement (expected identifier)`},
+	}
+	for _, tt := range tests {
+		_, err := run(ctx, tt.input)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expectErr, err.Error())
+	}
 }
 
 func TestContextDone(t *testing.T) {
