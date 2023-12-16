@@ -4,6 +4,7 @@ package lexer
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -492,29 +493,106 @@ func (l *Lexer) readString(end rune) (string, error) {
 		if l.ch == end {
 			break
 		}
-		// Handle \n, \r, \t, \", etc
-		if l.ch == '\\' {
-			l.readChar()
-			switch l.ch {
-			case rune('n'):
-				l.ch = '\n'
-			case rune('r'):
-				l.ch = '\r'
-			case rune('t'):
-				l.ch = '\t'
-			case rune('\\'):
-				l.ch = '\\'
-			case rune('e'):
-				l.ch = 0x1B
-			case end:
-				// Keep the rune
-			default:
-				return "", fmt.Errorf("invalid escape sequence: \"\\%c\"", l.ch)
-			}
+		if l.ch != '\\' {
+			sb.WriteRune(l.ch)
+			continue
 		}
-		sb.WriteRune(l.ch)
+		// Handle \n, \r, \t, \", etc
+		l.readChar()
+		switch l.ch {
+		case rune('a'):
+			sb.WriteRune('\a')
+		case rune('b'):
+			sb.WriteRune('\b')
+		case rune('f'):
+			sb.WriteRune('\f')
+		case rune('n'):
+			sb.WriteRune('\n')
+		case rune('r'):
+			sb.WriteRune('\r')
+		case rune('t'):
+			sb.WriteRune('\t')
+		case rune('v'):
+			sb.WriteRune('\v')
+		case rune('\\'):
+			sb.WriteRune('\\')
+		case rune('e'):
+			sb.WriteRune(0x1B)
+		case end:
+			// Keep the rune, it's an escaped quote.
+			sb.WriteRune(l.ch)
+		case rune('x'):
+			num, err := l.readEscapeSequence(2, 16)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteRune(rune(num))
+		case rune('u'):
+			num, err := l.readEscapeSequence(4, 16)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteRune(rune(num))
+		case rune('U'):
+			num, err := l.readEscapeSequence(8, 16)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteRune(rune(num))
+		case rune('0'):
+			// Octal notation is 3 chars, but first has already been read.
+			num, err := l.readEscapeSequence(2, 8)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteByte(byte(num))
+		case rune('1'):
+			num, err := l.readEscapeSequence(2, 8)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteByte(byte(0o100 + num))
+		case rune('2'):
+			num, err := l.readEscapeSequence(2, 8)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteByte(byte(0o200 + num))
+		case rune('3'):
+			num, err := l.readEscapeSequence(2, 8)
+			if err != nil {
+				return "", err
+			}
+			// This will never overflow byte, because max of 2 octals is 0o77,
+			// and 255 in octal is 0o377.
+			sb.WriteByte(byte(0o300 + num))
+		default:
+			return "", fmt.Errorf("invalid escape sequence: %q", l.ch)
+		}
 	}
 	return sb.String(), err
+}
+
+func (l *Lexer) readEscapeSequence(count int, base int) (int, error) {
+	const allChars = "0123456789abcdef"
+	charset := allChars[:base]
+	out := make([]byte, 0, count)
+	for i := 0; i < count; i++ {
+		l.readChar()
+		if l.ch == rune(0) {
+			return 0, fmt.Errorf("unterminated escape sequence")
+		}
+		if !strings.ContainsRune(charset, unicode.ToLower(l.ch)) {
+			return 0, fmt.Errorf("illegal character %[1]U %[1]q in escape sequence", l.ch)
+		}
+		// Safe to convert to byte as we're working with ASCII-only charset
+		out = append(out, byte(l.ch))
+	}
+	num, err := strconv.ParseInt(string(out), base, 32)
+	if err != nil {
+		return 0, fmt.Errorf("escape sequence is not a valid number (in base %d): %w", base, err)
+	}
+	return int(num), err
 }
 
 func (l *Lexer) readBacktick() (string, error) {

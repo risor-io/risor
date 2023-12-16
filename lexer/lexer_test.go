@@ -703,11 +703,23 @@ func TestEscapeSequences(t *testing.T) {
 		input           string
 		expectedLiteral string
 	}{
-		{"lf", `"\n"`, "\n"},
-		{"cr", `"\r"`, "\r"},
-		{"tab", `"\t"`, "\t"},
+		{"alert", `"\a"`, "\a"},
+		{"backspace", `"\b"`, "\b"},
+		{"form feed", `"\f"`, "\f"},
+		{"new line", `"\n"`, "\n"},
+		{"carrige return", `"\r"`, "\r"},
+		{"horizontal tab", `"\t"`, "\t"},
+		{"vertical tab", `"\v"`, "\v"},
 		{"backslash", `"\\"`, "\\"},
-		{"escape", `"\e"`, "\x1B"}, // Escape code
+		{"escape", `"\e"`, "\x1B"},
+		{"hex", `"\xFF"`, "ÿ"},
+		{"unicode16", `"\u672C"`, "本"}, // No clue what it means. Found it here: https://go.dev/ref/spec#String_literals
+		{"unicode32", `"\U0001F63C"`, "😼"},
+		{"octal3", `"\300"`, "\300"},
+		{"octal2", `"\241"`, "\241"},
+		{"octal1", `"\141"`, "a"},
+		{"octal0", `"\041"`, "!"},
+		{"octalmax", `"\377"`, "\377"},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.name), func(t *testing.T) {
@@ -724,7 +736,10 @@ func TestInvalidEscapeSequences(t *testing.T) {
 	tests := []struct {
 		input           string
 	}{
-		{`"\P"`}, // unknown escape code, keep as-is
+		{`"\P"`}, // unknown escape code
+		{`"\u12_3"`}, // non-hex chars
+		{`"\U1234"`}, // too few chars
+		{`"\378"`}, // invalid char '8' in octal
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
