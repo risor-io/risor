@@ -697,6 +697,59 @@ func TestInvalidIdentifiers(t *testing.T) {
 	}
 }
 
+func TestEscapeSequences(t *testing.T) {
+	tests := []struct {
+		name string
+		input           string
+		expectedLiteral string
+	}{
+		{"alert", `"\a"`, "\a"},
+		{"backspace", `"\b"`, "\b"},
+		{"form feed", `"\f"`, "\f"},
+		{"new line", `"\n"`, "\n"},
+		{"carrige return", `"\r"`, "\r"},
+		{"horizontal tab", `"\t"`, "\t"},
+		{"vertical tab", `"\v"`, "\v"},
+		{"backslash", `"\\"`, "\\"},
+		{"escape", `"\e"`, "\x1B"},
+		{"hex", `"\xFF"`, "ÿ"},
+		{"unicode16", `"\u672C"`, "本"}, // No clue what it means. Found it here: https://go.dev/ref/spec#String_literals
+		{"unicode32", `"\U0001F63C"`, "😼"},
+		{"octal3", `"\300"`, "\300"},
+		{"octal2", `"\241"`, "\241"},
+		{"octal1", `"\141"`, "a"},
+		{"octal0", `"\041"`, "!"},
+		{"octalmax", `"\377"`, "\377"},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.name), func(t *testing.T) {
+			l := New(tt.input)
+			tok, err := l.Next()
+			require.Nil(t, err)
+			require.Equal(t, token.Type(token.STRING), tok.Type)
+			require.Equal(t, tt.expectedLiteral, tok.Literal)
+		})
+	}
+}
+
+func TestInvalidEscapeSequences(t *testing.T) {
+	tests := []struct {
+		input           string
+	}{
+		{`"\P"`}, // unknown escape code
+		{`"\u12_3"`}, // non-hex chars
+		{`"\U1234"`}, // too few chars
+		{`"\378"`}, // invalid char '8' in octal
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
+			l := New(tt.input)
+			tok, err := l.Next()
+			require.Errorf(t, err, "Unexpected result: token=%s, literal=%q", tok.Type, tok.Literal)
+		})
+	}
+}
+
 func TestTokenLineText(t *testing.T) {
 	l := New(` var x = 32; foo = bar
 bar = baz
