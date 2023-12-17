@@ -3,6 +3,7 @@ package os
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"github.com/risor-io/risor/limits"
 )
@@ -158,4 +159,8 @@ func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
 		entries = append(entries, &DirEntryWrapper{result})
 	}
 	return entries, nil
+}
+
+func (osObj *SimpleOS) WalkDir(root string, fn WalkDirFunc) error {
+	return filepath.WalkDir(root, fn)
 }

@@ -424,6 +424,14 @@ func (osObj *VirtualOS) ReadDir(name string) ([]DirEntry, error) {
 	return mount.Source.ReadDir(resolvedPath)
 }
 
+func (osObj *VirtualOS) WalkDir(root string, fn WalkDirFunc) error {
+	mount, resolvedPath, found := osObj.findMount(root)
+	if !found {
+		return fmt.Errorf("no such file or directory: %s", root)
+	}
+	return mount.Source.WalkDir(resolvedPath, fn)
+}
+
 func (osObj *VirtualOS) Stdin() File {
 	return osObj.stdin
 }

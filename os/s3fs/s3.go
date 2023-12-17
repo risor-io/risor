@@ -373,3 +373,21 @@ func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 	}
 	return entries, nil
 }
+
+func (fs *Filesystem) WalkDir(root string, fn ros.WalkDirFunc) error {
+	entries, err := fs.ReadDir(root)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if err := fn(root, entry, nil); err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if err := fs.WalkDir(filepath.Join(root, entry.Name()), fn); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
