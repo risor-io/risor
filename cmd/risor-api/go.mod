@@ -2,14 +2,12 @@ module github.com/risor-io/risor/cmd/risor-api
 
 go 1.21
 
-toolchain go1.21.0
-
 replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/risor-io/risor v1.1.0
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 )
 
 require (
