@@ -50,6 +50,8 @@ func main() {
 	}
 
 	cmdVersion.Flags().StringP("output", "o", "", "Set the output format")
+	cmdVersion.RegisterFlagCompletionFunc("output",
+		cobra.FixedCompletions(outputFormatsCompletion, cobra.ShellCompDirectiveNoFileComp))
 
 	rootCmd.AddCommand(cmdServe)
 	rootCmd.AddCommand(cmdVersion)

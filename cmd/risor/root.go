@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/pprof"
 	"strings"
 	"time"
@@ -66,6 +67,8 @@ func init() {
 
 	rootCmd.Flags().Bool("timing", false, "Show timing information")
 	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
+	rootCmd.RegisterFlagCompletionFunc("output",
+		cobra.FixedCompletions(outputFormatsCompletion, cobra.ShellCompDirectiveNoFileComp))
 	rootCmd.Flags().SetInterspersed(false)
 	viper.BindPFlag("timing", rootCmd.Flags().Lookup("timing"))
 	viper.BindPFlag("output", rootCmd.Flags().Lookup("output"))
@@ -139,6 +142,42 @@ var rootCmd = &cobra.Command{
 	Short: "Fast and flexible scripting for Go developers and DevOps",
 	Long:  `https://risor.io`,
 	Args:  cobra.ArbitraryArgs,
+
+	// Manually adds file completions, so they get mixed with the sub-commands
+	ValidArgsFunction: func (cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		prefix := ""
+		path := toComplete
+		if path == "" {
+			path = "."
+		}
+		dir, err := os.ReadDir(path)
+		if err != nil {
+			path = filepath.Dir(toComplete)
+			prefix = filepath.Base(toComplete)
+			dir, err = os.ReadDir(path)
+		}
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+		files := make([]string, 0, len(dir))
+		for _, entry := range dir {
+			name := entry.Name()
+			if !strings.HasPrefix(prefix, ".") && strings.HasPrefix(name, ".") {
+				// ignore hidden files
+				continue
+			}
+			if prefix != "" && !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			if entry.IsDir() {
+				// hacky way to add a trailing / on Linux, or trailing \ on Windows
+				name = strings.TrimSuffix(filepath.Join(name, "x"), "x")
+			}
+			files = append(files, filepath.Join(path, name))
+		}
+		return files, cobra.ShellCompDirectiveNoSpace
+	},
+
 	Run: func(cmd *cobra.Command, args []string) {
 
 		ctx := context.Background()
@@ -260,6 +299,8 @@ var rootCmd = &cobra.Command{
 		}
 	},
 }
+
+var outputFormatsCompletion = []string{"json", "text"}
 
 func getOutput(result object.Object, format string) (string, error) {
 	switch strings.ToLower(format) {
