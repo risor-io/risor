@@ -374,11 +374,12 @@ func (a *Assign) String() string {
 type Import struct {
 	token token.Token // the "import" token
 	name  *Ident      // name of the module to import
+	alias *Ident      // alias for the module
 }
 
 // NewImport creates a new Import node.
-func NewImport(token token.Token, name *Ident) *Import {
-	return &Import{token: token, name: name}
+func NewImport(token token.Token, name *Ident, alias *Ident) *Import {
+	return &Import{token: token, name: name, alias: alias}
 }
 
 func (i *Import) StatementNode() {}
@@ -391,10 +392,15 @@ func (i *Import) Literal() string { return i.token.Literal }
 
 func (i *Import) Module() *Ident { return i.name }
 
+func (i *Import) Alias() *Ident { return i.alias }
+
 func (i *Import) String() string {
 	var out bytes.Buffer
 	out.WriteString(i.Literal() + " ")
 	out.WriteString(i.name.Literal())
+	if i.alias != nil {
+		out.WriteString(" as " + i.alias.Literal())
+	}
 	out.WriteString(";")
 	return out.String()
 }

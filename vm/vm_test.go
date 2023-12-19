@@ -1590,6 +1590,8 @@ func TestImports(t *testing.T) {
 		{`import simple_math; int(simple_math.pi)`, object.NewInt(3)},
 		{`import data; data.mydata["count"]`, object.NewInt(1)},
 		{`import data; data.mydata["count"] = 3; data.mydata["count"]`, object.NewInt(3)},
+		{`import data as d; d.mydata["count"]`, object.NewInt(1)},
+		{`import math as m; m.min([3,-7,9])`, object.NewInt(-7)},
 	}
 	runTests(t, tests)
 }
@@ -1614,6 +1616,8 @@ func TestBadImports(t *testing.T) {
 	}
 	tests := []testCase{
 		{`import foo`, `import error: module "foo" not found`},
+		{`import foo as bar`, `import error: module "foo" not found`},
+		{`import math as`, `parse error: unexpected end of file while parsing an import statement (expected identifier)`},
 		{`from foo import bar`, `import error: module "foo" not found`},
 		{`from a.b import c`, `import error: module "a/b" not found`},
 		{`from a.b import c as d`, `import error: module "a/b" not found`},

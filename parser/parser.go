@@ -694,7 +694,16 @@ func (p *Parser) parseImport() ast.Node {
 	if !p.expectPeek("an import statement", token.IDENT) {
 		return nil
 	}
-	return ast.NewImport(importToken, ast.NewIdent(p.curToken))
+	name := ast.NewIdent(p.curToken)
+	var alias *ast.Ident
+	if p.peekTokenIs(token.AS) {
+		p.nextToken()
+		if !p.expectPeek("an import statement", token.IDENT) {
+			return nil
+		}
+		alias = ast.NewIdent(p.curToken)
+	}
+	return ast.NewImport(importToken, name, alias)
 }
 
 func (p *Parser) parseFromImport() ast.Node {
