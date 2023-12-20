@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fatih/color"
 	"github.com/hokaccha/go-prettyjson"
+	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-homedir"
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/cmd/risor/repl"
@@ -144,7 +145,7 @@ var rootCmd = &cobra.Command{
 	Args:  cobra.ArbitraryArgs,
 
 	// Manually adds file completions, so they get mixed with the sub-commands
-	ValidArgsFunction: func (cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		prefix := ""
 		path := toComplete
 		if path == "" {
@@ -247,6 +248,10 @@ var rootCmd = &cobra.Command{
 			fatal(red("cannot specify both code and a filepath"))
 		}
 		if len(args) == 0 && !codeWasSupplied && !viper.GetBool("stdin") {
+			stdoutFd := os.Stdout.Fd()
+			if !isatty.IsTerminal(stdoutFd) && !isatty.IsCygwinTerminal(stdoutFd) {
+				fatal("cannot show repl: stdout is not a terminal")
+			}
 			if err := repl.Run(ctx, opts); err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
 				os.Exit(1)
