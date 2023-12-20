@@ -559,6 +559,9 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 	name := node.Module().String()
 	c.emit(op.LoadConst, c.constant(name))
 	c.emit(op.Import)
+	if node.Alias() != nil {
+		name = node.Alias().String()
+	}
 	var sym *Symbol
 	var found bool
 	sym, found = c.current.symbols.Get(name)
