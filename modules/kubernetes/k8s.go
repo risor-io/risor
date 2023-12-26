@@ -364,7 +364,7 @@ func Apply(ctx context.Context, args ...object.Object) object.Object {
 // - wait for condition
 // - check if ready
 func Module() *object.Module {
-	return object.NewBuiltinsModule("k8a", map[string]object.Object{
+	return object.NewBuiltinsModule("k8s", map[string]object.Object{
 		"get":    object.NewBuiltin("k8s.get", Get),
 		"apply":  object.NewBuiltin("k8s.apply", Apply),
 		"delete": object.NewBuiltin("k8s.delete", Delete),
