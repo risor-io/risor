@@ -22,6 +22,7 @@ import (
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/modules/aws"
 	"github.com/risor-io/risor/modules/image"
+	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/object"
@@ -234,6 +235,10 @@ var rootCmd = &cobra.Command{
 			// AWS support may or may not be compiled in based on build tags
 			if aws := aws.Module(); aws != nil {
 				opts = append(opts, risor.WithGlobal("aws", aws))
+			}
+			// K8S support may or may not be compiled in based on build tags
+			if k8s := k8s.Module(); k8s != nil {
+				opts = append(opts, risor.WithGlobal("k8s", k8s))
 			}
 		}
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {

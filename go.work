@@ -5,10 +5,10 @@ use (
 	./cmd/risor
 	./cmd/risor-api
 	./cmd/risor-lsp
+	./examples/go/struct
 	./modules/aws
 	./modules/image
 	./modules/pgx
 	./modules/uuid
 	./os/s3fs
-	./examples/go/struct
 )

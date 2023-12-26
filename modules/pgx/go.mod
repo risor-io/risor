@@ -2,8 +2,6 @@ module github.com/risor-io/risor/modules/pgx
 
 go 1.21
 
-toolchain go1.21.0
-
 replace github.com/risor-io/risor => ../..
 
 require (
