@@ -23,7 +23,7 @@ func (t *Time) Value() time.Time {
 }
 
 func (t *Time) Inspect() string {
-	return t.value.Format(time.RFC3339)
+	return fmt.Sprintf("time(\"%s\")", t.value.Format(time.RFC3339))
 }
 
 func (t *Time) GetAttr(name string) (Object, bool) {
@@ -48,7 +48,7 @@ func (t *Time) Interface() interface{} {
 }
 
 func (t *Time) String() string {
-	return t.value.String()
+	return t.Inspect()
 }
 
 func (t *Time) Compare(other Object) (int, error) {

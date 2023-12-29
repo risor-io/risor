@@ -4,6 +4,8 @@ github.com/jmespath-community/go-jmespath v1.1.1 h1:bFikPhsi/FdmlZhVgSCd2jj1e7G/
 github.com/jmespath-community/go-jmespath v1.1.1/go.mod h1:4gOyFJsR/Gk+05RgTKYrifT7tBPWD8Lubtb5jRrfy9I=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
+github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 golang.org/x/exp v0.0.0-20230314191032-db074128a8ec h1:pAv+d8BM2JNnNctsLJ6nnZ6NqXT8N4+eauvZSb3P0I0=

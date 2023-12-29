@@ -1,9 +1,10 @@
-go 1.21
+go 1.21.4
 
 use (
 	.
 	./cmd/risor
 	./cmd/risor-api
+	./cmd/risor-docs
 	./cmd/risor-lsp
 	./examples/go/struct
 	./modules/aws

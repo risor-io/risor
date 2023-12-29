@@ -2,6 +2,7 @@ package base64
 
 import (
 	"context"
+	_ "embed"
 	"encoding/base64"
 
 	"github.com/risor-io/risor/object"
@@ -125,11 +126,14 @@ func URLDecode(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewByteSlice(dst[:count])
 }
 
+//go:embed base64.md
+var docs string
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("base64", map[string]object.Object{
 		"decode":     object.NewBuiltin("decode", Decode),
 		"encode":     object.NewBuiltin("encode", Encode),
 		"url_decode": object.NewBuiltin("url_decode", URLDecode),
 		"url_encode": object.NewBuiltin("url_encode", URLEncode),
-	})
+	}).WithDocstring(docs)
 }

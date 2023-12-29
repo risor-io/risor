@@ -1,10 +1,11 @@
-package object
+package regexp
 
 import (
 	"context"
 	"regexp"
 	"testing"
 
+	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,14 +14,14 @@ func TestRegexpMatch(t *testing.T) {
 	obj := NewRegexp(regexp.MustCompile(`foo.*`))
 	match, ok := obj.GetAttr("match")
 	require.True(t, ok)
-	result := match.(*Builtin).Call(context.Background(), NewString("seafood"))
-	require.Equal(t, True, result)
+	result := match.(*object.Builtin).Call(context.Background(), object.NewString("seafood"))
+	require.Equal(t, object.True, result)
 
 	obj = NewRegexp(regexp.MustCompile(`bar.*`))
 	match, ok = obj.GetAttr("match")
 	require.True(t, ok)
-	result = match.(*Builtin).Call(context.Background(), NewString("seafood"))
-	require.Equal(t, False, result)
+	result = match.(*object.Builtin).Call(context.Background(), object.NewString("seafood"))
+	require.Equal(t, object.False, result)
 }
 
 func TestRegexpFind(t *testing.T) {
@@ -28,8 +29,8 @@ func TestRegexpFind(t *testing.T) {
 	obj := NewRegexp(regexp.MustCompile(`foo.?`))
 	find, ok := obj.GetAttr("find")
 	require.True(t, ok)
-	result := find.(*Builtin).Call(context.Background(), NewString("seafood fool"))
-	require.Equal(t, NewString("food"), result)
+	result := find.(*object.Builtin).Call(context.Background(), object.NewString("seafood fool"))
+	require.Equal(t, object.NewString("food"), result)
 }
 
 func TestRegexpFindAll(t *testing.T) {
@@ -37,6 +38,9 @@ func TestRegexpFindAll(t *testing.T) {
 	obj := NewRegexp(regexp.MustCompile(`foo.?`))
 	findAll, ok := obj.GetAttr("find_all")
 	require.True(t, ok)
-	result := findAll.(*Builtin).Call(context.Background(), NewString("seafood fool"))
-	require.Equal(t, NewList([]Object{NewString("food"), NewString("fool")}), result)
+	result := findAll.(*object.Builtin).Call(context.Background(), object.NewString("seafood fool"))
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("food"),
+		object.NewString("fool"),
+	}), result)
 }

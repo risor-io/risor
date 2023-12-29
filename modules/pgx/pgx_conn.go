@@ -13,7 +13,7 @@ import (
 	"github.com/risor-io/risor/op"
 )
 
-const PGX_CONN = object.Type("pgx_conn")
+const PGX_CONN = object.Type("pgx.conn")
 
 type PgxConn struct {
 	ctx    context.Context
@@ -27,7 +27,7 @@ func (c *PgxConn) Type() object.Type {
 }
 
 func (c *PgxConn) Inspect() string {
-	return "pgx_conn()"
+	return "pgx.conn()"
 }
 
 func (c *PgxConn) Interface() interface{} {
@@ -50,10 +50,10 @@ func (c *PgxConn) IsTruthy() bool {
 func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "query":
-		return object.NewBuiltin("pgx_conn.query", c.Query), true
+		return object.NewBuiltin("pgx.conn.query", c.Query), true
 	case "close":
-		return object.NewBuiltin("pgx_conn.close", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("pgx_conn.close", 0, args); err != nil {
+		return object.NewBuiltin("pgx.conn.close", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("pgx.conn.close", 0, args); err != nil {
 				return err
 			}
 			if err := c.Close(); err != nil {
@@ -114,7 +114,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 
 	// The arguments should include a query string and zero or more query args
 	if len(args) < 1 {
-		return object.Errorf("type error: pgx_conn.query() one or more arguments (%d given)", len(args))
+		return object.Errorf("type error: pgx.conn.query() one or more arguments (%d given)", len(args))
 	}
 	query, errObj := object.AsString(args[0])
 	if errObj != nil {
@@ -155,7 +155,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 				val = object.FromGoType(value)
 			}
 			if val == nil {
-				return object.Errorf("type error: pgx_conn.query() encountered unsupported type: %T", value)
+				return object.Errorf("type error: pgx.conn.query() encountered unsupported type: %T", value)
 			}
 			if val != nil && !object.IsError(val) {
 				row[key] = val

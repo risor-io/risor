@@ -9,4 +9,7 @@ require (
 	github.com/risor-io/risor v1.1.0
 )
 
-require golang.org/x/image v0.14.0 // indirect
+require (
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	golang.org/x/image v0.14.0 // indirect
+)

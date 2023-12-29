@@ -2,6 +2,7 @@ package uuid
 
 import (
 	"context"
+	_ "embed"
 
 	"github.com/gofrs/uuid"
 	"github.com/risor-io/risor/internal/arg"
@@ -38,9 +39,12 @@ func V5(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(uuid.NewV5(nsID, name).String())
 }
 
+//go:embed uuid.md
+var docs string
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("uuid", map[string]object.Object{
 		"v4": object.NewBuiltin("v4", V4),
 		"v5": object.NewBuiltin("v5", V5),
-	})
+	}).WithDocstring(docs)
 }

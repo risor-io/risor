@@ -5,6 +5,7 @@ package aws
 
 import (
 	"context"
+	_ "embed"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/risor-io/risor/internal/arg"
@@ -71,6 +72,9 @@ func ClientFunc(ctx context.Context, args ...object.Object) object.Object {
 	}
 	return getClient(serviceName, cfg)
 }
+
+//go:embed aws.md
+var docs string
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("aws", map[string]object.Object{

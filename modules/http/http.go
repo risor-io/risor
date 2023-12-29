@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	_ "embed"
 	"net/http"
 
 	"github.com/risor-io/risor/object"
@@ -50,11 +51,11 @@ func MethodCmd(method string) object.BuiltinFunction {
 		})
 
 		if numArgs > 1 {
-			header, errObj := object.AsMap(args[1])
+			headers, errObj := object.AsMap(args[1])
 			if errObj != nil {
 				return errObj
 			}
-			params.Set("header", header)
+			params.Set("headers", headers)
 		}
 
 		if numArgs > 2 {
@@ -83,14 +84,17 @@ func Builtins() map[string]object.Object {
 	}
 }
 
+//go:embed http.md
+var docs string
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("http", map[string]object.Object{
-		"request": object.NewBuiltin("http.request", NewHttpRequest),
+		"delete":  object.NewBuiltin("http.delete", MethodCmd(http.MethodDelete)),
 		"get":     object.NewBuiltin("http.get", MethodCmd(http.MethodGet)),
 		"head":    object.NewBuiltin("http.head", MethodCmd(http.MethodHead)),
-		"delete":  object.NewBuiltin("http.delete", MethodCmd(http.MethodDelete)),
+		"patch":   object.NewBuiltin("http.patch", MethodCmd(http.MethodPatch)),
 		"post":    object.NewBuiltin("http.post", MethodCmd(http.MethodPost)),
 		"put":     object.NewBuiltin("http.put", MethodCmd(http.MethodPut)),
-		"patch":   object.NewBuiltin("http.patch", MethodCmd(http.MethodPatch)),
-	})
+		"request": object.NewBuiltin("http.request", NewHttpRequest),
+	}).WithDocstring(docs)
 }

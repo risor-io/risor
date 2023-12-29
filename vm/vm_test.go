@@ -946,7 +946,7 @@ func TestPipes(t *testing.T) {
 		{`func() { "a" } | call`, object.NewString("a")},
 		{`"abc" | getattr("to_upper") | call`, object.NewString("ABC")},
 		{`"abc" | func(s) { s.to_upper() }`, object.NewString("ABC")},
-		{`[11, 12, 3] | math.max`, object.NewInt(12)},
+		{`[11, 12, 3] | math.sum`, object.NewFloat(26)},
 		{`"42" | json.unmarshal`, object.NewFloat(42)},
 	}
 	runTests(t, tests)
@@ -1118,7 +1118,7 @@ func TestSimpleLoopBreak(t *testing.T) {
 	for {
 		x++
 		if x == 2 { break }
-		max := math.max([1, 2, 3]) // inject some extra instructions
+		max := math.max(1, 2) // inject some extra instructions
 	}
 	x
 	`)
@@ -1164,7 +1164,7 @@ func TestSimpleLoopContinue(t *testing.T) {
 		if x > 5 { break }
 		// We'll reach here on x in [2, 3, 4, 5]; so y should increment 4 times
 		y++
-		max := math.max([1, 2, 3]) // inject some extra instructions
+		max := math.max(1, 2) // inject some extra instructions
 	}
 	y
 	`)
@@ -1591,7 +1591,7 @@ func TestImports(t *testing.T) {
 		{`import data; data.mydata["count"]`, object.NewInt(1)},
 		{`import data; data.mydata["count"] = 3; data.mydata["count"]`, object.NewInt(3)},
 		{`import data as d; d.mydata["count"]`, object.NewInt(1)},
-		{`import math as m; m.min([3,-7,9])`, object.NewInt(-7)},
+		{`import math as m; m.min(3,-7)`, object.NewFloat(-7)},
 	}
 	runTests(t, tests)
 }
@@ -1602,8 +1602,8 @@ func TestFromImport(t *testing.T) {
 		{`from a.function import plusOne; plusOne(1)`, object.NewInt(2)},
 		{`from a import function; function.plusOne(1)`, object.NewInt(2)},
 		{`from a.b import data as b_data; from a.function import plusOne; plusOne(b_data.mapValue["1"]) `, object.NewInt(2)},
-		{`from math import min; min([3,-7,9])`, object.NewInt(-7)},
-		{`from math import min as m; m([3,-7,9])`, object.NewInt(-7)},
+		{`from math import min; min(3,-7)`, object.NewFloat(-7)},
+		{`from math import min as m; m(3,-7)`, object.NewFloat(-7)},
 	}
 	runTests(t, tests)
 }

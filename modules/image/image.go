@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"image"
 
 	"github.com/anthonynsimon/bild/imgio"
@@ -62,13 +63,6 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewByteSlice(buf.Bytes())
 }
 
-func Module() *object.Module {
-	return object.NewBuiltinsModule("image", map[string]object.Object{
-		"encode": object.NewBuiltin("image.encode", Encode),
-		"decode": object.NewBuiltin("image.decode", Decode),
-	})
-}
-
 func encodePNG(ctx context.Context, obj object.Object) object.Object {
 	img, ok := obj.(*Image)
 	if !ok {
@@ -124,4 +118,14 @@ func init() {
 	builtins.RegisterCodec("png", &builtins.Codec{Encode: encodePNG, Decode: decodeAny})
 	builtins.RegisterCodec("jpg", &builtins.Codec{Encode: encodeJPG, Decode: decodeAny})
 	builtins.RegisterCodec("bmp", &builtins.Codec{Encode: encodeBMP, Decode: decodeAny})
+}
+
+//go:embed image.md
+var docs string
+
+func Module() *object.Module {
+	return object.NewBuiltinsModule("image", map[string]object.Object{
+		"encode": object.NewBuiltin("image.encode", Encode),
+		"decode": object.NewBuiltin("image.decode", Decode),
+	}).WithDocstring(docs)
 }

@@ -24,7 +24,7 @@ func TestObjectString(t *testing.T) {
 		{NewList([]Object{NewInt(1), NewInt(2)}), "[1, 2]"},
 		{NewSet([]Object{True, Nil}), "{true, nil}"},
 		{NewMap(map[string]Object{"foo": NewInt(1), "bar": NewInt(2)}), `{"bar": 2, "foo": 1}`},
-		{NewTime(tm), "2009-11-10 23:00:00 +0000 UTC"},
+		{NewTime(tm), "time(\"2009-11-10T23:00:00Z\")"},
 	}
 	for _, tt := range tests {
 		str, ok := tt.input.(fmt.Stringer)

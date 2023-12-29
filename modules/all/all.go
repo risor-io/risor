@@ -7,7 +7,6 @@ import (
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
-	modHash "github.com/risor-io/risor/modules/hash"
 	modHttp "github.com/risor-io/risor/modules/http"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
@@ -44,9 +43,6 @@ func Builtins() map[string]object.Object {
 		result[k] = v
 	}
 	for k, v := range builtins.Builtins() {
-		result[k] = v
-	}
-	for k, v := range modHash.Builtins() {
 		result[k] = v
 	}
 	for k, v := range modOs.Builtins() {

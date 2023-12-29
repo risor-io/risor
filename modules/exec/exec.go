@@ -3,6 +3,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"os/exec"
@@ -132,9 +133,12 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 	return NewResult(cmd)
 }
 
+//go:embed exec.md
+var docs string
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("exec", map[string]object.Object{
 		"command":   object.NewBuiltin("exec.command", CommandFunc),
 		"look_path": object.NewBuiltin("exec.look_path", LookPath),
-	}, Exec)
+	}, Exec).WithDocstring(docs)
 }
