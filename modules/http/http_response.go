@@ -1,19 +1,22 @@
-package object
+package http
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/risor-io/risor/limits"
+	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
 
+const HTTP_RESPONSE object.Type = "http_response"
+
 type HttpResponse struct {
-	*base
 	resp        *http.Response
 	readerLimit int64
 	once        sync.Once
@@ -21,7 +24,11 @@ type HttpResponse struct {
 	bodyData    []byte
 }
 
-func (r *HttpResponse) Type() Type {
+func (b *HttpResponse) IsTruthy() bool {
+	return true
+}
+
+func (r *HttpResponse) Type() object.Type {
 	return HTTP_RESPONSE
 }
 
@@ -30,7 +37,11 @@ func (r *HttpResponse) Inspect() string {
 		r.resp.Status, r.resp.ContentLength)
 }
 
-func (r *HttpResponse) GetAttr(name string) (Object, bool) {
+func (b *HttpResponse) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: object has no attribute %q", name)
+}
+
+func (r *HttpResponse) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "status":
 		return r.Status(), true
@@ -43,39 +54,36 @@ func (r *HttpResponse) GetAttr(name string) (Object, bool) {
 	case "header":
 		return r.Header(), true
 	case "json":
-		return &Builtin{
-			name: "http.response.json",
-			fn: func(ctx context.Context, args ...Object) Object {
+		return object.NewBuiltin("http.response.json",
+			func(ctx context.Context, args ...object.Object) object.Object {
 				if len(args) != 0 {
-					return NewArgsError("json", 0, len(args))
+					return object.NewArgsError("json", 0, len(args))
 				}
 				return r.JSON()
-			},
-		}, true
+			}), true
 	case "text":
-		return &Builtin{
-			name: "http.response.text",
-			fn: func(ctx context.Context, args ...Object) Object {
+		return object.NewBuiltin("http.response.text",
+			func(ctx context.Context, args ...object.Object) object.Object {
 				if len(args) != 0 {
-					return NewArgsError("text", 0, len(args))
+					return object.NewArgsError("text", 0, len(args))
 				}
 				return r.Text()
-
-			},
-		}, true
+			}), true
 	case "close":
-		return &Builtin{
-			name: "http.response.close",
-			fn: func(ctx context.Context, args ...Object) Object {
+		return object.NewBuiltin("http.response.close",
+			func(ctx context.Context, args ...object.Object) object.Object {
 				if len(args) != 0 {
-					return NewArgsError("close", 0, len(args))
+					return object.NewArgsError("close", 0, len(args))
 				}
 				r.Close()
-				return Nil
-			},
-		}, true
+				return object.Nil
+			}), true
 	}
 	return nil, false
+}
+
+func (r *HttpResponse) AsReader() (io.Reader, *object.Error) {
+	return r.resp.Body, nil
 }
 
 func (r *HttpResponse) Interface() interface{} {
@@ -105,64 +113,64 @@ func (r *HttpResponse) readBody() ([]byte, error) {
 	return data, nil
 }
 
-func (r *HttpResponse) JSON() Object {
+func (r *HttpResponse) JSON() object.Object {
 	body, err := r.readBody()
 	if err != nil {
-		return NewError(err)
+		return object.NewError(err)
 	}
 	var target interface{}
 	if err := json.Unmarshal(body, &target); err != nil {
-		return NewError(err)
+		return object.NewError(err)
 	}
-	scriptObj := FromGoType(target)
+	scriptObj := object.FromGoType(target)
 	if scriptObj == nil {
-		return Errorf("value error: unmarshal failed")
+		return object.Errorf("value error: unmarshal failed")
 	}
 	return scriptObj
 }
 
-func (r *HttpResponse) Text() Object {
+func (r *HttpResponse) Text() object.Object {
 	body, err := r.readBody()
 	if err != nil {
-		return NewError(err)
+		return object.NewError(err)
 	}
-	return NewString(string(body))
+	return object.NewString(string(body))
 }
 
-func (r *HttpResponse) Status() *String {
-	return NewString(r.resp.Status)
+func (r *HttpResponse) Status() *object.String {
+	return object.NewString(r.resp.Status)
 }
 
-func (r *HttpResponse) StatusCode() *Int {
-	return NewInt(int64(r.resp.StatusCode))
+func (r *HttpResponse) StatusCode() *object.Int {
+	return object.NewInt(int64(r.resp.StatusCode))
 }
 
-func (r *HttpResponse) Proto() *String {
-	return NewString(r.resp.Proto)
+func (r *HttpResponse) Proto() *object.String {
+	return object.NewString(r.resp.Proto)
 }
 
-func (r *HttpResponse) ContentLength() *Int {
-	return NewInt(r.resp.ContentLength)
+func (r *HttpResponse) ContentLength() *object.Int {
+	return object.NewInt(r.resp.ContentLength)
 }
 
-func (r *HttpResponse) Header() *Map {
+func (r *HttpResponse) Header() *object.Map {
 	hdr := r.resp.Header
-	m := make(map[string]Object, len(hdr))
+	m := make(map[string]object.Object, len(hdr))
 	for k, v := range hdr {
-		m[k] = NewStringList(v)
+		m[k] = object.NewStringList(v)
 	}
-	return NewMap(m)
+	return object.NewMap(m)
 }
 
-func (r *HttpResponse) Equals(other Object) Object {
+func (r *HttpResponse) Equals(other object.Object) object.Object {
 	if other.Type() != HTTP_RESPONSE {
-		return False
+		return object.False
 	}
-	return NewBool(r.resp == other.(*HttpResponse).resp)
+	return object.NewBool(r.resp == other.(*HttpResponse).resp)
 }
 
-func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for http.response: %v", opType))
+func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
+	return object.NewError(fmt.Errorf("eval error: unsupported operation for http.response: %v", opType))
 }
 
 func (r *HttpResponse) Cost() int {
@@ -171,7 +179,7 @@ func (r *HttpResponse) Cost() int {
 
 func (r *HttpResponse) MarshalJSON() ([]byte, error) {
 	var text string
-	var jsonObj Object
+	var jsonObj object.Object
 	data, err := r.readBody()
 	if err != nil {
 		return nil, err
@@ -182,13 +190,13 @@ func (r *HttpResponse) MarshalJSON() ([]byte, error) {
 		text = string(data)
 	}
 	return json.Marshal(struct {
-		Status        string      `json:"status"`
-		StatusCode    int         `json:"status_code"`
-		Proto         string      `json:"proto"`
-		ContentLength int64       `json:"content_length"`
-		Header        http.Header `json:"header"`
-		Text          string      `json:"text,omitempty"`
-		JSON          Object      `json:"json,omitempty"`
+		Status        string        `json:"status"`
+		StatusCode    int           `json:"status_code"`
+		Proto         string        `json:"proto"`
+		ContentLength int64         `json:"content_length"`
+		Header        http.Header   `json:"header"`
+		Text          string        `json:"text,omitempty"`
+		JSON          object.Object `json:"json,omitempty"`
 	}{
 		Status:        r.resp.Status,
 		StatusCode:    r.resp.StatusCode,

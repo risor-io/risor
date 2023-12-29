@@ -1,4 +1,4 @@
-package httputil
+package http
 
 import (
 	"bytes"
@@ -16,7 +16,6 @@ func NewRequestFromParams(
 	url string,
 	params *object.Map,
 ) (*http.Request, time.Duration, *object.Error) {
-
 	method := "GET"
 	var timeout time.Duration
 	var body io.Reader

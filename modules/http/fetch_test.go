@@ -1,4 +1,4 @@
-package fetch
+package http
 
 import (
 	"context"
@@ -43,7 +43,7 @@ func TestFetch(t *testing.T) {
 	if errObj, ok := result.(*object.Error); ok {
 		require.Nil(t, errObj, errObj)
 	}
-	resp, ok := result.(*object.HttpResponse)
+	resp, ok := result.(*HttpResponse)
 	require.True(t, ok)
 
 	require.Equal(t, int64(200), resp.StatusCode().Value())
@@ -81,7 +81,7 @@ func TestBasicFetch(t *testing.T) {
 	if errObj, ok := result.(*object.Error); ok {
 		require.Nil(t, errObj, errObj)
 	}
-	resp, ok := result.(*object.HttpResponse)
+	resp, ok := result.(*HttpResponse)
 	require.True(t, ok)
 
 	require.Equal(t, int64(204), resp.StatusCode().Value())

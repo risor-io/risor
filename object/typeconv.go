@@ -179,8 +179,6 @@ func AsReader(obj Object) (io.Reader, *Error) {
 		return bytes.NewBufferString(obj.value), nil
 	case *File:
 		return obj.value, nil
-	case *HttpResponse:
-		return obj.resp.Body, nil
 	case io.Reader:
 		return obj, nil
 	default:

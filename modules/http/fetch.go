@@ -1,10 +1,9 @@
-package fetch
+package http
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/risor-io/risor/internal/httputil"
 	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
@@ -31,7 +30,7 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(limits.LimitsNotFound)
 	}
 	client := &http.Client{Timeout: lim.IOTimeout()}
-	req, timeout, errObj := httputil.NewRequestFromParams(ctx, urlArg, params)
+	req, timeout, errObj := NewRequestFromParams(ctx, urlArg, params)
 	if errObj != nil {
 		return errObj
 	}
@@ -50,11 +49,5 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 	if err := lim.TrackHTTPResponse(resp); err != nil {
 		return object.NewError(err)
 	}
-	return object.NewHttpResponse(resp, client.Timeout, lim.MaxBufferSize())
-}
-
-func Builtins() map[string]object.Object {
-	return map[string]object.Object{
-		"fetch": object.NewBuiltin("fetch", Fetch),
-	}
+	return NewHttpResponse(resp, client.Timeout, lim.MaxBufferSize())
 }
