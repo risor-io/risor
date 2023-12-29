@@ -26,6 +26,10 @@ extension:
 postgres:
 	docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=pwd -d postgres
 
+.PHONY: tidy
+tidy:
+	find . -name go.mod -execdir go mod tidy \;
+
 .PHONY: cover
 cover:
 	go test -coverprofile cover.out ./...

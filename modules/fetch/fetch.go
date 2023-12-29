@@ -12,7 +12,7 @@ import (
 func Fetch(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 || numArgs > 2 {
-		return object.NewArgsRangeError("fetch", 1, 2, len(args))
+		return object.NewArgsRangeError("fetch", 1, 2, numArgs)
 	}
 	urlArg, argErr := object.AsString(args[0])
 	if argErr != nil {
