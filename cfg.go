@@ -108,6 +108,7 @@ func (cfg *Config) addDefaultGlobals() {
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
+		"http":     modHttp.Module(),
 	}
 	addGlobals(modules)
 }

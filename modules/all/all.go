@@ -36,6 +36,7 @@ func Builtins() map[string]object.Object {
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
+		"http":     modHttp.Module(),
 	}
 	for k, v := range modHttp.Builtins() {
 		result[k] = v

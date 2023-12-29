@@ -24,7 +24,7 @@ type HttpResponse struct {
 	bodyData    []byte
 }
 
-func (b *HttpResponse) IsTruthy() bool {
+func (r *HttpResponse) IsTruthy() bool {
 	return true
 }
 
@@ -37,8 +37,8 @@ func (r *HttpResponse) Inspect() string {
 		r.resp.Status, r.resp.ContentLength)
 }
 
-func (b *HttpResponse) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: object has no attribute %q", name)
+func (r *HttpResponse) SetAttr(name string, value object.Object) error {
+	return fmt.Errorf("attribute error: %s object has no attribute %q", HTTP_RESPONSE, name)
 }
 
 func (r *HttpResponse) GetAttr(name string) (object.Object, bool) {
@@ -53,6 +53,10 @@ func (r *HttpResponse) GetAttr(name string) (object.Object, bool) {
 		return r.ContentLength(), true
 	case "header":
 		return r.Header(), true
+	case "cookies":
+		return r.Cookies(), true
+	case "response":
+		return object.FromGoType(r.resp), true
 	case "json":
 		return object.NewBuiltin("http.response.json",
 			func(ctx context.Context, args ...object.Object) object.Object {
@@ -162,6 +166,15 @@ func (r *HttpResponse) Header() *object.Map {
 	return object.NewMap(m)
 }
 
+func (r *HttpResponse) Cookies() *object.Map {
+	cookies := r.resp.Cookies()
+	m := make(map[string]object.Object, len(cookies))
+	for _, cookie := range cookies {
+		m[cookie.Name] = object.FromGoType(cookie)
+	}
+	return object.NewMap(m)
+}
+
 func (r *HttpResponse) Equals(other object.Object) object.Object {
 	if other.Type() != HTTP_RESPONSE {
 		return object.False
@@ -190,29 +203,27 @@ func (r *HttpResponse) MarshalJSON() ([]byte, error) {
 		text = string(data)
 	}
 	return json.Marshal(struct {
-		Status        string        `json:"status"`
-		StatusCode    int           `json:"status_code"`
-		Proto         string        `json:"proto"`
-		ContentLength int64         `json:"content_length"`
-		Header        http.Header   `json:"header"`
-		Text          string        `json:"text,omitempty"`
-		JSON          object.Object `json:"json,omitempty"`
+		Status        string         `json:"status"`
+		StatusCode    int            `json:"status_code"`
+		Proto         string         `json:"proto"`
+		ContentLength int64          `json:"content_length"`
+		Header        http.Header    `json:"header"`
+		Cookies       []*http.Cookie `json:"cookies,omitempty"`
+		Text          string         `json:"text,omitempty"`
+		JSON          object.Object  `json:"json,omitempty"`
 	}{
 		Status:        r.resp.Status,
 		StatusCode:    r.resp.StatusCode,
 		Proto:         r.resp.Proto,
 		ContentLength: r.resp.ContentLength,
 		Header:        r.resp.Header,
+		Cookies:       r.resp.Cookies(),
 		Text:          text,
 		JSON:          jsonObj,
 	})
 }
 
-func NewHttpResponse(
-	resp *http.Response,
-	timeout time.Duration,
-	readerLimit int64,
-) *HttpResponse {
+func NewHttpResponse(resp *http.Response, timeout time.Duration, readerLimit int64) *HttpResponse {
 	obj := &HttpResponse{
 		resp:        resp,
 		readerLimit: readerLimit,

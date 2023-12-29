@@ -2,9 +2,7 @@ package http
 
 import (
 	"context"
-	"net/http"
 
-	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
 
@@ -25,29 +23,10 @@ func Fetch(ctx context.Context, args ...object.Object) object.Object {
 			return errObj
 		}
 	}
-	lim, ok := limits.GetLimits(ctx)
-	if !ok {
-		return object.NewError(limits.LimitsNotFound)
-	}
-	client := &http.Client{Timeout: lim.IOTimeout()}
-	req, timeout, errObj := NewRequestFromParams(ctx, urlArg, params)
+	req, errObj := NewRequestFromParams(urlArg, params)
 	if errObj != nil {
 		return errObj
 	}
-	if timeout != 0 {
-		if timeout < client.Timeout {
-			client.Timeout = timeout
-		}
-	}
-	if err := lim.TrackHTTPRequest(req); err != nil {
-		return object.NewError(err)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return object.NewError(err)
-	}
-	if err := lim.TrackHTTPResponse(resp); err != nil {
-		return object.NewError(err)
-	}
-	return NewHttpResponse(resp, client.Timeout, lim.MaxBufferSize())
+
+	return req.Send(ctx)
 }
