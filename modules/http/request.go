@@ -32,7 +32,7 @@ func (r *HttpRequest) Type() object.Type {
 }
 
 func (r *HttpRequest) Inspect() string {
-	return fmt.Sprintf("http.request(url: %s, method: %s,)",
+	return fmt.Sprintf("http.request(url: %s, method: %s)",
 		r.req.URL.String(), r.req.Method)
 }
 
@@ -88,51 +88,44 @@ func (r *HttpRequest) GetAttr(name string) (object.Object, bool) {
 			return r.Send(ctx)
 		}), true
 	case "add_header":
-		return object.NewBuiltin("http.request.addHeader", func(ctx context.Context, args ...object.Object) object.Object {
+		return object.NewBuiltin("http.request.add_header", func(ctx context.Context, args ...object.Object) object.Object {
 			numArgs := len(args)
-
 			if numArgs != 2 {
-				return object.NewArgsError("http.request.addHeader", 2, numArgs)
+				return object.NewArgsError("http.request.add_header", 2, numArgs)
 			}
-
 			name, err := object.AsString(args[0])
 			if err != nil {
 				return err
 			}
-
 			r.AddHeader(name, args[1])
-
 			return nil
 		}), true
 	case "add_cookie":
-		return object.NewBuiltin("http.request.addCookie", func(ctx context.Context, args ...object.Object) object.Object {
+		return object.NewBuiltin("http.request.add_cookie", func(ctx context.Context, args ...object.Object) object.Object {
 			if numArgs := len(args); numArgs != 2 {
-				return object.NewArgsError("http.request.addCookie", 2, numArgs)
+				return object.NewArgsError("http.request.add_cookie", 2, numArgs)
 			}
-
 			name, err := object.AsString(args[0])
 			if err != nil {
 				return err
 			}
-
 			value, err := object.AsMap(args[1])
 			if err != nil {
 				return err
 			}
-
 			return r.AddCookie(name, value)
 		}), true
 	case "set_body":
-		return object.NewBuiltin("http.request.setBody", func(ctx context.Context, args ...object.Object) object.Object {
+		return object.NewBuiltin("http.request.set_body", func(ctx context.Context, args ...object.Object) object.Object {
 			if numArgs := len(args); numArgs != 1 {
-				return object.NewArgsError("http.request.setBody", 1, numArgs)
+				return object.NewArgsError("http.request.set_body", 1, numArgs)
 			}
 			return r.SetBody(args[0])
 		}), true
 	case "set_data":
-		return object.NewBuiltin("http.request.setData", func(ctx context.Context, args ...object.Object) object.Object {
+		return object.NewBuiltin("http.request.set_data", func(ctx context.Context, args ...object.Object) object.Object {
 			if numArgs := len(args); numArgs != 1 {
-				return object.NewArgsError("http.request.setData", 1, numArgs)
+				return object.NewArgsError("http.request.set_data", 1, numArgs)
 			}
 			return r.SetData(args[0])
 		}), true
@@ -220,7 +213,7 @@ func (r *HttpRequest) AddCookie(name string, cookie *object.Map) *object.Error {
 		}
 		c.Path = path
 	}
-	if maxAgeObj := cookie.GetWithDefault("maxAge", nil); maxAgeObj != nil {
+	if maxAgeObj := cookie.GetWithDefault("max_age", nil); maxAgeObj != nil {
 		maxAge, objErr := object.AsString(maxAgeObj)
 		if objErr != nil {
 			return objErr
@@ -238,7 +231,7 @@ func (r *HttpRequest) AddCookie(name string, cookie *object.Map) *object.Error {
 		}
 		c.Secure = secure
 	}
-	if httpOnlyObj := cookie.GetWithDefault("httpOnly", nil); httpOnlyObj != nil {
+	if httpOnlyObj := cookie.GetWithDefault("http_only", nil); httpOnlyObj != nil {
 		httpOnly, err := object.AsBool(httpOnlyObj)
 		if err != nil {
 			return err
