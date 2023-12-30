@@ -54,6 +54,11 @@ func (m *Map) Value() map[string]Object {
 	return m.items
 }
 
+func (m *Map) SetAttr(name string, value Object) error {
+	m.Set(name, value)
+	return nil
+}
+
 func (m *Map) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "keys":
@@ -177,7 +182,8 @@ func (m *Map) GetAttr(name string) (Object, bool) {
 			},
 		}, true
 	}
-	return nil, false
+	o, ok := m.items[name]
+	return o, ok
 }
 
 func (m *Map) ListItems() *List {

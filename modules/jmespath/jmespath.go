@@ -26,8 +26,7 @@ func Jmespath(ctx context.Context, args ...object.Object) object.Object {
 		return argsErr
 	}
 
-	parser := parsing.NewParser()
-	if _, err := parser.Parse(expression); err != nil {
+	if _, err := parsing.NewParser().Parse(expression); err != nil {
 		if syntaxError, ok := err.(parsing.SyntaxError); ok {
 			return object.NewError(fmt.Errorf("%s\n%s", syntaxError, syntaxError.HighlightLocation()))
 		}

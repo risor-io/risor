@@ -5,10 +5,10 @@ import (
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
 	modExec "github.com/risor-io/risor/modules/exec"
-	modFetch "github.com/risor-io/risor/modules/fetch"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modHash "github.com/risor-io/risor/modules/hash"
+	modHttp "github.com/risor-io/risor/modules/http"
 	modJmesPath "github.com/risor-io/risor/modules/jmespath"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
@@ -36,8 +36,9 @@ func Builtins() map[string]object.Object {
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
+		"http":     modHttp.Module(),
 	}
-	for k, v := range modFetch.Builtins() {
+	for k, v := range modHttp.Builtins() {
 		result[k] = v
 	}
 	for k, v := range modFmt.Builtins() {

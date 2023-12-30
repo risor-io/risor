@@ -172,6 +172,9 @@ func AsBytes(obj Object) ([]byte, *Error) {
 }
 
 func AsReader(obj Object) (io.Reader, *Error) {
+	if o, ok := obj.(interface{ AsReader() (io.Reader, *Error) }); ok {
+		return o.AsReader()
+	}
 	switch obj := obj.(type) {
 	case *ByteSlice:
 		return bytes.NewBuffer(obj.value), nil
@@ -179,8 +182,6 @@ func AsReader(obj Object) (io.Reader, *Error) {
 		return bytes.NewBufferString(obj.value), nil
 	case *File:
 		return obj.value, nil
-	case *HttpResponse:
-		return obj.resp.Body, nil
 	case io.Reader:
 		return obj, nil
 	default:
@@ -189,6 +190,9 @@ func AsReader(obj Object) (io.Reader, *Error) {
 }
 
 func AsWriter(obj Object) (io.Writer, *Error) {
+	if o, ok := obj.(interface{ AsWriter() (io.Writer, *Error) }); ok {
+		return o.AsWriter()
+	}
 	switch obj := obj.(type) {
 	case *Buffer:
 		return obj.value, nil

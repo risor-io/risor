@@ -51,7 +51,6 @@ const (
 	GO_FIELD      Type = "go_field"
 	GO_METHOD     Type = "go_method"
 	GO_TYPE       Type = "go_type"
-	HTTP_RESPONSE Type = "http_response"
 	INT           Type = "int"
 	ITER_ENTRY    Type = "iter_entry"
 	LIST          Type = "list"
