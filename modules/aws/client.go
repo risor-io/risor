@@ -120,7 +120,7 @@ func (c *Client) IsTruthy() bool {
 }
 
 func (c *Client) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for aws.client: %v ", opType))
+	return object.Errorf("eval error: unsupported operation for aws.client: %v ", opType)
 }
 
 func (c *Client) Cost() int {

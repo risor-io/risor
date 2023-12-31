@@ -103,7 +103,7 @@ func (c *Config) IsTruthy() bool {
 }
 
 func (c *Config) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for aws.config: %v ", opType))
+	return object.Errorf("eval error: unsupported operation for aws.config: %v ", opType)
 }
 
 func (c *Config) Cost() int {

@@ -183,7 +183,7 @@ func (r *HttpResponse) Equals(other object.Object) object.Object {
 }
 
 func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for http.response: %v", opType))
+	return object.Errorf("eval error: unsupported operation for http.response: %v", opType)
 }
 
 func (r *HttpResponse) Cost() int {

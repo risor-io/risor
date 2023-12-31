@@ -72,14 +72,14 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 		if stdoutObj := params.GetWithDefault("stdout", nil); stdoutObj != nil {
 			stdoutBuf, ok := stdoutObj.(io.Writer)
 			if !ok {
-				return object.NewError(fmt.Errorf("eval error: exec expected io.Writer for stdout (%T given)", stdoutObj))
+				return object.Errorf("eval error: exec expected io.Writer for stdout (%T given)", stdoutObj)
 			}
 			cmd.Stdout = stdoutBuf
 		}
 		if stderrObj := params.GetWithDefault("stderr", nil); stderrObj != nil {
 			stderrBuf, ok := stderrObj.(io.Writer)
 			if !ok {
-				return object.NewError(fmt.Errorf("eval error: exec expected io.Writer for stderr (%T given)", stderrObj))
+				return object.Errorf("eval error: exec expected io.Writer for stderr (%T given)", stderrObj)
 			}
 			cmd.Stderr = stderrBuf
 		}
@@ -92,7 +92,7 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 			case io.Reader:
 				cmd.Stdin = stdinObj
 			default:
-				return object.NewError(fmt.Errorf("eval error: exec expected io.Reader for stdin (%T given)", stdinObj))
+				return object.Errorf("eval error: exec expected io.Reader for stdin (%T given)", stdinObj)
 			}
 		}
 		if dirObj := params.GetWithDefault("dir", nil); dirObj != nil {

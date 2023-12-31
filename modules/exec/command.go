@@ -207,7 +207,7 @@ func (c *Command) IsTruthy() bool {
 }
 
 func (c *Command) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for exec.command: %v ", opType))
+	return object.Errorf("eval error: unsupported operation for exec.command: %v ", opType)
 }
 
 func (c *Command) Cost() int {

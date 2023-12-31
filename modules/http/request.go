@@ -166,7 +166,7 @@ func (r *HttpRequest) Cost() int {
 }
 
 func (r *HttpRequest) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for http.request: %v", opType))
+	return object.Errorf("eval error: unsupported operation for http.request: %v", opType)
 }
 
 func (r *HttpRequest) AddHeaders(headers *object.Map) {
@@ -333,7 +333,7 @@ func (r *HttpRequest) Send(ctx context.Context) object.Object {
 		return object.NewError(limits.LimitsNotFound)
 	}
 	if r.req == nil {
-		return object.NewError(fmt.Errorf("bad request"))
+		return object.Errorf("bad request")
 	}
 	if r.client == nil {
 		r.client = &http.Client{}
