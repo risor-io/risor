@@ -8,6 +8,7 @@ replace (
 	github.com/risor-io/risor/modules/image => ../../modules/image
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
+	github.com/risor-io/risor/modules/sql => ../../modules/sql
 	github.com/risor-io/risor/modules/uuid => ../../modules/uuid
 	github.com/risor-io/risor/os/s3fs => ../../os/s3fs
 )
@@ -25,6 +26,7 @@ require (
 	github.com/risor-io/risor/modules/image v1.1.1
 	github.com/risor-io/risor/modules/kubernetes v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/pgx v1.1.1
+	github.com/risor-io/risor/modules/sql v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/uuid v1.1.1
 	github.com/risor-io/risor/os/s3fs v1.1.1
 	github.com/spf13/cobra v1.7.0
@@ -93,8 +95,11 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -109,9 +114,11 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/lib/pq v1.10.7 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/microsoft/go-mssqldb v1.6.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -123,6 +130,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/xo/dburl v0.20.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect
 	golang.org/x/image v0.14.0 // indirect
