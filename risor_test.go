@@ -12,6 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func ptrTo[T any](v T) *T {
+	return &v
+}
+
 func TestBasicUsage(t *testing.T) {
 	result, err := Eval(context.Background(), "1 + 1")
 	require.Nil(t, err)
@@ -80,6 +84,12 @@ func TestDefaultGlobals(t *testing.T) {
 
 func TestWithoutDefaultGlobals(t *testing.T) {
 	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobals())
+	require.NotNil(t, err)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
+}
+
+func TestWithoutDefaultGlobal(t *testing.T) {
+	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobal("json"))
 	require.NotNil(t, err)
 	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
 }

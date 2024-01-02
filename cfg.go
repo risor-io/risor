@@ -23,6 +23,7 @@ import (
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTime "github.com/risor-io/risor/modules/time"
 	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/parser"
 	"github.com/risor-io/risor/vm"
 )
 
@@ -111,6 +112,12 @@ func (cfg *Config) addDefaultGlobals() {
 		"http":     modHttp.Module(),
 	}
 	addGlobals(modules)
+}
+
+// ParserOpts returns parser options derived from the configuration.
+func (cfg *Config) ParserOpts() []parser.Option {
+	var opts []parser.Option
+	return opts
 }
 
 // CompilerOpts returns compiler options derived from this configuration.

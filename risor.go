@@ -33,10 +33,24 @@ func WithGlobal(name string, value any) Option {
 	}
 }
 
+// WithoutGlobal opts out of a given global builtin or module.
+func WithoutGlobal(name string) Option {
+	return func(cfg *Config) {
+		delete(cfg.Globals, name)
+	}
+}
+
 // WithoutDefaultGlobals opts out of all default global builtins and modules.
 func WithoutDefaultGlobals() Option {
 	return func(cfg *Config) {
 		cfg.DefaultGlobals = map[string]object.Object{}
+	}
+}
+
+// WithoutDefaultGlobal opts out of a given default global builtin or module.
+func WithoutDefaultGlobal(name string) Option {
+	return func(cfg *Config) {
+		delete(cfg.DefaultGlobals, name)
 	}
 }
 
@@ -61,7 +75,7 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 		opt(cfg)
 	}
 	// Parse the source code to create the AST
-	ast, err := parser.Parse(ctx, source)
+	ast, err := parser.Parse(ctx, source, cfg.ParserOpts()...)
 	if err != nil {
 		return nil, err
 	}
