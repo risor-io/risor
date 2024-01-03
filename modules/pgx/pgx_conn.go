@@ -70,7 +70,7 @@ func (c *PgxConn) SetAttr(name string, value object.Object) error {
 }
 
 func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for pgx.conn: %v", opType))
+	return object.Errorf("eval error: unsupported operation for pgx.conn: %v", opType)
 }
 
 func (c *PgxConn) Close() error {

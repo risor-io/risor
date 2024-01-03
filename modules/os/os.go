@@ -3,7 +3,6 @@ package os
 import (
 	"bytes"
 	"context"
-	"fmt"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
@@ -298,7 +297,7 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	case *object.String:
 		data = []byte(arg.Value())
 	default:
-		return object.NewError(fmt.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type()))
+		return object.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type())
 	}
 	var perm int64 = 0644
 	if len(args) == 3 {

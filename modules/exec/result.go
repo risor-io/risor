@@ -70,7 +70,7 @@ func (r *Result) JSON() object.Object {
 	case *object.Buffer:
 		data = stdout.Value().Bytes()
 	default:
-		return object.NewError(fmt.Errorf("eval error: exec.result.json does not support stdout type %T", stdout))
+		return object.Errorf("eval error: exec.result.json does not support stdout type %T", stdout)
 	}
 	var obj interface{}
 	if err := json.Unmarshal(data, &obj); err != nil {
@@ -107,7 +107,7 @@ func (r *Result) IsTruthy() bool {
 }
 
 func (r *Result) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.NewError(fmt.Errorf("eval error: unsupported operation for exec.result: %v", opType))
+	return object.Errorf("eval error: unsupported operation for exec.result: %v", opType)
 }
 
 func (r *Result) Cost() int {

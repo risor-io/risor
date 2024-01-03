@@ -22,6 +22,7 @@ git push origin $VERSION
 git push origin os/s3fs/$VERSION
 git push origin modules/uuid/$VERSION
 git push origin modules/pgx/$VERSION
+git push origin modules/sql/$VERSION
 git push origin modules/image/$VERSION
 git push origin modules/aws/$VERSION
 git push origin modules/kubernetes/$VERSION

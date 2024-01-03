@@ -9,6 +9,7 @@ use (
 	./modules/aws
 	./modules/image
 	./modules/pgx
+	./modules/sql
 	./modules/uuid
 	./os/s3fs
 )

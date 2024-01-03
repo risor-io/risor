@@ -24,6 +24,7 @@ import (
 	"github.com/risor-io/risor/modules/image"
 	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/pgx"
+	"github.com/risor-io/risor/modules/sql"
 	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
@@ -230,6 +231,7 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithGlobals(map[string]any{
 				"image": image.Module(),
 				"pgx":   pgx.Module(),
+				"sql":   sql.Module(),
 				"uuid":  uuid.Module(),
 			}))
 			// AWS support may or may not be compiled in based on build tags

@@ -2,7 +2,6 @@ package jmespath
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmespath-community/go-jmespath/pkg/api"
 	"github.com/jmespath-community/go-jmespath/pkg/parsing"
@@ -28,7 +27,7 @@ func Jmespath(ctx context.Context, args ...object.Object) object.Object {
 
 	if _, err := parsing.NewParser().Parse(expression); err != nil {
 		if syntaxError, ok := err.(parsing.SyntaxError); ok {
-			return object.NewError(fmt.Errorf("%s\n%s", syntaxError, syntaxError.HighlightLocation()))
+			return object.Errorf("%s\n%s", syntaxError, syntaxError.HighlightLocation())
 		}
 		return object.NewError(err)
 	}
