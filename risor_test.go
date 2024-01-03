@@ -12,10 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func ptrTo[T any](v T) *T {
-	return &v
-}
-
 func TestBasicUsage(t *testing.T) {
 	result, err := Eval(context.Background(), "1 + 1")
 	require.Nil(t, err)
@@ -79,6 +75,49 @@ func TestDefaultGlobals(t *testing.T) {
 		result, err := Eval(context.Background(), tc.input)
 		require.Nil(t, err)
 		require.Equal(t, tc.expected, result)
+	}
+}
+
+func TestWithDenyList(t *testing.T) {
+	type testCase struct {
+		input       string
+		expectedErr error
+	}
+	testCases := []testCase{
+		{
+			input:       "keys({foo: 1})",
+			expectedErr: nil,
+		},
+		{
+			input:       "any([0, 0, 1])",
+			expectedErr: errors.New(`compile error: undefined variable "any"`),
+		},
+		{
+			input:       "json.marshal(42)",
+			expectedErr: errors.New(`compile error: undefined variable "json"`),
+		},
+		{
+			input:       `os.getenv("USER")`,
+			expectedErr: nil,
+		},
+		{
+			input:       "os.exit(1)",
+			expectedErr: errors.New(`compile error: undefined variable "exit"`),
+		},
+		{
+			input:       "cat /etc/issue",
+			expectedErr: errors.New(`compile error: undefined variable "cat"`),
+		},
+	}
+	for _, tc := range testCases {
+		_, err := Eval(context.Background(), tc.input, WithDenylist("any", "os.exit", "json", "cat"))
+		t.Logf("want: %q; got: %q", tc.expectedErr, err)
+		if tc.expectedErr != nil {
+			require.NotNil(t, err)
+			require.Equal(t, tc.expectedErr.Error(), err.Error())
+			continue
+		}
+		require.Nil(t, err)
 	}
 }
 

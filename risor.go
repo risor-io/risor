@@ -3,6 +3,7 @@ package risor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
@@ -51,6 +52,59 @@ func WithoutDefaultGlobals() Option {
 func WithoutDefaultGlobal(name string) Option {
 	return func(cfg *Config) {
 		delete(cfg.DefaultGlobals, name)
+	}
+}
+
+// WithDenylist opts out of a given set of global or module builtins.
+func WithDenylist(names ...string) Option {
+	return func(cfg *Config) {
+		for _, name := range names {
+			delete(cfg.DefaultGlobals, name)
+			delete(cfg.Globals, name)
+			parts := strings.Split(name, ".")
+			if len(parts) == 1 {
+				continue
+			}
+			WithGlobalOverride(name, object.NewBuiltin(parts[1], func(ctx context.Context, args ...object.Object) object.Object {
+				return object.Errorf("compile error: undefined variable %q", parts[1])
+			}))(cfg)
+		}
+	}
+}
+
+// WithGlobalOverride replaces the a global or module builtin with the given value
+func WithGlobalOverride(name string, value any) Option {
+	return func(cfg *Config) {
+		parts := strings.Split(name, ".")
+		if len(parts) == 1 {
+			if _, ok := cfg.Globals[name]; ok {
+				cfg.Globals[name] = value
+			}
+			if _, ok := cfg.DefaultGlobals[name]; ok {
+				if o, ok := value.(object.Object); ok {
+					cfg.DefaultGlobals[name] = o
+				}
+			}
+			return
+		}
+		value, ok := value.(*object.Builtin)
+		if !ok {
+			panic("value must be a Builtin object!")
+		}
+		if b, ok := cfg.Globals[parts[0]]; ok {
+			if m, ok := b.(*object.Module); ok {
+				if err := m.Override(parts[1], value); err != nil {
+					panic(err)
+				}
+			}
+		}
+		if b, ok := cfg.DefaultGlobals[parts[0]]; ok {
+			if m, ok := b.(*object.Module); ok {
+				if err := m.Override(parts[1], value); err != nil {
+					panic(err)
+				}
+			}
+		}
 	}
 }
 

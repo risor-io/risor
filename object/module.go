@@ -41,6 +41,19 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
+func (m *Module) Override(name string, value Object) error {
+	if _, found := m.builtins[name]; found {
+		m.builtins[name] = value
+		return nil
+	}
+	if index, found := m.globalsIndex[name]; found {
+		m.globals[index] = value
+		return nil
+	}
+
+	return fmt.Errorf("%q not found or not overriable", name)
+}
+
 func (m *Module) SetAttr(name string, value Object) error {
 	if name == "__name__" {
 		return fmt.Errorf("attribute error: cannot set attribute %q", name)
