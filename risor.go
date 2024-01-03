@@ -130,7 +130,7 @@ func Eval(ctx context.Context, source string, options ...Option) (object.Object,
 		opt(cfg)
 	}
 	// Parse the source code to create the AST
-	ast, err := parser.Parse(ctx, source, cfg.ParserOpts()...)
+	ast, err := parser.Parse(ctx, source)
 	if err != nil {
 		return nil, err
 	}
