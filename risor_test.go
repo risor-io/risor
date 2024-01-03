@@ -105,6 +105,11 @@ func TestWithDenyList(t *testing.T) {
 			expectedErr: errors.New(`compile error: undefined variable "exit"`),
 		},
 		{
+			input: `from os import exit
+exit(1)`,
+			expectedErr: errors.New(`compile error: undefined variable "exit"`),
+		},
+		{
 			input:       "cat /etc/issue",
 			expectedErr: errors.New(`compile error: undefined variable "cat"`),
 		},

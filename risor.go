@@ -87,6 +87,7 @@ func WithGlobalOverride(name string, value any) Option {
 			}
 			return
 		}
+		// TODO: should the assertion be on object.Object?
 		value, ok := value.(*object.Builtin)
 		if !ok {
 			panic("value must be a Builtin object!")
