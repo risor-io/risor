@@ -13,7 +13,6 @@ import (
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modHash "github.com/risor-io/risor/modules/hash"
 	modHttp "github.com/risor-io/risor/modules/http"
-	modJmesPath "github.com/risor-io/risor/modules/jmespath"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
 	modOs "github.com/risor-io/risor/modules/os"
@@ -85,7 +84,6 @@ func (cfg *Config) addDefaultGlobals() {
 	builtins := []map[string]object.Object{
 		builtins.Builtins(),
 		modHttp.Builtins(),
-		modJmesPath.Builtins(),
 		modFmt.Builtins(),
 		modHash.Builtins(),
 		modOs.Builtins(),

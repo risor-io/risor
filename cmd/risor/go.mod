@@ -6,6 +6,7 @@ replace (
 	github.com/risor-io/risor => ../..
 	github.com/risor-io/risor/modules/aws => ../../modules/aws
 	github.com/risor-io/risor/modules/image => ../../modules/image
+	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
@@ -24,6 +25,7 @@ require (
 	github.com/risor-io/risor v1.2.0
 	github.com/risor-io/risor/modules/aws v1.1.1
 	github.com/risor-io/risor/modules/image v1.1.1
+	github.com/risor-io/risor/modules/jmespath v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/kubernetes v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/pgx v1.1.1
 	github.com/risor-io/risor/modules/sql v0.0.0-00010101000000-000000000000

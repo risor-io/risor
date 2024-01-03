@@ -26,4 +26,5 @@ git push origin modules/sql/$VERSION
 git push origin modules/image/$VERSION
 git push origin modules/aws/$VERSION
 git push origin modules/kubernetes/$VERSION
+git push origin modules/jmespath/$VERSION
 git push origin cmd/risor/$VERSION
