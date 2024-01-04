@@ -22,6 +22,7 @@ import (
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/modules/aws"
 	"github.com/risor-io/risor/modules/image"
+	"github.com/risor-io/risor/modules/jmespath"
 	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/sql"
@@ -228,12 +229,18 @@ var rootCmd = &cobra.Command{
 		if viper.GetBool("no-default-globals") {
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
-			opts = append(opts, risor.WithGlobals(map[string]any{
+			globals := map[string]any{
 				"image": image.Module(),
 				"pgx":   pgx.Module(),
 				"sql":   sql.Module(),
 				"uuid":  uuid.Module(),
-			}))
+			}
+
+			for k, v := range jmespath.Builtins() {
+				globals[k] = v
+			}
+
+			opts = append(opts, risor.WithGlobals(globals))
 			// AWS support may or may not be compiled in based on build tags
 			if aws := aws.Module(); aws != nil {
 				opts = append(opts, risor.WithGlobal("aws", aws))

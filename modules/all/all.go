@@ -9,7 +9,6 @@ import (
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modHash "github.com/risor-io/risor/modules/hash"
 	modHttp "github.com/risor-io/risor/modules/http"
-	modJmesPath "github.com/risor-io/risor/modules/jmespath"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
 	modOs "github.com/risor-io/risor/modules/os"
@@ -51,9 +50,6 @@ func Builtins() map[string]object.Object {
 		result[k] = v
 	}
 	for k, v := range modOs.Builtins() {
-		result[k] = v
-	}
-	for k, v := range modJmesPath.Builtins() {
 		result[k] = v
 	}
 	return result

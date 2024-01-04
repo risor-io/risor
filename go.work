@@ -8,6 +8,7 @@ use (
 	./examples/go/struct
 	./modules/aws
 	./modules/image
+	./modules/jmespath
 	./modules/pgx
 	./modules/sql
 	./modules/uuid

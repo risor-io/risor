@@ -29,6 +29,7 @@ postgres:
 .PHONY: tidy
 tidy:
 	find . -name go.mod -execdir go mod tidy \;
+	go work sync
 
 .PHONY: cover
 cover:
