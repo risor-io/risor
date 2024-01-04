@@ -41,7 +41,10 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	return nil, false
 }
 
-func (m *Module) Override(name string, value Object) error {
+func (m *Module) SetAttr(name string, value Object) error {
+	if name == "__name__" {
+		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+	}
 	if _, found := m.builtins[name]; found {
 		m.builtins[name] = value
 		return nil
@@ -50,19 +53,19 @@ func (m *Module) Override(name string, value Object) error {
 		m.globals[index] = value
 		return nil
 	}
-
-	return fmt.Errorf("%q not found or not overriable", name)
+	return fmt.Errorf("attribute error: module has no attribute %q", name)
 }
 
-func (m *Module) SetAttr(name string, value Object) error {
+func (m *Module) RemoveAttr(name string) error {
 	if name == "__name__" {
-		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+		return fmt.Errorf("attribute error: cannot remove attribute %q", name)
 	}
 	if _, found := m.builtins[name]; found {
-		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+		delete(m.builtins, name)
+		return nil
 	}
-	if index, found := m.globalsIndex[name]; found {
-		m.globals[index] = value
+	if _, found := m.globalsIndex[name]; found {
+		delete(m.globalsIndex, name)
 		return nil
 	}
 	return fmt.Errorf("attribute error: module has no attribute %q", name)

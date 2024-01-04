@@ -102,12 +102,12 @@ func TestWithDenyList(t *testing.T) {
 		},
 		{
 			input:       "os.exit(1)",
-			expectedErr: errors.New(`compile error: undefined variable "exit"`),
+			expectedErr: errors.New(`exec error: attribute "exit" not found on module object`),
 		},
 		{
 			input: `from os import exit
 exit(1)`,
-			expectedErr: errors.New(`compile error: undefined variable "exit"`),
+			expectedErr: errors.New(`import error: cannot import name "exit" from "os"`),
 		},
 		{
 			input:       "cat /etc/issue",
@@ -115,7 +115,7 @@ exit(1)`,
 		},
 	}
 	for _, tc := range testCases {
-		_, err := Eval(context.Background(), tc.input, WithDenylist("any", "os.exit", "json", "cat"))
+		_, err := Eval(context.Background(), tc.input, WithoutGlobals("any", "os.exit", "json", "cat"))
 		t.Logf("want: %q; got: %q", tc.expectedErr, err)
 		if tc.expectedErr != nil {
 			require.NotNil(t, err)
@@ -133,7 +133,7 @@ func TestWithoutDefaultGlobals(t *testing.T) {
 }
 
 func TestWithoutDefaultGlobal(t *testing.T) {
-	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobal("json"))
+	_, err := Eval(context.Background(), "json.marshal(42)", WithoutGlobal("json"))
 	require.NotNil(t, err)
 	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
 }

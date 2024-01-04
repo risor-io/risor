@@ -34,10 +34,58 @@ func WithGlobal(name string, value any) Option {
 	}
 }
 
-// WithoutGlobal opts out of a given global builtin or module.
+// WithoutGlobal opts out of a given global builtin or module. If the name can't
+// be resolved, this is a no-op. This does operate on nested modules.
 func WithoutGlobal(name string) Option {
 	return func(cfg *Config) {
-		delete(cfg.Globals, name)
+		parts := strings.Split(name, ".")
+		if len(parts) == 1 {
+			attrName := parts[0]
+			delete(cfg.Globals, attrName)
+			delete(cfg.DefaultGlobals, attrName)
+			return
+		}
+		// Find the named module
+		moduleName := parts[0]
+		var module *object.Module
+		if obj, ok := cfg.Globals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				module = m
+			}
+		} else if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				module = m
+			}
+		}
+		// We're done if it doesn't exist
+		if module == nil {
+			return
+		}
+		// Find the named attribute, which may be multiple hops down
+		// if the module contains other modules, e.g. WithoutGlobal("a.b.c")
+		attrNames := parts[1:]
+		for i, attrName := range attrNames {
+			if i == len(attrNames)-1 {
+				module.RemoveAttr(attrName)
+				return
+			}
+			if obj, ok := module.GetAttr(attrName); ok {
+				if m, ok := obj.(*object.Module); ok {
+					module = m
+				}
+			} else {
+				return
+			}
+		}
+	}
+}
+
+// WithoutGlobals removes multiple global builtins or modules.
+func WithoutGlobals(names ...string) Option {
+	return func(cfg *Config) {
+		for _, name := range names {
+			WithoutGlobal(name)(cfg)
+		}
 	}
 }
 
@@ -45,67 +93,6 @@ func WithoutGlobal(name string) Option {
 func WithoutDefaultGlobals() Option {
 	return func(cfg *Config) {
 		cfg.DefaultGlobals = map[string]object.Object{}
-	}
-}
-
-// WithoutDefaultGlobal opts out of a given default global builtin or module.
-func WithoutDefaultGlobal(name string) Option {
-	return func(cfg *Config) {
-		delete(cfg.DefaultGlobals, name)
-	}
-}
-
-// WithDenylist opts out of a given set of global or module builtins.
-func WithDenylist(names ...string) Option {
-	return func(cfg *Config) {
-		for _, name := range names {
-			delete(cfg.DefaultGlobals, name)
-			delete(cfg.Globals, name)
-			parts := strings.Split(name, ".")
-			if len(parts) == 1 {
-				continue
-			}
-			WithGlobalOverride(name, object.NewBuiltin(parts[1], func(ctx context.Context, args ...object.Object) object.Object {
-				return object.Errorf("compile error: undefined variable %q", parts[1])
-			}))(cfg)
-		}
-	}
-}
-
-// WithGlobalOverride replaces the a global or module builtin with the given value
-func WithGlobalOverride(name string, value any) Option {
-	return func(cfg *Config) {
-		parts := strings.Split(name, ".")
-		if len(parts) == 1 {
-			if _, ok := cfg.Globals[name]; ok {
-				cfg.Globals[name] = value
-			}
-			if _, ok := cfg.DefaultGlobals[name]; ok {
-				if o, ok := value.(object.Object); ok {
-					cfg.DefaultGlobals[name] = o
-				}
-			}
-			return
-		}
-		// TODO: should the assertion be on object.Object?
-		value, ok := value.(*object.Builtin)
-		if !ok {
-			panic("value must be a Builtin object!")
-		}
-		if b, ok := cfg.Globals[parts[0]]; ok {
-			if m, ok := b.(*object.Module); ok {
-				if err := m.Override(parts[1], value); err != nil {
-					panic(err)
-				}
-			}
-		}
-		if b, ok := cfg.DefaultGlobals[parts[0]]; ok {
-			if m, ok := b.(*object.Module); ok {
-				if err := m.Override(parts[1], value); err != nil {
-					panic(err)
-				}
-			}
-		}
 	}
 }
 
