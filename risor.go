@@ -38,43 +38,24 @@ func WithGlobal(name string, value any) Option {
 // be resolved, this is a no-op. This does operate on nested modules.
 func WithoutGlobal(name string) Option {
 	return func(cfg *Config) {
-		parts := strings.Split(name, ".")
+		parts := strings.SplitN(name, ".", 2)
 		if len(parts) == 1 {
-			attrName := parts[0]
-			delete(cfg.Globals, attrName)
-			delete(cfg.DefaultGlobals, attrName)
+			delete(cfg.Globals, name)
+			delete(cfg.DefaultGlobals, name)
 			return
 		}
-		// Find the named module
-		moduleName := parts[0]
-		var module *object.Module
+		// Resolve the module (which could be nested) and then remove the
+		// named attribute from it. This could be in either or both of
+		// the Globals and DefaultGlobals structures.
+		moduleName, attr := parts[0], parts[1]
 		if obj, ok := cfg.Globals[moduleName]; ok {
 			if m, ok := obj.(*object.Module); ok {
-				module = m
+				removeModuleAttr(m, attr)
 			}
-		} else if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
+		}
+		if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
 			if m, ok := obj.(*object.Module); ok {
-				module = m
-			}
-		}
-		// We're done if it doesn't exist
-		if module == nil {
-			return
-		}
-		// Find the named attribute, which may be multiple hops down
-		// if the module contains other modules, e.g. WithoutGlobal("a.b.c")
-		attrNames := parts[1:]
-		for i, attrName := range attrNames {
-			if i == len(attrNames)-1 {
-				module.RemoveAttr(attrName)
-				return
-			}
-			if obj, ok := module.GetAttr(attrName); ok {
-				if m, ok := obj.(*object.Module); ok {
-					module = m
-				}
-			} else {
-				return
+				removeModuleAttr(m, attr)
 			}
 		}
 	}
@@ -85,6 +66,39 @@ func WithoutGlobals(names ...string) Option {
 	return func(cfg *Config) {
 		for _, name := range names {
 			WithoutGlobal(name)(cfg)
+		}
+	}
+}
+
+// WithGlobalOverride replaces the a global or module builtin with the given value
+func WithGlobalOverride(name string, value any) Option {
+	return func(cfg *Config) {
+		parts := strings.Split(name, ".")
+		if len(parts) == 1 {
+			cfg.Globals[name] = value
+			delete(cfg.DefaultGlobals, name)
+			return
+		}
+		valueObj := object.FromGoType(value)
+		if valueObj == nil || valueObj.Type() == object.ERROR {
+			panic(fmt.Sprintf("invalid value for global override: %v", value))
+		}
+		moduleName := parts[0]
+		nestedModulePath := parts[1 : len(parts)-1]
+		attrName := parts[len(parts)-1]
+		if obj, ok := cfg.Globals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
+					targetMod.SetAttr(attrName, valueObj)
+				}
+			}
+		}
+		if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
+					targetMod.SetAttr(attrName, valueObj)
+				}
+			}
 		}
 	}
 }
@@ -168,4 +182,35 @@ func Call(
 		return nil, fmt.Errorf("object is not a function (got: %s)", obj.Type())
 	}
 	return vm.Call(ctx, fn, args)
+}
+
+func resolveModule(m *object.Module, attr []string) (*object.Module, bool) {
+	if len(attr) == 0 {
+		return m, true
+	}
+	var result *object.Module
+	for _, name := range attr {
+		if obj, ok := m.GetAttr(name); ok {
+			if modObj, ok := obj.(*object.Module); ok {
+				result = modObj
+				continue
+			}
+		}
+		return nil, false
+	}
+	return result, true
+}
+
+func removeModuleAttr(m *object.Module, attr string) {
+	parts := strings.Split(attr, ".")
+	partsLen := len(parts)
+	if partsLen == 1 {
+		m.RemoveAttr(attr)
+		return
+	}
+	name := parts[partsLen-1]
+	modPath := parts[:partsLen-1]
+	if mod, ok := resolveModule(m, modPath); ok {
+		mod.RemoveAttr(name)
+	}
 }
