@@ -3,6 +3,7 @@ package risor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
@@ -30,6 +31,75 @@ func WithGlobals(globals map[string]any) Option {
 func WithGlobal(name string, value any) Option {
 	return func(cfg *Config) {
 		cfg.Globals[name] = value
+	}
+}
+
+// WithoutGlobal opts out of a given global builtin or module. If the name can't
+// be resolved, this is a no-op. This does operate on nested modules.
+func WithoutGlobal(name string) Option {
+	return func(cfg *Config) {
+		parts := strings.SplitN(name, ".", 2)
+		if len(parts) == 1 {
+			delete(cfg.Globals, name)
+			delete(cfg.DefaultGlobals, name)
+			return
+		}
+		// Resolve the module (which could be nested) and then remove the
+		// named attribute from it. This could be in either or both of
+		// the Globals and DefaultGlobals structures.
+		moduleName, attr := parts[0], parts[1]
+		if obj, ok := cfg.Globals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				removeModuleAttr(m, attr)
+			}
+		}
+		if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				removeModuleAttr(m, attr)
+			}
+		}
+	}
+}
+
+// WithoutGlobals removes multiple global builtins or modules.
+func WithoutGlobals(names ...string) Option {
+	return func(cfg *Config) {
+		for _, name := range names {
+			WithoutGlobal(name)(cfg)
+		}
+	}
+}
+
+// WithGlobalOverride replaces the a global or module builtin with the given value
+func WithGlobalOverride(name string, value any) Option {
+	return func(cfg *Config) {
+		parts := strings.Split(name, ".")
+		if len(parts) == 1 {
+			cfg.Globals[name] = value
+			delete(cfg.DefaultGlobals, name)
+			return
+		}
+		valueObj := object.FromGoType(value)
+		if valueObj == nil || valueObj.Type() == object.ERROR {
+			panic(fmt.Sprintf("invalid value for global override: %v", value))
+		}
+		moduleName := parts[0]
+		nestedModulePath := parts[1 : len(parts)-1]
+		attrName := parts[len(parts)-1]
+		if obj, ok := cfg.Globals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
+					targetMod.Override(attrName, valueObj)
+				}
+			}
+		}
+		if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
+			if m, ok := obj.(*object.Module); ok {
+				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
+					targetMod.Override(attrName, valueObj)
+				}
+			}
+		}
 	}
 }
 
@@ -112,4 +182,35 @@ func Call(
 		return nil, fmt.Errorf("object is not a function (got: %s)", obj.Type())
 	}
 	return vm.Call(ctx, fn, args)
+}
+
+func resolveModule(m *object.Module, attr []string) (*object.Module, bool) {
+	if len(attr) == 0 {
+		return m, true
+	}
+	var result *object.Module
+	for _, name := range attr {
+		if obj, ok := m.GetAttr(name); ok {
+			if modObj, ok := obj.(*object.Module); ok {
+				result = modObj
+				continue
+			}
+		}
+		return nil, false
+	}
+	return result, true
+}
+
+func removeModuleAttr(m *object.Module, attr string) {
+	parts := strings.Split(attr, ".")
+	partsLen := len(parts)
+	if partsLen == 1 {
+		m.Override(attr, nil)
+		return
+	}
+	name := parts[partsLen-1]
+	modPath := parts[:partsLen-1]
+	if mod, ok := resolveModule(m, modPath); ok {
+		mod.Override(name, nil)
+	}
 }

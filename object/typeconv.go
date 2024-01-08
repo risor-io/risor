@@ -283,6 +283,8 @@ func FromGoType(obj interface{}) Object {
 			m[k] = valueObj
 		}
 		return NewMap(m)
+	case Object:
+		return obj
 	default:
 		return Errorf("type error: unmarshaling %v (%v)",
 			obj, reflect.TypeOf(obj))
