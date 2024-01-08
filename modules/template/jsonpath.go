@@ -2,7 +2,6 @@ package template
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
@@ -60,14 +59,4 @@ func jsonPath(path string, obj any) (any, error) {
 	}
 
 	return strings.Trim(buf.String(), "\n"), nil
-}
-
-func envMap() map[string]string {
-	envMap := make(map[string]string)
-
-	for _, v := range os.Environ() {
-		kv := strings.SplitN(v, "=", 2)
-		envMap[kv[0]] = kv[1]
-	}
-	return envMap
 }

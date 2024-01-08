@@ -26,7 +26,7 @@ func Template(ctx context.Context, args ...object.Object) object.Object {
 
 	buf := new(strings.Builder)
 
-	if err := Render(buf, template, data.Interface()); err != nil {
+	if err := Render(ctx, buf, template, data.Interface()); err != nil {
 		return object.NewError(err)
 	}
 

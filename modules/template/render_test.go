@@ -1,6 +1,7 @@
 package template
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -65,7 +66,7 @@ value BAR is {{ .Values.BAR }}`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := new(strings.Builder)
-			err := Render(buf, tt.template, tt.data)
+			err := Render(context.TODO(), buf, tt.template, tt.data)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}

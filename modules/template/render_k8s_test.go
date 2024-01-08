@@ -4,6 +4,7 @@
 package template
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -72,7 +73,7 @@ foobar key is {{ $cfg.foobar.key }}`,
 		t.Run(tt.name, func(t *testing.T) {
 			k8sClient = fake.NewClientBuilder().WithObjects(cm.(*unstructured.Unstructured)).Build()
 			buf := new(strings.Builder)
-			err := Render(buf, tt.template, tt.data)
+			err := Render(context.TODO(), buf, tt.template, tt.data)
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}

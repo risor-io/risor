@@ -6,10 +6,10 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/risor-io/risor v0.0.0-00010101000000-000000000000
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
 	sigs.k8s.io/controller-runtime v0.14.2
+	github.com/risor-io/risor v1.1.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
