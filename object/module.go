@@ -42,30 +42,31 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 }
 
 func (m *Module) SetAttr(name string, value Object) error {
+	return fmt.Errorf("attribute error: cannot modify module attributes")
+}
+
+// Override provides a mechanism to modify module attributes after loading.
+// Whether or not this is exposed to Risor scripts changes the security posture
+// of reusing modules. By default, this is not exposed to scripting. Overriding
+// with a value of nil is equivalent to deleting the attribute.
+func (m *Module) Override(name string, value Object) error {
 	if name == "__name__" {
-		return fmt.Errorf("attribute error: cannot set attribute %q", name)
+		return fmt.Errorf("attribute error: cannot override attribute %q", name)
 	}
 	if _, found := m.builtins[name]; found {
+		if value == nil {
+			delete(m.builtins, name)
+			return nil
+		}
 		m.builtins[name] = value
 		return nil
 	}
 	if index, found := m.globalsIndex[name]; found {
+		if value == nil {
+			delete(m.globalsIndex, name)
+			return nil
+		}
 		m.globals[index] = value
-		return nil
-	}
-	return fmt.Errorf("attribute error: module has no attribute %q", name)
-}
-
-func (m *Module) RemoveAttr(name string) error {
-	if name == "__name__" {
-		return fmt.Errorf("attribute error: cannot remove attribute %q", name)
-	}
-	if _, found := m.builtins[name]; found {
-		delete(m.builtins, name)
-		return nil
-	}
-	if _, found := m.globalsIndex[name]; found {
-		delete(m.globalsIndex, name)
 		return nil
 	}
 	return fmt.Errorf("attribute error: module has no attribute %q", name)

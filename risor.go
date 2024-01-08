@@ -89,14 +89,14 @@ func WithGlobalOverride(name string, value any) Option {
 		if obj, ok := cfg.Globals[moduleName]; ok {
 			if m, ok := obj.(*object.Module); ok {
 				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
-					targetMod.SetAttr(attrName, valueObj)
+					targetMod.Override(attrName, valueObj)
 				}
 			}
 		}
 		if obj, ok := cfg.DefaultGlobals[moduleName]; ok {
 			if m, ok := obj.(*object.Module); ok {
 				if targetMod, ok := resolveModule(m, nestedModulePath); ok {
-					targetMod.SetAttr(attrName, valueObj)
+					targetMod.Override(attrName, valueObj)
 				}
 			}
 		}
@@ -205,12 +205,12 @@ func removeModuleAttr(m *object.Module, attr string) {
 	parts := strings.Split(attr, ".")
 	partsLen := len(parts)
 	if partsLen == 1 {
-		m.RemoveAttr(attr)
+		m.Override(attr, nil)
 		return
 	}
 	name := parts[partsLen-1]
 	modPath := parts[:partsLen-1]
 	if mod, ok := resolveModule(m, modPath); ok {
-		mod.RemoveAttr(name)
+		mod.Override(name, nil)
 	}
 }
