@@ -1633,6 +1633,12 @@ func TestBadImports(t *testing.T) {
 	}
 }
 
+func TestModifyModule(t *testing.T) {
+	_, err := run(context.Background(), `math.max = 123`)
+	require.Error(t, err)
+	require.Equal(t, "attribute error: cannot modify module attributes", err.Error())
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
