@@ -26,6 +26,7 @@ import (
 	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/sql"
+	"github.com/risor-io/risor/modules/template"
 	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
@@ -230,13 +231,17 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
 			globals := map[string]any{
-				"image": image.Module(),
-				"pgx":   pgx.Module(),
-				"sql":   sql.Module(),
-				"uuid":  uuid.Module(),
+				"image":    image.Module(),
+				"pgx":      pgx.Module(),
+				"sql":      sql.Module(),
+				"uuid":     uuid.Module(),
+				"template": template.Module(),
 			}
 
 			for k, v := range jmespath.Builtins() {
+				globals[k] = v
+			}
+			for k, v := range template.Builtins() {
 				globals[k] = v
 			}
 

@@ -11,6 +11,7 @@ use (
 	./modules/jmespath
 	./modules/pgx
 	./modules/sql
+	./modules/template
 	./modules/uuid
 	./os/s3fs
 )

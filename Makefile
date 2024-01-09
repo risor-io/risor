@@ -1,4 +1,6 @@
 
+export GOFLAGS=-tags=aws,k8s
+
 .PHONY: test
 test:
 	gotestsum --format-hide-empty-pkg ./...
