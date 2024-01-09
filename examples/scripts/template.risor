@@ -1,5 +1,15 @@
 #!/usr/bin/env risor --
 
-res := fetch("http://ipinfo.io").json() | template("You are in {{ .Values.city }}, region {{ .Values.region }} in {{ .Values.timezone }}")
+data := fetch("http://ipinfo.io").json()
+
+tpl :=  template.new("test")
+tpl.delims("{%", "%}")
+
+# named templates
+# tpl.add("ipinfo", "You are in {% .city %}, region {% .region %} in {% .timezone %}")
+# res := tpl.execute_template(data, "ipinfo")
+
+tpl.parse("You are in {% .city %}, region {% .region %} in {% .timezone %}")
+res := tpl.execute(data)
 
 print(res)

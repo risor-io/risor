@@ -231,10 +231,11 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
 			globals := map[string]any{
-				"image": image.Module(),
-				"pgx":   pgx.Module(),
-				"sql":   sql.Module(),
-				"uuid":  uuid.Module(),
+				"image":    image.Module(),
+				"pgx":      pgx.Module(),
+				"sql":      sql.Module(),
+				"uuid":     uuid.Module(),
+				"template": template.Module(),
 			}
 
 			for k, v := range jmespath.Builtins() {
