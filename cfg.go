@@ -8,6 +8,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modDns "github.com/risor-io/risor/modules/dns"
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
@@ -87,6 +88,7 @@ func (cfg *Config) addDefaultGlobals() {
 		modFmt.Builtins(),
 		modHash.Builtins(),
 		modOs.Builtins(),
+		modDns.Builtins(),
 	}
 	for _, b := range builtins {
 		addGlobals(b)
