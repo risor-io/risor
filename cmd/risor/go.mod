@@ -12,6 +12,7 @@ replace (
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
 	github.com/risor-io/risor/modules/template => ../../modules/template
 	github.com/risor-io/risor/modules/uuid => ../../modules/uuid
+	github.com/risor-io/risor/modules/vault => ../../modules/vault
 	github.com/risor-io/risor/os/s3fs => ../../os/s3fs
 )
 
@@ -32,6 +33,7 @@ require (
 	github.com/risor-io/risor/modules/sql v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/template v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/uuid v1.1.1
+	github.com/risor-io/risor/modules/vault v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/os/s3fs v1.1.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -112,7 +114,12 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
+	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
+	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hashicorp/vault-client-go v0.4.3 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -136,6 +143,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect

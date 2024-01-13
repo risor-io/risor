@@ -1,5 +1,5 @@
 
-export GOFLAGS=-tags=aws,k8s
+export GOFLAGS=-tags=aws,k8s,vault
 
 .PHONY: test
 test:

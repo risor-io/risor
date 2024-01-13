@@ -19,6 +19,7 @@ git tag modules/aws/$VERSION
 git tag modules/kubernetes/$VERSION
 git tag modules/jmespath/$VERSION
 git tag modules/template/$VERSION
+git tag modules/vault/$VERSION
 git tag cmd/risor/$VERSION
 
 git push origin $VERSION
@@ -31,4 +32,5 @@ git push origin modules/aws/$VERSION
 git push origin modules/kubernetes/$VERSION
 git push origin modules/jmespath/$VERSION
 git push origin modules/template/$VERSION
+git push origin modules/vault/$VERSION
 git push origin cmd/risor/$VERSION

@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -244,6 +245,11 @@ func FromGoType(obj interface{}) Object {
 		return NewFloat(float64(obj))
 	case float64:
 		return NewFloat(obj)
+	case json.Number:
+		if n, err := obj.Float64(); err == nil {
+			return NewFloat(n)
+		}
+		return NewString(obj.String())
 	case string:
 		return NewString(obj)
 	case byte:
