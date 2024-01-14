@@ -21,6 +21,7 @@ import (
 	modRegexp "github.com/risor-io/risor/modules/regexp"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
+	modThreads "github.com/risor-io/risor/modules/threads"
 	modTime "github.com/risor-io/risor/modules/time"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/vm"
@@ -100,6 +101,7 @@ func (cfg *Config) addDefaultGlobals() {
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),
 		"fmt":      modFmt.Module(),
+		"http":     modHttp.Module(),
 		"json":     modJson.Module(),
 		"math":     modMath.Module(),
 		"os":       modOs.Module(),
@@ -107,8 +109,8 @@ func (cfg *Config) addDefaultGlobals() {
 		"regexp":   modRegexp.Module(),
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
+		"threads":  modThreads.Module(),
 		"time":     modTime.Module(),
-		"http":     modHttp.Module(),
 	}
 	addGlobals(modules)
 }

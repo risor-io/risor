@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/risor-io/risor/compiler"
@@ -31,7 +32,6 @@ type VirtualMachine struct {
 	halt         int32
 	stack        [MaxStackDepth]object.Object
 	frames       [MaxFrameDepth]frame
-	tmp          [MaxArgs]object.Object
 	activeFrame  *frame
 	activeCode   *code
 	main         *compiler.Code
@@ -42,6 +42,7 @@ type VirtualMachine struct {
 	limits       limits.Limits
 	loadedCode   map[*compiler.Code]*code
 	running      bool
+	mtx          sync.Mutex
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -305,11 +306,13 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
+			args := make([]object.Object, argc)
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
-				vm.tmp[argIndex] = vm.pop()
+				obj := vm.pop()
+				args[argIndex] = obj
 			}
 			obj := vm.pop()
-			if err := vm.call(ctx, obj, argc); err != nil {
+			if err := vm.call(ctx, obj, args); err != nil {
 				return err
 			}
 		case op.Partial:
@@ -625,9 +628,8 @@ func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.
 	return module, nil
 }
 
-func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) error {
-	// The arguments are understood to be stored in vm.tmp here
-	args := vm.tmp[:argc]
+func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, args []object.Object) error {
+	argc := len(args)
 	switch fn := fn.(type) {
 	case *object.Function:
 		paramsCount := len(fn.Parameters())
@@ -635,27 +637,24 @@ func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) 
 			return err
 		}
 		if argc < paramsCount {
-			defaults := fn.Defaults()
-			for i := argc; i < len(defaults); i++ {
-				vm.tmp[i] = defaults[i]
-			}
+			args = append(args, fn.Defaults()...)
 			argc = paramsCount
 		}
 		code := fn.Code()
 		if code.IsNamed() {
-			vm.tmp[paramsCount] = fn
+			args = append(args, fn)
 			argc++
 		}
-		vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
+		vm.activateFunction(vm.fp+1, 0, fn, args)
 	case *object.Partial:
 		// Combine the current arguments with the partial's arguments
 		expandedCount := argc + len(fn.Args())
 		if expandedCount > MaxArgs {
 			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
 		}
-		// We can just append arguments from the partial into vm.tmp
-		copy(vm.tmp[argc:], fn.Args())
-		return vm.call(ctx, fn.Function(), expandedCount)
+		// We can just append arguments from the partial into args
+		args = append(args, fn.Args()...)
+		return vm.call(ctx, fn.Function(), args)
 	case object.Callable:
 		result := fn.Call(ctx, args...)
 		if err, ok := result.(*object.Error); ok {
@@ -726,6 +725,13 @@ func (vm *VirtualMachine) Call(ctx context.Context, fn *object.Function, args []
 // Calls a compiled function with the given arguments. This is used internally
 // when a Risor object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
 func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+	// TODO: this lock means that user defined functions can't run in parallel
+	// builtins would still be able to run in parallel (even with one user defined function)
+	// and user defined functions can still be sent to the background
+	// but if one has an infinite loop it will block other user defined functions
+	// uing builtins that use callFunction, like each and filepath inside a threaded function would result in a lock
+	vm.mtx.Lock()
+	defer vm.mtx.Unlock()
 	baseFP := vm.fp
 	baseIP := vm.ip
 
@@ -736,25 +742,21 @@ func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function,
 		return nil, err
 	}
 
-	// Assemble frame local variables in vm.tmp. The local variable order is:
+	// Assemble frame local variables in args. The local variable order is:
 	// 1. Function parameters
 	// 2. Function name (if the function is named)
-	copy(vm.tmp[:argc], args)
 	if argc < paramsCount {
-		defaults := fn.Defaults()
-		for i := argc; i < len(defaults); i++ {
-			vm.tmp[i] = defaults[i]
-		}
+		args = append(args, fn.Defaults()...)
 		argc = paramsCount
 	}
 	code := fn.Code()
 	if code.IsNamed() {
-		vm.tmp[paramsCount] = fn
+		args = append(args, fn)
 		argc++
 	}
 
 	// Activate a frame for the function call
-	vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
+	vm.activateFunction(vm.fp+1, 0, fn, args)
 
 	// Setting StopSignal as the return address will cause the eval function to
 	// stop execution when it reaches the end of the active code.

@@ -16,6 +16,7 @@ import (
 	modRegexp "github.com/risor-io/risor/modules/regexp"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
+	modThreads "github.com/risor-io/risor/modules/threads"
 	modTime "github.com/risor-io/risor/modules/time"
 	"github.com/risor-io/risor/object"
 )
@@ -27,6 +28,7 @@ func Builtins() map[string]object.Object {
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),
 		"fmt":      modFmt.Module(),
+		"http":     modHttp.Module(),
 		"json":     modJson.Module(),
 		"math":     modMath.Module(),
 		"os":       modOs.Module(),
@@ -34,8 +36,8 @@ func Builtins() map[string]object.Object {
 		"regexp":   modRegexp.Module(),
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
+		"threads":  modThreads.Module(),
 		"time":     modTime.Module(),
-		"http":     modHttp.Module(),
 	}
 	for k, v := range modHttp.Builtins() {
 		result[k] = v
