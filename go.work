@@ -13,5 +13,6 @@ use (
 	./modules/sql
 	./modules/template
 	./modules/uuid
+	./modules/vault
 	./os/s3fs
 )

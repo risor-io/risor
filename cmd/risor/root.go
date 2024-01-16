@@ -28,6 +28,7 @@ import (
 	"github.com/risor-io/risor/modules/sql"
 	"github.com/risor-io/risor/modules/template"
 	"github.com/risor-io/risor/modules/uuid"
+	"github.com/risor-io/risor/modules/vault"
 	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/os/s3fs"
@@ -234,6 +235,7 @@ var rootCmd = &cobra.Command{
 				"image":    image.Module(),
 				"pgx":      pgx.Module(),
 				"sql":      sql.Module(),
+				"vault":    vault.Module(),
 				"uuid":     uuid.Module(),
 				"template": template.Module(),
 			}
