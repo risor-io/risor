@@ -52,3 +52,11 @@ lambda:
 .PHONY: release
 release:
 	goreleaser release --clean -p 2
+
+# Use entr to watch for changes to markdown files and copy them to the
+# risor-site repo (expected to be at ../risor-site). You can brew install entr.
+# Then in the risor-site repo in a separate terminal, run `npm run dev` and
+# open http://localhost:3000/docs in your browser for hot reloaded docs updates.
+.PHONY: docs-dev
+docs-dev:
+	find . -name "*.md" | entr go run ./cmd/risor-docs
