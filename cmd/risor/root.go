@@ -235,7 +235,6 @@ var rootCmd = &cobra.Command{
 				"image":    image.Module(),
 				"pgx":      pgx.Module(),
 				"sql":      sql.Module(),
-				"vault":    vault.Module(),
 				"uuid":     uuid.Module(),
 				"template": template.Module(),
 			}
@@ -246,8 +245,8 @@ var rootCmd = &cobra.Command{
 			for k, v := range template.Builtins() {
 				globals[k] = v
 			}
-
 			opts = append(opts, risor.WithGlobals(globals))
+
 			// AWS support may or may not be compiled in based on build tags
 			if aws := aws.Module(); aws != nil {
 				opts = append(opts, risor.WithGlobal("aws", aws))
@@ -255,6 +254,10 @@ var rootCmd = &cobra.Command{
 			// K8S support may or may not be compiled in based on build tags
 			if k8s := k8s.Module(); k8s != nil {
 				opts = append(opts, risor.WithGlobal("k8s", k8s))
+			}
+			// Vault support may or may not be compiled in based on build tags
+			if vault := vault.Module(); vault != nil {
+				opts = append(opts, risor.WithGlobal("vault", vault))
 			}
 		}
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {

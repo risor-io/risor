@@ -2,7 +2,6 @@ package regexp
 
 import (
 	"context"
-	_ "embed"
 	"regexp"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -43,12 +42,9 @@ func Match(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewBool(matched)
 }
 
-//go:embed regexp.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("regexp", map[string]object.Object{
 		"compile": object.NewBuiltin("compile", Compile),
 		"match":   object.NewBuiltin("match", Match),
-	}, Compile).WithDocstring(docs)
+	}, Compile)
 }

@@ -30,9 +30,6 @@ type Builtin struct {
 	// If true, this function is built to handle errors and it should be
 	// invoked even if one of its parameters evaluates to an error.
 	isErrorHandler bool
-
-	// Documentation for the function.
-	doc *FunctionDoc
 }
 
 func (b *Builtin) Type() Type {
@@ -70,18 +67,8 @@ func (b *Builtin) Name() string {
 	return b.name
 }
 
-func (b *Builtin) WithDoc(doc *FunctionDoc) *Builtin {
-	b.doc = doc
-	return b
-}
-
 func (b *Builtin) GetAttr(name string) (Object, bool) {
 	switch name {
-	case "__doc__":
-		if b.doc == nil {
-			return Nil, true
-		}
-		return b.doc, true
 	case "__name__":
 		return NewString(b.Key()), true
 	case "__module__":
@@ -133,16 +120,21 @@ func NewNoopBuiltin(name string, module *Module) *Builtin {
 	return b
 }
 
-func NewBuiltin(name string, fn BuiltinFunction) *Builtin {
+func NewBuiltin(name string, fn BuiltinFunction, module ...*Module) *Builtin {
 	b := &Builtin{fn: fn, name: name}
+	if len(module) == 1 {
+		b.module = module[0]
+	} else if len(module) > 1 {
+		panic(fmt.Sprintf("NewBuiltin: too many arguments: %d", len(module)))
+	}
 	if b.module != nil {
 		b.moduleName = b.module.Name().value
 	}
 	return b
 }
 
-func NewErrorHandler(name string, fn BuiltinFunction) *Builtin {
-	b := NewBuiltin(name, fn)
+func NewErrorHandler(name string, fn BuiltinFunction, module ...*Module) *Builtin {
+	b := NewBuiltin(name, fn, module...)
 	b.isErrorHandler = true
 	return b
 }

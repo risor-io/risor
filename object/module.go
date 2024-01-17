@@ -7,7 +7,6 @@ import (
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/op"
-	"github.com/risor-io/risor/rdoc"
 )
 
 type Module struct {
@@ -18,7 +17,6 @@ type Module struct {
 	globals      []Object
 	globalsIndex map[string]int
 	callable     BuiltinFunction
-	docs         *ModuleDoc
 }
 
 func (m *Module) Type() Type {
@@ -33,8 +31,6 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "__name__":
 		return NewString(m.name), true
-	case "__doc__":
-		return m.docs, true
 	}
 	if builtin, found := m.builtins[name]; found {
 		return builtin, true
@@ -135,16 +131,6 @@ func (m *Module) Call(ctx context.Context, args ...Object) Object {
 		return NewError(fmt.Errorf("exec error: module %q is not callable", m.name))
 	}
 	return m.callable(ctx, args...)
-}
-
-func (m *Module) WithDocstring(docs string) *Module {
-	m.docs = NewModuleDoc(rdoc.Parse(docs))
-	for _, f := range m.docs.docs.Functions {
-		if builtin, ok := m.builtins[f.Name].(*Builtin); ok {
-			builtin.WithDoc(NewFunctionDoc(f))
-		}
-	}
-	return m
 }
 
 func NewModule(name string, code *compiler.Code) *Module {

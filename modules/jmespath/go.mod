@@ -9,7 +9,4 @@ require (
 	github.com/risor-io/risor v0.0.0-00010101000000-000000000000
 )
 
-require (
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect
-)
+require golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect

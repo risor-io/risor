@@ -3,7 +3,6 @@ package os
 import (
 	"bytes"
 	"context"
-	_ "embed"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
@@ -486,9 +485,6 @@ func Cat(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(buf.String())
 }
 
-//go:embed os.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("os", map[string]object.Object{
 		"args":            object.NewBuiltin("args", Args),
@@ -527,7 +523,7 @@ func Module() *object.Module {
 			f := GetOS(ctx).Stdout()
 			return object.NewFile(ctx, f, "/dev/stdout"), nil
 		}),
-	}).WithDocstring(docs)
+	})
 }
 
 func Builtins() map[string]object.Object {

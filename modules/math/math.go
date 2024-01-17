@@ -2,7 +2,6 @@ package math
 
 import (
 	"context"
-	_ "embed"
 	"math"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -286,9 +285,6 @@ func Inf(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(math.Inf(sign))
 }
 
-//go:embed math.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("math", map[string]object.Object{
 		"abs":    object.NewBuiltin("abs", Abs),
@@ -312,5 +308,5 @@ func Module() *object.Module {
 		"sqrt":   object.NewBuiltin("sqrt", Sqrt),
 		"sum":    object.NewBuiltin("sum", Sum),
 		"tan":    object.NewBuiltin("tan", Tan),
-	}).WithDocstring(docs)
+	})
 }

@@ -2,7 +2,6 @@ package time
 
 import (
 	"context"
-	_ "embed"
 	"time"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -63,9 +62,6 @@ func Since(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewFloat(time.Since(t).Seconds())
 }
 
-//go:embed time.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("time", map[string]object.Object{
 		"now":         object.NewBuiltin("now", Now),
@@ -87,5 +83,5 @@ func Module() *object.Module {
 		"StampMilli":  object.NewString(time.StampMilli),
 		"StampMicro":  object.NewString(time.StampMicro),
 		"StampNano":   object.NewString(time.StampNano),
-	}).WithDocstring(docs)
+	})
 }

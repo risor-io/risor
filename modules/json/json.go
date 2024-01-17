@@ -2,7 +2,6 @@ package json
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -61,13 +60,10 @@ func Valid(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewBool(json.Valid(data))
 }
 
-//go:embed json.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("json", map[string]object.Object{
 		"unmarshal": object.NewBuiltin("unmarshal", Unmarshal),
 		"marshal":   object.NewBuiltin("marshal", Marshal),
 		"valid":     object.NewBuiltin("valid", Valid),
-	}).WithDocstring(docs)
+	})
 }

@@ -2,7 +2,6 @@ package strconv
 
 import (
 	"context"
-	_ "embed"
 	"strconv"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -83,14 +82,11 @@ func ParseInt(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewError(err)
 }
 
-//go:embed strconv.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("strconv", map[string]object.Object{
 		"atoi":        object.NewBuiltin("atoi", Atoi),
 		"parse_bool":  object.NewBuiltin("parse_bool", ParseBool),
 		"parse_float": object.NewBuiltin("parse_float", ParseFloat),
 		"parse_int":   object.NewBuiltin("parse_int", ParseInt),
-	}).WithDocstring(docs)
+	})
 }

@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	_ "embed"
 	"net/http"
 
 	"github.com/risor-io/risor/object"
@@ -84,9 +83,6 @@ func Builtins() map[string]object.Object {
 	}
 }
 
-//go:embed http.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("http", map[string]object.Object{
 		"delete":  object.NewBuiltin("http.delete", MethodCmd(http.MethodDelete)),
@@ -96,5 +92,5 @@ func Module() *object.Module {
 		"post":    object.NewBuiltin("http.post", MethodCmd(http.MethodPost)),
 		"put":     object.NewBuiltin("http.put", MethodCmd(http.MethodPut)),
 		"request": object.NewBuiltin("http.request", NewHttpRequest),
-	}).WithDocstring(docs)
+	})
 }

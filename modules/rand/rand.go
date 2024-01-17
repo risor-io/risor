@@ -3,7 +3,6 @@ package rand
 import (
 	"context"
 	crand "crypto/rand"
-	_ "embed"
 	"encoding/binary"
 	"math/rand"
 
@@ -73,9 +72,6 @@ func Shuffle(ctx context.Context, args ...object.Object) object.Object {
 	return ls
 }
 
-//go:embed rand.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("rand", map[string]object.Object{
 		"float":      object.NewBuiltin("float", Float),
@@ -84,5 +80,5 @@ func Module() *object.Module {
 		"norm_float": object.NewBuiltin("norm_float", NormFloat),
 		"exp_float":  object.NewBuiltin("exp_float", ExpFloat),
 		"shuffle":    object.NewBuiltin("shuffle", Shuffle),
-	}).WithDocstring(docs)
+	})
 }

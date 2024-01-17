@@ -2,7 +2,6 @@ package filepath
 
 import (
 	"context"
-	_ "embed"
 	"io/fs"
 	"path/filepath"
 
@@ -233,9 +232,6 @@ func WalkDir(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
-//go:embed filepath.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("filepath", map[string]object.Object{
 		"abs":        object.NewBuiltin("abs", Abs),
@@ -250,5 +246,5 @@ func Module() *object.Module {
 		"split_list": object.NewBuiltin("split_list", SplitList),
 		"split":      object.NewBuiltin("split", Split),
 		"walk_dir":   object.NewBuiltin("walk_dir", WalkDir),
-	}).WithDocstring(docs)
+	})
 }

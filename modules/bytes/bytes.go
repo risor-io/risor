@@ -2,7 +2,6 @@ package strings
 
 import (
 	"context"
-	_ "embed"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
@@ -181,9 +180,6 @@ func ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
 	return b.ReplaceAll(args[1], args[2])
 }
 
-//go:embed bytes.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("bytes", map[string]object.Object{
 		"clone":         object.NewBuiltin("clone", Clone),
@@ -201,5 +197,5 @@ func Module() *object.Module {
 		"repeat":        object.NewBuiltin("repeat", Repeat),
 		"replace_all":   object.NewBuiltin("replace_all", ReplaceAll),
 		"replace":       object.NewBuiltin("replace", Replace),
-	}).WithDocstring(docs)
+	})
 }

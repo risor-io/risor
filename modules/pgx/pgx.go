@@ -2,7 +2,6 @@ package pgx
 
 import (
 	"context"
-	_ "embed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/risor-io/risor/object"
@@ -23,12 +22,9 @@ func Connect(ctx context.Context, args ...object.Object) object.Object {
 	return New(ctx, conn)
 }
 
-//go:embed pgx.md
-var docs string
-
 // Module returns the `pgx` module object
 func Module() *object.Module {
 	return object.NewBuiltinsModule("pgx", map[string]object.Object{
 		"connect": object.NewBuiltin("connect", Connect),
-	}).WithDocstring(docs)
+	})
 }

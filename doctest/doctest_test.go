@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/risor-io/risor/rdoc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,6 +30,22 @@ func hasModuleFunc(dir string) bool {
 	return false
 }
 
+func readMarkdown(path string) (string, error) {
+	md, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	mdText := string(md)
+	mdLines := strings.Split(mdText, "\n")
+	// Skip over nextra mdx imports and blank lines at the top of the file
+	for i := 0; i < len(mdLines); i++ {
+		if strings.HasPrefix(mdLines[i], "#") {
+			return strings.Join(mdLines[i:], "\n"), nil
+		}
+	}
+	return "", fmt.Errorf("no markdown header found")
+}
+
 func TestModuleDocs(t *testing.T) {
 	// All modules that have a Module() function should also have a markdown
 	// documentation file in the same directory
@@ -46,11 +61,12 @@ func TestModuleDocs(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				filename := fmt.Sprintf("%s.md", name)
 				docPath := filepath.Join("..", "modules", name, filename)
-				md, err := os.ReadFile(docPath)
+				md, err := readMarkdown(docPath)
 				require.Nil(t, err, "Expected module markdown doc to exist at %s", docPath)
-				doc := rdoc.Parse(string(md))
-				require.NotNil(t, doc)
-				require.Equal(t, name, doc.Name)
+				mdText := string(md)
+				mdLines := strings.Split(mdText, "\n")
+				require.True(t, len(mdLines) > 1, "Expected module markdown to have more content")
+				require.Equal(t, "# "+name, mdLines[0], "Expected module markdown to start with '# %s'", name)
 			})
 		}
 	}

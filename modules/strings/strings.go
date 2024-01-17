@@ -2,7 +2,6 @@ package strings
 
 import (
 	"context"
-	_ "embed"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
@@ -211,9 +210,6 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	return s.TrimSpace()
 }
 
-//go:embed strings.md
-var docs string
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("strings", map[string]object.Object{
 		"compare":     object.NewBuiltin("compare", Compare),
@@ -233,5 +229,5 @@ func Module() *object.Module {
 		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
 		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
 		"trim":        object.NewBuiltin("trim", Trim),
-	}).WithDocstring(docs)
+	})
 }
