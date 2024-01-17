@@ -1,7 +1,7 @@
 //go:build !vault
 // +build !vault
 
-package kubernetes
+package vault
 
 import (
 	"github.com/risor-io/risor/object"
