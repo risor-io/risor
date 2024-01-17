@@ -1,4 +1,4 @@
-package rand
+package regexp
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func Compile(ctx context.Context, args ...object.Object) object.Object {
 	if rErr != nil {
 		return object.NewError(rErr)
 	}
-	return object.NewRegexp(r)
+	return NewRegexp(r)
 }
 
 func Match(ctx context.Context, args ...object.Object) object.Object {

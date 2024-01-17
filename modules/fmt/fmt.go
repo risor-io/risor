@@ -2,6 +2,7 @@ package fmt
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
@@ -53,16 +54,19 @@ func Println(ctx context.Context, args ...object.Object) object.Object {
 	return object.Nil
 }
 
-func Module() *object.Module {
-	return object.NewBuiltinsModule("fmt", map[string]object.Object{
-		"printf":  object.NewBuiltin("print", Printf),
-		"println": object.NewBuiltin("println", Println),
-	})
-}
+//go:embed fmt.md
+var docs string
 
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"print":  object.NewBuiltin("print", Println),
 		"printf": object.NewBuiltin("printf", Printf),
 	}
+}
+
+func Module() *object.Module {
+	return object.NewBuiltinsModule("fmt", map[string]object.Object{
+		"printf":  object.NewBuiltin("print", Printf),
+		"println": object.NewBuiltin("println", Println),
+	})
 }

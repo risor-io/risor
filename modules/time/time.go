@@ -59,7 +59,7 @@ func Since(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	return object.NewDuration(time.Since(t))
+	return object.NewFloat(time.Since(t).Seconds())
 }
 
 func Module() *object.Module {

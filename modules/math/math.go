@@ -47,97 +47,33 @@ func Sqrt(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Max(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("math.max", 1, args); err != nil {
+	if err := arg.Require("math.max", 2, args); err != nil {
 		return err
 	}
-	arg := args[0]
-	var array []object.Object
-	switch arg := arg.(type) {
-	case *object.List:
-		array = arg.Value()
-	case *object.Set:
-		array = arg.List().Value()
-	default:
-		return object.Errorf("type error: %s object is not iterable", args[0].Type())
+	x, err := object.AsFloat(args[0])
+	if err != nil {
+		return err
 	}
-	if len(array) == 0 {
-		return object.Errorf("value error: math.max argument is an empty sequence")
+	y, err := object.AsFloat(args[1])
+	if err != nil {
+		return err
 	}
-	var maxFlt float64
-	var maxInt int64
-	var hasFlt, hasInt bool
-	for _, value := range array {
-		switch val := value.(type) {
-		case *object.Int:
-			v := val.Value()
-			if !hasInt || maxInt < v {
-				maxInt = v
-				hasInt = true
-			}
-		case *object.Float:
-			v := val.Value()
-			if !hasFlt || maxFlt < v {
-				maxFlt = v
-				hasFlt = true
-			}
-		default:
-			return object.Errorf("type error: invalid array item for math.max: %s", val.Type())
-		}
-	}
-	if hasFlt {
-		if hasInt && float64(maxInt) > maxFlt {
-			return object.NewFloat(float64(maxInt))
-		}
-		return object.NewFloat(maxFlt)
-	}
-	return object.NewInt(maxInt)
+	return object.NewFloat(math.Max(x, y))
 }
 
 func Min(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("math.min", 1, args); err != nil {
+	if err := arg.Require("math.min", 2, args); err != nil {
 		return err
 	}
-	arg := args[0]
-	var array []object.Object
-	switch arg := arg.(type) {
-	case *object.List:
-		array = arg.Value()
-	case *object.Set:
-		array = arg.List().Value()
-	default:
-		return object.Errorf("type error: %s object is not iterable", args[0].Type())
+	x, err := object.AsFloat(args[0])
+	if err != nil {
+		return err
 	}
-	if len(array) == 0 {
-		return object.Errorf("value error: math.min argument is an empty sequence")
+	y, err := object.AsFloat(args[1])
+	if err != nil {
+		return err
 	}
-	var minFlt float64
-	var minInt int64
-	var hasFlt, hasInt bool
-	for _, value := range array {
-		switch val := value.(type) {
-		case *object.Int:
-			v := val.Value()
-			if !hasInt || minInt > v {
-				minInt = v
-				hasInt = true
-			}
-		case *object.Float:
-			v := val.Value()
-			if !hasFlt || minFlt > v {
-				minFlt = v
-				hasFlt = true
-			}
-		default:
-			return object.Errorf("type error: invalid array item for math.min: %s", val.Type())
-		}
-	}
-	if hasFlt {
-		if hasInt && float64(minInt) < minFlt {
-			return object.NewFloat(float64(minInt))
-		}
-		return object.NewFloat(minFlt)
-	}
-	return object.NewInt(minInt)
+	return object.NewFloat(math.Min(x, y))
 }
 
 func Sum(ctx context.Context, args ...object.Object) object.Object {

@@ -54,20 +54,26 @@ func ParseFloat(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func ParseInt(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strconv.parse_int", 3, args); err != nil {
+	if err := arg.RequireRange("strconv.parse_int", 1, 3, args); err != nil {
 		return err
 	}
 	s, typeErr := object.AsString(args[0])
 	if typeErr != nil {
 		return typeErr
 	}
-	base, typeErr := object.AsInt(args[1])
-	if typeErr != nil {
-		return typeErr
+	base := int64(10)
+	bitSize := int64(64)
+	if len(args) > 1 {
+		var typeErr *object.Error
+		if base, typeErr = object.AsInt(args[1]); typeErr != nil {
+			return typeErr
+		}
 	}
-	bitSize, typeErr := object.AsInt(args[2])
-	if typeErr != nil {
-		return typeErr
+	if len(args) > 2 {
+		var typeErr *object.Error
+		if bitSize, typeErr = object.AsInt(args[2]); typeErr != nil {
+			return typeErr
+		}
 	}
 	i, err := strconv.ParseInt(s, int(base), int(bitSize))
 	if err == nil {

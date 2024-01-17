@@ -2,6 +2,7 @@ package jmespath
 
 import (
 	"context"
+	_ "embed"
 
 	"github.com/jmespath-community/go-jmespath/pkg/api"
 	"github.com/jmespath-community/go-jmespath/pkg/parsing"
@@ -15,10 +16,20 @@ func Jmespath(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewArgsError("jmespath", 2, numArgs)
 	}
 
-	data, argsErr := object.AsMap(args[0])
-	if argsErr != nil {
-		return argsErr
+	switch args[0].(type) {
+	case *object.Map,
+		*object.List,
+		*object.String,
+		*object.Int,
+		*object.Float,
+		*object.Bool,
+		*object.Set,
+		*object.NilType:
+	default:
+		return object.Errorf("type error: jmespath() cannot operate on %s", args[0].Type())
 	}
+
+	data := args[0].Interface()
 
 	expression, argsErr := object.AsString(args[1])
 	if argsErr != nil {
@@ -31,7 +42,7 @@ func Jmespath(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewError(err)
 	}
-	result, err := api.Search(expression, data.Interface())
+	result, err := api.Search(expression, data)
 	if argsErr != nil {
 		return object.NewError(err)
 	}

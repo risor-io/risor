@@ -95,10 +95,6 @@ func (p proxyTestType2) D(x int, y float32) (int, error) {
 	return x + int(y), nil
 }
 
-func (p proxyTestType2) e() int {
-	return 43
-}
-
 func TestProxyTestType2(t *testing.T) {
 	proxy, err := object.NewProxy(&proxyTestType2{
 		A: 99,

@@ -210,10 +210,17 @@ Risor is intended to be a community project. You can lend a hand in various ways
 - Open GitHub issue or a pull request for any bugs you find
 - Star the project on GitHub
 
+### Contributing New Modules
+
+Adding modules to Risor is a great way to get involved with the project.
+See [this guide](https://risor.io/docs/contributing_modules) for details.
+
 ## Discuss the Project
 
 Please visit the [GitHub discussions](https://github.com/risor-io/risor/discussions)
 page to share thoughts and questions.
+
+There is also a `#risor` Slack channel on the [Gophers Slack](https://gophers.slack.com).
 
 ## Credits
 

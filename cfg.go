@@ -12,7 +12,6 @@ import (
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
-	modHash "github.com/risor-io/risor/modules/hash"
 	modHttp "github.com/risor-io/risor/modules/http"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
@@ -86,7 +85,6 @@ func (cfg *Config) addDefaultGlobals() {
 		builtins.Builtins(),
 		modHttp.Builtins(),
 		modFmt.Builtins(),
-		modHash.Builtins(),
 		modOs.Builtins(),
 		modDns.Builtins(),
 	}

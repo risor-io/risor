@@ -212,22 +212,22 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("strings", map[string]object.Object{
+		"compare":     object.NewBuiltin("compare", Compare),
 		"contains":    object.NewBuiltin("contains", Contains),
 		"count":       object.NewBuiltin("count", Count),
+		"fields":      object.NewBuiltin("fields", Fields),
 		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),
 		"has_suffix":  object.NewBuiltin("has_suffix", HasSuffix),
-		"compare":     object.NewBuiltin("compare", Compare),
-		"join":        object.NewBuiltin("join", Join),
-		"split":       object.NewBuiltin("split", Split),
-		"fields":      object.NewBuiltin("fields", Fields),
 		"index":       object.NewBuiltin("index", Index),
+		"join":        object.NewBuiltin("join", Join),
 		"last_index":  object.NewBuiltin("last_index", LastIndex),
 		"replace_all": object.NewBuiltin("replace_all", ReplaceAll),
+		"split":       object.NewBuiltin("split", Split),
 		"to_lower":    object.NewBuiltin("to_lower", ToLower),
 		"to_upper":    object.NewBuiltin("to_upper", ToUpper),
-		"trim":        object.NewBuiltin("trim", Trim),
 		"trim_prefix": object.NewBuiltin("trim_prefix", TrimPrefix),
-		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
 		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
+		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
+		"trim":        object.NewBuiltin("trim", Trim),
 	})
 }

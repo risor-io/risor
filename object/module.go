@@ -175,10 +175,16 @@ func NewBuiltinsModule(name string, contents map[string]Object, callableOption .
 	if len(callableOption) > 0 {
 		callable = callableOption[0]
 	}
-	return &Module{
+	m := &Module{
 		name:         name,
 		builtins:     builtins,
 		callable:     callable,
 		globalsIndex: map[string]int{},
 	}
+	for _, v := range builtins {
+		if builtin, ok := v.(*Builtin); ok {
+			builtin.module = m
+		}
+	}
+	return m
 }

@@ -5,6 +5,7 @@ package kubernetes
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 
@@ -360,6 +361,9 @@ func Apply(ctx context.Context, args ...object.Object) object.Object {
 	return object.FromGoType(op)
 }
 
+//go:embed kubernetes.md
+var docs string
+
 // TODO: some ideas for other useful functions
 // - wait for condition
 // - check if ready
@@ -368,5 +372,5 @@ func Module() *object.Module {
 		"get":    object.NewBuiltin("k8s.get", Get),
 		"apply":  object.NewBuiltin("k8s.apply", Apply),
 		"delete": object.NewBuiltin("k8s.delete", Delete),
-	})
+	}).WithDocstring(docs)
 }
