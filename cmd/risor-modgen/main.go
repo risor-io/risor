@@ -179,7 +179,8 @@ var _ context.Context
 var _ int = math.MaxInt
 
 {{- if .ExportedFuncs }}
-{{ range $func := .ExportedFuncs }}
+{{- range $func := .ExportedFuncs }}
+
 // gen_{{ .FuncName }} is a wrapper function around [{{ .FuncName }}]
 func gen_{{ .FuncName }}(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != {{ len .Params }} {

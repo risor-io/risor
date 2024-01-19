@@ -119,6 +119,8 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 	switch typeName {
 	case "string":
 		return FuncParam{ReadFunc: "AsString"}, nil
+	case "bool":
+		return FuncParam{ReadFunc: "AsBool"}, nil
 	case "int64":
 		return FuncParam{ReadFunc: "AsInt"}, nil
 	case "int32":
@@ -151,6 +153,8 @@ func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 	switch typeName {
 	case "string":
 		return FuncReturn{NewFunc: "NewString"}, nil
+	case "bool":
+		return FuncReturn{NewFunc: "NewBool"}, nil
 	case "int64":
 		return FuncReturn{NewFunc: "NewInt"}, nil
 	case "int", "int32":

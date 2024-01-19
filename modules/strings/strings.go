@@ -2,10 +2,13 @@ package strings
 
 import (
 	"context"
+	"strings"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 )
+
+//risor:generate no-module-func
 
 func asString(obj object.Object) (*object.String, *object.Error) {
 	s, ok := obj.(*object.String)
@@ -15,63 +18,29 @@ func asString(obj object.Object) (*object.String, *object.Error) {
 	return s, nil
 }
 
-func Contains(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.contains", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Contains(args[1])
+//risor:export
+func Contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }
 
-func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.has_prefix", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.HasPrefix(args[1])
+//risor:export has_prefix
+func HasPrefix(s, prefix string) bool {
+	return strings.HasPrefix(s, prefix)
 }
 
-func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.has_suffix", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.HasSuffix(args[1])
+//risor:export has_prefix
+func HasSuffix(s, suffix string) bool {
+	return strings.HasSuffix(s, suffix)
 }
 
-func Count(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.count", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Count(args[1])
+//risor:export
+func Count(s, substr string) int {
+	return strings.Count(s, substr)
 }
 
-func Compare(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.compare", 2, args); err != nil {
-		return err
-	}
-	s, errObj := asString(args[0])
-	if errObj != nil {
-		return errObj
-	}
-	value, err := s.Compare(args[1])
-	if err != nil {
-		return object.NewError(err)
-	}
-	return object.NewInt(int64(value))
+//risor:export
+func Compare(a, b string) int {
+	return strings.Compare(a, b)
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
@@ -111,123 +80,55 @@ func Fields(ctx context.Context, args ...object.Object) object.Object {
 	return s.Fields()
 }
 
-func Index(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.index", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Index(args[1])
+//risor:export
+func Index(s, substr string) int {
+	return strings.Index(s, substr)
 }
 
-func LastIndex(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.last_index", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.LastIndex(args[1])
+//risor:export last_index
+func LastIndex(s, substr string) int {
+	return strings.LastIndex(s, substr)
 }
 
-func ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.replace", 3, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.ReplaceAll(args[1], args[2])
+//risor:export replace_all
+func ReplaceAll(s, old, new string) string {
+	return strings.ReplaceAll(s, old, new)
 }
 
-func ToLower(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.to_lower", 1, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.ToLower()
+//risor:export to_lower
+func ToLower(s string) string {
+	return strings.ToLower(s)
 }
 
-func ToUpper(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.to_upper", 1, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.ToUpper()
+//risor:export to_upper
+func ToUpper(s string) string {
+	return strings.ToUpper(s)
 }
 
-func Trim(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.trim", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Trim(args[1])
+//risor:export
+func Trim(s, cutset string) string {
+	return strings.Trim(s, cutset)
 }
 
-func TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.trim_prefix", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.TrimPrefix(args[1])
+//risor:export trim_prefix
+func TrimPrefix(s, prefix string) string {
+	return strings.TrimPrefix(s, prefix)
 }
 
-func TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.trim_suffix", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.TrimSuffix(args[1])
+//risor:export trim_suffix
+func TrimSuffix(s, prefix string) string {
+	return strings.TrimSuffix(s, prefix)
 }
 
-func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.trim_space", 1, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.TrimSpace()
+//risor:export trim_space
+func TrimSpace(s string) string {
+	return strings.TrimSpace(s)
 }
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule("strings", map[string]object.Object{
-		"compare":     object.NewBuiltin("compare", Compare),
-		"contains":    object.NewBuiltin("contains", Contains),
-		"count":       object.NewBuiltin("count", Count),
-		"fields":      object.NewBuiltin("fields", Fields),
-		"has_prefix":  object.NewBuiltin("has_prefix", HasPrefix),
-		"has_suffix":  object.NewBuiltin("has_suffix", HasSuffix),
-		"index":       object.NewBuiltin("index", Index),
-		"join":        object.NewBuiltin("join", Join),
-		"last_index":  object.NewBuiltin("last_index", LastIndex),
-		"replace_all": object.NewBuiltin("replace_all", ReplaceAll),
-		"split":       object.NewBuiltin("split", Split),
-		"to_lower":    object.NewBuiltin("to_lower", ToLower),
-		"to_upper":    object.NewBuiltin("to_upper", ToUpper),
-		"trim_prefix": object.NewBuiltin("trim_prefix", TrimPrefix),
-		"trim_space":  object.NewBuiltin("trim_space", TrimSpace),
-		"trim_suffix": object.NewBuiltin("trim_suffix", TrimSuffix),
-		"trim":        object.NewBuiltin("trim", Trim),
-	})
+	return object.NewBuiltinsModule("strings", addGeneratedBuiltins(map[string]object.Object{
+		"fields": object.NewBuiltin("fields", Fields),
+		"join":   object.NewBuiltin("join", Join),
+		"split":  object.NewBuiltin("split", Split),
+	}))
 }
