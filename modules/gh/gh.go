@@ -69,8 +69,10 @@ func asCommandProps(obj *object.Map) map[string]any {
 
 func commandPropKey(key string) (string, bool) {
 	switch key {
-	case "title", "file", "line", "col":
+	case "title", "file", "line":
 		return key, true
+	case "column":
+		return "col", true
 	case "end_line":
 		return "endLine", true
 	case "end_column":
@@ -245,10 +247,12 @@ func SetEnv(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("gh.set_env", 2, args); err != nil {
 		return err
 	}
-	key := printableValue(args[0])
-	value := printableValue(args[1])
+	key := fmt.Sprint(printableValue(args[0]))
+	value := fmt.Sprint(printableValue(args[1]))
 
 	risorOS := os.GetDefaultOS(ctx)
+	risorOS.Setenv(key, value)
+
 	envFile := risorOS.Getenv("GITHUB_ENV")
 	if envFile != "" {
 		return appendWorkflowFile(envFile, workflowFileKeyValue(key, value))
