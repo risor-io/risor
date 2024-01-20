@@ -3,7 +3,6 @@
 // Using the gh module requires that Risor is built with `-tags gh`
 
 gh.start_group("Test logging")
-gh.log_info("Just a normal log message")
 gh.log_debug("Only shown if workflow is running in debug mode")
 gh.log_warning("Handles\nnewlines", {file: "123.txt"})
 gh.log_notice("Hello world", {title: "Risor", file: "somefile.txt", line: 5})
