@@ -1,0 +1,11 @@
+
+gh.log_debug("hello world")
+gh.log_warning("foo bar\nmoo doo", {file: "123.txt"})
+
+gh.start_group("foobar")
+gh.end_group()
+
+gh.set_output("foobar", `My multiline string that also contains EOF :)
+Smiles all around`)
+
+gh.add_path("/path/to/dir")

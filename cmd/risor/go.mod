@@ -5,6 +5,7 @@ go 1.21
 replace (
 	github.com/risor-io/risor => ../..
 	github.com/risor-io/risor/modules/aws => ../../modules/aws
+	github.com/risor-io/risor/modules/gh => ../../modules/gh
 	github.com/risor-io/risor/modules/image => ../../modules/image
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
@@ -26,6 +27,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/risor-io/risor v1.2.0
 	github.com/risor-io/risor/modules/aws v1.1.1
+	github.com/risor-io/risor/modules/gh v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/image v1.1.1
 	github.com/risor-io/risor/modules/jmespath v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/kubernetes v0.0.0-00010101000000-000000000000

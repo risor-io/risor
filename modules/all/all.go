@@ -7,6 +7,7 @@ import (
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
+	modGh "github.com/risor-io/risor/modules/gh"
 	modHttp "github.com/risor-io/risor/modules/http"
 	modJson "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
@@ -26,6 +27,7 @@ func Builtins() map[string]object.Object {
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),
 		"fmt":      modFmt.Module(),
+		"gh":       modGh.Module(),
 		"json":     modJson.Module(),
 		"math":     modMath.Module(),
 		"os":       modOs.Module(),
