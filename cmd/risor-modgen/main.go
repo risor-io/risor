@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"text/template"
 )
@@ -251,12 +250,15 @@ func (m *Module) Fprint(w io.Writer, options Options) {
 }
 
 func (m *Module) parseFile(file *ast.File) error {
-	for _, group := range file.Comments {
-		for _, comment := range group.List {
-			if err := m.parseFileComment(comment); err != nil {
-				pos := m.fset.Position(comment.Pos())
-				return fmt.Errorf("line %d: %w", pos.Line, err)
-			}
+	fileHasGenerateComment, err := m.parseGenerateComment(file)
+	if err != nil {
+		return err
+	}
+
+	if fileHasGenerateComment {
+		// Only consider build constraints on file with //risor:generate
+		if err := m.parseBuildConstraints(file); err != nil {
+			return err
 		}
 	}
 
@@ -273,30 +275,45 @@ func (m *Module) parseFile(file *ast.File) error {
 	return nil
 }
 
-func (m *Module) parseFileComment(comment *ast.Comment) error {
-	if after, ok := cutPrefixAndSpace(comment.Text, "//risor:generate"); ok {
-		m.HasGenerateComment = true
-
-		fields := strings.Fields(after)
-		for _, field := range fields {
-			if field == "no-module-func" {
-				m.skipModulesFunc = true
+func (m *Module) parseGenerateComment(file *ast.File) (bool, error) {
+	for _, group := range file.Comments {
+		for _, comment := range group.List {
+			after, ok := cutPrefixAndSpace(comment.Text, "//risor:generate")
+			if !ok {
 				continue
 			}
 
-			return fmt.Errorf("invalid //risor:generate field: %q", field)
-		}
-		return nil
-	}
+			if m.HasGenerateComment {
+				return false, fmt.Errorf("multiple //risor:generate comments found")
+			}
 
-	if strings.HasPrefix(comment.Text, "//go:build ") ||
-		strings.HasPrefix(comment.Text, "// +build ") {
-		if slices.Contains(m.buildConstraints, comment.Text) {
-			return nil
-		}
-		m.buildConstraints = append(m.buildConstraints, comment.Text)
-	}
+			m.HasGenerateComment = true
 
+			fields := strings.Fields(after)
+			for _, field := range fields {
+				if field == "no-module-func" {
+					m.skipModulesFunc = true
+					continue
+				}
+
+				return false, fmt.Errorf("invalid //risor:generate field: %q", field)
+			}
+
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *Module) parseBuildConstraints(file *ast.File) error {
+	for _, group := range file.Comments {
+		for _, comment := range group.List {
+			if strings.HasPrefix(comment.Text, "//go:build ") ||
+				strings.HasPrefix(comment.Text, "// +build ") {
+				m.buildConstraints = append(m.buildConstraints, comment.Text)
+			}
+		}
+	}
 	return nil
 }
 
