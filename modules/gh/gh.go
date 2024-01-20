@@ -108,6 +108,9 @@ func runWorkflowCommand(w io.Writer, cmd string, value any, props map[string]any
 }
 
 func appendWorkflowFile(path string, message string) object.Object {
+	// Using the Go "os" package instead of the Risor "os" package
+	// because the Risor application might use S3 as storage, but
+	// the GitHub Actions special files are still on the real OS' file system.
 	file, err := goos.OpenFile(path, goos.O_APPEND|goos.O_WRONLY|goos.O_CREATE, 0644)
 	if err != nil {
 		return object.Errorf("io error: %v", err)
