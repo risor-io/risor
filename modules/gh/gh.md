@@ -19,19 +19,6 @@ Gets whether Actions Step Debug is on or not
 false
 ```
 
-### log_info
-
-```go filename="Function signature"
-log_info(msg string) bool
-```
-
-Write info to log. This prints a basic unformatted message to STDOUT.
-
-```go copy filename="Example"
->>> gh.log_info("Hello world")
-Hello world
-```
-
 ### log_debug
 
 ```go filename="Function signature"

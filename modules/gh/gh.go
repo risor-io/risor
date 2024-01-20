@@ -139,18 +139,6 @@ func workflowFileKeyValueEOF(key, value string) string {
 	return eof
 }
 
-func LogInfo(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.log_info", 1, args); err != nil {
-		return err
-	}
-	message := printableValue(args[0])
-	stdout := os.GetDefaultOS(ctx).Stdout()
-	if _, ioErr := fmt.Fprintln(stdout, message); ioErr != nil {
-		return object.Errorf("io error: %v", ioErr)
-	}
-	return object.Nil
-}
-
 func LogDebug(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("gh.log_debug", 1, args); err != nil {
 		return err
@@ -290,7 +278,6 @@ func AddPath(ctx context.Context, args ...object.Object) object.Object {
 func Module() *object.Module {
 	return object.NewBuiltinsModule("gh", map[string]object.Object{
 		"is_debug":    object.NewBuiltin("gh.is_debug", IsDebug),
-		"log_info":    object.NewBuiltin("gh.log_info", LogInfo),
 		"log_debug":   object.NewBuiltin("gh.log_debug", LogDebug),
 		"log_notice":  object.NewBuiltin("gh.log_notice", LogNotice),
 		"log_warning": object.NewBuiltin("gh.log_warning", LogWarning),
