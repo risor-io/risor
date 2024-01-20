@@ -1,0 +1,19 @@
+#!/usr/bin/env risor
+
+// Using the gh module requires that Risor is built with `-tags gh`
+
+gh.start_group("Test logging")
+gh.log_info("Just a normal log message")
+gh.log_debug("Only shown if workflow is running in debug mode")
+gh.log_warning("Handles\nnewlines", {file: "123.txt"})
+gh.log_notice("Hello world", {title: "Risor", file: "somefile.txt", line: 5})
+gh.log_error("Oh no an error", {title: "Risor", file: "somefile.txt", line: 123, column: 30})
+gh.end_group()
+
+gh.set_output("my-output-var", "some value")
+gh.set_output("my-other-var", `My multiline string
+that also contains
+the text "EOF" :)`)
+
+gh.set_env("MY_ENV_VAR", "my env value")
+gh.add_path("/path/to/dir")
