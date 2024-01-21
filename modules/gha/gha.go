@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	goos "os"
 	"strings"
 
 	"github.com/risor-io/risor/internal/arg"
@@ -104,11 +103,8 @@ func runWorkflowCommand(w io.Writer, cmd string, value any, props map[string]any
 	return object.Nil
 }
 
-func appendWorkflowFile(path string, message string) object.Object {
-	// Using the Go "os" package instead of the Risor "os" package
-	// because the Risor application might use S3 as storage, but
-	// the GitHub Actions special files are still on the real OS' file system.
-	file, err := goos.OpenFile(path, goos.O_APPEND|goos.O_WRONLY|goos.O_CREATE, 0644)
+func appendWorkflowFile(ros os.OS, path string, message string) object.Object {
+	file, err := ros.Append(path)
 	if err != nil {
 		return object.Errorf("io error: %v", err)
 	}
@@ -220,13 +216,13 @@ func SetOutput(ctx context.Context, args ...object.Object) object.Object {
 	key := printableValue(args[0])
 	value := printableValue(args[1])
 
-	risorOS := os.GetDefaultOS(ctx)
-	outputFile := risorOS.Getenv("GITHUB_OUTPUT")
+	ros := os.GetDefaultOS(ctx)
+	outputFile := ros.Getenv("GITHUB_OUTPUT")
 	if outputFile != "" {
-		return appendWorkflowFile(outputFile, workflowFileKeyValue(key, value))
+		return appendWorkflowFile(ros, outputFile, workflowFileKeyValue(key, value))
 	}
 
-	stdout := risorOS.Stdout()
+	stdout := ros.Stdout()
 	// Using "::set-output::" command is deprecated, but it's a good enough fallback
 	return runWorkflowCommand(stdout, "set-output", value, map[string]any{"name": key})
 }
@@ -238,15 +234,15 @@ func SetEnv(ctx context.Context, args ...object.Object) object.Object {
 	key := fmt.Sprint(printableValue(args[0]))
 	value := fmt.Sprint(printableValue(args[1]))
 
-	risorOS := os.GetDefaultOS(ctx)
-	risorOS.Setenv(key, value)
+	ros := os.GetDefaultOS(ctx)
+	ros.Setenv(key, value)
 
-	envFile := risorOS.Getenv("GITHUB_ENV")
+	envFile := ros.Getenv("GITHUB_ENV")
 	if envFile != "" {
-		return appendWorkflowFile(envFile, workflowFileKeyValue(key, value))
+		return appendWorkflowFile(ros, envFile, workflowFileKeyValue(key, value))
 	}
 
-	stdout := risorOS.Stdout()
+	stdout := ros.Stdout()
 	// Using "::set-env::" command is deprecated, but it's a good enough fallback
 	return runWorkflowCommand(stdout, "set-env", value, map[string]any{"name": key})
 }
@@ -258,16 +254,16 @@ func AddPath(ctx context.Context, args ...object.Object) object.Object {
 	path := printableValue(args[0])
 	pathStr := fmt.Sprint(path)
 
-	risorOS := os.GetDefaultOS(ctx)
-	oldPath := risorOS.Getenv("PATH")
-	risorOS.Setenv("PATH", fmt.Sprintf("%s%c%s", pathStr, goos.PathListSeparator, oldPath))
+	ros := os.GetDefaultOS(ctx)
+	oldPath := ros.Getenv("PATH")
+	ros.Setenv("PATH", fmt.Sprintf("%s%c%s", pathStr, ros.PathListSeparator(), oldPath))
 
-	pathFile := risorOS.Getenv("GITHUB_PATH")
+	pathFile := ros.Getenv("GITHUB_PATH")
 	if pathFile != "" {
-		return appendWorkflowFile(pathFile, pathStr)
+		return appendWorkflowFile(ros, pathFile, pathStr)
 	}
 
-	stdout := risorOS.Stdout()
+	stdout := ros.Stdout()
 	// Using "::add-path::" command is deprecated, but it's a good enough fallback
 	return runWorkflowCommand(stdout, "add-path", path, nil)
 }

@@ -41,6 +41,10 @@ func (osObj *SimpleOS) Create(name string) (File, error) {
 	return os.Create(name)
 }
 
+func (osObj *SimpleOS) Append(name string) (File, error) {
+	return os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+}
+
 func (osObj *SimpleOS) Environ() []string {
 	return os.Environ()
 }
@@ -163,4 +167,12 @@ func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
 
 func (osObj *SimpleOS) WalkDir(root string, fn WalkDirFunc) error {
 	return filepath.WalkDir(root, fn)
+}
+
+func (osObj *SimpleOS) PathSeparator() rune {
+	return os.PathSeparator
+}
+
+func (osObj *SimpleOS) PathListSeparator() rune {
+	return os.PathListSeparator
 }

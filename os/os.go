@@ -33,6 +33,7 @@ type File interface {
 }
 
 type FS interface {
+	Append(name string) (File, error)
 	Create(name string) (File, error)
 	Mkdir(name string, perm FileMode) error
 	MkdirAll(path string, perm FileMode) error
@@ -69,6 +70,8 @@ type OS interface {
 	UserHomeDir() (string, error)
 	Stdin() File
 	Stdout() File
+	PathSeparator() rune
+	PathListSeparator() rune
 }
 
 type contextKey string
