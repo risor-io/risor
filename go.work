@@ -8,7 +8,7 @@ use (
 	./cmd/risor-lsp
 	./examples/go/struct
 	./modules/aws
-	./modules/gh
+	./modules/gha
 	./modules/image
 	./modules/jmespath
 	./modules/pgx

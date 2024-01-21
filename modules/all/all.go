@@ -7,7 +7,7 @@ import (
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
-	modGh "github.com/risor-io/risor/modules/gh"
+	modGh "github.com/risor-io/risor/modules/gha"
 	modHTTP "github.com/risor-io/risor/modules/http"
 	modJSON "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"

@@ -21,7 +21,7 @@ import (
 	"github.com/risor-io/risor/cmd/risor/repl"
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/modules/aws"
-	"github.com/risor-io/risor/modules/gh"
+	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/jmespath"
 	k8s "github.com/risor-io/risor/modules/kubernetes"
@@ -233,11 +233,12 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
 			globals := map[string]any{
+				"gha":      gha.Module(),
 				"image":    image.Module(),
 				"pgx":      pgx.Module(),
 				"sql":      sql.Module(),
-				"uuid":     uuid.Module(),
 				"template": template.Module(),
+				"uuid":     uuid.Module(),
 			}
 
 			for k, v := range jmespath.Builtins() {
@@ -251,10 +252,6 @@ var rootCmd = &cobra.Command{
 			// AWS support may or may not be compiled in based on build tags
 			if aws := aws.Module(); aws != nil {
 				opts = append(opts, risor.WithGlobal("aws", aws))
-			}
-			// GitHub support may or may not be compiled in based on build tags
-			if gh := gh.Module(); gh != nil {
-				opts = append(opts, risor.WithGlobal("gh", gh))
 			}
 			// K8S support may or may not be compiled in based on build tags
 			if k8s := k8s.Module(); k8s != nil {

@@ -1,4 +1,4 @@
-module github.com/risor-io/risor/modules/gh
+module github.com/risor-io/risor/modules/gha
 
 go 1.21
 

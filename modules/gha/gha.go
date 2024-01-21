@@ -1,7 +1,4 @@
-//go:build gh
-// +build gh
-
-package gh
+package gha
 
 import (
 	"context"
@@ -17,7 +14,7 @@ import (
 )
 
 func IsDebug(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.is_debug", 0, args); err != nil {
+	if err := arg.Require("gha.is_debug", 0, args); err != nil {
 		return err
 	}
 	env, ok := os.GetDefaultOS(ctx).LookupEnv("RUNNER_DEBUG")
@@ -140,7 +137,7 @@ func workflowFileKeyValueEOF(key, value string) string {
 }
 
 func LogDebug(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.log_debug", 1, args); err != nil {
+	if err := arg.Require("gha.log_debug", 1, args); err != nil {
 		return err
 	}
 	message := printableValue(args[0])
@@ -149,7 +146,7 @@ func LogDebug(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func LogNotice(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.RequireRange("gh.log_notice", 1, 2, args); err != nil {
+	if err := arg.RequireRange("gha.log_notice", 1, 2, args); err != nil {
 		return err
 	}
 	message := printableValue(args[0])
@@ -166,7 +163,7 @@ func LogNotice(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func LogWarning(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.RequireRange("gh.log_warning", 1, 2, args); err != nil {
+	if err := arg.RequireRange("gha.log_warning", 1, 2, args); err != nil {
 		return err
 	}
 	message := printableValue(args[0])
@@ -183,7 +180,7 @@ func LogWarning(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func LogError(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.RequireRange("gh.log_error", 1, 2, args); err != nil {
+	if err := arg.RequireRange("gha.log_error", 1, 2, args); err != nil {
 		return err
 	}
 	message := printableValue(args[0])
@@ -200,7 +197,7 @@ func LogError(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func StartGroup(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.start_group", 1, args); err != nil {
+	if err := arg.Require("gha.start_group", 1, args); err != nil {
 		return err
 	}
 	message := printableValue(args[0])
@@ -209,7 +206,7 @@ func StartGroup(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func EndGroup(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.end_group", 0, args); err != nil {
+	if err := arg.Require("gha.end_group", 0, args); err != nil {
 		return err
 	}
 	stdout := os.GetDefaultOS(ctx).Stdout()
@@ -217,7 +214,7 @@ func EndGroup(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func SetOutput(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.set_output", 2, args); err != nil {
+	if err := arg.Require("gha.set_output", 2, args); err != nil {
 		return err
 	}
 	key := printableValue(args[0])
@@ -235,7 +232,7 @@ func SetOutput(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func SetEnv(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.set_env", 2, args); err != nil {
+	if err := arg.Require("gha.set_env", 2, args); err != nil {
 		return err
 	}
 	key := fmt.Sprint(printableValue(args[0]))
@@ -255,7 +252,7 @@ func SetEnv(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func AddPath(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("gh.add_path", 1, args); err != nil {
+	if err := arg.Require("gha.add_path", 1, args); err != nil {
 		return err
 	}
 	path := printableValue(args[0])
@@ -276,16 +273,16 @@ func AddPath(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule("gh", map[string]object.Object{
-		"is_debug":    object.NewBuiltin("gh.is_debug", IsDebug),
-		"log_debug":   object.NewBuiltin("gh.log_debug", LogDebug),
-		"log_notice":  object.NewBuiltin("gh.log_notice", LogNotice),
-		"log_warning": object.NewBuiltin("gh.log_warning", LogWarning),
-		"log_error":   object.NewBuiltin("gh.log_error", LogError),
-		"start_group": object.NewBuiltin("gh.start_group", StartGroup),
-		"end_group":   object.NewBuiltin("gh.end_group", EndGroup),
-		"set_output":  object.NewBuiltin("gh.set_output", SetOutput),
-		"set_env":     object.NewBuiltin("gh.set_env", SetEnv),
-		"add_path":    object.NewBuiltin("gh.add_path", AddPath),
+	return object.NewBuiltinsModule("gha", map[string]object.Object{
+		"is_debug":    object.NewBuiltin("gha.is_debug", IsDebug),
+		"log_debug":   object.NewBuiltin("gha.log_debug", LogDebug),
+		"log_notice":  object.NewBuiltin("gha.log_notice", LogNotice),
+		"log_warning": object.NewBuiltin("gha.log_warning", LogWarning),
+		"log_error":   object.NewBuiltin("gha.log_error", LogError),
+		"start_group": object.NewBuiltin("gha.start_group", StartGroup),
+		"end_group":   object.NewBuiltin("gha.end_group", EndGroup),
+		"set_output":  object.NewBuiltin("gha.set_output", SetOutput),
+		"set_env":     object.NewBuiltin("gha.set_env", SetEnv),
+		"add_path":    object.NewBuiltin("gha.add_path", AddPath),
 	})
 }

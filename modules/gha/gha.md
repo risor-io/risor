@@ -1,7 +1,6 @@
-# gh
+# gha
 
-Module `gh` provides utility functions to access GitHub, with main intention
-to be used from inside GitHub Actions workflows.
+Module `gha` provides utility functions when working inside GitHub Actions.
 
 ## Functions
 
