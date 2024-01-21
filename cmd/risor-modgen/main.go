@@ -184,8 +184,9 @@ import (
 {{- if .ExportedFuncs }}
 {{- range $func := .ExportedFuncs }}
 
-// gen_{{ .FuncName }} is a wrapper function around [{{ .FuncName }}]
-func gen_{{ .FuncName }}(ctx context.Context, args ...object.Object) object.Object {
+// {{ .FuncGenName }} is a wrapper function around [{{ .FuncName }}]
+// that implements [object.BuiltinFunction].
+func {{ .FuncGenName }}(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != {{ len .Params }} {
 		return object.NewArgsError("{{ $.Package }}.{{ .ExportedName }}", {{ len .Params }}, len(args))
 	}
@@ -230,7 +231,7 @@ func gen_{{ .FuncName }}(ctx context.Context, args ...object.Object) object.Obje
 // Useful if you want to write your own "Module()" function.
 func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.Object {
 	{{- range .ExportedFuncs }}
-	builtins["{{ .ExportedName }}"] = object.NewBuiltin("{{ $.Package }}.{{ .ExportedName }}", gen_{{ .FuncName }})
+	builtins["{{ .ExportedName }}"] = object.NewBuiltin("{{ $.Package }}.{{ .ExportedName }}", {{ .FuncGenName }})
 	{{- end }}
 	return builtins
 }

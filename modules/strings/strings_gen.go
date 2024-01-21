@@ -8,8 +8,9 @@ import (
 	"math"
 )
 
-// gen_Contains is a wrapper function around [Contains]
-func gen_Contains(ctx context.Context, args ...object.Object) object.Object {
+// Contains is a wrapper function around [contains]
+// that implements [object.BuiltinFunction].
+func Contains(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.contains", 2, len(args))
 	}
@@ -21,12 +22,13 @@ func gen_Contains(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := Contains(sParam, substrParam)
+	result := contains(sParam, substrParam)
 	return object.NewBool(result)
 }
 
-// gen_HasPrefix is a wrapper function around [HasPrefix]
-func gen_HasPrefix(ctx context.Context, args ...object.Object) object.Object {
+// HasPrefix is a wrapper function around [hasPrefix]
+// that implements [object.BuiltinFunction].
+func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.has_prefix", 2, len(args))
 	}
@@ -38,12 +40,13 @@ func gen_HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := HasPrefix(sParam, prefixParam)
+	result := hasPrefix(sParam, prefixParam)
 	return object.NewBool(result)
 }
 
-// gen_HasSuffix is a wrapper function around [HasSuffix]
-func gen_HasSuffix(ctx context.Context, args ...object.Object) object.Object {
+// HasSuffix is a wrapper function around [hasSuffix]
+// that implements [object.BuiltinFunction].
+func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.has_prefix", 2, len(args))
 	}
@@ -55,12 +58,13 @@ func gen_HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := HasSuffix(sParam, suffixParam)
+	result := hasSuffix(sParam, suffixParam)
 	return object.NewBool(result)
 }
 
-// gen_Count is a wrapper function around [Count]
-func gen_Count(ctx context.Context, args ...object.Object) object.Object {
+// Count is a wrapper function around [count]
+// that implements [object.BuiltinFunction].
+func Count(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.count", 2, len(args))
 	}
@@ -72,12 +76,13 @@ func gen_Count(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := Count(sParam, substrParam)
+	result := count(sParam, substrParam)
 	return object.NewInt(int64(result))
 }
 
-// gen_Compare is a wrapper function around [Compare]
-func gen_Compare(ctx context.Context, args ...object.Object) object.Object {
+// Compare is a wrapper function around [compare]
+// that implements [object.BuiltinFunction].
+func Compare(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.compare", 2, len(args))
 	}
@@ -89,12 +94,13 @@ func gen_Compare(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := Compare(aParam, bParam)
+	result := compare(aParam, bParam)
 	return object.NewInt(int64(result))
 }
 
-// gen_Repeat is a wrapper function around [Repeat]
-func gen_Repeat(ctx context.Context, args ...object.Object) object.Object {
+// Repeat is a wrapper function around [repeat]
+// that implements [object.BuiltinFunction].
+func Repeat(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.repeat", 2, len(args))
 	}
@@ -113,12 +119,13 @@ func gen_Repeat(ctx context.Context, args ...object.Object) object.Object {
 		return object.Errorf("type error: strings.repeat argument 'count' (index 1) cannot be < %v", math.MinInt)
 	}
 	countParam := int(countParamRaw)
-	result := Repeat(sParam, countParam)
+	result := repeat(sParam, countParam)
 	return object.NewString(result)
 }
 
-// gen_Index is a wrapper function around [Index]
-func gen_Index(ctx context.Context, args ...object.Object) object.Object {
+// Index is a wrapper function around [index]
+// that implements [object.BuiltinFunction].
+func Index(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.index", 2, len(args))
 	}
@@ -130,12 +137,13 @@ func gen_Index(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := Index(sParam, substrParam)
+	result := index(sParam, substrParam)
 	return object.NewInt(int64(result))
 }
 
-// gen_LastIndex is a wrapper function around [LastIndex]
-func gen_LastIndex(ctx context.Context, args ...object.Object) object.Object {
+// LastIndex is a wrapper function around [lastIndex]
+// that implements [object.BuiltinFunction].
+func LastIndex(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.last_index", 2, len(args))
 	}
@@ -147,12 +155,13 @@ func gen_LastIndex(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := LastIndex(sParam, substrParam)
+	result := lastIndex(sParam, substrParam)
 	return object.NewInt(int64(result))
 }
 
-// gen_ReplaceAll is a wrapper function around [ReplaceAll]
-func gen_ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
+// ReplaceAll is a wrapper function around [replaceAll]
+// that implements [object.BuiltinFunction].
+func ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 3 {
 		return object.NewArgsError("strings.replace_all", 3, len(args))
 	}
@@ -168,12 +177,13 @@ func gen_ReplaceAll(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := ReplaceAll(sParam, oldParam, newParam)
+	result := replaceAll(sParam, oldParam, newParam)
 	return object.NewString(result)
 }
 
-// gen_ToLower is a wrapper function around [ToLower]
-func gen_ToLower(ctx context.Context, args ...object.Object) object.Object {
+// ToLower is a wrapper function around [toLower]
+// that implements [object.BuiltinFunction].
+func ToLower(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
 		return object.NewArgsError("strings.to_lower", 1, len(args))
 	}
@@ -181,12 +191,13 @@ func gen_ToLower(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := ToLower(sParam)
+	result := toLower(sParam)
 	return object.NewString(result)
 }
 
-// gen_ToUpper is a wrapper function around [ToUpper]
-func gen_ToUpper(ctx context.Context, args ...object.Object) object.Object {
+// ToUpper is a wrapper function around [toUpper]
+// that implements [object.BuiltinFunction].
+func ToUpper(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
 		return object.NewArgsError("strings.to_upper", 1, len(args))
 	}
@@ -194,12 +205,13 @@ func gen_ToUpper(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := ToUpper(sParam)
+	result := toUpper(sParam)
 	return object.NewString(result)
 }
 
-// gen_Trim is a wrapper function around [Trim]
-func gen_Trim(ctx context.Context, args ...object.Object) object.Object {
+// Trim is a wrapper function around [trim]
+// that implements [object.BuiltinFunction].
+func Trim(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.trim", 2, len(args))
 	}
@@ -211,12 +223,13 @@ func gen_Trim(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := Trim(sParam, cutsetParam)
+	result := trim(sParam, cutsetParam)
 	return object.NewString(result)
 }
 
-// gen_TrimPrefix is a wrapper function around [TrimPrefix]
-func gen_TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
+// TrimPrefix is a wrapper function around [trimPrefix]
+// that implements [object.BuiltinFunction].
+func TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.trim_prefix", 2, len(args))
 	}
@@ -228,12 +241,13 @@ func gen_TrimPrefix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := TrimPrefix(sParam, prefixParam)
+	result := trimPrefix(sParam, prefixParam)
 	return object.NewString(result)
 }
 
-// gen_TrimSuffix is a wrapper function around [TrimSuffix]
-func gen_TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
+// TrimSuffix is a wrapper function around [trimSuffix]
+// that implements [object.BuiltinFunction].
+func TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.NewArgsError("strings.trim_suffix", 2, len(args))
 	}
@@ -245,12 +259,13 @@ func gen_TrimSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := TrimSuffix(sParam, prefixParam)
+	result := trimSuffix(sParam, prefixParam)
 	return object.NewString(result)
 }
 
-// gen_TrimSpace is a wrapper function around [TrimSpace]
-func gen_TrimSpace(ctx context.Context, args ...object.Object) object.Object {
+// TrimSpace is a wrapper function around [trimSpace]
+// that implements [object.BuiltinFunction].
+func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
 		return object.NewArgsError("strings.trim_space", 1, len(args))
 	}
@@ -258,7 +273,7 @@ func gen_TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	result := TrimSpace(sParam)
+	result := trimSpace(sParam)
 	return object.NewString(result)
 }
 
@@ -266,21 +281,21 @@ func gen_TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 //
 // Useful if you want to write your own "Module()" function.
 func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.Object {
-	builtins["contains"] = object.NewBuiltin("strings.contains", gen_Contains)
-	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", gen_HasPrefix)
-	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", gen_HasSuffix)
-	builtins["count"] = object.NewBuiltin("strings.count", gen_Count)
-	builtins["compare"] = object.NewBuiltin("strings.compare", gen_Compare)
-	builtins["repeat"] = object.NewBuiltin("strings.repeat", gen_Repeat)
-	builtins["index"] = object.NewBuiltin("strings.index", gen_Index)
-	builtins["last_index"] = object.NewBuiltin("strings.last_index", gen_LastIndex)
-	builtins["replace_all"] = object.NewBuiltin("strings.replace_all", gen_ReplaceAll)
-	builtins["to_lower"] = object.NewBuiltin("strings.to_lower", gen_ToLower)
-	builtins["to_upper"] = object.NewBuiltin("strings.to_upper", gen_ToUpper)
-	builtins["trim"] = object.NewBuiltin("strings.trim", gen_Trim)
-	builtins["trim_prefix"] = object.NewBuiltin("strings.trim_prefix", gen_TrimPrefix)
-	builtins["trim_suffix"] = object.NewBuiltin("strings.trim_suffix", gen_TrimSuffix)
-	builtins["trim_space"] = object.NewBuiltin("strings.trim_space", gen_TrimSpace)
+	builtins["contains"] = object.NewBuiltin("strings.contains", Contains)
+	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", HasPrefix)
+	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", HasSuffix)
+	builtins["count"] = object.NewBuiltin("strings.count", Count)
+	builtins["compare"] = object.NewBuiltin("strings.compare", Compare)
+	builtins["repeat"] = object.NewBuiltin("strings.repeat", Repeat)
+	builtins["index"] = object.NewBuiltin("strings.index", Index)
+	builtins["last_index"] = object.NewBuiltin("strings.last_index", LastIndex)
+	builtins["replace_all"] = object.NewBuiltin("strings.replace_all", ReplaceAll)
+	builtins["to_lower"] = object.NewBuiltin("strings.to_lower", ToLower)
+	builtins["to_upper"] = object.NewBuiltin("strings.to_upper", ToUpper)
+	builtins["trim"] = object.NewBuiltin("strings.trim", Trim)
+	builtins["trim_prefix"] = object.NewBuiltin("strings.trim_prefix", TrimPrefix)
+	builtins["trim_suffix"] = object.NewBuiltin("strings.trim_suffix", TrimSuffix)
+	builtins["trim_space"] = object.NewBuiltin("strings.trim_space", TrimSpace)
 	return builtins
 }
 

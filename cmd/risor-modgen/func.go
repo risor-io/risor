@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"go/ast"
 	"strings"
+	"unicode"
 )
 
 type ExportedFunc struct {
 	ExportedName string
 	FuncName     string
+	FuncGenName  string
 	Return       FuncReturn
 	Params       []FuncParam
 }
@@ -48,6 +50,12 @@ func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
 	exported := ExportedFunc{
 		ExportedName: exportedName,
 		FuncName:     decl.Name.Name,
+		FuncGenName:  firstRuneUpper(decl.Name.Name),
+	}
+
+	if exported.FuncName == exported.FuncGenName {
+		wantName := firstRuneLower(exported.FuncName)
+		return fmt.Errorf("collision of source function name and generated function name, should rename it to %q", wantName)
 	}
 
 	for _, param := range decl.Type.Params.List {
@@ -172,4 +180,30 @@ func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 	default:
 		return FuncReturn{}, fmt.Errorf("unsupported return type: %q", typeName)
 	}
+}
+
+func firstRuneUpper(s string) string {
+	if s == "" {
+		return ""
+	}
+	var firstRune rune
+	for _, r := range s {
+		firstRune = r
+		break
+	}
+	firstRune = unicode.ToUpper(firstRune)
+	return string(firstRune) + s[1:]
+}
+
+func firstRuneLower(s string) string {
+	if s == "" {
+		return ""
+	}
+	var firstRune rune
+	for _, r := range s {
+		firstRune = r
+		break
+	}
+	firstRune = unicode.ToLower(firstRune)
+	return string(firstRune) + s[1:]
 }
