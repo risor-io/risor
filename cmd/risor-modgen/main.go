@@ -43,6 +43,7 @@ func run(options Options) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Generating Risor module bindings")
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
