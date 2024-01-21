@@ -7,8 +7,8 @@ import (
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
-	modHttp "github.com/risor-io/risor/modules/http"
-	modJson "github.com/risor-io/risor/modules/json"
+	modHTTP "github.com/risor-io/risor/modules/http"
+	modJSON "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
 	modOs "github.com/risor-io/risor/modules/os"
 	modRand "github.com/risor-io/risor/modules/rand"
@@ -16,6 +16,7 @@ import (
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTime "github.com/risor-io/risor/modules/time"
+	modYAML "github.com/risor-io/risor/modules/yaml"
 	"github.com/risor-io/risor/object"
 )
 
@@ -26,7 +27,8 @@ func Builtins() map[string]object.Object {
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),
 		"fmt":      modFmt.Module(),
-		"json":     modJson.Module(),
+		"http":     modHTTP.Module(),
+		"json":     modJSON.Module(),
 		"math":     modMath.Module(),
 		"os":       modOs.Module(),
 		"rand":     modRand.Module(),
@@ -34,9 +36,9 @@ func Builtins() map[string]object.Object {
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
-		"http":     modHttp.Module(),
+		"yaml":     modYAML.Module(),
 	}
-	for k, v := range modHttp.Builtins() {
+	for k, v := range modHTTP.Builtins() {
 		result[k] = v
 	}
 	for k, v := range modFmt.Builtins() {
