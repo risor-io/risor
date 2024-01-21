@@ -67,4 +67,4 @@ docs-dev:
 
 .PHONY: modgen
 modgen:
-	find modules -name '*.go' -not -name '*_test.go' -not -name '*_gen.go' | entr go generate
+	find modules -name '*.go' -not -name '*_test.go' -not -name '*_gen.go' | entr go run ./cmd/risor-modgen
