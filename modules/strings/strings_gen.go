@@ -4,14 +4,9 @@ package strings
 
 import (
 	"context"
-	"math"
-
 	"github.com/risor-io/risor/object"
+	"math"
 )
-
-// Stop compile error from unused imports
-var _ context.Context
-var _ int = math.MaxInt
 
 // gen_Contains is a wrapper function around [Contains]
 func gen_Contains(ctx context.Context, args ...object.Object) object.Object {
@@ -96,6 +91,30 @@ func gen_Compare(ctx context.Context, args ...object.Object) object.Object {
 	}
 	result := Compare(aParam, bParam)
 	return object.NewInt(int64(result))
+}
+
+// gen_Repeat is a wrapper function around [Repeat]
+func gen_Repeat(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return object.NewArgsError("strings.repeat", 2, len(args))
+	}
+	sParam, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	countParamRaw, err := object.AsInt(args[1])
+	if err != nil {
+		return err
+	}
+	if countParamRaw > math.MaxInt {
+		return object.Errorf("type error: strings.repeat argument 'count' (index 1) cannot be > %v", math.MaxInt)
+	}
+	if countParamRaw < math.MinInt {
+		return object.Errorf("type error: strings.repeat argument 'count' (index 1) cannot be < %v", math.MinInt)
+	}
+	countParam := int(countParamRaw)
+	result := Repeat(sParam, countParam)
+	return object.NewString(result)
 }
 
 // gen_Index is a wrapper function around [Index]
@@ -252,6 +271,7 @@ func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.O
 	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", gen_HasSuffix)
 	builtins["count"] = object.NewBuiltin("strings.count", gen_Count)
 	builtins["compare"] = object.NewBuiltin("strings.compare", gen_Compare)
+	builtins["repeat"] = object.NewBuiltin("strings.repeat", gen_Repeat)
 	builtins["index"] = object.NewBuiltin("strings.index", gen_Index)
 	builtins["last_index"] = object.NewBuiltin("strings.last_index", gen_LastIndex)
 	builtins["replace_all"] = object.NewBuiltin("strings.replace_all", gen_ReplaceAll)

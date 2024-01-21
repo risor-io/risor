@@ -23,6 +23,7 @@ type FuncParam struct {
 	ReadFunc     string
 	CastFunc     string
 	CastMaxValue string
+	CastMinValue string
 }
 
 func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
@@ -74,6 +75,8 @@ func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
 		exported.Return = r
 	}
 
+	m.addImport(importRisorObject)
+	m.addImport("context")
 	m.exportedFuncs = append(m.exportedFuncs, exported)
 	return nil
 }
@@ -124,12 +127,15 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 	case "int64":
 		return FuncParam{ReadFunc: "AsInt"}, nil
 	case "int32":
-		return FuncParam{ReadFunc: "AsInt", CastFunc: "int32", CastMaxValue: "math.MaxInt32"}, nil
+		m.addImport("math")
+		return FuncParam{ReadFunc: "AsInt", CastFunc: "int32", CastMaxValue: "math.MaxInt32", CastMinValue: "math.MinInt32"}, nil
 	case "int":
-		return FuncParam{ReadFunc: "AsInt", CastFunc: "int", CastMaxValue: "math.MaxInt"}, nil
+		m.addImport("math")
+		return FuncParam{ReadFunc: "AsInt", CastFunc: "int", CastMaxValue: "math.MaxInt", CastMinValue: "math.MinInt"}, nil
 	case "float64":
 		return FuncParam{ReadFunc: "AsFloat"}, nil
 	case "float32":
+		m.addImport("math")
 		return FuncParam{ReadFunc: "AsFloat", CastFunc: "float32", CastMaxValue: "math.MaxFloat32"}, nil
 	default:
 		return FuncParam{}, fmt.Errorf("unsupported parameter type: %q", typeName)

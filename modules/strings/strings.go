@@ -43,6 +43,11 @@ func Compare(a, b string) int {
 	return strings.Compare(a, b)
 }
 
+//risor:export
+func Repeat(s string, count int) string {
+	return strings.Repeat(s, count)
+}
+
 func Join(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("strings.join", 2, args); err != nil {
 		return err
