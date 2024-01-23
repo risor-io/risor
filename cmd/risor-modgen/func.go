@@ -177,6 +177,8 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 		return FuncParam{ReadFunc: "AsString"}, nil
 	case "[]string":
 		return FuncParam{ReadFunc: "AsStringSlice"}, nil
+	case "[]byte":
+		return FuncParam{ReadFunc: "AsBytes"}, nil
 	case "bool":
 		return FuncParam{ReadFunc: "AsBool"}, nil
 	case "int64":
@@ -221,6 +223,8 @@ func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 		return FuncReturn{NewFunc: "NewString"}, nil
 	case "[]string":
 		return FuncReturn{NewFunc: "NewStringList"}, nil
+	case "[]byte":
+		return FuncReturn{NewFunc: "NewByteSlice"}, nil
 	case "bool":
 		return FuncReturn{NewFunc: "NewBool"}, nil
 	case "int64":
