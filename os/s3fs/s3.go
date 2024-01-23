@@ -252,6 +252,10 @@ func (fs *Filesystem) Open(name string) (ros.File, error) {
 	return f, nil
 }
 
+func (*Filesystem) OpenFile(string, int, ros.FileMode) (ros.File, error) {
+	return nil, fmt.Errorf("openfile: %w", errors.ErrUnsupported)
+}
+
 func (fs *Filesystem) ReadFile(name string) ([]byte, error) {
 	if strings.HasSuffix(name, "/") {
 		return nil, fmt.Errorf("cannot open file with trailing slash: %s", name)

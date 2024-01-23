@@ -9,6 +9,7 @@ use (
 	./cmd/risor-modgen
 	./examples/go/struct
 	./modules/aws
+	./modules/gha
 	./modules/image
 	./modules/jmespath
 	./modules/pgx

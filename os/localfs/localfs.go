@@ -114,6 +114,18 @@ func (fs *Filesystem) Open(name string) (ros.File, error) {
 	return f, nil
 }
 
+func (fs *Filesystem) OpenFile(name string, flag int, perm ros.FileMode) (ros.File, error) {
+	path, err := fs.resolvePath(name, "open")
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, flag, perm)
+	if err != nil {
+		return nil, ros.MassagePathError(fs.base, err)
+	}
+	return f, nil
+}
+
 func (fs *Filesystem) ReadFile(name string) ([]byte, error) {
 	resolvedPath, err := fs.resolvePath(name, "read")
 	if err != nil {

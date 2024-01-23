@@ -274,6 +274,14 @@ func (osObj *VirtualOS) Open(name string) (File, error) {
 	return mount.Source.Open(resolvedPath)
 }
 
+func (osObj *VirtualOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.OpenFile(resolvedPath, flag, perm)
+}
+
 func (osObj *VirtualOS) findMount(path string) (*Mount, string, bool) {
 	endsWithSlash := strings.HasSuffix(path, "/")
 	if !filepath.IsAbs(path) {
@@ -438,4 +446,12 @@ func (osObj *VirtualOS) Stdin() File {
 
 func (osObj *VirtualOS) Stdout() File {
 	return osObj.stdout
+}
+
+func (osObj *VirtualOS) PathSeparator() rune {
+	return os.PathSeparator
+}
+
+func (osObj *VirtualOS) PathListSeparator() rune {
+	return os.PathSeparator
 }

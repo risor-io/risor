@@ -21,6 +21,7 @@ import (
 	"github.com/risor-io/risor/cmd/risor/repl"
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/modules/aws"
+	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/jmespath"
 	k8s "github.com/risor-io/risor/modules/kubernetes"
@@ -232,11 +233,12 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
 			globals := map[string]any{
+				"gha":      gha.Module(),
 				"image":    image.Module(),
 				"pgx":      pgx.Module(),
 				"sql":      sql.Module(),
-				"uuid":     uuid.Module(),
 				"template": template.Module(),
+				"uuid":     uuid.Module(),
 			}
 
 			for k, v := range jmespath.Builtins() {

@@ -89,6 +89,10 @@ func (osObj *SimpleOS) Open(name string) (File, error) {
 	return os.Open(name)
 }
 
+func (osObj *SimpleOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
+	return os.OpenFile(name, flag, perm)
+}
+
 func (osObj *SimpleOS) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
 }
@@ -163,4 +167,12 @@ func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
 
 func (osObj *SimpleOS) WalkDir(root string, fn WalkDirFunc) error {
 	return filepath.WalkDir(root, fn)
+}
+
+func (osObj *SimpleOS) PathSeparator() rune {
+	return os.PathSeparator
+}
+
+func (osObj *SimpleOS) PathListSeparator() rune {
+	return os.PathListSeparator
 }
