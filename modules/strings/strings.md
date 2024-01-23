@@ -147,6 +147,19 @@ present in s.
 -1
 ```
 
+### repeat
+
+```go filename="Function signature"
+repeat(s string, count int) string
+```
+
+Repeat returns a new string consisting of `count` copies of the string `s`.
+
+```go copy filename="Example"
+>>> strings.repeat("na", 5) + " batman"
+"nanananana batman"
+```
+
 ### replace_all
 
 ```go filename="Function signature"
