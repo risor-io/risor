@@ -1,4 +1,11 @@
+import { Callout } from 'nextra/components';
+
 # aws
+
+<Callout type="info" emoji="ℹ️">
+  This module requires that Risor has been compiled with the `aws` Go build tag.
+  When compiling **manually**, [make sure you specify `-tags aws`](https://github.com/risor-io/risor#build-and-install-the-cli-from-source).
+</Callout>
 
 The `aws` module exposes a simple interface that wraps the AWS SDK v2 for Go.
 Create a client by providing the name of the service you want to use. All API
