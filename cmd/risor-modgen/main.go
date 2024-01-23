@@ -194,10 +194,14 @@ func {{ .FuncGenName }}(ctx context.Context, args ...object.Object) object.Objec
 		return object.NewArgsError("{{ $.Package }}.{{ .ExportedName }}", {{ len .Params }}, len(args))
 	}
 	{{- range $index, $param := .Params }}
+	{{- if .ReadFunc }}
 	{{ .Name }}Param{{ if .CastFunc }}Raw{{ end }}, err := object.{{ .ReadFunc }}(args[{{ $index }}])
 	if err != nil {
 		return err
 	}
+	{{- else }}
+	{{ .Name }}Param{{ if .CastFunc }}Raw{{ end }} := args[{{ $index }}]
+	{{- end }}
 	{{- if .CastFunc }}
 	{{- if .CastMaxValue }}
 	if {{ .Name }}ParamRaw > {{ .CastMaxValue }} {
@@ -212,19 +216,35 @@ func {{ .FuncGenName }}(ctx context.Context, args ...object.Object) object.Objec
 	{{ .Name }}Param := {{ .CastFunc }}({{ .Name }}ParamRaw)
 	{{- end }}
 	{{- end }}
-	result := {{ .FuncName }}(
+	{{- if or .Return .ReturnsError }}
+	{{ if .Return }}result{{ end -}}
+	{{- if and .Return .ReturnsError }}, {{ end -}}
+	{{ if .ReturnsError }}resultErr{{ end }} := {{ end -}}
+	{{ .FuncName }}(
+		{{- if .NeedsContext -}}
+		ctx{{ if .Params }}, {{ end }}
+		{{- end -}}
 		{{- range $index, $param := .Params -}}
 			{{- if gt $index 0}}, {{ end -}}
 			{{.Name}}Param
 		{{- end -}}
 	)
-	return object.{{ .Return.NewFunc }}(
+	{{- if .ReturnsError }}
+	if resultErr != nil {
+		return object.NewError(resultErr)
+	}
+	{{- end }}
+	{{- if .Return }}
+	return {{ with .Return.NewFunc -}}object.{{ . }}({{ end }}
 		{{- with .Return.CastFunc -}}
 			{{ . }}(result)
 		{{- else -}}
 			result
 		{{- end -}}
-	)
+	{{- if .Return.NewFunc }}){{ end }}
+	{{- else }}
+	return object.Nil
+	{{- end }}
 }
 {{- end }}
 {{- end }}

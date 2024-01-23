@@ -11,17 +11,21 @@ type ExportedFunc struct {
 	ExportedName string
 	FuncName     string
 	FuncGenName  string
-	Return       FuncReturn
+	Return       *FuncReturn
+	ReturnsError bool
 	Params       []FuncParam
+	NeedsContext bool
 }
 
 type FuncReturn struct {
+	Type     string
 	NewFunc  string
 	CastFunc string
 }
 
 type FuncParam struct {
 	Name         string
+	Type         string
 	ReadFunc     string
 	CastFunc     string
 	CastMaxValue string
@@ -59,34 +63,70 @@ func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
 	}
 
 	for _, param := range decl.Type.Params.List {
-		for _, name := range param.Names {
-			p, err := m.parseFuncDeclParam(name.Name, param)
+		for _, name := range namesListOrUnnamed(param.Names) {
+			p, err := m.parseFuncDeclParam(name, param)
 			if err != nil {
-				return fmt.Errorf("param %q: %w", name.Name, err)
+				return fmt.Errorf("param %q: %w", name, err)
 			}
+
+			// Special treatment for context.Context parameter
+			if p.Type == "context.Context" {
+				if len(exported.Params) > 0 {
+					return fmt.Errorf("param %q: context.Context must be the first parameter", name)
+				}
+				exported.NeedsContext = true
+				continue
+			}
+
 			exported.Params = append(exported.Params, p)
 		}
 	}
 
+	var returnTypes []FuncReturn
 	if decl.Type.Results != nil {
-		if len(decl.Type.Results.List) > 1 {
-			return fmt.Errorf("multiple return values are not supported")
+		for _, result := range decl.Type.Results.List {
+			for range namesListOrUnnamed(result.Names) {
+				r, err := m.parseFuncDeclReturn(result)
+				if err != nil {
+					return err
+				}
+				returnTypes = append(returnTypes, r)
+			}
 		}
-		field := decl.Type.Results.List[0]
-		if len(field.Names) > 1 {
-			return fmt.Errorf("multiple return values are not supported")
-		}
-		r, err := m.parseFuncDeclReturn(field)
-		if err != nil {
-			return err
-		}
-		exported.Return = r
+	}
+
+	// Special treatment for error returns
+	if len(returnTypes) > 0 && returnTypes[len(returnTypes)-1].Type == "error" {
+		exported.ReturnsError = true
+		returnTypes = returnTypes[:len(returnTypes)-1]
+	}
+
+	if len(returnTypes) > 1 {
+		return fmt.Errorf("multiple return values are not supported")
+	}
+
+	if len(returnTypes) > 0 {
+		exported.Return = &returnTypes[0]
 	}
 
 	m.addImport(importRisorObject)
 	m.addImport("context")
 	m.exportedFuncs = append(m.exportedFuncs, exported)
 	return nil
+}
+
+// namesListOrUnnamed is used to run loops through parameters and results
+// at least once per item, so that unnamed parameters and unnamed return values
+// are also considered.
+func namesListOrUnnamed(names []*ast.Ident) []string {
+	if names == nil {
+		return []string{"_"}
+	}
+	var result []string
+	for _, name := range names {
+		result = append(result, name.Name)
+	}
+	return result
 }
 
 func (m *Module) parseFuncDeclName(decl *ast.FuncDecl) (string, error) {
@@ -113,16 +153,26 @@ func (m *Module) parseFuncDeclName(decl *ast.FuncDecl) (string, error) {
 }
 
 func (m *Module) parseFuncDeclParam(name string, param *ast.Field) (FuncParam, error) {
-	p, err := m.parseParamType(m.sprintExpr(param.Type))
+	typ := m.sprintExpr(param.Type)
+	p, err := m.parseParamType(typ)
 	if err != nil {
 		return FuncParam{}, err
 	}
 	p.Name = name
+	p.Type = typ
 	return p, nil
 }
 
 func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 	switch typeName {
+	case "context.Context":
+		// there's special handling of [context.Context] in [parseFuncDecl]
+		return FuncParam{}, nil
+	case "object.Object":
+		// Just pass [object.Object] through, as-is
+		return FuncParam{}, nil
+	case "any", "interface{}":
+		return FuncParam{}, fmt.Errorf("type 'any' is not supported, use 'object.Object' instead")
 	case "string":
 		return FuncParam{ReadFunc: "AsString"}, nil
 	case "[]string":
@@ -148,15 +198,25 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 }
 
 func (m *Module) parseFuncDeclReturn(ret *ast.Field) (FuncReturn, error) {
-	p, err := m.parseReturnType(m.sprintExpr(ret.Type))
+	typ := m.sprintExpr(ret.Type)
+	p, err := m.parseReturnType(typ)
 	if err != nil {
 		return FuncReturn{}, err
 	}
+	p.Type = typ
 	return p, nil
 }
 
 func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 	switch typeName {
+	case "error":
+		// there's special handling of [error] in [parseFuncDecl]
+		return FuncReturn{}, nil
+	case "object.Object":
+		// Just pass [object.Object] through, as-is
+		return FuncReturn{}, nil
+	case "any", "interface{}":
+		return FuncReturn{}, fmt.Errorf("type 'any' is not supported, use 'object.Object' instead")
 	case "string":
 		return FuncReturn{NewFunc: "NewString"}, nil
 	case "[]string":
