@@ -372,5 +372,5 @@ func Module() *object.Module {
 		"get":    object.NewBuiltin("k8s.get", Get),
 		"apply":  object.NewBuiltin("k8s.apply", Apply),
 		"delete": object.NewBuiltin("k8s.delete", Delete),
-	}).WithDocstring(docs)
+	})
 }
