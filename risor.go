@@ -12,6 +12,8 @@ import (
 	"github.com/risor-io/risor/vm"
 )
 
+//go:generate go run ./cmd/risor-modgen
+
 // Option describes a function used to configure a Risor evaluation.
 type Option func(*Config)
 
