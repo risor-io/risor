@@ -10,87 +10,44 @@ import (
 	"github.com/risor-io/risor/os"
 )
 
-func GetOS(ctx context.Context) os.OS {
-	return os.GetDefaultOS(ctx)
-}
+//risor:generate no-module-func
 
-func Abs(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.abs", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	osObj := GetOS(ctx)
+//risor:export
+func abs(ctx context.Context, path string) (string, error) {
+	osObj := os.GetDefaultOS(ctx)
 	if filepath.IsAbs(path) {
-		return object.NewString(filepath.Clean(path))
+		return filepath.Clean(path), nil
 	}
 	wd, wdErr := osObj.Getwd()
 	if wdErr != nil {
-		return object.NewError(wdErr)
+		return "", wdErr
 	}
-	return object.NewString(filepath.Join(wd, path))
+	return filepath.Join(wd, path), nil
 }
 
-func Base(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.base", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	base := filepath.Base(path)
-	return object.NewString(base)
+//risor:export
+func base(path string) string {
+	return filepath.Base(path)
 }
 
-func Clean(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.clean", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	cleanPath := filepath.Clean(path)
-	return object.NewString(cleanPath)
+//risor:export
+func clean(path string) string {
+	return filepath.Clean(path)
 }
 
-func Dir(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.dir", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	dirPath := filepath.Dir(path)
-	return object.NewString(dirPath)
+//risor:export
+func dir(path string) string {
+	return filepath.Dir(path)
 }
 
-func Ext(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.ext", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	extension := filepath.Ext(path)
-	return object.NewString(extension)
+//risor:export
+func ext(path string) string {
+	return filepath.Ext(path)
 }
 
-func IsAbs(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.is_abs", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	isAbs := filepath.IsAbs(path)
-	return object.NewBool(isAbs)
+//risor:export is_abs
+func isAbs(path string) bool {
+	return filepath.IsAbs(path)
 }
 
 func Join(ctx context.Context, args ...object.Object) object.Object {
@@ -105,73 +62,25 @@ func Join(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(filepath.Join(paths...))
 }
 
-func Match(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.match", 2, args); err != nil {
-		return err
-	}
-	pattern, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	name, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	matched, matchErr := filepath.Match(pattern, name)
-	if matchErr != nil {
-		return object.NewError(matchErr)
-	}
-	return object.NewBool(matched)
+//risor:export
+func match(pattern, name string) (bool, error) {
+	return filepath.Match(pattern, name)
 }
 
-func Rel(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.rel", 2, args); err != nil {
-		return err
-	}
-	basepath, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	targpath, err := object.AsString(args[1])
-	if err != nil {
-		return err
-	}
-	relativePath, relErr := filepath.Rel(basepath, targpath)
-	if relErr != nil {
-		return object.NewError(relErr)
-	}
-	return object.NewString(relativePath)
+//risor:export
+func rel(basepath, targpath string) (string, error) {
+	return filepath.Rel(basepath, targpath)
 }
 
-func Split(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.split", 1, args); err != nil {
-		return err
-	}
-	path, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
+//risor:export
+func split(path string) []string {
 	dir, file := filepath.Split(path)
-	return object.NewList([]object.Object{
-		object.NewString(dir),
-		object.NewString(file),
-	})
+	return []string{dir, file}
 }
 
-func SplitList(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("filepath.split_list", 1, args); err != nil {
-		return err
-	}
-	pathList, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	paths := filepath.SplitList(pathList)
-	pathObjs := make([]object.Object, 0, len(paths))
-	for _, path := range paths {
-		pathObjs = append(pathObjs, object.NewString(path))
-	}
-	return object.NewList(pathObjs)
+//risor:export split_list
+func splitList(pathList string) []string {
+	return filepath.SplitList(pathList)
 }
 
 func WalkDir(ctx context.Context, args ...object.Object) object.Object {
@@ -186,7 +95,7 @@ func WalkDir(ctx context.Context, args ...object.Object) object.Object {
 	if !found {
 		return object.Errorf("eval error: filepath.walk() context did not contain a call function")
 	}
-	osObj := GetOS(ctx)
+	osObj := os.GetDefaultOS(ctx)
 
 	type callable func(path, info, err object.Object) object.Object
 	var callback callable
@@ -233,18 +142,8 @@ func WalkDir(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule("filepath", map[string]object.Object{
-		"abs":        object.NewBuiltin("abs", Abs),
-		"base":       object.NewBuiltin("base", Base),
-		"clean":      object.NewBuiltin("clean", Clean),
-		"dir":        object.NewBuiltin("dir", Dir),
-		"ext":        object.NewBuiltin("ext", Ext),
-		"is_abs":     object.NewBuiltin("is_abs", IsAbs),
-		"join":       object.NewBuiltin("join", Join),
-		"match":      object.NewBuiltin("match", Match),
-		"rel":        object.NewBuiltin("rel", Rel),
-		"split_list": object.NewBuiltin("split_list", SplitList),
-		"split":      object.NewBuiltin("split", Split),
-		"walk_dir":   object.NewBuiltin("walk_dir", WalkDir),
-	})
+	return object.NewBuiltinsModule("filepath", addGeneratedBuiltins(map[string]object.Object{
+		"join":     object.NewBuiltin("join", Join),
+		"walk_dir": object.NewBuiltin("walk_dir", WalkDir),
+	}))
 }
