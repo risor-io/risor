@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha512"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"io"
 	"io/fs"
@@ -342,6 +344,12 @@ func (m *Module) addImport(pkg string) {
 	if !slices.Contains(m.imports, pkg) {
 		m.imports = append(m.imports, pkg)
 	}
+}
+
+func (m *Module) sprintExpr(node any) string {
+	var buf bytes.Buffer
+	printer.Fprint(&buf, m.fset, node)
+	return buf.String()
 }
 
 func cutPrefixAndSpace(s, prefix string) (after string, ok bool) {

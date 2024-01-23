@@ -1,22 +1,10 @@
 package strings
 
 import (
-	"context"
 	"strings"
-
-	"github.com/risor-io/risor/internal/arg"
-	"github.com/risor-io/risor/object"
 )
 
-//risor:generate no-module-func
-
-func asString(obj object.Object) (*object.String, *object.Error) {
-	s, ok := obj.(*object.String)
-	if !ok {
-		return nil, object.Errorf("type error: expected a string (got %v)", obj.Type())
-	}
-	return s, nil
-}
+//risor:generate
 
 //risor:export
 func contains(s, substr string) bool {
@@ -48,41 +36,19 @@ func repeat(s string, count int) string {
 	return strings.Repeat(s, count)
 }
 
-func Join(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.join", 2, args); err != nil {
-		return err
-	}
-	list, err := object.AsList(args[0])
-	if err != nil {
-		return err
-	}
-	sep, err := asString(args[1])
-	if err != nil {
-		return err
-	}
-	return sep.Join(list)
+//risor:export
+func join(list []string, sep string) string {
+	return strings.Join(list, sep)
 }
 
-func Split(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.split", 2, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Split(args[1])
+//risor:export
+func split(s, sep string) []string {
+	return strings.Split(s, sep)
 }
 
-func Fields(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("strings.fields", 1, args); err != nil {
-		return err
-	}
-	s, err := asString(args[0])
-	if err != nil {
-		return err
-	}
-	return s.Fields()
+//risor:export
+func fields(s string) []string {
+	return strings.Fields(s)
 }
 
 //risor:export
@@ -128,12 +94,4 @@ func trimSuffix(s, prefix string) string {
 //risor:export trim_space
 func trimSpace(s string) string {
 	return strings.TrimSpace(s)
-}
-
-func Module() *object.Module {
-	return object.NewBuiltinsModule("strings", addGeneratedBuiltins(map[string]object.Object{
-		"fields": object.NewBuiltin("fields", Fields),
-		"join":   object.NewBuiltin("join", Join),
-		"split":  object.NewBuiltin("split", Split),
-	}))
 }

@@ -123,6 +123,56 @@ func Repeat(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(result)
 }
 
+// Join is a wrapper function around [join]
+// that implements [object.BuiltinFunction].
+func Join(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return object.NewArgsError("strings.join", 2, len(args))
+	}
+	listParam, err := object.AsStringSlice(args[0])
+	if err != nil {
+		return err
+	}
+	sepParam, err := object.AsString(args[1])
+	if err != nil {
+		return err
+	}
+	result := join(listParam, sepParam)
+	return object.NewString(result)
+}
+
+// Split is a wrapper function around [split]
+// that implements [object.BuiltinFunction].
+func Split(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return object.NewArgsError("strings.split", 2, len(args))
+	}
+	sParam, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	sepParam, err := object.AsString(args[1])
+	if err != nil {
+		return err
+	}
+	result := split(sParam, sepParam)
+	return object.NewStringList(result)
+}
+
+// Fields is a wrapper function around [fields]
+// that implements [object.BuiltinFunction].
+func Fields(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return object.NewArgsError("strings.fields", 1, len(args))
+	}
+	sParam, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	result := fields(sParam)
+	return object.NewStringList(result)
+}
+
 // Index is a wrapper function around [index]
 // that implements [object.BuiltinFunction].
 func Index(ctx context.Context, args ...object.Object) object.Object {
@@ -287,6 +337,9 @@ func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.O
 	builtins["count"] = object.NewBuiltin("strings.count", Count)
 	builtins["compare"] = object.NewBuiltin("strings.compare", Compare)
 	builtins["repeat"] = object.NewBuiltin("strings.repeat", Repeat)
+	builtins["join"] = object.NewBuiltin("strings.join", Join)
+	builtins["split"] = object.NewBuiltin("strings.split", Split)
+	builtins["fields"] = object.NewBuiltin("strings.fields", Fields)
 	builtins["index"] = object.NewBuiltin("strings.index", Index)
 	builtins["last_index"] = object.NewBuiltin("strings.last_index", LastIndex)
 	builtins["replace_all"] = object.NewBuiltin("strings.replace_all", ReplaceAll)
@@ -299,4 +352,11 @@ func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.O
 	return builtins
 }
 
+// The "Module()" function can be disabled with "//risor:generate no-module-func"
+
+// Module returns the Risor module object with all the associated builtin
+// functions.
+func Module() *object.Module {
+	return object.NewBuiltinsModule("strings", addGeneratedBuiltins(map[string]object.Object{}))
+}
 
