@@ -113,23 +113,20 @@ func (m *Module) parseFuncDeclName(decl *ast.FuncDecl) (string, error) {
 }
 
 func (m *Module) parseFuncDeclParam(name string, param *ast.Field) (FuncParam, error) {
-	switch expr := param.Type.(type) {
-	case *ast.Ident:
-		p, err := m.parseParamType(expr.Name)
-		if err != nil {
-			return FuncParam{}, err
-		}
-		p.Name = name
-		return p, nil
-	default:
-		return FuncParam{}, fmt.Errorf("unsupported parameter expression type: %T", param.Type)
+	p, err := m.parseParamType(m.sprintExpr(param.Type))
+	if err != nil {
+		return FuncParam{}, err
 	}
+	p.Name = name
+	return p, nil
 }
 
 func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 	switch typeName {
 	case "string":
 		return FuncParam{ReadFunc: "AsString"}, nil
+	case "[]string":
+		return FuncParam{ReadFunc: "AsStringSlice"}, nil
 	case "bool":
 		return FuncParam{ReadFunc: "AsBool"}, nil
 	case "int64":
@@ -151,22 +148,19 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 }
 
 func (m *Module) parseFuncDeclReturn(ret *ast.Field) (FuncReturn, error) {
-	switch expr := ret.Type.(type) {
-	case *ast.Ident:
-		p, err := m.parseReturnType(expr.Name)
-		if err != nil {
-			return FuncReturn{}, err
-		}
-		return p, nil
-	default:
-		return FuncReturn{}, fmt.Errorf("unsupported return expression type: %T", ret.Type)
+	p, err := m.parseReturnType(m.sprintExpr(ret.Type))
+	if err != nil {
+		return FuncReturn{}, err
 	}
+	return p, nil
 }
 
 func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 	switch typeName {
 	case "string":
 		return FuncReturn{NewFunc: "NewString"}, nil
+	case "[]string":
+		return FuncReturn{NewFunc: "NewStringList"}, nil
 	case "bool":
 		return FuncReturn{NewFunc: "NewBool"}, nil
 	case "int64":
