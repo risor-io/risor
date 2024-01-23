@@ -62,6 +62,10 @@ func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
 		return fmt.Errorf("collision of source function name and generated function name, should rename it to %q", wantName)
 	}
 
+	if strings.ToLower(exported.ExportedName) != exported.ExportedName {
+		return fmt.Errorf("exported name should be snake_case, but got %q", exported.ExportedName)
+	}
+
 	for _, param := range decl.Type.Params.List {
 		for _, name := range namesListOrUnnamed(param.Names) {
 			p, err := m.parseFuncDeclParam(name, param)
@@ -172,7 +176,7 @@ func (m *Module) parseParamType(typeName string) (FuncParam, error) {
 		// Just pass [object.Object] through, as-is
 		return FuncParam{}, nil
 	case "any", "interface{}":
-		return FuncParam{}, fmt.Errorf("type 'any' is not supported, use 'object.Object' instead")
+		return FuncParam{}, fmt.Errorf("type 'any' is not allowed, use 'object.Object' instead")
 	case "string":
 		return FuncParam{ReadFunc: "AsString"}, nil
 	case "[]string":
@@ -218,7 +222,7 @@ func (m *Module) parseReturnType(typeName string) (FuncReturn, error) {
 		// Just pass [object.Object] through, as-is
 		return FuncReturn{}, nil
 	case "any", "interface{}":
-		return FuncReturn{}, fmt.Errorf("type 'any' is not supported, use 'object.Object' instead")
+		return FuncReturn{}, fmt.Errorf("type 'any' is not allowed, use 'object.Object' instead")
 	case "string":
 		return FuncReturn{NewFunc: "NewString"}, nil
 	case "[]string":
