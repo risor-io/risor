@@ -192,14 +192,6 @@ func (osObj *VirtualOS) Create(name string) (File, error) {
 	return mount.Source.Create(resolvedPath)
 }
 
-func (osObj *VirtualOS) Append(name string) (File, error) {
-	mount, resolvedPath, found := osObj.findMount(name)
-	if !found {
-		return nil, fmt.Errorf("no such file or directory: %s", name)
-	}
-	return mount.Source.Append(resolvedPath)
-}
-
 func (osObj *VirtualOS) Environ() []string {
 	var result []string
 	for k, v := range osObj.env {
@@ -280,6 +272,14 @@ func (osObj *VirtualOS) Open(name string) (File, error) {
 		return nil, fmt.Errorf("no such file or directory: %s", name)
 	}
 	return mount.Source.Open(resolvedPath)
+}
+
+func (osObj *VirtualOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
+	mount, resolvedPath, found := osObj.findMount(name)
+	if !found {
+		return nil, fmt.Errorf("no such file or directory: %s", name)
+	}
+	return mount.Source.OpenFile(resolvedPath, flag, perm)
 }
 
 func (osObj *VirtualOS) findMount(path string) (*Mount, string, bool) {

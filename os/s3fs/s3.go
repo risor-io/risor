@@ -205,26 +205,6 @@ func (fs *Filesystem) Create(name string) (ros.File, error) {
 	return newFile(fs, key), nil
 }
 
-func (fs *Filesystem) Append(name string) (ros.File, error) {
-	if strings.HasSuffix(name, "/") {
-		return nil, fmt.Errorf("cannot open file with trailing slash: %s", name)
-	}
-	key, err := fs.resolvePath(name, "append")
-	if err != nil {
-		return nil, err
-	}
-	f := newFile(fs, key)
-	if err := f.get(); err != nil {
-		return nil, err
-	}
-	if _, err := io.Copy(f, f.reader); err != nil {
-		// AWS S3 doesn't support append operations, so we download the previous
-		// file and write it all to a buffer first.
-		return nil, err
-	}
-	return f, nil
-}
-
 func (fs *Filesystem) Mkdir(name string, perm ros.FileMode) error {
 	key, err := fs.resolvePath(name, "mkdir")
 	if err != nil {
@@ -270,6 +250,10 @@ func (fs *Filesystem) Open(name string) (ros.File, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func (*Filesystem) OpenFile(string, int, ros.FileMode) (ros.File, error) {
+	return nil, fmt.Errorf("openfile: %w", errors.ErrUnsupported)
 }
 
 func (fs *Filesystem) ReadFile(name string) ([]byte, error) {

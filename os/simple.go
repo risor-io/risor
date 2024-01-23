@@ -41,10 +41,6 @@ func (osObj *SimpleOS) Create(name string) (File, error) {
 	return os.Create(name)
 }
 
-func (osObj *SimpleOS) Append(name string) (File, error) {
-	return os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-}
-
 func (osObj *SimpleOS) Environ() []string {
 	return os.Environ()
 }
@@ -91,6 +87,10 @@ func (osObj *SimpleOS) MkdirTemp(dir, pattern string) (string, error) {
 
 func (osObj *SimpleOS) Open(name string) (File, error) {
 	return os.Open(name)
+}
+
+func (osObj *SimpleOS) OpenFile(name string, flag int, perm FileMode) (File, error) {
+	return os.OpenFile(name, flag, perm)
 }
 
 func (osObj *SimpleOS) ReadFile(name string) ([]byte, error) {

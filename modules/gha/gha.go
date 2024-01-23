@@ -104,7 +104,7 @@ func runWorkflowCommand(w io.Writer, cmd string, value any, props map[string]any
 }
 
 func appendWorkflowFile(ros os.OS, path string, message string) object.Object {
-	file, err := ros.Append(path)
+	file, err := ros.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return object.Errorf("io error: %v", err)
 	}

@@ -68,18 +68,6 @@ func (fs *Filesystem) Create(name string) (ros.File, error) {
 	return f, nil
 }
 
-func (fs *Filesystem) Append(name string) (ros.File, error) {
-	path, err := fs.resolvePath(name, "append")
-	if err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, ros.MassagePathError(fs.base, err)
-	}
-	return f, nil
-}
-
 func (fs *Filesystem) Mkdir(name string, perm ros.FileMode) error {
 	path, err := fs.resolvePath(name, "mkdir")
 	if err != nil {
@@ -120,6 +108,18 @@ func (fs *Filesystem) Open(name string) (ros.File, error) {
 		return nil, err
 	}
 	f, err := os.Open(resolvedPath)
+	if err != nil {
+		return nil, ros.MassagePathError(fs.base, err)
+	}
+	return f, nil
+}
+
+func (fs *Filesystem) OpenFile(name string, flag int, perm ros.FileMode) (ros.File, error) {
+	path, err := fs.resolvePath(name, "open")
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, flag, perm)
 	if err != nil {
 		return nil, ros.MassagePathError(fs.base, err)
 	}
