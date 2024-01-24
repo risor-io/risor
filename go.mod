@@ -3,6 +3,7 @@ module github.com/risor-io/risor
 go 1.21
 
 require (
+	github.com/risor-io/risor/modules/gha v0.0.0-20240123174440-6fad525f7b67
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
 )

@@ -27,7 +27,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/risor-io/risor v1.2.0
 	github.com/risor-io/risor/modules/aws v1.1.1
-	github.com/risor-io/risor/modules/gha v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/gha v0.0.0-20240123174440-6fad525f7b67
 	github.com/risor-io/risor/modules/image v1.1.1
 	github.com/risor-io/risor/modules/jmespath v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/kubernetes v0.0.0-00010101000000-000000000000
