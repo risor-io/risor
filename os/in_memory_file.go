@@ -44,21 +44,21 @@ func (f *InMemoryFile) ReadAt(p []byte, off int64) (int, error) {
 	return n, nil
 }
 
-// Write appends the contents of p to the file from the current position.
+// Write writes the contents of p to the file from the current position.
 // It moves the read pointer by the length of the written data.
 // The return value n is the length of p; err is always nil.
 func (f *InMemoryFile) Write(p []byte) (int, error) {
 	if f.pos > len(f.data) {
 		f.pos = len(f.data)
 	}
-	if len(p) <= len(f.data[f.pos:]) {
-		n := copy(f.data[f.pos:], p)
-		f.pos += n
-		return n, nil
+
+	l := len(p)
+	n := copy(f.data[f.pos:], p)
+	if n < l {
+		f.data = append(f.data, p[n:]...)
 	}
-	f.data = append(f.data[:f.pos], p...)
-	f.pos = len(f.data)
-	return len(p), nil
+	f.pos += l
+	return l, nil
 }
 
 // Seek sets the read pointer to pos.
