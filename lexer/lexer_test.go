@@ -699,7 +699,7 @@ func TestInvalidIdentifiers(t *testing.T) {
 
 func TestEscapeSequences(t *testing.T) {
 	tests := []struct {
-		name string
+		name            string
 		input           string
 		expectedLiteral string
 	}{
@@ -734,12 +734,12 @@ func TestEscapeSequences(t *testing.T) {
 
 func TestInvalidEscapeSequences(t *testing.T) {
 	tests := []struct {
-		input           string
+		input string
 	}{
-		{`"\P"`}, // unknown escape code
+		{`"\P"`},     // unknown escape code
 		{`"\u12_3"`}, // non-hex chars
 		{`"\U1234"`}, // too few chars
-		{`"\378"`}, // invalid char '8' in octal
+		{`"\378"`},   // invalid char '8' in octal
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.input), func(t *testing.T) {
