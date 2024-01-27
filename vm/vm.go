@@ -322,8 +322,10 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			partial := object.NewPartial(obj, args)
 			vm.push(partial)
 		case op.ReturnValue:
-			returnAddr := vm.frames[vm.fp].returnAddr
-			vm.activateFrame(vm.fp-1, returnAddr)
+			activeFrame := vm.activeFrame
+			returnAddr := activeFrame.returnAddr
+			returnSp := activeFrame.returnSp
+			vm.resumeFrame(vm.fp-1, returnAddr, returnSp)
 			if returnAddr == StopSignal {
 				// If StopSignal is found as the return address, it means the
 				// current eval call should stop.
@@ -611,10 +613,11 @@ func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.
 	// Activate a new frame to evaluate the module code
 	baseFP := vm.fp
 	baseIP := vm.ip
+	baseSP := vm.sp
 	code := vm.load(module.Code())
 	vm.activateCode(vm.fp+1, 0, code)
 	// Restore the previous frame when done
-	defer vm.activateFrame(baseFP, baseIP)
+	defer vm.resumeFrame(baseFP, baseIP, baseSP)
 	// Evaluate the module code
 	if err := vm.eval(ctx); err != nil {
 		return nil, err
@@ -728,6 +731,7 @@ func (vm *VirtualMachine) Call(ctx context.Context, fn *object.Function, args []
 func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 	baseFP := vm.fp
 	baseIP := vm.ip
+	baseSP := vm.sp
 
 	// Check that the argument count is appropriate
 	paramsCount := len(fn.Parameters())
@@ -761,7 +765,7 @@ func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function,
 	vm.activeFrame.returnAddr = StopSignal
 
 	// Restore the previous frame when done
-	defer vm.activateFrame(baseFP, baseIP)
+	defer vm.resumeFrame(baseFP, baseIP, baseSP)
 
 	// Evaluate the function code then return the result from TOS
 	if err := vm.eval(ctx); err != nil {
@@ -802,10 +806,23 @@ func (vm *VirtualMachine) reload(main *compiler.Code) *code {
 	return newWrappedMain
 }
 
-// Activate the frame at the given frame pointer and instruction pointer.
-// This is typically used to resume execution of a previous frame, because
-// that frame's code is left as-is.
-func (vm *VirtualMachine) activateFrame(fp, ip int) *frame {
+// Resume the frame at the given frame pointer, restoring the given IP and SP.
+func (vm *VirtualMachine) resumeFrame(fp, ip, sp int) *frame {
+	// The return value of the previous frame is on the top of the stack
+	var frameResult object.Object = nil
+	if vm.sp > sp {
+		frameResult = vm.pop()
+	}
+	// Remove any items left on the stack by the previous frame
+	for i := vm.sp; i > sp; i-- {
+		vm.stack[i] = nil
+	}
+	vm.sp = sp
+	// Push the frame result back onto the stack
+	if frameResult != nil {
+		vm.push(frameResult)
+	}
+	// Activate the resumed frame
 	vm.fp = fp
 	vm.ip = ip
 	vm.activeFrame = &vm.frames[fp]
@@ -828,10 +845,11 @@ func (vm *VirtualMachine) activateCode(fp, ip int, code *code) *frame {
 func (vm *VirtualMachine) activateFunction(fp, ip int, fn *object.Function, locals []object.Object) *frame {
 	code := vm.load(fn.Code())
 	returnAddr := vm.ip
+	returnSp := vm.sp
 	vm.fp = fp
 	vm.ip = ip
 	vm.activeFrame = &vm.frames[fp]
-	vm.activeFrame.ActivateFunction(fn, code, returnAddr, locals)
+	vm.activeFrame.ActivateFunction(fn, code, returnAddr, returnSp, locals)
 	vm.activeCode = code
 	return vm.activeFrame
 }
