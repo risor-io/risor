@@ -38,6 +38,11 @@ cover:
 	go test -coverprofile cover.out ./...
 	go tool cover -html=cover.out
 
+.PHONY: format
+format:
+	@echo goimports -d -w '**/*.go'
+	@goimports -d -w $(shell find . -name '*.go')
+
 .PHONY: test-s3fs
 test-s3fs:
 	cd ./os/s3fs && go test -tags awstests .
