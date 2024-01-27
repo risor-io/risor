@@ -1639,6 +1639,36 @@ func TestModifyModule(t *testing.T) {
 	require.Equal(t, "attribute error: cannot modify module attributes", err.Error())
 }
 
+func TestEarlyForRangeReturn(t *testing.T) {
+	code := `
+func operation(c) {
+	for range [1, 2, 3] {
+		return "result"
+	}
+}
+func main() {
+	items := ['ab', 'cd']
+	results := []
+	for _, item := range items {
+		value := operation(item)
+		results.append(value)
+	}
+	return results
+}
+main()
+`
+	ctx := context.Background()
+	vm, err := newVM(ctx, code)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	value, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("result"),
+		object.NewString("result"),
+	}), value)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()

@@ -8,6 +8,7 @@ const DefaultFrameLocals = 8
 
 type frame struct {
 	returnAddr     int
+	returnSp       int
 	localsCount    uint16
 	fn             *object.Function
 	code           *code
@@ -38,12 +39,13 @@ func (f *frame) ActivateCode(code *code) {
 	}
 }
 
-func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr int, localValues []object.Object) {
+func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr, returnSp int, localValues []object.Object) {
 	// Activate the function's code
 	f.ActivateCode(code)
 	f.fn = fn
-	// Save the instruction pointer of the caller
+	// Save the instruction and stack pointers of the caller
 	f.returnAddr = returnAddr
+	f.returnSp = returnSp
 	// Initialize any local variables that were provided
 	for i := 0; i < len(localValues); i++ {
 		f.locals[i] = localValues[i]
