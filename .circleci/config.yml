@@ -56,17 +56,17 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - goimports
+            - gofumpt
       - run:
-          name: Install goimports
+          name: Install gofumpt
           command: |
-            go install golang.org/x/tools/cmd/goimports@latest
+            go install mvdan.cc/gofumpt@latest
       - save_cache:
-          key: goimports
+          key: gofumpt
           paths:
             - /home/circleci/go/pkg/mod
       - run:
-          name: Run goimports
+          name: Run gofumpt
           command: |
             make format
             git -c color.ui=always diff --exit-code --stat

@@ -40,8 +40,7 @@ cover:
 
 .PHONY: format
 format:
-	@echo goimports -d -w '**/*.go'
-	@goimports -d -w $(shell find . -name '*.go' -not -name '*_gen.go')
+	gofumpt -l -w .
 
 .PHONY: test-s3fs
 test-s3fs:
