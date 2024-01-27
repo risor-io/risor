@@ -114,7 +114,6 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 }
 
 func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
-
 	// Translate any panic into an error so the caller has a good guarantee
 	defer func() {
 		if r := recover(); r != nil {
@@ -199,7 +198,6 @@ func (vm *VirtualMachine) GlobalNames() []string {
 // Assuming this function returns without error, the result of the evaluation
 // will be on the top of the stack.
 func (vm *VirtualMachine) eval(ctx context.Context) error {
-
 	// Run to the end of the active code
 	for vm.ip < len(vm.activeCode.Instructions) {
 
@@ -902,7 +900,6 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {
-
 	// Number of parameters in the function signature
 	paramsCount := len(fn.Parameters())
 

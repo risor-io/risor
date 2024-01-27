@@ -12,9 +12,7 @@ import (
 	"github.com/risor-io/risor/limits"
 )
 
-var (
-	_ OS = (*VirtualOS)(nil)
-)
+var _ OS = (*VirtualOS)(nil)
 
 type ExitHandler func(int)
 
@@ -260,7 +258,7 @@ func (osObj *VirtualOS) MkdirTemp(dir, pattern string) (string, error) {
 	}
 	rint := rand.Int63()
 	dirName := fmt.Sprintf("%d-%s", rint, pattern)
-	if err := mount.Source.Mkdir(dirName, 0755); err != nil {
+	if err := mount.Source.Mkdir(dirName, 0o755); err != nil {
 		return "", err
 	}
 	return filepath.Join(osObj.tmp, dirName), nil

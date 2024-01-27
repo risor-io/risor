@@ -14,7 +14,6 @@ import (
 
 // Importer is an interface used to import Risor code modules
 type Importer interface {
-
 	// Import a module by name
 	Import(ctx context.Context, name string) (*object.Module, error)
 }
@@ -29,7 +28,6 @@ type LocalImporter struct {
 // LocalImporterOptions configure an Importer that can read from the local
 // filesystem.
 type LocalImporterOptions struct {
-
 	// Global names that should be available when the module is compiled.
 	GlobalNames []string
 

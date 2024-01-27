@@ -329,7 +329,6 @@ func AsObjects(m map[string]any) (map[string]Object, error) {
 // TypeConverter is an interface used to convert between Go and Risor objects
 // for a single Go type.
 type TypeConverter interface {
-
 	// To converts to a Go object from a Risor object.
 	To(Object) (interface{}, error)
 

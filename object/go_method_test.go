@@ -14,7 +14,6 @@ func (f *fooStruct) Inc(x int) error {
 }
 
 func TestGoMethod(t *testing.T) {
-
 	f := &fooStruct{}
 	typ := reflect.TypeOf(f)
 

@@ -70,7 +70,6 @@ func runInDir(dir string, options Options) error {
 			!strings.HasSuffix(fi.Name(), "_example.go") &&
 			!ignoreRegex.MatchString(fi.Name())
 	}, parser.ParseComments|parser.DeclarationErrors)
-
 	if err != nil {
 		return err
 	}

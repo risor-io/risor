@@ -43,7 +43,6 @@ var (
 )
 
 func init() {
-
 	cobra.OnInitialize(initConfig)
 	viper.SetEnvPrefix("risor")
 
@@ -186,7 +185,6 @@ var rootCmd = &cobra.Command{
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
-
 		ctx := context.Background()
 		var passedargs []string
 

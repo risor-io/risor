@@ -7,7 +7,6 @@ import (
 )
 
 func TestSliceIter(t *testing.T) {
-
 	iter, err := NewSliceIter([]int{5, 6})
 	require.Nil(t, err)
 
@@ -42,7 +41,6 @@ func TestSliceIter(t *testing.T) {
 }
 
 func TestSliceIterStrings(t *testing.T) {
-
 	iter, err := NewSliceIter([]string{"apple", "banana"})
 	require.Nil(t, err)
 

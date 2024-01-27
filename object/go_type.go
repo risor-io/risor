@@ -158,7 +158,6 @@ func (t *GoType) MarshalJSON() ([]byte, error) {
 // newGoType creates and registers a new GoType for the type of the given object.
 // This is NOT threadsafe. The caller must be holding goTypeMutex.
 func newGoType(typ reflect.Type) (*GoType, error) {
-
 	// Return the existing type if it's already registered
 	if goType, ok := goTypeRegistry[typ]; ok {
 		return goType, nil

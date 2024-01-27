@@ -133,7 +133,6 @@ type FunctionOpts struct {
 }
 
 func NewFunction(fn *compiler.Function) *Function {
-
 	// Parameter defaults
 	var defaults []Object
 	var defaultsCount int

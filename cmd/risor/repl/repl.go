@@ -25,7 +25,6 @@ const (
 )
 
 func Run(ctx context.Context, options []risor.Option) error {
-
 	color.New(color.Bold).Println("Risor")
 	fmt.Println("")
 	fmt.Printf(">>> ")
@@ -49,7 +48,7 @@ func Run(ctx context.Context, options []risor.Option) error {
 
 	appendToHistory := func(line string) {
 		if historyPath != "" {
-			f, err := os.OpenFile(historyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err := os.OpenFile(historyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				return
 			}
@@ -170,12 +169,10 @@ func Run(ctx context.Context, options []risor.Option) error {
 }
 
 func getEvaluator(cfg *risor.Config) func(ctx context.Context, source string) (object.Object, error) {
-
 	var c *compiler.Compiler
 	var v *vm.VirtualMachine
 
 	return func(ctx context.Context, source string) (object.Object, error) {
-
 		if c == nil {
 			var err error
 			c, err = compiler.New(cfg.CompilerOpts()...)

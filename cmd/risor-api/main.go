@@ -33,7 +33,6 @@ func main() {
 }
 
 func executeHandler(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

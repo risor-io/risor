@@ -47,7 +47,6 @@ func WithFile(file string) Option {
 
 // Parser object
 type Parser struct {
-
 	// the Context supplied in the Parse() call
 	ctx context.Context
 
@@ -89,7 +88,6 @@ type Parser struct {
 
 // New returns a Parser for the program provided by the given Lexer.
 func New(l *lexer.Lexer, options ...Option) *Parser {
-
 	// Create the parser and apply any provided options
 	p := &Parser{
 		l:               l,
@@ -748,7 +746,6 @@ func (p *Parser) parseFromImport() ast.Node {
 		alias = ast.NewIdent(p.curToken)
 	}
 	return ast.NewFromImport(fromToken, parentModule, moduleName, alias)
-
 }
 
 func (p *Parser) parseBoolean() ast.Node {

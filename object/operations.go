@@ -9,7 +9,6 @@ import (
 // Compare two objects using the given comparison operator. An Error object is
 // returned if either of the objects is not comparable.
 func Compare(opType op.CompareOpType, a, b Object) Object {
-
 	switch opType {
 	case op.Equal:
 		return a.Equals(b)

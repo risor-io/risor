@@ -282,8 +282,8 @@ func TestString(t *testing.T) {
 			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
 		}
 	}
-
 }
+
 func TestSimpleComment(t *testing.T) {
 	input := `=+// This is a comment
 // This is still a comment

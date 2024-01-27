@@ -23,7 +23,6 @@ const (
 // Compiler is used to compile Risor AST into its corresponding bytecode.
 // This implements the ICompiler interface.
 type Compiler struct {
-
 	// The entrypoint code we are compiling. This remains fixed throughout
 	// the compilation process.
 	main *Code
@@ -680,7 +679,6 @@ func (c *Compiler) compileTernary(node *ast.Ternary) error {
 }
 
 func (c *Compiler) compileString(node *ast.String) error {
-
 	// Is the string a template or a simple string?
 	tmpl := node.Template()
 
@@ -955,7 +953,6 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 }
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
-
 	// Python cell variables:
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
@@ -1207,7 +1204,6 @@ func (c *Compiler) compileSetAttr(node *ast.SetAttr) error {
 }
 
 func (c *Compiler) compileForRange(forNode *ast.For, names []string, container ast.Node) error {
-
 	if err := c.compile(container); err != nil {
 		return err
 	}
@@ -1323,7 +1319,6 @@ func (c *Compiler) compileForCondition(forNode *ast.For, condition ast.Expressio
 }
 
 func (c *Compiler) compileFor(node *ast.For) error {
-
 	// Simple loop e.g. `for { ... }`
 	if node.IsSimpleLoop() {
 		return c.compileSimpleFor(node)

@@ -8,9 +8,7 @@ import (
 	"github.com/risor-io/risor/limits"
 )
 
-var (
-	_ OS = (*SimpleOS)(nil)
-)
+var _ OS = (*SimpleOS)(nil)
 
 type SimpleOS struct {
 	ctx    context.Context

@@ -13,7 +13,6 @@ import (
 const NoLimit = -1
 
 type Limits interface {
-
 	// IOTimeout returns the maximum amount of time to wait for IO operations.
 	IOTimeout() time.Duration
 

@@ -47,14 +47,14 @@ func TestLocalFilesystemStat(t *testing.T) {
 	fs, err := New(ctx, WithBase(tmp))
 	require.Nil(t, err)
 
-	require.Nil(t, fs.WriteFile("stat.txt", []byte("hmm"), 0644))
+	require.Nil(t, fs.WriteFile("stat.txt", []byte("hmm"), 0o644))
 
 	stat, err := fs.Stat("stat.txt")
 	require.Nil(t, err)
 
 	require.Equal(t, "stat.txt", stat.Name())
 	require.Equal(t, int64(3), stat.Size())
-	require.Equal(t, os.FileMode(0644), stat.Mode())
+	require.Equal(t, os.FileMode(0o644), stat.Mode())
 	require.Equal(t, false, stat.IsDir())
 
 	require.Nil(t, fs.Remove("stat.txt"))
@@ -74,7 +74,7 @@ func TestLocalFilesystemRelativePaths(t *testing.T) {
 	lfs, err := New(ctx, WithBase(tmp))
 	require.Nil(t, err)
 
-	require.Nil(t, lfs.MkdirAll("foo/bar", 0755))
+	require.Nil(t, lfs.MkdirAll("foo/bar", 0o755))
 
 	f, err := lfs.Create("/foo/bar/test.txt")
 	require.Nil(t, err)

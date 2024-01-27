@@ -7,7 +7,6 @@ import "github.com/risor-io/risor/token"
 // the token that begins the node. A Node may be an Expression, in which case
 // it evaluates to a value.
 type Node interface {
-
 	// Token returns the token where this Node begins.
 	Token() token.Token
 

@@ -347,7 +347,7 @@ func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 	for _, obj := range result.CommonPrefixes {
 		entries = append(entries, ros.NewDirEntry(ros.GenericDirEntryOpts{
 			Name: strings.TrimSuffix(strings.TrimPrefix(*obj.Prefix, name), "/"),
-			Mode: ros.FileMode(0660) | os.ModeDir | 0110,
+			Mode: ros.FileMode(0o660) | os.ModeDir | 0o110,
 		}))
 	}
 	for _, obj := range result.Contents {
@@ -358,10 +358,10 @@ func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 			mod = *obj.LastModified
 		}
 		size := obj.Size
-		mode := ros.FileMode(0660)
+		mode := ros.FileMode(0o660)
 		isDir := strings.HasSuffix(key, "/")
 		if isDir {
-			mode |= os.ModeDir | 0110
+			mode |= os.ModeDir | 0o110
 		}
 		entries = append(entries, ros.NewDirEntry(ros.GenericDirEntryOpts{
 			Name: keyName,
