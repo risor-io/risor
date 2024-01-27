@@ -29,7 +29,51 @@ jobs:
             gotestsum --junitfile /tmp/test-reports/unit-tests.xml
       - store_test_results:
           path: /tmp/test-reports
+
+  generate:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.21
+    resource_class: medium
+    steps:
+      - checkout
+      # No save_cache, as the "tests" job already does that.
+      - restore_cache:
+          keys:
+            - go-mod-v6-{{ checksum "go.sum" }}
+      - run:
+          name: Run generate
+          command: |
+            make generate
+            git -c color.ui=always diff --exit-code --stat
+
+  format:
+    working_directory: ~/repo
+    docker:
+      - image: cimg/go:1.21
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - goimports
+      - run:
+          name: Install goimports
+          command: |
+            go install golang.org/x/tools/cmd/goimports@latest
+      - save_cache:
+          key: goimports
+          paths:
+            - /home/circleci/go/pkg/mod
+      - run:
+          name: Run goimports
+          command: |
+            make format
+            git -c color.ui=always diff --exit-code --stat
+
 workflows:
   test:
     jobs:
       - test
+      - format
+      - generate
