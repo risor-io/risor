@@ -115,6 +115,21 @@ func (m *Module) parseFuncDecl(decl *ast.FuncDecl) error {
 
 	m.addImport(importRisorObject)
 	m.addImport("context")
+	return m.addExportedFunc(exported)
+}
+
+func (m *Module) addExportedFunc(exported ExportedFunc) error {
+	for _, f := range m.exportedFuncs {
+		if f.FuncGenName == exported.FuncGenName {
+			return fmt.Errorf("name collision: multiple functions with generated Go function name: %q", exported.FuncGenName)
+		}
+		if f.FuncName == exported.FuncName {
+			return fmt.Errorf("name collision: multiple generated functions to the same function")
+		}
+		if f.ExportedName == exported.ExportedName {
+			return fmt.Errorf("name collision: multiple generated functions to the same Risor function: %q", exported.ExportedName)
+		}
+	}
 	m.exportedFuncs = append(m.exportedFuncs, exported)
 	return nil
 }
