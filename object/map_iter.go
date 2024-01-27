@@ -28,9 +28,10 @@ func (iter *MapIter) String() string {
 }
 
 func (iter *MapIter) Interface() interface{} {
+	ctx := context.Background()
 	var entries []any
 	for {
-		entry, ok := iter.Next()
+		entry, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -57,7 +58,7 @@ func (iter *MapIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("map_iter.next", 0, len(args))
 				}
-				value, ok := iter.Next()
+				value, ok := iter.Next(ctx)
 				if !ok {
 					return Nil
 				}
@@ -90,7 +91,7 @@ func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for map_iter: %v", opType))
 }
 
-func (iter *MapIter) Next() (Object, bool) {
+func (iter *MapIter) Next(ctx context.Context) (Object, bool) {
 	keys := iter.keys
 	if iter.pos >= int64(len(keys)-1) {
 		iter.current = nil

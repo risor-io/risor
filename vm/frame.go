@@ -16,6 +16,7 @@ type frame struct {
 	locals         []object.Object
 	extendedLocals []object.Object
 	capturedLocals []object.Object
+	defers         []*object.Partial
 }
 
 func (f *frame) ActivateCode(code *code) {
@@ -24,6 +25,7 @@ func (f *frame) ActivateCode(code *code) {
 	f.returnAddr = 0
 	f.localsCount = uint16(code.LocalsCount())
 	f.capturedLocals = nil
+	f.defers = nil
 	for i := 0; i < DefaultFrameLocals; i++ {
 		f.storage[i] = nil
 	}
@@ -81,4 +83,8 @@ func (f *frame) Function() *object.Function {
 
 func (f *frame) Code() *code {
 	return f.code
+}
+
+func (f *frame) Defer(p *object.Partial) {
+	f.defers = append([]*object.Partial{p}, f.defers...)
 }

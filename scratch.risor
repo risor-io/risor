@@ -1,0 +1,5 @@
+c := chan(1)
+c <- 1
+<- c
+close(c)
+<- c

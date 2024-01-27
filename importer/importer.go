@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/object"
@@ -23,6 +24,7 @@ type LocalImporter struct {
 	codeCache   map[string]*compiler.Code
 	sourceDir   string
 	extensions  []string
+	mutex       sync.Mutex
 }
 
 // LocalImporterOptions configure an Importer that can read from the local
@@ -57,6 +59,8 @@ func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
 }
 
 func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
 	if code, ok := i.codeCache[name]; ok {
 		return object.NewModule(name, code), nil
 	}

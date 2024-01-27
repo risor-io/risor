@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/internal/spawn"
 	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
@@ -80,7 +81,7 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	for {
-		val, ok := iter.Next()
+		val, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -122,7 +123,7 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 	}
 	var items []object.Object
 	for {
-		val, ok := iter.Next()
+		val, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -164,7 +165,7 @@ func Map(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	for {
-		if _, ok := iter.Next(); !ok {
+		if _, ok := iter.Next(ctx); !ok {
 			break
 		}
 		entry, _ := iter.Entry()
@@ -411,7 +412,7 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 	case object.Iterable:
 		iter := arg.Iter()
 		for {
-			val, ok := iter.Next()
+			val, ok := iter.Next(ctx)
 			if !ok {
 				break
 			}
@@ -421,7 +422,7 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 		}
 	case object.Iterator:
 		for {
-			val, ok := arg.Next()
+			val, ok := arg.Next(ctx)
 			if !ok {
 				break
 			}
@@ -467,7 +468,7 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 	case object.Iterable:
 		iter := arg.Iter()
 		for {
-			val, ok := iter.Next()
+			val, ok := iter.Next(ctx)
 			if !ok {
 				break
 			}
@@ -477,7 +478,7 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 		}
 	case object.Iterator:
 		for {
-			val, ok := arg.Next()
+			val, ok := arg.Next(ctx)
 			if !ok {
 				break
 			}
@@ -611,18 +612,18 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Set:
 		return arg.List()
 	case object.Iterable:
-		return iterKeys(arg.Iter())
+		return iterKeys(ctx, arg.Iter())
 	case object.Iterator:
-		return iterKeys(arg)
+		return iterKeys(ctx, arg)
 	default:
 		return object.Errorf("type error: keys() unsupported argument (%s given)", arg.Type())
 	}
 }
 
-func iterKeys(iter object.Iterator) object.Object {
+func iterKeys(ctx context.Context, iter object.Iterator) object.Object {
 	var keys []object.Object
 	for {
-		if _, ok := iter.Next(); !ok {
+		if _, ok := iter.Next(ctx); !ok {
 			break
 		}
 		entry, _ := iter.Entry()
@@ -840,6 +841,116 @@ func Hash(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewByteSlice(h.Sum(nil))
 }
 
+func Spawn(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("spawn", 1, 64, args); err != nil {
+		return err
+	}
+	thread, err := spawn.Spawn(ctx, args[0], args[1:])
+	if err != nil {
+		return object.NewError(err)
+	}
+	return thread
+}
+
+func Chan(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("chan", 0, 1, args); err != nil {
+		return err
+	}
+	size := 0
+	if len(args) == 1 {
+		switch arg := args[0].(type) {
+		case *object.Int:
+			size = int(arg.Value())
+		default:
+			return object.Errorf("type error: chan() expected an int (%s given)", arg.Type())
+		}
+	}
+	return object.NewChan(size)
+}
+
+func Close(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("close", 1, args); err != nil {
+		return err
+	}
+	switch obj := args[0].(type) {
+	case *object.Chan:
+		if err := obj.Close(); err != nil {
+			return object.NewError(err)
+		}
+		return object.Nil
+	default:
+		return object.Errorf("type error: close() expected a chan (%s given)", obj.Type())
+	}
+}
+
+func Make(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("make", 1, 2, args); err != nil {
+		return err
+	}
+	typ := args[0]
+	size := 0
+	if len(args) == 2 {
+		switch arg := args[1].(type) {
+		case *object.Int:
+			size = int(arg.Value())
+		default:
+			return object.Errorf("type error: make() expected an int (%s given)", arg.Type())
+		}
+	}
+	if size < 0 {
+		return object.Errorf("value error: make() size must be >= 0 (%d given)", size)
+	}
+	if err := limits.TrackCost(ctx, size*8); err != nil {
+		return object.NewError(err)
+	}
+	switch typ := typ.(type) {
+	case *object.List:
+		return object.NewList(make([]object.Object, size))
+	case *object.Map:
+		return object.NewMap(make(map[string]object.Object, size))
+	case *object.Set:
+		return object.NewSetWithSize(size)
+	case *object.ByteSlice:
+		return object.NewByteSlice(make([]byte, size))
+	case *object.FloatSlice:
+		return object.NewFloatSlice(make([]float64, size))
+	case *object.String:
+		return object.NewString("")
+	case *object.Int:
+		return object.NewInt(0)
+	case *object.Byte:
+		return object.NewByte(0)
+	case *object.Float:
+		return object.NewFloat(0)
+	case *object.Builtin:
+		name := typ.Name()
+		switch name {
+		case "chan":
+			return object.NewChan(size)
+		case "buffer":
+			return object.NewBuffer(new(bytes.Buffer))
+		case "map":
+			return object.NewMap(make(map[string]object.Object, size))
+		case "list":
+			return object.NewList(make([]object.Object, 0, size))
+		case "set":
+			return object.NewSetWithSize(size)
+		case "int":
+			return object.NewInt(0)
+		case "float":
+			return object.NewFloat(0)
+		case "byte":
+			return object.NewByte(0)
+		case "string":
+			return object.NewString("")
+		default:
+			return object.Errorf("type error: make() unsupported type (%s given)", name)
+		}
+	default:
+		return object.Errorf("type error: make() expected a container type (%s given)", typ.Type())
+	}
+}
+
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"all":         object.NewBuiltin("all", All),
@@ -850,7 +961,9 @@ func Builtins() map[string]object.Object {
 		"byte_slice":  object.NewBuiltin("byte_slice", ByteSlice),
 		"byte":        object.NewBuiltin("byte", Byte),
 		"call":        object.NewBuiltin("call", Call),
+		"chan":        object.NewBuiltin("chan", Chan),
 		"chr":         object.NewBuiltin("chr", Chr),
+		"close":       object.NewBuiltin("close", Close),
 		"decode":      object.NewBuiltin("decode", Decode),
 		"delete":      object.NewBuiltin("delete", Delete),
 		"encode":      object.NewBuiltin("encode", Encode),
@@ -864,11 +977,13 @@ func Builtins() map[string]object.Object {
 		"keys":        object.NewBuiltin("keys", Keys),
 		"len":         object.NewBuiltin("len", Len),
 		"list":        object.NewBuiltin("list", List),
+		"make":        object.NewBuiltin("make", Make),
 		"map":         object.NewBuiltin("map", Map),
 		"ord":         object.NewBuiltin("ord", Ord),
 		"reversed":    object.NewBuiltin("reversed", Reversed),
 		"set":         object.NewBuiltin("set", Set),
 		"sorted":      object.NewBuiltin("sorted", Sorted),
+		"spawn":       object.NewBuiltin("spawn", Spawn),
 		"sprintf":     object.NewBuiltin("sprintf", Sprintf),
 		"string":      object.NewBuiltin("string", String),
 		"try":         object.NewBuiltin("try", Try),

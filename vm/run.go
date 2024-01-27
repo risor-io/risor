@@ -62,7 +62,7 @@ func newVM(ctx context.Context, source string, opts ...runOpts) (*VirtualMachine
 		Extensions:  []string{".risor", ".rsr"},
 		GlobalNames: globalNames,
 	})
-	return New(main, WithImporter(im), WithGlobals(globals)), nil
+	return New(main, WithImporter(im), WithGlobals(globals), WithConcurrency()), nil
 }
 
 func basicBuiltins() map[string]any {

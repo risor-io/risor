@@ -30,9 +30,10 @@ func (iter *SliceIter) String() string {
 }
 
 func (iter *SliceIter) Interface() interface{} {
+	ctx := context.Background()
 	var entries []any
 	for {
-		entry, ok := iter.Next()
+		entry, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -57,7 +58,7 @@ func (iter *SliceIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("slice_iter.next", 0, len(args))
 				}
-				value, ok := iter.Next()
+				value, ok := iter.Next(ctx)
 				if !ok {
 					return Nil
 				}
@@ -86,7 +87,7 @@ func (iter *SliceIter) IsTruthy() bool {
 	return iter.pos < iter.size
 }
 
-func (iter *SliceIter) Next() (Object, bool) {
+func (iter *SliceIter) Next(ctx context.Context) (Object, bool) {
 	if iter.pos >= iter.size-1 {
 		iter.current = nil
 		return nil, false

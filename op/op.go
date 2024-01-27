@@ -13,13 +13,16 @@ const (
 	BuildSet
 	BuildString
 	Call
+	CallDeferred
 	CompareOp
 	ContainsOp
 	Copy
+	Defer
 	DeleteSubscr
 	False
 	ForIter
 	GetIter
+	Go
 	Halt
 	Import
 	FromImport
@@ -44,7 +47,9 @@ const (
 	Print
 	PushNil
 	Range
+	Receive
 	ReturnValue
+	Send
 	Slice
 	StoreAttr
 	StoreFast
@@ -117,9 +122,11 @@ func init() {
 		{CompareOp, "COMPARE_OP", 1},
 		{ContainsOp, "CONTAINS_OP", 1},
 		{Copy, "COPY", 1},
+		{Defer, "DEFER", 0},
 		{DeleteSubscr, "DELETE_SUBSCR", 0},
 		{False, "FALSE", 0},
 		{GetIter, "GET_ITER", 0},
+		{Go, "GO", 0},
 		{Halt, "HALT", 0},
 		{Import, "IMPORT", 0},
 		{FromImport, "FROM_IMPORT", 2},

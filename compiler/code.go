@@ -28,6 +28,7 @@ type Code struct {
 	// Used during compilation only
 	loops      []*loop
 	pipeActive bool
+	deferCount int
 }
 
 func (c *Code) ID() string {
@@ -113,12 +114,26 @@ func (c *Code) Global(index int) *Symbol {
 	return c.symbols.Root().Symbol(uint16(index))
 }
 
+func (c *Code) GlobalNames() []string {
+	root := c.symbols.Root()
+	count := root.Count()
+	names := make([]string, count)
+	for i := uint16(0); i < count; i++ {
+		names[i] = root.Symbol(i).Name()
+	}
+	return names
+}
+
 func (c *Code) Root() *Code {
 	curr := c
 	for curr.parent != nil {
 		curr = curr.parent
 	}
 	return curr
+}
+
+func (c *Code) IsRoot() bool {
+	return c.parent == nil
 }
 
 func (c *Code) MarshalJSON() ([]byte, error) {

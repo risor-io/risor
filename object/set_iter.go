@@ -28,9 +28,10 @@ func (iter *SetIter) String() string {
 }
 
 func (iter *SetIter) Interface() interface{} {
+	ctx := context.Background()
 	var entries []any
 	for {
-		entry, ok := iter.Next()
+		entry, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -57,7 +58,7 @@ func (iter *SetIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("set_iter.next", 0, len(args))
 				}
-				value, ok := iter.Next()
+				value, ok := iter.Next(ctx)
 				if !ok {
 					return Nil
 				}
@@ -90,7 +91,7 @@ func (iter *SetIter) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for set_iter: %v", opType))
 }
 
-func (iter *SetIter) Next() (Object, bool) {
+func (iter *SetIter) Next(ctx context.Context) (Object, bool) {
 	hashKeys := iter.keys
 	if iter.pos >= int64(len(hashKeys)-1) {
 		iter.current = nil

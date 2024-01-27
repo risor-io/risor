@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/risor-io/risor/token"
@@ -146,9 +147,9 @@ func (c *Const) String() string {
 	return out.String()
 }
 
-// Control defines a return, break, or continue statement.
+// Branch defines a break or continue statement.
 type Control struct {
-	// "return", "break", or "continue"
+	// "break", or "continue"
 	token token.Token
 
 	// optional value, for return statements
@@ -183,6 +184,39 @@ func (c *Control) String() string {
 	return out.String()
 }
 
+// Return defines a return statement.
+type Return struct {
+	// "return"
+	token token.Token
+
+	// optional value
+	value Expression
+}
+
+// NewReturn creates a new Return node.
+func NewReturn(token token.Token, value Expression) *Return {
+	return &Return{token: token, value: value}
+}
+
+func (r *Return) StatementNode() {}
+
+func (r *Return) IsExpression() bool { return false }
+
+func (r *Return) Token() token.Token { return r.token }
+
+func (r *Return) Literal() string { return r.token.Literal }
+
+func (r *Return) Value() Expression { return r.value }
+
+func (r *Return) String() string {
+	var out bytes.Buffer
+	out.WriteString(r.Literal())
+	if r.value != nil {
+		out.WriteString(" " + r.value.Literal())
+	}
+	return out.String()
+}
+
 // Block is a node that holds a sequence of statements. This is used to
 // represent the body of a function, loop, or a conditional.
 type Block struct {
@@ -211,10 +245,8 @@ func (b *Block) EndsWithReturn() bool {
 		return false
 	}
 	last := b.statements[count-1]
-	if cntrl, ok := last.(*Control); ok {
-		return cntrl.IsReturn()
-	}
-	return false
+	_, isReturn := last.(*Return)
+	return isReturn
 }
 
 func (b *Block) String() string {
@@ -518,4 +550,82 @@ func (e *SetAttr) String() string {
 	out.WriteString(" = ")
 	out.WriteString(e.value.String())
 	return out.String()
+}
+
+// A Go statement node represents a go statement.
+type Go struct {
+	token token.Token
+	call  Expression
+}
+
+// NewGo creates a new Go statement node.
+func NewGo(token token.Token, call Expression) *Go {
+	return &Go{token: token, call: call}
+}
+
+func (g *Go) StatementNode() {}
+
+func (g *Go) IsExpression() bool { return false }
+
+func (g *Go) Token() token.Token { return g.token }
+
+func (g *Go) Literal() string { return g.token.Literal }
+
+func (g *Go) Call() Expression { return g.call }
+
+func (g *Go) String() string {
+	return fmt.Sprintf("go %s", g.call.String())
+}
+
+// A Defer statement node represents a defer statement.
+type Defer struct {
+	token token.Token
+	call  Expression
+}
+
+// NewDefer creates a new Defer node.
+func NewDefer(token token.Token, call Expression) *Defer {
+	return &Defer{token: token, call: call}
+}
+
+func (d *Defer) StatementNode() {}
+
+func (d *Defer) IsExpression() bool { return false }
+
+func (d *Defer) Token() token.Token { return d.token }
+
+func (d *Defer) Literal() string { return d.token.Literal }
+
+func (d *Defer) Call() Expression { return d.call }
+
+func (d *Defer) String() string {
+	return fmt.Sprintf("defer %s", d.call.String())
+}
+
+// A Send statement node represents a channel send operation.
+type Send struct {
+	token   token.Token
+	channel Expression
+	value   Expression
+}
+
+// NewSend creates a new Send node.
+func NewSend(token token.Token, channel, value Expression) *Send {
+	return &Send{token: token, channel: channel, value: value}
+}
+
+func (s *Send) StatementNode() {}
+
+func (s *Send) IsExpression() bool { return false }
+
+func (s *Send) Token() token.Token { return s.token }
+
+func (s *Send) Literal() string { return s.token.Literal }
+
+func (s *Send) Channel() Expression { return s.channel }
+
+func (s *Send) Value() Expression { return s.value }
+
+func (s *Send) String() string {
+	return fmt.Sprintf("%s <- %s", s.channel.String(), s.value.String())
 }

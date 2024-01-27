@@ -106,17 +106,19 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	// Register prefix-functions
 	p.registerPrefix(token.BACKTICK, p.parseString)
 	p.registerPrefix(token.BANG, p.parsePrefixExpr)
+	p.registerPrefix(token.DEFER, p.parseDefer)
 	p.registerPrefix(token.EOF, p.illegalToken)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.FLOAT, p.parseFloat)
 	p.registerPrefix(token.FOR, p.parseFor)
+	p.registerPrefix(token.FROM, p.parseFromImport)
 	p.registerPrefix(token.FSTRING, p.parseString)
 	p.registerPrefix(token.FUNC, p.parseFunc)
+	p.registerPrefix(token.GO, p.parseGo)
 	p.registerPrefix(token.IDENT, p.parseIdent)
 	p.registerPrefix(token.IF, p.parseIf)
 	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.IMPORT, p.parseImport)
-	p.registerPrefix(token.FROM, p.parseFromImport)
 	p.registerPrefix(token.INT, p.parseInt)
 	p.registerPrefix(token.LBRACE, p.parseMapOrSet)
 	p.registerPrefix(token.LBRACKET, p.parseList)
@@ -129,34 +131,36 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	p.registerPrefix(token.STRING, p.parseString)
 	p.registerPrefix(token.SWITCH, p.parseSwitch)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.SEND, p.parseReceive)
 
 	// Register infix functions
+	p.registerInfix(token.AND, p.parseInfixExpr)
 	p.registerInfix(token.ASSIGN, p.parseAssign)
 	p.registerInfix(token.ASTERISK_EQUALS, p.parseAssign)
-	p.registerInfix(token.MINUS_EQUALS, p.parseAssign)
-	p.registerInfix(token.PLUS_EQUALS, p.parseAssign)
-	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
-	p.registerInfix(token.IN, p.parseIn)
-	p.registerInfix(token.LBRACKET, p.parseIndex)
-	p.registerInfix(token.LPAREN, p.parseCall)
-	p.registerInfix(token.PERIOD, p.parseGetAttr)
-	p.registerInfix(token.PIPE, p.parsePipe)
-	p.registerInfix(token.QUESTION, p.parseTernary)
-	p.registerInfix(token.AND, p.parseInfixExpr)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpr)
 	p.registerInfix(token.EQ, p.parseInfixExpr)
 	p.registerInfix(token.GT_EQUALS, p.parseInfixExpr)
-	p.registerInfix(token.GT, p.parseInfixExpr)
 	p.registerInfix(token.GT_GT, p.parseInfixExpr)
+	p.registerInfix(token.GT, p.parseInfixExpr)
+	p.registerInfix(token.IN, p.parseIn)
+	p.registerInfix(token.LBRACKET, p.parseIndex)
+	p.registerInfix(token.LPAREN, p.parseCall)
 	p.registerInfix(token.LT_EQUALS, p.parseInfixExpr)
-	p.registerInfix(token.LT, p.parseInfixExpr)
 	p.registerInfix(token.LT_LT, p.parseInfixExpr)
+	p.registerInfix(token.LT, p.parseInfixExpr)
+	p.registerInfix(token.MINUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.MINUS, p.parseInfixExpr)
 	p.registerInfix(token.MOD, p.parseInfixExpr)
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpr)
 	p.registerInfix(token.OR, p.parseInfixExpr)
+	p.registerInfix(token.PERIOD, p.parseGetAttr)
+	p.registerInfix(token.PIPE, p.parsePipe)
+	p.registerInfix(token.PLUS_EQUALS, p.parseAssign)
 	p.registerInfix(token.PLUS, p.parseInfixExpr)
 	p.registerInfix(token.POW, p.parseInfixExpr)
+	p.registerInfix(token.QUESTION, p.parseTernary)
+	p.registerInfix(token.SEND, p.parseSend)
+	p.registerInfix(token.SLASH_EQUALS, p.parseAssign)
 	p.registerInfix(token.SLASH, p.parseInfixExpr)
 
 	// Register postfix functions
@@ -399,24 +403,24 @@ func (p *Parser) parseAssignmentValue() ast.Expression {
 	}
 }
 
-func (p *Parser) parseReturn() *ast.Control {
+func (p *Parser) parseReturn() *ast.Return {
 	returnToken := p.curToken
 	p.nextToken()
 	if p.curTokenIs(token.SEMICOLON) {
 		p.nextToken()
-		return ast.NewControl(returnToken, nil)
+		return ast.NewReturn(returnToken, nil)
 	}
 	if p.curTokenIs(token.NEWLINE) || p.curTokenIs(token.RBRACE) {
-		return ast.NewControl(returnToken, nil)
+		return ast.NewReturn(returnToken, nil)
 	}
 	value := p.parseExpression(LOWEST)
 	for {
 		switch p.peekToken.Type {
 		case token.SEMICOLON, token.NEWLINE, token.EOF:
 			p.nextToken()
-			return ast.NewControl(returnToken, value)
+			return ast.NewReturn(returnToken, value)
 		case token.RBRACE:
-			return ast.NewControl(returnToken, value)
+			return ast.NewReturn(returnToken, value)
 		default:
 			p.setError(NewParserError(ErrorOpts{
 				ErrType:       "parse error",
@@ -1009,6 +1013,56 @@ func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
 	return defaults, params
 }
 
+func (p *Parser) parseGo() ast.Node {
+	goToken := p.curToken
+	if err := p.nextToken(); err != nil {
+		return nil
+	}
+	if !p.curTokenIs(token.FUNC) && !p.curTokenIs(token.IDENT) {
+		p.setTokenError(p.curToken, "invalid go statement")
+		return nil
+	}
+	expr := p.parseExpression(PREFIX)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid go statement")
+		return nil
+	}
+	switch expr := expr.(type) {
+	case *ast.Call:
+		return ast.NewGo(goToken, expr)
+	case *ast.ObjectCall:
+		return ast.NewGo(goToken, expr)
+	default:
+		p.setTokenError(p.curToken, "invalid go statement")
+		return nil
+	}
+}
+
+func (p *Parser) parseDefer() ast.Node {
+	deferToken := p.curToken
+	if err := p.nextToken(); err != nil {
+		return nil
+	}
+	if !p.curTokenIs(token.FUNC) && !p.curTokenIs(token.IDENT) {
+		p.setTokenError(p.curToken, "invalid defer statement")
+		return nil
+	}
+	expr := p.parseExpression(PREFIX)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid defer statement")
+		return nil
+	}
+	switch expr := expr.(type) {
+	case *ast.Call:
+		return ast.NewDefer(deferToken, expr)
+	case *ast.ObjectCall:
+		return ast.NewDefer(deferToken, expr)
+	default:
+		p.setTokenError(p.curToken, "invalid defer statement")
+		return nil
+	}
+}
+
 func (p *Parser) parseString() ast.Node {
 	strToken := p.curToken
 	if strToken.Type == token.BACKTICK || strToken.Type == token.STRING {
@@ -1423,6 +1477,35 @@ func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
 		return ast.NewSetAttr(obj.Token(), obj, name, right)
 	}
 	return ast.NewGetAttr(period, obj, name)
+}
+
+func (p *Parser) parseSend(channel ast.Node) ast.Node {
+	chanExpr, ok := channel.(ast.Expression)
+	if !ok {
+		p.setTokenError(p.curToken, "invalid send statement channel")
+		return nil
+	}
+	operator := p.curToken
+	p.nextToken() // move to the RHS value
+	value := p.parseExpression(CALL)
+	if value == nil {
+		p.setTokenError(operator, "invalid send statement value")
+		return nil
+	}
+	return ast.NewSend(operator, chanExpr, value)
+}
+
+func (p *Parser) parseReceive() ast.Node {
+	sendToken := p.curToken
+	if err := p.nextToken(); err != nil {
+		return nil
+	}
+	expr := p.parseExpression(LOWEST)
+	if expr == nil {
+		p.setTokenError(p.curToken, "invalid receive statement")
+		return nil
+	}
+	return ast.NewReceive(sendToken, expr)
 }
 
 // curTokenIs returns true if the current token has the given type.

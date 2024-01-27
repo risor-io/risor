@@ -7,6 +7,8 @@ import (
 	"github.com/risor-io/risor/op"
 )
 
+var _ Callable = (*Builtin)(nil) // Ensure that *Builtin implements Callable
+
 // BuiltinFunction holds the type of a built-in function.
 type BuiltinFunction func(ctx context.Context, args ...Object) Object
 

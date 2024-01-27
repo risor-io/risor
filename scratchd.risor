@@ -1,0 +1,16 @@
+
+y := 99
+c := chan()
+
+func test(x) {
+    defer func() {
+        go c.send(x)
+    }()
+    return 42
+}
+
+result := test(5)
+
+print("result:", result)
+print("y:", y)
+print("c:", c.receive())

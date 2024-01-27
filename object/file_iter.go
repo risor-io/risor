@@ -30,9 +30,10 @@ func (iter *FileIter) String() string {
 }
 
 func (iter *FileIter) Interface() interface{} {
+	ctx := context.Background()
 	var entries []any
 	for {
-		entry, ok := iter.Next()
+		entry, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -57,7 +58,7 @@ func (iter *FileIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("file_iter.next", 0, len(args))
 				}
-				value, ok := iter.Next()
+				value, ok := iter.Next(ctx)
 				if !ok {
 					return Nil
 				}
@@ -90,7 +91,7 @@ func (iter *FileIter) RunOperation(opType op.BinaryOpType, right Object) Object 
 	return NewError(fmt.Errorf("eval error: unsupported operation for file_iter: %v", opType))
 }
 
-func (iter *FileIter) Next() (Object, bool) {
+func (iter *FileIter) Next(ctx context.Context) (Object, bool) {
 	if iter.done {
 		return nil, false
 	}

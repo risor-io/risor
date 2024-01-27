@@ -54,4 +54,5 @@ var precedences = map[token.Type]int{
 	token.LBRACKET:        INDEX,
 	token.IN:              PREFIX,
 	token.RANGE:           PREFIX,
+	token.SEND:            CALL,
 }

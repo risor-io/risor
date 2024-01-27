@@ -1524,7 +1524,7 @@ func TestCloneWithAnonymousFunc(t *testing.T) {
 	require.Equal(t, object.NewInt(3), value)
 
 	// Call the "inc" function in the clone and confirm it increments x to 4
-	// in the clone but not the original VM
+	// in both the clone and the original VM
 	_, err = clone.Call(ctx, incFunc, nil)
 	require.Nil(t, err)
 
@@ -1533,24 +1533,10 @@ func TestCloneWithAnonymousFunc(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(4), value)
 
-	// Original's x is still 3
+	// Original's x is now 4
 	value, err = machine.Get("x")
 	require.Nil(t, err)
-	require.Equal(t, object.NewInt(3), value)
-
-	// Repeat again for good measure
-	_, err = clone.Call(ctx, incFunc, nil)
-	require.Nil(t, err)
-
-	// Clone's x is now 5
-	value, err = clone.Get("x")
-	require.Nil(t, err)
-	require.Equal(t, object.NewInt(5), value)
-
-	// Original's x is still 3
-	value, err = machine.Get("x")
-	require.Nil(t, err)
-	require.Equal(t, object.NewInt(3), value)
+	require.Equal(t, object.NewInt(4), value)
 }
 
 func TestIncrementalEvaluation(t *testing.T) {
@@ -1666,6 +1652,143 @@ main()
 		object.NewString("result"),
 		object.NewString("result"),
 	}), value)
+}
+
+func TestDeferStatementGlobalClosure(t *testing.T) {
+	code := `
+	x := 0
+	func foo(value) {
+		defer func() {
+			x = value
+		}()
+	}
+	foo(4)
+	x
+	`
+	ctx := context.Background()
+	vm, err := newVM(ctx, code)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	value, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(4), value)
+}
+
+func TestDeferStatementOrdering(t *testing.T) {
+	code := `
+	l := []
+	func foo(value) {
+		defer l.append(value+1) // 3
+		defer l.append(value)   // 2
+		l.append(1)             // 1
+	}
+	foo(2)
+	l
+	`
+	ctx := context.Background()
+	vm, err := newVM(ctx, code)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	value, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), value)
+}
+
+func TestDeferStatementAnon(t *testing.T) {
+	code := `
+	func() {
+		x := 42
+		defer func() { x = 1 }()
+		defer func() { x = 2 }()
+		return x
+	}()
+	`
+	ctx := context.Background()
+	vm, err := newVM(ctx, code)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	value, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewInt(42), value)
+}
+
+func TestDeferStatementBuiltin(t *testing.T) {
+	code := `
+	m := {one: 1, two: 2}
+	func test() {
+		func() {
+			m["three"] = 3
+			defer delete(m, "one")
+		}()
+	}
+	test()
+	m
+	`
+	ctx := context.Background()
+	vm, err := newVM(ctx, code)
+	require.Nil(t, err)
+	require.Nil(t, vm.Run(ctx))
+	value, ok := vm.TOS()
+	require.True(t, ok)
+	require.Equal(t, object.NewMap(map[string]object.Object{
+		"two":   object.NewInt(2),
+		"three": object.NewInt(3),
+	}), value)
+}
+
+func TestChannels(t *testing.T) {
+	tests := []testCase{
+		{`c := chan(1); c <- 1; <-c`, object.NewInt(1)},
+		{`c := chan(2); c <- 1; c <- 2; [<-c, <-c]`, object.NewList([]object.Object{
+			object.NewInt(1), object.NewInt(2)})},
+		{`c := chan(1); c <- 1; close(c); <-c`, object.NewInt(1)},
+		{`c := chan(); close(c); <-c`, object.Nil},
+		{`c := chan(1); c <- "ok"; close(c); [<-c, <-c]`, object.NewList([]object.Object{
+			object.NewString("ok"), object.Nil})},
+	}
+	runTests(t, tests)
+}
+
+func TestChannelErrors(t *testing.T) {
+	ctx := context.Background()
+	type testCase struct {
+		input     string
+		expectErr string
+	}
+	tests := []testCase{
+		{`c := chan(1); close(c); c <- 1`, "exec error: send on closed channel"},
+		{`c := chan(1); close(c); close(c)`, "exec error: close of closed channel"},
+		{`c := chan(1); c <- 1; close(c); c <- 2`, "exec error: send on closed channel"},
+	}
+	for _, tt := range tests {
+		_, err := run(ctx, tt.input)
+		require.NotNil(t, err)
+		require.Equal(t, tt.expectErr, err.Error())
+	}
+}
+
+func TestGoStatement(t *testing.T) {
+	tests := []testCase{
+		{`go func() { 1 }()`, object.Nil},
+		{`x := 0; go func() { x = 1 }(); time.sleep(0.1); x`, object.NewInt(1)},
+		{`x := 0; go func() { x = 1 }(); x`, object.NewInt(0)},
+		{`c := chan(1); go func() { c <- 1 }(); <-c`, object.NewInt(1)},
+	}
+	runTests(t, tests)
+}
+
+func TestSpawn(t *testing.T) {
+	tests := []testCase{
+		{`func test(x) { return x + 1 }; spawn(test, 33).wait()`, object.NewInt(34)},
+		{`spawn(func(x=10) { x }).wait()`, object.NewInt(10)},
+		{`x := 0; spawn(func() { x = 34 }).wait(); x`, object.NewInt(34)},
+		{`l := []; spawn(func() { l.append(1) }).wait(); l`, object.NewList([]object.Object{object.NewInt(1)})},
+	}
+	runTests(t, tests)
 }
 
 func TestContextDone(t *testing.T) {
