@@ -138,6 +138,47 @@ func TestWithoutDefaultGlobal(t *testing.T) {
 	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
 }
 
+func TestWithVirtualOSStdinBuffer(t *testing.T) {
+
+	ctx := context.Background()
+	stdinBuf := ros.NewBufferFile([]byte("hello"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "os.stdin.read()")
+	require.Nil(t, err)
+	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
+}
+
+func TestWithVirtualOSStdoutBuffer(t *testing.T) {
+
+	ctx := context.Background()
+	stdoutBuf := ros.NewBufferFile(nil)
+	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "os.stdout.write('foo')")
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(int64(len("foo"))), result)
+
+	require.Equal(t, "foo", string(stdoutBuf.Bytes()))
+}
+
+func TestStdinListBuffer(t *testing.T) {
+
+	ctx := context.Background()
+	stdinBuf := ros.NewBufferFile([]byte("foo\nbar!"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "list(os.stdin)")
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("foo"),
+		object.NewString("bar!"),
+	}), result)
+}
+
 func TestWithVirtualOSStdin(t *testing.T) {
 
 	ctx := context.Background()
@@ -161,6 +202,7 @@ func TestWithVirtualOSStdout(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(int64(len("foo"))), result)
 
+	stdoutBuf.Rewind()
 	require.Equal(t, "foo", string(stdoutBuf.Bytes()))
 }
 
