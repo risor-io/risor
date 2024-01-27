@@ -48,7 +48,7 @@ func HasPrefix(ctx context.Context, args ...object.Object) object.Object {
 // that implements [object.BuiltinFunction].
 func HasSuffix(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return object.NewArgsError("strings.has_prefix", 2, len(args))
+		return object.NewArgsError("strings.has_suffix", 2, len(args))
 	}
 	sParam, err := object.AsString(args[0])
 	if err != nil {
@@ -333,7 +333,7 @@ func TrimSpace(ctx context.Context, args ...object.Object) object.Object {
 func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.Object {
 	builtins["contains"] = object.NewBuiltin("strings.contains", Contains)
 	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", HasPrefix)
-	builtins["has_prefix"] = object.NewBuiltin("strings.has_prefix", HasSuffix)
+	builtins["has_suffix"] = object.NewBuiltin("strings.has_suffix", HasSuffix)
 	builtins["count"] = object.NewBuiltin("strings.count", Count)
 	builtins["compare"] = object.NewBuiltin("strings.compare", Compare)
 	builtins["repeat"] = object.NewBuiltin("strings.repeat", Repeat)

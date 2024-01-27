@@ -16,7 +16,7 @@ func hasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
 }
 
-//risor:export has_prefix
+//risor:export has_suffix
 func hasSuffix(s, suffix string) bool {
 	return strings.HasSuffix(s, suffix)
 }
