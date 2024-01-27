@@ -3,25 +3,28 @@ package json
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 )
 
-//risor:generate no-module-func
-
-//risor:export
-func unmarshal(data []byte) (object.Object, error) {
+func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("json.unmarshal", 1, args); err != nil {
+		return err
+	}
+	data, err := object.AsBytes(args[0])
+	if err != nil {
+		return err
+	}
 	var obj interface{}
 	if err := json.Unmarshal(data, &obj); err != nil {
-		return nil, fmt.Errorf("value error: json.unmarshal failed with: %w", err)
+		return object.Errorf("value error: json.unmarshal failed with: %s", err.Error())
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
-		return nil, fmt.Errorf("type error: json.unmarshal failed")
+		return object.Errorf("type error: json.unmarshal failed")
 	}
-	return scriptObj, nil
+	return scriptObj
 }
 
 func Marshal(ctx context.Context, args ...object.Object) object.Object {
@@ -46,13 +49,21 @@ func Marshal(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(string(b))
 }
 
-//risor:export
-func valid(data []byte) bool {
-	return json.Valid(data)
+func Valid(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("json.valid", 1, args); err != nil {
+		return err
+	}
+	data, err := object.AsBytes(args[0])
+	if err != nil {
+		return err
+	}
+	return object.NewBool(json.Valid(data))
 }
 
 func Module() *object.Module {
-	return object.NewBuiltinsModule("json", addGeneratedBuiltins(map[string]object.Object{
-		"marshal": object.NewBuiltin("marshal", Marshal),
-	}))
+	return object.NewBuiltinsModule("json", map[string]object.Object{
+		"unmarshal": object.NewBuiltin("unmarshal", Unmarshal),
+		"marshal":   object.NewBuiltin("marshal", Marshal),
+		"valid":     object.NewBuiltin("valid", Valid),
+	})
 }

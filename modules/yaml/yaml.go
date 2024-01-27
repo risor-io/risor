@@ -1,16 +1,21 @@
 package yaml
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"gopkg.in/yaml.v3"
 )
 
-//risor:generate
-
-//risor:export
-func unmarshal(data []byte) object.Object {
+func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("yaml.unmarshal", 1, args); err != nil {
+		return err
+	}
+	data, err := object.AsBytes(args[0])
+	if err != nil {
+		return err
+	}
 	var obj interface{}
 	if err := yaml.Unmarshal(data, &obj); err != nil {
 		return object.Errorf("value error: yaml.unmarshal failed with: %s", err.Error())
@@ -22,17 +27,33 @@ func unmarshal(data []byte) object.Object {
 	return scriptObj
 }
 
-//risor:export
-func marshal(value object.Object) (string, error) {
-	b, err := yaml.Marshal(value.Interface())
-	if err != nil {
-		return "", fmt.Errorf("value error: yaml.marshal failed: %w", err)
+func Marshal(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("yaml.marshal", 1, args); err != nil {
+		return err
 	}
-	return string(b), nil
+	b, err := yaml.Marshal(args[0].Interface())
+	if err != nil {
+		return object.Errorf("value error: yaml.marshal failed: %s", object.NewError(err))
+	}
+	return object.NewString(string(b))
 }
 
-//risor:export
-func valid(data []byte) bool {
+func Valid(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("yaml.valid", 1, args); err != nil {
+		return err
+	}
+	data, err := object.AsBytes(args[0])
+	if err != nil {
+		return err
+	}
 	var v any
-	return yaml.Unmarshal(data, &v) == nil
+	return object.NewBool(yaml.Unmarshal(data, &v) == nil)
+}
+
+func Module() *object.Module {
+	return object.NewBuiltinsModule("yaml", map[string]object.Object{
+		"unmarshal": object.NewBuiltin("unmarshal", Unmarshal),
+		"marshal":   object.NewBuiltin("marshal", Marshal),
+		"valid":     object.NewBuiltin("valid", Valid),
+	})
 }
