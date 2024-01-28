@@ -9,7 +9,6 @@ import (
 
 // Test looking up values succeeds, then fails
 func TestLookup(t *testing.T) {
-
 	for key, val := range keywords {
 
 		// Obviously this will pass.

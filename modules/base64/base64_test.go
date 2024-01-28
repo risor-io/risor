@@ -108,7 +108,6 @@ func TestBase64DecodeRaw(t *testing.T) {
 }
 
 func TestBase64URLEncoded(t *testing.T) {
-
 	input := object.NewByteSlice([]byte{251})
 
 	got := URLEncode(context.Background(), input)

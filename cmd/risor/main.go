@@ -16,7 +16,6 @@ var (
 )
 
 func main() {
-
 	cmdServe := &cobra.Command{
 		Use:   "serve",
 		Short: "Run the Risor API server",

@@ -111,7 +111,6 @@ func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
 }
 
 func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Object {
-
 	// The arguments should include a query string and zero or more query args
 	if len(args) < 1 {
 		return object.Errorf("type error: pgx.conn.query() one or more arguments (%d given)", len(args))

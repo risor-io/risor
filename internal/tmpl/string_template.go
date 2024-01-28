@@ -45,7 +45,6 @@ func (t *Template) Fragments() []*Fragment {
 // Parse parses a string into a Template struct. The string may contain 0-N
 // expressions in the form ${expression}.
 func Parse(s string) (*Template, error) {
-
 	runes := []rune(s)
 
 	getChar := func(index int) rune {

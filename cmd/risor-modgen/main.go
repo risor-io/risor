@@ -73,7 +73,6 @@ func runInDir(dir string, options Options) error {
 			!strings.HasSuffix(fi.Name(), "_example.go") &&
 			!ignoreRegex.MatchString(fi.Name())
 	}, parser.ParseComments|parser.DeclarationErrors)
-
 	if err != nil {
 		return err
 	}
@@ -163,7 +162,7 @@ func (m *Module) WriteFile(path string, options Options) (bool, int, error) {
 
 func writeFileCheckChanged(path string, b []byte) (bool, int, error) {
 	// Don't truncate on open, because we also want to read the file
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o666)
 	if err != nil {
 		return false, 0, err
 	}

@@ -70,7 +70,7 @@ func main() {
 		dstPath := filepath.Join(siteRepoPath, "pages", "docs", "modules",
 			fmt.Sprintf("%s.mdx", name))
 
-		err = os.WriteFile(dstPath, []byte(text), 0644)
+		err = os.WriteFile(dstPath, []byte(text), 0o644)
 		if err != nil {
 			fmt.Printf("error writing %s: %s\n", dstPath, err)
 			os.Exit(1)
@@ -79,7 +79,7 @@ func main() {
 
 	metaJSON := genMeta(modNames)
 	dstPath := filepath.Join(siteRepoPath, "pages", "docs", "modules", "_meta.json")
-	err = os.WriteFile(dstPath, metaJSON, 0644)
+	err = os.WriteFile(dstPath, metaJSON, 0o644)
 	if err != nil {
 		fmt.Printf("error writing %s: %s\n", dstPath, err)
 		os.Exit(1)

@@ -14,7 +14,6 @@ import (
 )
 
 func TestS3Filesystem(t *testing.T) {
-
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx,
@@ -48,7 +47,6 @@ func TestS3Filesystem(t *testing.T) {
 }
 
 func TestS3Mkdir(t *testing.T) {
-
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx,
@@ -66,12 +64,11 @@ func TestS3Mkdir(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	require.Nil(t, fs.Mkdir("bar", 0755))
-	require.Nil(t, fs.MkdirAll("1/2/3", 0755))
+	require.Nil(t, fs.Mkdir("bar", 0o755))
+	require.Nil(t, fs.MkdirAll("1/2/3", 0o755))
 }
 
 func TestS3WriteFileAndStat(t *testing.T) {
-
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx,
@@ -89,7 +86,7 @@ func TestS3WriteFileAndStat(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	require.Nil(t, fs.WriteFile("stat.txt", []byte("yup!"), 0644))
+	require.Nil(t, fs.WriteFile("stat.txt", []byte("yup!"), 0o644))
 
 	stat, err := fs.Stat("stat.txt")
 	require.Nil(t, err)

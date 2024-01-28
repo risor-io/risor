@@ -11,9 +11,7 @@ import (
 	"time"
 )
 
-var (
-	_ fs.FileInfo = (*GenericFileInfo)(nil)
-)
+var _ fs.FileInfo = (*GenericFileInfo)(nil)
 
 // Flags to OpenFile wrapping those of the underlying system. Not all
 // flags may be implemented on a given system.

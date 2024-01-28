@@ -77,7 +77,6 @@ var (
 
 // Object is the interface that all object types in Risor must implement.
 type Object interface {
-
 	// Type of the object.
 	Type() Type
 
@@ -164,14 +163,12 @@ type Container interface {
 
 // Callable is an interface that exposes a Call method.
 type Callable interface {
-
 	// Call invokes the callable with the given arguments and returns the result.
 	Call(ctx context.Context, args ...Object) Object
 }
 
 // Hashable types can be hashed and consequently used in a set.
 type Hashable interface {
-
 	// Hash returns a hash key for the given object.
 	HashKey() HashKey
 }

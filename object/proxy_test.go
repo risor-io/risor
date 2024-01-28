@@ -197,7 +197,6 @@ func TestProxyCall(t *testing.T) {
 }
 
 func TestProxySetGetAttr(t *testing.T) {
-
 	proxy, err := object.NewProxy(&proxyTestType2{})
 	require.Nil(t, err)
 
@@ -221,7 +220,6 @@ func TestProxySetGetAttr(t *testing.T) {
 	value, ok = proxy.GetAttr("A")
 	require.True(t, ok)
 	require.Equal(t, object.NewInt(-3), value)
-
 }
 
 func TestProxyOnStructValue(t *testing.T) {
@@ -234,7 +232,6 @@ func TestProxyOnStructValue(t *testing.T) {
 }
 
 func TestProxyBytesBuffer(t *testing.T) {
-
 	ctx := context.Background()
 	buf := bytes.NewBuffer([]byte("abc"))
 	var reader io.Reader = buf
@@ -270,7 +267,6 @@ func TestProxyBytesBuffer(t *testing.T) {
 }
 
 func TestProxyMethodError(t *testing.T) {
-
 	// Using the ReadByte method as an example, call it in a situation that will
 	// have it return an error, then confirm a Risor *Error is returned.
 

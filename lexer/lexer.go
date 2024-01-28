@@ -103,7 +103,6 @@ func (l *Lexer) Position() token.Position {
 
 // Next returns the next Token from the input that is being lexed.
 func (l *Lexer) Next() (token.Token, error) {
-
 	var tok token.Token
 	l.skipTabsAndSpaces()
 	l.tokenStartPosition = l.Position()
@@ -322,7 +321,6 @@ func (l *Lexer) Next() (token.Token, error) {
 // Advance one charaacter in the input string. Calling this when
 // we are already at the end of the input has no effect.
 func (l *Lexer) readChar() {
-
 	// Return if we are already at the end of the input. Note that
 	// when position == len(l.characters) the current character is
 	// considered to be EOF, so that position is considered valid.
@@ -620,7 +618,6 @@ func (l *Lexer) peekChar() rune {
 
 // GetLineText returns the text of the line containing the given token.
 func (l *Lexer) GetLineText(t token.Token) string {
-
 	if len(l.characters) == 0 {
 		return ""
 	}

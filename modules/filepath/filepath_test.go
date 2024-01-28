@@ -106,7 +106,6 @@ func TestSplitList(t *testing.T) {
 }
 
 func TestWalkDir(t *testing.T) {
-
 	callFunc := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 		require.FailNow(t, "callFunc should not be called")
 		return nil, nil

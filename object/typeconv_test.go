@@ -79,7 +79,6 @@ func TestMapStringInterfaceConverter(t *testing.T) {
 }
 
 func TestPointerConverter(t *testing.T) {
-
 	c, err := newPointerConverter(reflect.TypeOf(float64(0)))
 	require.Nil(t, err)
 
@@ -278,7 +277,6 @@ func (s *testService) GetState() *testState {
 }
 
 func TestNestedStructsConverter(t *testing.T) {
-
 	svc := &testService{
 		Name: "sauron",
 		State: testState{
@@ -326,7 +324,6 @@ func TestNestedStructsConverter(t *testing.T) {
 }
 
 func TestTimeConverter(t *testing.T) {
-
 	now := time.Now()
 	typ := reflect.TypeOf(now)
 
@@ -345,7 +342,6 @@ func TestTimeConverter(t *testing.T) {
 }
 
 func TestBufferConverter(t *testing.T) {
-
 	buf := bytes.NewBufferString("hello")
 	typ := reflect.TypeOf(buf)
 
@@ -364,7 +360,6 @@ func TestBufferConverter(t *testing.T) {
 }
 
 func TestByteSliceConverter(t *testing.T) {
-
 	buf := []byte("abc")
 	typ := reflect.TypeOf(buf)
 
@@ -383,7 +378,6 @@ func TestByteSliceConverter(t *testing.T) {
 }
 
 func TestArrayConverterInt(t *testing.T) {
-
 	arr := [4]int{2, 3, 4, 5}
 	c, err := NewTypeConverter(reflect.TypeOf(arr))
 	require.Nil(t, err)
@@ -409,7 +403,6 @@ func TestArrayConverterInt(t *testing.T) {
 }
 
 func TestArrayConverterFloat64(t *testing.T) {
-
 	arr := [2]float64{100, 101}
 	c, err := NewTypeConverter(reflect.TypeOf(arr))
 	require.Nil(t, err)
@@ -433,7 +426,6 @@ func TestArrayConverterFloat64(t *testing.T) {
 }
 
 func TestGenericMapConverter(t *testing.T) {
-
 	m := map[string]interface{}{
 		"foo": 1,
 		"bar": "two",

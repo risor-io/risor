@@ -246,7 +246,6 @@ func (p *Proxy) MarshalJSON() ([]byte, error) {
 // This operation may fail if the Go type has attributes whose types cannot be
 // converted to Risor types.
 func NewProxy(obj interface{}) (*Proxy, error) {
-
 	typ := reflect.TypeOf(obj)
 
 	// Is this type proxyable?
