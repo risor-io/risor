@@ -7,7 +7,6 @@ import (
 )
 
 func TestIntCompare(t *testing.T) {
-
 	one := NewInt(1)
 	two := NewFloat(2.0)
 	thr := NewInt(3)
@@ -33,7 +32,6 @@ func TestIntCompare(t *testing.T) {
 }
 
 func TestIntEquals(t *testing.T) {
-
 	oneInt := NewInt(1)
 	twoFlt := NewFloat(2.0)
 	twoInt := NewInt(2)

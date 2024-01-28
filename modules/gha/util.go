@@ -88,7 +88,7 @@ func runWorkflowCommand(w io.Writer, cmd string, value any, props map[string]any
 }
 
 func appendWorkflowFile(ros os.OS, path string, message string) object.Object {
-	file, err := ros.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := ros.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		return object.Errorf("io error: %v", err)
 	}
@@ -109,7 +109,7 @@ func workflowFileKeyValue(key, value any) string {
 
 func workflowFileKeyValueEOF(key, value string) string {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	var eof = "EOF"
+	eof := "EOF"
 	for strings.Contains(key, eof) || strings.Contains(value, eof) {
 		eof += string(charset[rand.Intn(len(charset))])
 	}

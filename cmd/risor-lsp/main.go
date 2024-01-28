@@ -16,14 +16,13 @@ import (
 )
 
 func main() {
-
 	name := "risor-language-server"
 	version := "dev"
 
 	logFile, err := os.OpenFile(
 		fmt.Sprintf("%s.log", name),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		0666,
+		0o666,
 	)
 	if err != nil {
 		fmt.Println(err)

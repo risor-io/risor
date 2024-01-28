@@ -14,7 +14,6 @@ import (
 
 func NewMethod(name string, obj interface{}, method *GoMethod) *object.Builtin {
 	return object.NewBuiltin(name, func(ctx context.Context, args ...object.Object) object.Object {
-
 		if err := arg.RequireRange(name, 0, 1, args); err != nil {
 			return err
 		}

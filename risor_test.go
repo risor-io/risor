@@ -139,7 +139,6 @@ func TestWithoutDefaultGlobal(t *testing.T) {
 }
 
 func TestWithVirtualOSStdinBuffer(t *testing.T) {
-
 	ctx := context.Background()
 	stdinBuf := ros.NewBufferFile([]byte("hello"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
@@ -151,7 +150,6 @@ func TestWithVirtualOSStdinBuffer(t *testing.T) {
 }
 
 func TestWithVirtualOSStdoutBuffer(t *testing.T) {
-
 	ctx := context.Background()
 	stdoutBuf := ros.NewBufferFile(nil)
 	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
@@ -165,7 +163,6 @@ func TestWithVirtualOSStdoutBuffer(t *testing.T) {
 }
 
 func TestStdinListBuffer(t *testing.T) {
-
 	ctx := context.Background()
 	stdinBuf := ros.NewBufferFile([]byte("foo\nbar!"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
@@ -180,7 +177,6 @@ func TestStdinListBuffer(t *testing.T) {
 }
 
 func TestWithVirtualOSStdin(t *testing.T) {
-
 	ctx := context.Background()
 	stdinBuf := ros.NewInMemoryFile([]byte("hello"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
@@ -192,7 +188,6 @@ func TestWithVirtualOSStdin(t *testing.T) {
 }
 
 func TestWithVirtualOSStdout(t *testing.T) {
-
 	ctx := context.Background()
 	stdoutBuf := ros.NewInMemoryFile(nil)
 	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
@@ -207,7 +202,6 @@ func TestWithVirtualOSStdout(t *testing.T) {
 }
 
 func TestStdinList(t *testing.T) {
-
 	ctx := context.Background()
 	stdinBuf := ros.NewInMemoryFile([]byte("foo\nbar!"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
@@ -222,7 +216,6 @@ func TestStdinList(t *testing.T) {
 }
 
 func TestEvalCode(t *testing.T) {
-
 	ctx := context.Background()
 
 	source := `

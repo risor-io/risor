@@ -135,7 +135,6 @@ func NewConfigFromMap(ctx context.Context, m *object.Map) (*Config, error) {
 }
 
 func getConfigOptions(m *object.Map) ([]func(*config.LoadOptions) error, error) {
-
 	// Options:
 	// {
 	//    "region": "us-east-1",

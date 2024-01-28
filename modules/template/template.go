@@ -95,7 +95,6 @@ func (t *Template) GetAttr(name string) (object.Object, bool) {
 			}
 
 			return object.Nil
-
 		}), true
 	case "add":
 		return object.NewBuiltin("template.add", func(ctx context.Context, args ...object.Object) object.Object {
@@ -118,7 +117,6 @@ func (t *Template) GetAttr(name string) (object.Object, bool) {
 			}
 
 			return object.Nil
-
 		}), true
 	case "execute_template":
 		return object.NewBuiltin("template.execute_template", func(ctx context.Context, args ...object.Object) object.Object {

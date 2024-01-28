@@ -124,7 +124,6 @@ func TestMarshalCode4(t *testing.T) {
 }
 
 func TestSymbolTableDefinition(t *testing.T) {
-
 	table := NewSymbolTable()
 	table.InsertVariable("x")
 	table.InsertConstant("c")

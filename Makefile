@@ -38,6 +38,10 @@ cover:
 	go test -coverprofile cover.out ./...
 	go tool cover -html=cover.out
 
+.PHONY: format
+format:
+	gofumpt -l -w .
+
 .PHONY: test-s3fs
 test-s3fs:
 	cd ./os/s3fs && go test -tags awstests .

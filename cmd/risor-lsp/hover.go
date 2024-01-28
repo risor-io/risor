@@ -7,7 +7,6 @@ import (
 )
 
 func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-
 	var name string
 	var doc *document
 	for k, v := range s.cache.docs {

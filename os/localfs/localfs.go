@@ -11,9 +11,7 @@ import (
 	ros "github.com/risor-io/risor/os"
 )
 
-var (
-	_ ros.FS = (*Filesystem)(nil)
-)
+var _ ros.FS = (*Filesystem)(nil)
 
 type Filesystem struct {
 	ctx    context.Context

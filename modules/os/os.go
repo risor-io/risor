@@ -78,7 +78,7 @@ func Mkdir(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	perm := int64(0755)
+	perm := int64(0o755)
 	if len(args) == 2 {
 		perm, err = object.AsInt(args[1])
 		if err != nil {
@@ -299,7 +299,7 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	default:
 		return object.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type())
 	}
-	var perm int64 = 0644
+	var perm int64 = 0o644
 	if len(args) == 3 {
 		perm, err = object.AsInt(args[2])
 		if err != nil {
@@ -371,7 +371,7 @@ func MkdirAll(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	perm := 0755
+	perm := 0o755
 	if len(args) == 2 {
 		givenPerm, err := object.AsInt(args[1])
 		if err != nil {
@@ -458,7 +458,7 @@ func Copy(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return object.NewError(ioErr)
 	}
-	if ioErr := os.WriteFile(dst, srcData, 0644); ioErr != nil {
+	if ioErr := os.WriteFile(dst, srcData, 0o644); ioErr != nil {
 		return object.NewError(ioErr)
 	}
 	return object.Nil

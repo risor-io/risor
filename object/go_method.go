@@ -157,7 +157,6 @@ func (m *GoMethod) MarshalJSON() ([]byte, error) {
 // Returns a Risor *GoMethod Object that represents the given Go method.
 // This aids in calling Go methods from Risor.
 func newGoMethod(m reflect.Method) (*GoMethod, error) {
-
 	numIn := m.Type.NumIn()
 	numOut := m.Type.NumOut()
 

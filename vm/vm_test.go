@@ -1481,7 +1481,6 @@ func TestClone(t *testing.T) {
 }
 
 func TestCloneWithAnonymousFunc(t *testing.T) {
-
 	registered := map[string]*object.Function{}
 
 	// Custom built-in function to be called from the Risor script to register
