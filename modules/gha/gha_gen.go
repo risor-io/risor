@@ -4,6 +4,7 @@ package gha
 
 import (
 	"context"
+
 	"github.com/risor-io/risor/object"
 )
 
@@ -109,5 +110,3 @@ func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.O
 	builtins["add_path"] = object.NewBuiltin("gha.add_path", AddPath)
 	return builtins
 }
-
-
