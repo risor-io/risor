@@ -4,8 +4,9 @@ package strings
 
 import (
 	"context"
-	"github.com/risor-io/risor/object"
 	"math"
+
+	"github.com/risor-io/risor/object"
 )
 
 // Contains is a wrapper function around [contains]
@@ -359,4 +360,3 @@ func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.O
 func Module() *object.Module {
 	return object.NewBuiltinsModule("strings", addGeneratedBuiltins(map[string]object.Object{}))
 }
-
