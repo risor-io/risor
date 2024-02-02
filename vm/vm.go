@@ -746,7 +746,6 @@ func (vm *VirtualMachine) Call(ctx context.Context, fn *object.Function, args []
 // Calls a compiled function with the given arguments. This is used internally
 // when a Risor object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
 func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (result object.Object, resultErr error) {
-
 	baseFP := vm.fp
 	baseIP := vm.ip
 	baseSP := vm.sp

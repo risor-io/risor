@@ -1744,11 +1744,13 @@ func TestChannels(t *testing.T) {
 	tests := []testCase{
 		{`c := chan(1); c <- 1; <-c`, object.NewInt(1)},
 		{`c := chan(2); c <- 1; c <- 2; [<-c, <-c]`, object.NewList([]object.Object{
-			object.NewInt(1), object.NewInt(2)})},
+			object.NewInt(1), object.NewInt(2),
+		})},
 		{`c := chan(1); c <- 1; close(c); <-c`, object.NewInt(1)},
 		{`c := chan(); close(c); <-c`, object.Nil},
 		{`c := chan(1); c <- "ok"; close(c); [<-c, <-c]`, object.NewList([]object.Object{
-			object.NewString("ok"), object.Nil})},
+			object.NewString("ok"), object.Nil,
+		})},
 	}
 	runTests(t, tests)
 }
