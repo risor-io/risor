@@ -1642,36 +1642,24 @@ func main() {
 }
 main()
 `
-	ctx := context.Background()
-	vm, err := newVM(ctx, code)
+	result, err := run(context.Background(), code)
 	require.Nil(t, err)
-	require.Nil(t, vm.Run(ctx))
-	value, ok := vm.TOS()
-	require.True(t, ok)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewString("result"),
 		object.NewString("result"),
-	}), value)
+	}), result)
 }
 
 func TestDeferStatementGlobalClosure(t *testing.T) {
 	code := `
 	x := 0
-	func foo(value) {
-		defer func() {
-			x = value
-		}()
-	}
+	func foo(value) { defer func() { x = value }() }
 	foo(4)
 	x
 	`
-	ctx := context.Background()
-	vm, err := newVM(ctx, code)
+	result, err := run(context.Background(), code)
 	require.Nil(t, err)
-	require.Nil(t, vm.Run(ctx))
-	value, ok := vm.TOS()
-	require.True(t, ok)
-	require.Equal(t, object.NewInt(4), value)
+	require.Equal(t, object.NewInt(4), result)
 }
 
 func TestDeferStatementOrdering(t *testing.T) {
@@ -1685,17 +1673,13 @@ func TestDeferStatementOrdering(t *testing.T) {
 	foo(2)
 	l
 	`
-	ctx := context.Background()
-	vm, err := newVM(ctx, code)
+	result, err := run(context.Background(), code)
 	require.Nil(t, err)
-	require.Nil(t, vm.Run(ctx))
-	value, ok := vm.TOS()
-	require.True(t, ok)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewInt(1),
 		object.NewInt(2),
 		object.NewInt(3),
-	}), value)
+	}), result)
 }
 
 func TestDeferStatementAnon(t *testing.T) {
@@ -1707,13 +1691,9 @@ func TestDeferStatementAnon(t *testing.T) {
 		return x
 	}()
 	`
-	ctx := context.Background()
-	vm, err := newVM(ctx, code)
+	result, err := run(context.Background(), code)
 	require.Nil(t, err)
-	require.Nil(t, vm.Run(ctx))
-	value, ok := vm.TOS()
-	require.True(t, ok)
-	require.Equal(t, object.NewInt(42), value)
+	require.Equal(t, object.NewInt(42), result)
 }
 
 func TestDeferStatementBuiltin(t *testing.T) {
@@ -1728,16 +1708,27 @@ func TestDeferStatementBuiltin(t *testing.T) {
 	test()
 	m
 	`
-	ctx := context.Background()
-	vm, err := newVM(ctx, code)
+	result, err := run(context.Background(), code)
 	require.Nil(t, err)
-	require.Nil(t, vm.Run(ctx))
-	value, ok := vm.TOS()
-	require.True(t, ok)
 	require.Equal(t, object.NewMap(map[string]object.Object{
 		"two":   object.NewInt(2),
 		"three": object.NewInt(3),
-	}), value)
+	}), result)
+}
+
+func TestDeferFileClose(t *testing.T) {
+	code := `
+	func get_lines(path) {
+		f := os.open(path)
+		defer f.close()
+		return string(f.read()).split("\n")
+	}
+	lines := get_lines("fixtures/jabberwocky.txt")
+	lines[0]
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
 }
 
 func TestChannels(t *testing.T) {
