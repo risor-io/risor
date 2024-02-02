@@ -1701,7 +1701,6 @@ func (c *Compiler) compileDeferStmt(node *ast.Defer) error {
 	if c.current.parent == nil {
 		return fmt.Errorf("compile error: defer statement outside of a function")
 	}
-	c.current.deferCount++
 	expr := node.Call()
 	switch expr := expr.(type) {
 	case *ast.Call:

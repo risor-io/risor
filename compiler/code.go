@@ -28,7 +28,6 @@ type Code struct {
 	// Used during compilation only
 	loops      []*loop
 	pipeActive bool
-	deferCount int
 }
 
 func (c *Code) ID() string {
