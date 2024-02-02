@@ -57,10 +57,10 @@ func GetLimits(ctx context.Context) (Limits, bool) {
 // the given amount. If the cost limit is exceeded, an error is returned.
 func TrackCost(ctx context.Context, cost int) error {
 	l, ok := GetLimits(ctx)
-	if !ok {
-		return LimitsNotFound
+	if ok {
+		return l.TrackCost(cost)
 	}
-	return l.TrackCost(cost)
+	return nil
 }
 
 // LimitsError indicates that a limit was exceeded.

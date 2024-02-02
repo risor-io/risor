@@ -103,6 +103,10 @@ func (c *Chan) Close() (err error) {
 	return nil
 }
 
+func (c *Chan) Capacity() int {
+	return c.capacity
+}
+
 func (c *Chan) Next(ctx context.Context) (Object, bool) {
 	select {
 	case <-ctx.Done():

@@ -1734,6 +1734,7 @@ func TestDeferFileClose(t *testing.T) {
 func TestChannels(t *testing.T) {
 	tests := []testCase{
 		{`c := chan(1); c <- 1; <-c`, object.NewInt(1)},
+		{`c := make(chan, 1); c <- 1; <-c`, object.NewInt(1)},
 		{`c := chan(2); c <- 1; c <- 2; [<-c, <-c]`, object.NewList([]object.Object{
 			object.NewInt(1), object.NewInt(2),
 		})},
@@ -1741,6 +1742,13 @@ func TestChannels(t *testing.T) {
 		{`c := chan(); close(c); <-c`, object.Nil},
 		{`c := chan(1); c <- "ok"; close(c); [<-c, <-c]`, object.NewList([]object.Object{
 			object.NewString("ok"), object.Nil,
+		})},
+		{`c := chan(2); c <- "a"; c <- "b"; close(c);
+		  results := []
+		  for _, value := range c { results.append(value) }
+		  results`, object.NewList([]object.Object{
+			object.NewString("a"),
+			object.NewString("b"),
 		})},
 	}
 	runTests(t, tests)
@@ -1770,6 +1778,13 @@ func TestGoStatement(t *testing.T) {
 		{`x := 0; go func() { x = 1 }(); time.sleep(0.1); x`, object.NewInt(1)},
 		{`x := 0; go func() { x = 1 }(); x`, object.NewInt(0)},
 		{`c := chan(1); go func() { c <- 1 }(); <-c`, object.NewInt(1)},
+		{`func dowork() {
+			c := make(chan)
+			go func() { defer close(c); c <- 98765 }();
+			return c
+		  }
+		  rxchan := dowork()
+		  <-rxchan`, object.NewInt(98765)},
 	}
 	runTests(t, tests)
 }
@@ -1780,6 +1795,7 @@ func TestSpawn(t *testing.T) {
 		{`spawn(func(x=10) { x }).wait()`, object.NewInt(10)},
 		{`x := 0; spawn(func() { x = 34 }).wait(); x`, object.NewInt(34)},
 		{`l := []; spawn(func() { l.append(1) }).wait(); l`, object.NewList([]object.Object{object.NewInt(1)})},
+		{`l := []; spawn(func(x) { x.append(1) }, l).wait(); l`, object.NewList([]object.Object{object.NewInt(1)})},
 	}
 	runTests(t, tests)
 }

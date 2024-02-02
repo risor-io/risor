@@ -198,7 +198,7 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
 		}
-		return object.NewString(string(arg.Value().Bytes()))
+		return object.NewString(arg.Value().String())
 	case *object.ByteSlice:
 		if err := lim.TrackCost(argCost); err != nil {
 			return object.NewError(err)
@@ -905,49 +905,27 @@ func Make(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch typ := typ.(type) {
 	case *object.List:
-		return object.NewList(make([]object.Object, size))
+		return object.NewList(make([]object.Object, 0, size))
 	case *object.Map:
 		return object.NewMap(make(map[string]object.Object, size))
 	case *object.Set:
 		return object.NewSetWithSize(size)
-	case *object.ByteSlice:
-		return object.NewByteSlice(make([]byte, size))
-	case *object.FloatSlice:
-		return object.NewFloatSlice(make([]float64, size))
-	case *object.String:
-		return object.NewString("")
-	case *object.Int:
-		return object.NewInt(0)
-	case *object.Byte:
-		return object.NewByte(0)
-	case *object.Float:
-		return object.NewFloat(0)
 	case *object.Builtin:
 		name := typ.Name()
 		switch name {
 		case "chan":
 			return object.NewChan(size)
-		case "buffer":
-			return object.NewBuffer(new(bytes.Buffer))
-		case "map":
-			return object.NewMap(make(map[string]object.Object, size))
 		case "list":
 			return object.NewList(make([]object.Object, 0, size))
+		case "map":
+			return object.NewMap(make(map[string]object.Object, size))
 		case "set":
 			return object.NewSetWithSize(size)
-		case "int":
-			return object.NewInt(0)
-		case "float":
-			return object.NewFloat(0)
-		case "byte":
-			return object.NewByte(0)
-		case "string":
-			return object.NewString("")
 		default:
-			return object.Errorf("type error: make() unsupported type (%s given)", name)
+			return object.Errorf("type error: make() unsupported type name (%s given)", name)
 		}
 	default:
-		return object.Errorf("type error: make() expected a container type (%s given)", typ.Type())
+		return object.Errorf("type error: make() unsupported type (%s given)", typ.Type())
 	}
 }
 
