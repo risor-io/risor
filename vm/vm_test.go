@@ -1796,6 +1796,18 @@ func TestSpawn(t *testing.T) {
 		{`x := 0; spawn(func() { x = 34 }).wait(); x`, object.NewInt(34)},
 		{`l := []; spawn(func() { l.append(1) }).wait(); l`, object.NewList([]object.Object{object.NewInt(1)})},
 		{`l := []; spawn(func(x) { x.append(1) }, l).wait(); l`, object.NewList([]object.Object{object.NewInt(1)})},
+		{`
+		func work(x) { return x ** 2 }
+		threads := []
+		for i := 0; i < 5; i++ { threads.append(spawn(work, i))	}
+		threads.map(func(t) { t.wait() })
+		`, object.NewList([]object.Object{
+			object.NewInt(0),
+			object.NewInt(1),
+			object.NewInt(4),
+			object.NewInt(9),
+			object.NewInt(16),
+		})},
 	}
 	runTests(t, tests)
 }

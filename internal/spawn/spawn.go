@@ -29,16 +29,22 @@ func Spawn(ctx context.Context, fnObj object.Object, args []object.Object) (*obj
 	if !found {
 		return nil, errors.New("eval error: context did not contain a spawn function")
 	}
+
+	// create independent copy of args to guarantee the caller can't modify
+	// the slice provided to the spawned function
+	argsCopy := make([]object.Object, len(args))
+	copy(argsCopy, args)
+
 	switch fn := fnObj.(type) {
 	case *object.Function:
 		adapter := &callFuncAdapter{funcObj: fn}
-		obj, err := spawnFunc(ctx, adapter, args)
+		obj, err := spawnFunc(ctx, adapter, argsCopy)
 		if err != nil {
 			return nil, err
 		}
 		return obj, nil
 	case object.Callable: // *object.Builtin is Callable
-		obj, err := spawnFunc(ctx, fn, args)
+		obj, err := spawnFunc(ctx, fn, argsCopy)
 		if err != nil {
 			return nil, err
 		}

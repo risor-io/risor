@@ -124,7 +124,7 @@ func (c *Chan) Next(ctx context.Context) (Object, bool) {
 func (c *Chan) Entry() (IteratorEntry, bool) {
 	if c.lastReceived != nil {
 		return &Entry{
-			key:     NewInt(c.rxCount),
+			key:     NewInt(c.rxCount - 1),
 			value:   c.lastReceived,
 			primary: c.lastReceived,
 		}, true

@@ -7,7 +7,6 @@ package parser
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -1243,7 +1242,6 @@ func (p *Parser) parseAssign(name ast.Node) ast.Node {
 	case *ast.Index:
 		index = node
 	default:
-		fmt.Println("parseAssign", name, reflect.TypeOf(name))
 		p.setTokenError(operator, "unexpected token for assignment: %s", name.Literal())
 		return nil
 	}
