@@ -11,7 +11,6 @@ import (
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
-	"github.com/risor-io/risor/internal/spawn"
 	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -622,7 +621,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			if !ok {
 				return fmt.Errorf("type error: object is not a partial (got %s)", obj.Type())
 			}
-			if _, err := spawn.Spawn(ctx, partial.Function(), partial.Args()); err != nil {
+			if _, err := object.Spawn(ctx, partial.Function(), partial.Args()); err != nil {
 				return err
 			}
 		case op.Defer:

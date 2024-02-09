@@ -15,7 +15,6 @@ import (
 	"unicode"
 
 	"github.com/risor-io/risor/internal/arg"
-	"github.com/risor-io/risor/internal/spawn"
 	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
@@ -845,7 +844,7 @@ func Spawn(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("spawn", 1, 64, args); err != nil {
 		return err
 	}
-	thread, err := spawn.Spawn(ctx, args[0], args[1:])
+	thread, err := object.Spawn(ctx, args[0], args[1:])
 	if err != nil {
 		return object.NewError(err)
 	}

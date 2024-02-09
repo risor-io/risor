@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
@@ -69,6 +70,23 @@ func (f *Function) String() string {
 
 func (f *Function) Interface() interface{} {
 	return nil
+}
+
+func (f *Function) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "spawn":
+		return &Builtin{
+			name: "function.spawn",
+			fn: func(ctx context.Context, args ...Object) Object {
+				thread, err := Spawn(ctx, f, args)
+				if err != nil {
+					return NewError(err)
+				}
+				return thread
+			},
+		}, true
+	}
+	return nil, false
 }
 
 func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
