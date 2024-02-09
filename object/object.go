@@ -52,6 +52,7 @@ const (
 	GO_METHOD     Type = "go_method"
 	GO_TYPE       Type = "go_type"
 	INT           Type = "int"
+	INT_ITER      Type = "int_iter"
 	ITER_ENTRY    Type = "iter_entry"
 	LIST          Type = "list"
 	LIST_ITER     Type = "list_iter"

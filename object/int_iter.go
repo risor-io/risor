@@ -17,7 +17,7 @@ type IntIter struct {
 }
 
 func (iter *IntIter) Type() Type {
-	return FILE_ITER
+	return INT_ITER
 }
 
 func (iter *IntIter) Inspect() string {
