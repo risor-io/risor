@@ -47,6 +47,7 @@ const (
 	CONST           = "CONST"
 	DECLARE         = ":="
 	DEFAULT         = "DEFAULT"
+	DEFER           = "DEFER"
 	FUNC            = "FUNC"
 	ELSE            = "ELSE"
 	EOF             = "EOF"
@@ -57,6 +58,7 @@ const (
 	GT              = ">"
 	GT_GT           = ">>"
 	GT_EQUALS       = ">="
+	GO              = "GO"
 	IDENT           = "IDENT"
 	IF              = "IF"
 	ILLEGAL         = "ILLEGAL"
@@ -86,9 +88,11 @@ const (
 	RETURN          = "RETURN"
 	RPAREN          = ")"
 	SEMICOLON       = ";"
+	SEND            = "<-"
 	SLASH           = "/"
 	SLASH_EQUALS    = "/="
 	STRING          = "STRING"
+	STRUCT          = "STRUCT"
 	SWITCH          = "switch"
 	TRUE            = "TRUE"
 	NEWLINE         = "EOL"
@@ -104,26 +108,29 @@ const (
 
 // Reserved keywords
 var keywords = map[string]Type{
+	"as":       AS,
 	"break":    BREAK,
 	"case":     CASE,
 	"const":    CONST,
 	"continue": CONTINUE,
 	"default":  DEFAULT,
+	"defer":    DEFER,
 	"else":     ELSE,
 	"false":    FALSE,
 	"for":      FOR,
+	"from":     FROM,
 	"func":     FUNC,
+	"go":       GO,
 	"if":       IF,
 	"import":   IMPORT,
 	"in":       IN,
 	"nil":      NIL,
 	"range":    RANGE,
 	"return":   RETURN,
+	"struct":   STRUCT,
 	"switch":   SWITCH,
 	"true":     TRUE,
 	"var":      VAR,
-	"from":     FROM,
-	"as":       AS,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not

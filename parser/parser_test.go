@@ -139,9 +139,6 @@ func TestControl(t *testing.T) {
 		input   string
 		keyword string
 	}{
-		{"return 0755;", "return"},
-		{"return 0x15;", "return"},
-		{"return 993322;", "return"},
 		{"continue;", "continue"},
 		{"break;", "break"},
 	}
@@ -150,6 +147,25 @@ func TestControl(t *testing.T) {
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
 		control, ok := program.First().(*ast.Control)
+		require.True(t, ok)
+		require.Equal(t, tt.keyword, control.Literal())
+	}
+}
+
+func TestReturn(t *testing.T) {
+	tests := []struct {
+		input   string
+		keyword string
+	}{
+		{"return 0755;", "return"},
+		{"return 0x15;", "return"},
+		{"return 993322;", "return"},
+	}
+	for _, tt := range tests {
+		program, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		control, ok := program.First().(*ast.Return)
 		require.True(t, ok)
 		require.Equal(t, tt.keyword, control.Literal())
 	}
@@ -962,5 +978,57 @@ func TestNakedReturns(t *testing.T) {
 		result, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Equal(t, tt.expected, result.String())
+	}
+}
+
+func TestGoStatement(t *testing.T) {
+	input := "go func() { 42 }()"
+	result, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Equal(t, "go func() { 42 }()", result.String())
+	require.Len(t, result.Statements(), 1)
+	stmt := result.Statements()[0]
+	require.IsType(t, &ast.Go{}, stmt)
+}
+
+func TestInvalidGoStatements(t *testing.T) {
+	tests := []string{
+		"go",
+		"go;",
+		"go 42",
+		"go []",
+		"go {}",
+		"go ()",
+	}
+	for _, tt := range tests {
+		_, err := Parse(context.Background(), tt)
+		require.NotNil(t, err)
+		require.Equal(t, "parse error: invalid go statement", err.Error())
+	}
+}
+
+func TestDeferStatement(t *testing.T) {
+	input := "defer func() { 42 }()"
+	result, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Equal(t, "defer func() { 42 }()", result.String())
+	require.Len(t, result.Statements(), 1)
+	stmt := result.Statements()[0]
+	require.IsType(t, &ast.Defer{}, stmt)
+}
+
+func TestInvalidDeferStatements(t *testing.T) {
+	tests := []string{
+		"defer",
+		"defer;",
+		"defer 42",
+		"defer []",
+		"defer {}",
+		"defer ()",
+	}
+	for _, tt := range tests {
+		_, err := Parse(context.Background(), tt)
+		require.NotNil(t, err)
+		require.Equal(t, "parse error: invalid defer statement", err.Error())
 	}
 }

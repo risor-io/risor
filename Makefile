@@ -14,7 +14,7 @@ bench:
 # https://code.visualstudio.com/api/working-with-extensions/publishing-extension#packaging-extensions
 .PHONY: install-tools
 install-tools:
-	npm install -g vsce
+	npm install -g vsce typescript
 
 .PHONY: extension-login
 extension-login:

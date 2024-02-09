@@ -89,10 +89,10 @@ func loadChildCode(root *code, cc *compiler.Code) *code {
 
 func loadRootCode(cc *compiler.Code, globals map[string]object.Object) *code {
 	c := wrapCode(cc)
-	c.Globals = make([]object.Object, cc.GlobalsCount())
-	for i := 0; i < cc.GlobalsCount(); i++ {
-		g := cc.Global(i)
-		if value, found := globals[g.Name()]; found {
+	globalNames := cc.GlobalNames()
+	c.Globals = make([]object.Object, len(globalNames))
+	for i, name := range globalNames {
+		if value, found := globals[name]; found {
 			c.Globals[i] = value
 		}
 	}

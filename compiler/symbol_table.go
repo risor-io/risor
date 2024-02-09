@@ -65,6 +65,34 @@ func (t *SymbolTable) claimIndex(s *Symbol) (uint16, error) {
 	return uidx, nil
 }
 
+func (t *SymbolTable) GetFunction() (*SymbolTable, bool) {
+	if t.parent == nil {
+		return nil, false // global scope
+	} else if t.isBlock {
+		return t.parent.GetFunction()
+	}
+	return t, true
+}
+
+func (t *SymbolTable) GetFunctionID() (string, bool) {
+	if t.parent == nil {
+		return "", false
+	} else if t.isBlock {
+		return t.parent.GetFunctionID()
+	}
+	return t.ID(), true
+}
+
+func (t *SymbolTable) FunctionDepth() int {
+	if t.parent == nil {
+		return 0
+	}
+	if t.isBlock {
+		return t.parent.FunctionDepth()
+	}
+	return 1 + t.parent.FunctionDepth()
+}
+
 // InsertVariable adds a new variable into this symbol table, with an optional value.
 // The symbol will be assigned the next available index.
 func (t *SymbolTable) InsertVariable(name string, value ...any) (*Symbol, error) {
@@ -138,6 +166,12 @@ func (t *SymbolTable) IsGlobal() bool {
 // relative scope and depth. If the symbol is found to be a "free" variable,
 // it will be added to the free map for this table.
 func (t *SymbolTable) Resolve(name string) (*Resolution, bool) {
+	// Access the enclosing function, if any
+	activeFunc, inFunc := t.GetFunction()
+	var activeFuncID string
+	if activeFunc != nil {
+		activeFuncID = activeFunc.ID()
+	}
 	// Check if the symbol is defined directly in this table
 	if s, ok := t.symbolsByName[name]; ok {
 		var scope Scope
@@ -146,7 +180,7 @@ func (t *SymbolTable) Resolve(name string) (*Resolution, bool) {
 		} else {
 			scope = Local
 		}
-		return &Resolution{symbol: s, scope: scope, depth: 0}, true
+		return &Resolution{symbol: s, scope: scope}, true
 	}
 	// Check if the symbol was previously found to be a "free" variable
 	if rs, ok := t.freeByName[name]; ok {
@@ -156,32 +190,33 @@ func (t *SymbolTable) Resolve(name string) (*Resolution, bool) {
 	if t.parent == nil {
 		return nil, false
 	}
-	// Does a parent table define the symbol?
-	rs, found := t.parent.Resolve(name)
-	if !found {
-		return nil, false
+	// Search ancestors for the symbol
+	ancestor := t
+	for {
+		ancestor = ancestor.parent
+		if ancestor == nil {
+			// Symbol is undefined in all ancestors
+			return nil, false
+		}
+		ancestorFuncID, _ := ancestor.GetFunctionID()
+		if sym, ok := ancestor.symbolsByName[name]; ok {
+			if ancestor.IsGlobal() {
+				// Global variable
+				return &Resolution{symbol: sym, scope: Global}, true
+			}
+			if inFunc && ancestorFuncID == activeFuncID {
+				// Local variable
+				return &Resolution{symbol: sym, scope: Local}, true
+			}
+			// Free variable
+			depth := t.FunctionDepth() - ancestor.FunctionDepth()
+			freeIndex := len(activeFunc.free)
+			rs := &Resolution{symbol: sym, scope: Free, depth: depth, freeIndex: freeIndex}
+			activeFunc.freeByName[name] = rs
+			activeFunc.free = append(activeFunc.free, rs)
+			return rs, true
+		}
 	}
-	// Check if this is a global. These are simple in that we don't
-	// care about their depth and their scope always stays unchanged.
-	if rs.scope == Global {
-		return rs, true
-	}
-	// Determine if this is a free variable which is defined in an outer scope.
-	// Locals may stil be defined in a parent table if this is a block.
-	scope := rs.scope
-	depth := rs.depth
-	if !t.isBlock {
-		depth++
-		scope = Free
-	}
-	resolution := &Resolution{symbol: rs.symbol, scope: scope, depth: depth}
-	if scope == Free {
-		freeIndex := len(t.free)
-		t.freeByName[name] = resolution
-		t.free = append(t.free, resolution)
-		resolution.freeIndex = freeIndex
-	}
-	return resolution, true
 }
 
 // Parent returns the parent table of this table, if any.

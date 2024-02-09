@@ -27,9 +27,10 @@ func (iter *ListIter) String() string {
 }
 
 func (iter *ListIter) Interface() interface{} {
+	ctx := context.Background()
 	var entries []any
 	for {
-		entry, ok := iter.Next()
+		entry, ok := iter.Next(ctx)
 		if !ok {
 			break
 		}
@@ -56,7 +57,7 @@ func (iter *ListIter) GetAttr(name string) (Object, bool) {
 				if len(args) != 0 {
 					return NewArgsError("list_iter.next", 0, len(args))
 				}
-				value, ok := iter.Next()
+				value, ok := iter.Next(ctx)
 				if !ok {
 					return Nil
 				}
@@ -89,7 +90,7 @@ func (iter *ListIter) RunOperation(opType op.BinaryOpType, right Object) Object 
 	return NewError(fmt.Errorf("eval error: unsupported operation for list_iter: %v", opType))
 }
 
-func (iter *ListIter) Next() (Object, bool) {
+func (iter *ListIter) Next(ctx context.Context) (Object, bool) {
 	items := iter.l.items
 	if iter.pos >= int64(len(items)-1) {
 		iter.current = nil

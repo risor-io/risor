@@ -33,6 +33,7 @@ type Config struct {
 	Importer              importer.Importer
 	LocalImportPath       string
 	WithoutDefaultGlobals bool
+	WithConcurrency       bool
 }
 
 func NewConfig() *Config {
@@ -140,6 +141,9 @@ func (cfg *Config) VMOpts() []vm.Option {
 	}
 	if importer != nil {
 		opts = append(opts, vm.WithImporter(importer))
+	}
+	if cfg.WithConcurrency {
+		opts = append(opts, vm.WithConcurrency())
 	}
 	return opts
 }

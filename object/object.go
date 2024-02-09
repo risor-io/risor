@@ -34,6 +34,7 @@ const (
 	BYTE          Type = "byte"
 	BYTE_SLICE    Type = "byte_slice"
 	CELL          Type = "cell"
+	CHANNEL       Type = "channel"
 	COLOR         Type = "color"
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"
@@ -66,6 +67,7 @@ const (
 	SLICE_ITER    Type = "slice_iter"
 	STRING        Type = "string"
 	STRING_ITER   Type = "string_iter"
+	THREAD        Type = "thread"
 	TIME          Type = "time"
 )
 
@@ -127,7 +129,7 @@ type Iterator interface {
 	// Next advances the iterator and then returns the current object and a
 	// bool indicating whether the returned item is valid. Once Next() has been
 	// called, the Entry() method can be used to get an IteratorEntry.
-	Next() (Object, bool)
+	Next(context.Context) (Object, bool)
 
 	// Entry returns the current entry in the iterator and a bool indicating
 	// whether the returned item is valid.

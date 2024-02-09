@@ -42,6 +42,7 @@ type VirtualMachine struct {
 	limits       limits.Limits
 	loadedCode   map[*compiler.Code]*code
 	running      bool
+	concAllowed  bool
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -74,6 +75,13 @@ func WithGlobals(globals map[string]any) Option {
 		for name, value := range globals {
 			vm.inputGlobals[name] = value
 		}
+	}
+}
+
+// WithConcurrency opts into allowing the spawning of Goroutines
+func WithConcurrency() Option {
+	return func(vm *VirtualMachine) {
+		vm.concAllowed = true
 	}
 }
 
@@ -146,6 +154,16 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	vm.running = true
 	defer func() { vm.running = false }()
 
+	// Load the code for any functions that are constants in this main code.
+	// Doing this in advance means the set of loaded code is constant once
+	// execution has begun.
+	c := vm.main.ConstantsCount()
+	for i := 0; i < c; i++ {
+		if fn, ok := vm.main.Constant(i).(*compiler.Function); ok {
+			vm.load(fn.Code())
+		}
+	}
+
 	// Activate the "main" entrypoint code in frame 0 and then run it
 	var code *code
 	if len(vm.loadedCode) > 0 {
@@ -156,6 +174,9 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	vm.activateCode(0, vm.ip, code)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	ctx = limits.WithLimits(ctx, vm.limits)
+	if vm.concAllowed {
+		ctx = object.WithSpawnFunc(ctx, vm.spawnFunction)
+	}
 	err = vm.eval(ctx)
 	return
 }
@@ -243,15 +264,21 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.LoadGlobal:
 			vm.push(vm.activeCode.Globals[vm.fetch()])
 		case op.LoadFree:
+			idx := vm.fetch()
 			freeVars := vm.activeFrame.fn.FreeVars()
-			vm.push(freeVars[vm.fetch()].Value())
+			obj := freeVars[idx].Value()
+			vm.push(obj)
 		case op.StoreFast:
-			vm.activeFrame.Locals()[vm.fetch()] = vm.pop()
+			idx := vm.fetch()
+			obj := vm.pop()
+			vm.activeFrame.Locals()[idx] = obj
 		case op.StoreGlobal:
 			vm.activeCode.Globals[vm.fetch()] = vm.pop()
 		case op.StoreFree:
+			idx := vm.fetch()
+			obj := vm.pop()
 			freeVars := vm.activeFrame.fn.FreeVars()
-			freeVars[vm.fetch()].Set(vm.pop())
+			freeVars[idx].Set(obj)
 		case op.StoreAttr:
 			idx := vm.fetch()
 			obj := vm.pop()
@@ -307,7 +334,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				vm.tmp[argIndex] = vm.pop()
 			}
 			obj := vm.pop()
-			if err := vm.call(ctx, obj, argc); err != nil {
+			if err := vm.call(ctx, obj, vm.tmp[:argc]); err != nil {
 				return err
 			}
 		case op.Partial:
@@ -323,7 +350,8 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			activeFrame := vm.activeFrame
 			returnAddr := activeFrame.returnAddr
 			returnSp := activeFrame.returnSp
-			vm.resumeFrame(vm.fp-1, returnAddr, returnSp)
+			returnFp := vm.fp - 1
+			vm.resumeFrame(returnFp, returnAddr, returnSp)
 			if returnAddr == StopSignal {
 				// If StopSignal is found as the return address, it means the
 				// current eval call should stop.
@@ -552,7 +580,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 			iter := container.Iter()
 			for {
-				val, ok := iter.Next()
+				val, ok := iter.Next(ctx)
 				if !ok {
 					break
 				}
@@ -573,7 +601,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			jumpAmount := vm.fetch()
 			nameCount := vm.fetch()
 			iter := vm.pop().(object.Iterator)
-			if _, ok := iter.Next(); !ok {
+			if _, ok := iter.Next(ctx); !ok {
 				vm.ip = base + int(jumpAmount)
 			} else {
 				obj, _ := iter.Entry()
@@ -587,6 +615,43 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 					return fmt.Errorf("exec error: invalid iteration")
 				}
 			}
+		case op.Go:
+			obj := vm.pop()
+			partial, ok := obj.(*object.Partial)
+			if !ok {
+				return fmt.Errorf("type error: object is not a partial (got %s)", obj.Type())
+			}
+			if _, err := object.Spawn(ctx, partial.Function(), partial.Args()); err != nil {
+				return err
+			}
+		case op.Defer:
+			obj := vm.pop()
+			partial, ok := obj.(*object.Partial)
+			if !ok {
+				return fmt.Errorf("type error: object is not a partial (got %s)", obj.Type())
+			}
+			vm.activeFrame.Defer(partial)
+		case op.Send:
+			value := vm.pop()
+			channel := vm.pop()
+			ch, ok := channel.(*object.Chan)
+			if !ok {
+				return fmt.Errorf("type error: object is not a channel (got %s)", channel.Type())
+			}
+			if err := ch.Send(ctx, value); err != nil {
+				return err
+			}
+		case op.Receive:
+			channel := vm.pop()
+			ch, ok := channel.(*object.Chan)
+			if !ok {
+				return fmt.Errorf("type error: object is not a channel (got %s)", channel.Type())
+			}
+			value, err := ch.Receive(ctx)
+			if err != nil {
+				return err
+			}
+			vm.push(value)
 		case op.Halt:
 			return nil
 		default:
@@ -626,49 +691,6 @@ func (vm *VirtualMachine) loadModule(ctx context.Context, name string) (*object.
 	return module, nil
 }
 
-func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, argc int) error {
-	// The arguments are understood to be stored in vm.tmp here
-	args := vm.tmp[:argc]
-	switch fn := fn.(type) {
-	case *object.Function:
-		paramsCount := len(fn.Parameters())
-		if err := checkCallArgs(fn, argc); err != nil {
-			return err
-		}
-		if argc < paramsCount {
-			defaults := fn.Defaults()
-			for i := argc; i < len(defaults); i++ {
-				vm.tmp[i] = defaults[i]
-			}
-			argc = paramsCount
-		}
-		code := fn.Code()
-		if code.IsNamed() {
-			vm.tmp[paramsCount] = fn
-			argc++
-		}
-		vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
-	case *object.Partial:
-		// Combine the current arguments with the partial's arguments
-		expandedCount := argc + len(fn.Args())
-		if expandedCount > MaxArgs {
-			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
-		}
-		// We can just append arguments from the partial into vm.tmp
-		copy(vm.tmp[argc:], fn.Args())
-		return vm.call(ctx, fn.Function(), expandedCount)
-	case object.Callable:
-		result := fn.Call(ctx, args...)
-		if err, ok := result.(*object.Error); ok {
-			return err.Value()
-		}
-		vm.push(result)
-	default:
-		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
-	}
-	return nil
-}
-
 // GetIP returns the current instruction pointer.
 func (vm *VirtualMachine) GetIP() int {
 	return vm.ip
@@ -679,6 +701,8 @@ func (vm *VirtualMachine) SetIP(value int) {
 	vm.ip = value
 }
 
+// TOS returns the top-of-stack object if there is one, without modifying the
+// stack. The boolean return value indicates whether there was a TOS.
 func (vm *VirtualMachine) TOS() (object.Object, bool) {
 	if vm.sp >= 0 {
 		return vm.stack[vm.sp], true
@@ -726,7 +750,7 @@ func (vm *VirtualMachine) Call(ctx context.Context, fn *object.Function, args []
 
 // Calls a compiled function with the given arguments. This is used internally
 // when a Risor object calls a function, e.g. [1, 2, 3].map(func(x) { x + 1 }).
-func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function, args []object.Object) (result object.Object, resultErr error) {
 	baseFP := vm.fp
 	baseIP := vm.ip
 	baseSP := vm.sp
@@ -737,6 +761,9 @@ func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function,
 	if err := checkCallArgs(fn, argc); err != nil {
 		return nil, err
 	}
+
+	// Restore the previous frame when done
+	defer vm.resumeFrame(baseFP, baseIP, baseSP)
 
 	// Assemble frame local variables in vm.tmp. The local variable order is:
 	// 1. Function parameters
@@ -762,14 +789,53 @@ func (vm *VirtualMachine) callFunction(ctx context.Context, fn *object.Function,
 	// stop execution when it reaches the end of the active code.
 	vm.activeFrame.returnAddr = StopSignal
 
-	// Restore the previous frame when done
-	defer vm.resumeFrame(baseFP, baseIP, baseSP)
+	callFrame := vm.activeFrame
+
+	// Fire any defers
+	defer func() {
+		for _, partial := range callFrame.defers {
+			if err := vm.call(ctx, partial.Function(), partial.Args()); err != nil {
+				result = nil
+				resultErr = err
+			}
+		}
+	}()
 
 	// Evaluate the function code then return the result from TOS
 	if err := vm.eval(ctx); err != nil {
 		return nil, err
 	}
 	return vm.pop(), nil
+}
+
+func (vm *VirtualMachine) call(ctx context.Context, fn object.Object, args []object.Object) error {
+	argc := len(args)
+	switch fn := fn.(type) {
+	case *object.Function:
+		result, err := vm.callFunction(ctx, fn, args)
+		if err != nil {
+			return err
+		}
+		vm.push(result)
+	case *object.Partial:
+		// Combine the current arguments with the partial's arguments
+		expandedCount := argc + len(fn.Args())
+		if expandedCount > MaxArgs {
+			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)", MaxArgs, expandedCount)
+		}
+		copy(vm.tmp[:argc], args)
+		copy(vm.tmp[argc:], fn.Args())
+		return vm.call(ctx, fn.Function(), vm.tmp[:expandedCount])
+	case object.Callable:
+		result := fn.Call(ctx, args...)
+		if err, ok := result.(*object.Error); ok {
+			return err.Value()
+		}
+		vm.push(result)
+	default:
+		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
+	}
+	return nil
 }
 
 // Wrap the *compiler.Code in a *code object to make it usable by the VM.
@@ -852,51 +918,69 @@ func (vm *VirtualMachine) activateFunction(fp, ip int, fn *object.Function, loca
 	return vm.activeFrame
 }
 
-// Clone a stopped Virtual Machine. An error is returned if the Virtual Machine
-// is running. The returned clone will have the same code, globals, modules,
-// stack, and limits as the original. Any Risor objects present as global
-// variables will be carried over to the clone. And since multiple clones can be
-// created, the caller is responsible for ensuring that the global variables are
-// not mutated, or that the mutations are safe for concurrent use. Do not use
-// this function if you need isolation between clones, as this is not provided.
+// Clone the Virtual Machine. The returned clone has its own independent stack,
+// ip, fp, sp, and loaded code, which makes its execution independent of the
+// original Virtual Machine. However the clone shares the same modules and
+// globals and any objects directly or indirectly referenced by those.
+//
+// Consequently, the caller and/or the user code is responsible for thread
+// safety when using modules and global variables, as concurrently executing
+// cloned VMs can modify the same objects and hence have standard thread safety
+// issues.
+//
+// The returned clone has an empty stack and frame stack, which makes this
+// most useful for cloning a VM then using vm.Call() to call a function, rather
+// than calling vm.Run() on the clone, which would start execution at the
+// beginning of the original entrypoint.
+//
+// Do not use this if you want a strict guarantee of isolation between VMs.
+//
+// The VM limits are not currently copied from the original because limits
+// implementations are not currently thread safe. Consequently it's not safe to
+// use Clone when limits are required.
+//
+// Another current limitation that may be addressed in the future is that
+// cloned VMs do not have the ability to import additional modules.
 func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
-	if vm.running {
-		return nil, errors.New("cannot clone while the vm is running")
-	}
-	if vm.fp != 0 {
-		return nil, errors.New("cannot clone while a frame is active")
-	}
-	modules := map[string]*object.Module{}
+	// Capture a snapshot of the loaded modules. This is needed for threadsafe
+	// access to the modules map, since the parent VM can continue to modify it.
+	modules := make(map[string]*object.Module, len(vm.modules))
 	for name, module := range vm.modules {
 		modules[name] = module
 	}
-	inputGlobals := map[string]any{}
-	for name, value := range vm.inputGlobals {
-		inputGlobals[name] = value
-	}
-	globals := map[string]object.Object{}
-	for name, value := range vm.globals {
-		globals[name] = value
-	}
-	loadedCode := map[*compiler.Code]*code{}
-	for code, loaded := range vm.loadedCode {
-		loadedCode[code] = loaded.Clone()
+	// Capture a snapshot of the loaded code for thread safety reasons
+	loadedCode := make(map[*compiler.Code]*code, len(vm.loadedCode))
+	for cc, c := range vm.loadedCode {
+		loadedCode[cc] = c
 	}
 	clone := &VirtualMachine{
-		sp:           vm.sp,
-		ip:           vm.ip,
+		sp:           -1,
+		ip:           0,
 		fp:           0,
-		stack:        vm.stack,
+		limits:       nil,
+		importer:     nil,
+		running:      false,
 		main:         vm.main,
-		importer:     vm.importer,
-		modules:      modules,
-		inputGlobals: inputGlobals,
-		globals:      globals,
-		limits:       vm.limits,
+		inputGlobals: vm.inputGlobals,
+		globals:      vm.globals,
 		loadedCode:   loadedCode,
+		modules:      modules,
 	}
-	clone.activateCode(0, vm.ip, loadedCode[vm.main])
+	clone.activateCode(0, vm.ip, clone.load(clone.main))
 	return clone, nil
+}
+
+func (vm *VirtualMachine) spawnFunction(ctx context.Context, fn object.Callable, args []object.Object) (*object.Thread, error) {
+	clone, err := vm.Clone()
+	if err != nil {
+		return nil, err
+	}
+	// Create a ctx with the call and spawn functions set to the clone's methods!
+	ctx = object.WithCallFunc(ctx, clone.callFunction)
+	ctx = object.WithSpawnFunc(ctx, clone.spawnFunction)
+	ctx = limits.WithLimits(ctx, nil)
+	// NewThread runs a goroutine
+	return object.NewThread(ctx, fn, args), nil
 }
 
 func checkCallArgs(fn *object.Function, argc int) error {

@@ -126,6 +126,13 @@ func WithLocalImporter(path string) Option {
 	}
 }
 
+// WithConcurrency enables the use of concurrency in Risor evaluations.
+func WithConcurrency() Option {
+	return func(cfg *Config) {
+		cfg.WithConcurrency = true
+	}
+}
+
 // Eval evaluates the given source code and returns the result.
 func Eval(ctx context.Context, source string, options ...Option) (object.Object, error) {
 	cfg := NewConfig()

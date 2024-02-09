@@ -11,6 +11,7 @@ import (
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modJSON "github.com/risor-io/risor/modules/json"
 	modMath "github.com/risor-io/risor/modules/math"
+	modOS "github.com/risor-io/risor/modules/os"
 	modRand "github.com/risor-io/risor/modules/rand"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
@@ -62,7 +63,7 @@ func newVM(ctx context.Context, source string, opts ...runOpts) (*VirtualMachine
 		Extensions:  []string{".risor", ".rsr"},
 		GlobalNames: globalNames,
 	})
-	return New(main, WithImporter(im), WithGlobals(globals)), nil
+	return New(main, WithImporter(im), WithGlobals(globals), WithConcurrency()), nil
 }
 
 func basicBuiltins() map[string]any {
@@ -76,6 +77,7 @@ func basicBuiltins() map[string]any {
 		"strings": modStrings.Module(),
 		"time":    modTime.Module(),
 		"yaml":    modYAML.Module(),
+		"os":      modOS.Module(),
 	}
 	for k, v := range builtins.Builtins() {
 		globals[k] = v

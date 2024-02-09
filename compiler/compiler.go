@@ -9,6 +9,7 @@ import (
 
 	"github.com/risor-io/risor/ast"
 	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/token"
 )
 
 const (
@@ -184,6 +185,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileControl(node); err != nil {
 			return err
 		}
+	case *ast.Return:
+		if err := c.compileReturn(node); err != nil {
+			return err
+		}
 	case *ast.Call:
 		if err := c.compileCall(node); err != nil {
 			return err
@@ -266,6 +271,22 @@ func (c *Compiler) compile(node ast.Node) error {
 		}
 	case *ast.SetAttr:
 		if err := c.compileSetAttr(node); err != nil {
+			return err
+		}
+	case *ast.Go:
+		if err := c.compileGoStmt(node); err != nil {
+			return err
+		}
+	case *ast.Defer:
+		if err := c.compileDeferStmt(node); err != nil {
+			return err
+		}
+	case *ast.Send:
+		if err := c.compileSend(node); err != nil {
+			return err
+		}
+	case *ast.Receive:
+		if err := c.compileReceive(node); err != nil {
 			return err
 		}
 	default:
@@ -378,6 +399,21 @@ func (c *Compiler) compileBlock(node *ast.Block) error {
 		lastStatement := statements[count-1]
 		if !lastStatement.IsExpression() {
 			c.emit(op.Nil)
+		}
+	}
+	return nil
+}
+
+func (c *Compiler) compileFunctionBlock(node *ast.Block) error {
+	code := c.current
+	code.symbols = code.symbols.NewBlock()
+	defer func() {
+		code.symbols = code.symbols.parent
+	}()
+	statements := normalizeFunctionBlock(node)
+	for _, stmt := range statements {
+		if err := c.compile(stmt); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -940,6 +976,25 @@ func (c *Compiler) compileMap(node *ast.Map) error {
 	return nil
 }
 
+func (c *Compiler) compileSend(node *ast.Send) error {
+	if err := c.compile(node.Channel()); err != nil {
+		return err
+	}
+	if err := c.compile(node.Value()); err != nil {
+		return err
+	}
+	c.emit(op.Send)
+	return nil
+}
+
+func (c *Compiler) compileReceive(node *ast.Receive) error {
+	if err := c.compile(node.Channel()); err != nil {
+		return err
+	}
+	c.emit(op.Receive)
+	return nil
+}
+
 func (c *Compiler) compileSet(node *ast.Set) error {
 	items := node.Items()
 	count := len(items)
@@ -1022,12 +1077,8 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	}
 
 	// Compile the function body
-	body := node.Body()
-	if err := c.compile(body); err != nil {
+	if err := c.compileFunctionBlock(node.Body()); err != nil {
 		return err
-	}
-	if !body.EndsWithReturn() {
-		c.emit(op.ReturnValue)
 	}
 
 	// We're done compiling the function, so switch back to compiling the parent
@@ -1073,21 +1124,6 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 func (c *Compiler) compileControl(node *ast.Control) error {
 	literal := node.Literal()
-	if literal == "return" {
-		if c.current.parent == nil {
-			return fmt.Errorf("compile error: invalid return statement outside of a function")
-		}
-		value := node.Value()
-		if value == nil {
-			c.emit(op.Nil)
-		} else {
-			if err := c.compile(value); err != nil {
-				return err
-			}
-		}
-		c.emit(op.ReturnValue)
-		return nil
-	}
 	loop := c.currentLoop()
 	if loop == nil {
 		if literal == "break" {
@@ -1102,6 +1138,22 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		position := c.emit(op.JumpForward, Placeholder)
 		loop.continuePos = append(loop.continuePos, position)
 	}
+	return nil
+}
+
+func (c *Compiler) compileReturn(node *ast.Return) error {
+	if c.current.IsRoot() {
+		return fmt.Errorf("compile error: invalid return statement outside of a function")
+	}
+	value := node.Value()
+	if value == nil {
+		c.emit(op.Nil)
+	} else {
+		if err := c.compile(value); err != nil {
+			return err
+		}
+	}
+	c.emit(op.ReturnValue)
 	return nil
 }
 
@@ -1629,6 +1681,84 @@ func (c *Compiler) compileOr(node *ast.Infix) error {
 	return nil
 }
 
+func (c *Compiler) compileGoStmt(node *ast.Go) error {
+	expr := node.Call()
+	switch expr := expr.(type) {
+	case *ast.Call:
+		if err := c.compilePartial(expr); err != nil {
+			return err
+		}
+	case *ast.ObjectCall:
+		if err := c.compilePartialObjectCall(expr); err != nil {
+			return err
+		}
+	}
+	c.emit(op.Go)
+	return nil
+}
+
+func (c *Compiler) compileDeferStmt(node *ast.Defer) error {
+	if c.current.parent == nil {
+		return fmt.Errorf("compile error: defer statement outside of a function")
+	}
+	expr := node.Call()
+	switch expr := expr.(type) {
+	case *ast.Call:
+		if err := c.compilePartial(expr); err != nil {
+			return err
+		}
+	case *ast.ObjectCall:
+		if err := c.compilePartialObjectCall(expr); err != nil {
+			return err
+		}
+	}
+	c.emit(op.Defer)
+	return nil
+}
+
+func (c *Compiler) compilePartial(call *ast.Call) error {
+	args := call.Arguments()
+	argc := len(args)
+	if argc > MaxArgs {
+		return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
+	}
+	if err := c.compile(call.Function()); err != nil {
+		return err
+	}
+	for _, arg := range args {
+		if err := c.compile(arg); err != nil {
+			return err
+		}
+	}
+	c.emit(op.Partial, uint16(argc))
+	return nil
+}
+
+func (c *Compiler) compilePartialObjectCall(node *ast.ObjectCall) error {
+	if err := c.compile(node.Object()); err != nil {
+		return err
+	}
+	expr := node.Call()
+	method, ok := expr.(*ast.Call)
+	if !ok {
+		return fmt.Errorf("compile error: invalid call expression")
+	}
+	name := method.Function().String()
+	c.emit(op.LoadAttr, c.current.addName(name))
+	args := method.Arguments()
+	argc := len(args)
+	if argc > MaxArgs {
+		return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
+	}
+	for _, arg := range args {
+		if err := c.compile(arg); err != nil {
+			return err
+		}
+	}
+	c.emit(op.Partial, uint16(len(args)))
+	return nil
+}
+
 func (c *Compiler) constant(obj any) uint16 {
 	code := c.current
 	if len(code.constants) >= math.MaxUint16 {
@@ -1660,4 +1790,37 @@ func makeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 		offset++
 	}
 	return instruction
+}
+
+func normalizeFunctionBlock(node *ast.Block) []ast.Node {
+	// Return a new slice of ast.Node that has some guarantees:
+	// 1. The slice ends with the first return statement
+	// 2. If there are no return statements, append one implicitly
+	// 3. An implicit return will return either the value of the
+	//    last expression, or nil if the last statement is not an expression.
+	returnNil := ast.NewReturn(token.Token{}, ast.NewNil(token.Token{}))
+	statements := node.Statements()
+	count := len(statements)
+	if count == 0 {
+		return []ast.Node{returnNil}
+	}
+	// Look for an explicit return statement. If one is found, return the
+	// statements up to and including the return statement.
+	for i, stmt := range statements {
+		if _, ok := stmt.(*ast.Return); ok {
+			return statements[:i+1]
+		}
+	}
+	// At this point, we know there was no explicit return statement.
+	// There are two cases to handle:
+	//  1. The last statement is an expression (return that value)
+	//  2. The last statement is not an expression (return nil)
+	last := statements[count-1]
+	switch last := last.(type) {
+	case ast.Expression:
+		statements[count-1] = ast.NewReturn(token.Token{}, last)
+	default:
+		statements = append(statements, returnNil)
+	}
+	return statements
 }

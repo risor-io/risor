@@ -7,6 +7,8 @@ import (
 	"github.com/risor-io/risor/op"
 )
 
+var _ Callable = (*Builtin)(nil) // Ensure that *Builtin implements Callable
+
 // BuiltinFunction holds the type of a built-in function.
 type BuiltinFunction func(ctx context.Context, args ...Object) Object
 
@@ -76,6 +78,17 @@ func (b *Builtin) GetAttr(name string) (Object, bool) {
 			return b.module, true
 		}
 		return Nil, true
+	case "spawn":
+		return &Builtin{
+			name: "builtin.spawn",
+			fn: func(ctx context.Context, args ...Object) Object {
+				thread, err := Spawn(ctx, b, args)
+				if err != nil {
+					return NewError(err)
+				}
+				return thread
+			},
+		}, true
 	}
 	return nil, false
 }

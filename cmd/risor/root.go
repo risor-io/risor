@@ -263,6 +263,7 @@ var rootCmd = &cobra.Command{
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {
 			opts = append(opts, risor.WithLocalImporter(modulesDir))
 		}
+		opts = append(opts, risor.WithConcurrency())
 
 		// Determine what code is to be executed. The code may be supplied
 		// via the --code option, a path supplied as an arg, or stdin.
