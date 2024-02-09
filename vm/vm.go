@@ -265,15 +265,21 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.LoadGlobal:
 			vm.push(vm.activeCode.Globals[vm.fetch()])
 		case op.LoadFree:
+			idx := vm.fetch()
 			freeVars := vm.activeFrame.fn.FreeVars()
-			vm.push(freeVars[vm.fetch()].Value())
+			obj := freeVars[idx].Value()
+			vm.push(obj)
 		case op.StoreFast:
-			vm.activeFrame.Locals()[vm.fetch()] = vm.pop()
+			idx := vm.fetch()
+			obj := vm.pop()
+			vm.activeFrame.Locals()[idx] = obj
 		case op.StoreGlobal:
 			vm.activeCode.Globals[vm.fetch()] = vm.pop()
 		case op.StoreFree:
+			idx := vm.fetch()
+			obj := vm.pop()
 			freeVars := vm.activeFrame.fn.FreeVars()
-			freeVars[vm.fetch()].Set(vm.pop())
+			freeVars[idx].Set(obj)
 		case op.StoreAttr:
 			idx := vm.fetch()
 			obj := vm.pop()

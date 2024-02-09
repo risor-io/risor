@@ -1731,6 +1731,54 @@ func TestDeferFileClose(t *testing.T) {
 	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
 }
 
+func TestDeferBehavior(t *testing.T) {
+	code := `
+	func work(count) {
+		c := chan(count)
+		spawn(func() {
+			defer close(c)
+			for i := 0; i < count; i++ {
+				c <- i
+			}
+		})
+		return c
+	}
+	results := []
+	for _, value := range work(5) {
+		results.append(value)
+	}
+	results
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(0),
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+		object.NewInt(4),
+	}), result)
+}
+
+func TestFreeVariables(t *testing.T) {
+	code := `
+	func test(count) {
+		l := []
+		func() {
+			y := count
+			if true {
+				l.append(y)
+			}
+		}()
+		return l
+	}
+	test(5)
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{object.NewInt(5)}), result)
+}
+
 func TestChannels(t *testing.T) {
 	tests := []testCase{
 		{`c := chan(1); c <- 1; <-c`, object.NewInt(1)},

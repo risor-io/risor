@@ -48,6 +48,26 @@ func TestBlock(t *testing.T) {
 	require.Equal(t, 42, table.Symbol(0).Value())
 }
 
+func TestFunctionID(t *testing.T) {
+	table := NewSymbolTable()  // root
+	block := table.NewBlock()  // root.0
+	fn1 := block.NewChild()    // root.0.0
+	fn1Block := fn1.NewBlock() // root.0.0.0
+	fn2 := fn1Block.NewChild() // root.0.0.0.0
+	fn2Block := fn2.NewBlock() // root.0.0.0.0.0
+
+	require.Equal(t, "root.0.0.0.0.0", fn2Block.ID())
+
+	// The function ID of a block corresponds to its enclosing function
+	fnID, ok := fn2Block.GetFunctionID()
+	require.True(t, ok)
+	require.Equal(t, "root.0.0.0.0", fnID)
+
+	fnID, ok = fn1Block.GetFunctionID()
+	require.True(t, ok)
+	require.Equal(t, "root.0.0", fnID)
+}
+
 func TestFreeVar(t *testing.T) {
 	main := NewSymbolTable()
 	outerFunc := main.NewChild()
@@ -75,6 +95,40 @@ func TestFreeVar(t *testing.T) {
 	require.Equal(t, uint16(1), innerFunc.FreeCount())
 	require.Equal(t, exp, innerFunc.Free(0))
 	require.Equal(t, uint16(0), outerFunc.FreeCount())
+}
+
+func TestFreeVarWithBlocks(t *testing.T) {
+	// Tests that nesting within blocks does not affect the depth of free
+	// variables, and that blocks do not allocate free variables.
+	main := NewSymbolTable()
+	outerFunc := main.NewChild()
+	outerBlock := outerFunc.NewBlock()
+	innerFunc := outerBlock.NewChild()
+	innerBlock := innerFunc.NewBlock()
+
+	outerFunc.InsertVariable("a", 42)
+
+	_, found := innerBlock.Resolve("whut")
+	require.False(t, found)
+
+	res, found := innerBlock.Resolve("a")
+	require.True(t, found)
+
+	exp := &Resolution{
+		symbol: &Symbol{
+			name:  "a",
+			index: 0,
+			value: 42,
+		},
+		scope: Free,
+		depth: 1,
+	}
+	require.Equal(t, exp, res)
+	require.Equal(t, uint16(1), innerFunc.FreeCount())
+	require.Equal(t, exp, innerFunc.Free(0))
+	require.Equal(t, uint16(0), outerFunc.FreeCount())
+	require.Equal(t, uint16(0), outerBlock.FreeCount())
+	require.Equal(t, uint16(0), innerBlock.FreeCount())
 }
 
 func TestConstant(t *testing.T) {
