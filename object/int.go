@@ -157,6 +157,10 @@ func (i *Int) MarshalJSON() ([]byte, error) {
 	return json.Marshal(i.value)
 }
 
+func (i *Int) Iter() Iterator {
+	return NewIntIter(i)
+}
+
 func NewInt(value int64) *Int {
 	if value >= 0 && value < tableSize {
 		return intCache[value]
