@@ -1189,6 +1189,11 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 		}
 		list = append(list, p.parseExpression(LOWEST))
 	}
+	for p.peekTokenIs(token.NEWLINE) {
+		if err := p.nextToken(); err != nil {
+			return nil
+		}
+	}
 	if !p.expectPeek("an expression list", end) {
 		return nil
 	}
@@ -1403,6 +1408,10 @@ func (p *Parser) parseMapOrSet() ast.Node {
 		firstValue := p.parseExpression(LOWEST)
 		pairs := map[ast.Expression]ast.Expression{firstKey: firstValue}
 		for !p.peekTokenIs(token.RBRACE) {
+			if p.peekTokenIs(token.NEWLINE) {
+				p.nextToken()
+				break
+			}
 			if !p.expectPeek("map", token.COMMA) {
 				return nil
 			}
