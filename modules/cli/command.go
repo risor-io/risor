@@ -44,10 +44,7 @@ func (c *Command) RunOperation(opType op.BinaryOpType, right object.Object) obje
 }
 
 func (c *Command) Equals(other object.Object) object.Object {
-	if other.Type() != "cli.command" {
-		return object.False
-	}
-	return object.NewBool(c.value == other.(*Command).value)
+	return object.NewBool(c == other)
 }
 
 func (c *Command) SetAttr(name string, value object.Object) error {
@@ -212,7 +209,7 @@ func NewCommand(c *ucli.Command) *Command {
 		_, err := callFunc(
 			ctx.Context,
 			cmd.action,
-			[]object.Object{NewContext(ctx)},
+			[]object.Object{NewCtx(ctx)},
 		)
 		return err
 	}

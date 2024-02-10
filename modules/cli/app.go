@@ -93,7 +93,7 @@ func (app *App) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
+func NewApp(opts *object.Map) (*App, error) {
 
 	app := &ucli.App{}
 
@@ -123,18 +123,13 @@ func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
 		return nil, err
 	}
 
-	if authorsOpt := opts.Get("authors"); authorsOpt != object.Nil {
-		if authors, err := object.AsStringSlice(authorsOpt); err == nil {
-			app.Authors = []*ucli.Author{}
-			for _, author := range authors {
-				app.Authors = append(app.Authors, &ucli.Author{Name: author})
-			}
-		}
-	}
-
 	if actionOpt := opts.Get("action"); actionOpt != object.Nil {
 		if action, ok := actionOpt.(*object.Function); ok {
 			app.Action = func(c *ucli.Context) error {
+				callFunc, ok := object.GetCallFunc(c.Context)
+				if !ok {
+					return fmt.Errorf("no call function found")
+				}
 				args := []object.Object{}
 				for _, arg := range c.Args().Slice() {
 					args = append(args, object.NewString(arg))
@@ -157,7 +152,7 @@ func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
 				case *Command:
 					app.Commands = append(app.Commands, command.value)
 				default:
-					return nil, fmt.Errorf("type error: expected a command, got %T", command)
+					return nil, fmt.Errorf("type error: expected a command (got %s)", command.Type())
 				}
 			}
 		}
@@ -169,18 +164,14 @@ func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
 			for _, flagOpt := range flags.Value() {
 				flagObj, ok := flagOpt.(*Flag)
 				if !ok {
-					return nil, fmt.Errorf("type error: expected a flag, got %T", flagOpt)
+					return nil, fmt.Errorf("type error: expected a flag (got %s)", flagOpt.Type())
 				}
 				app.Flags = append(app.Flags, flagObj.value)
 			}
 		}
 	}
 
-	obj := &App{
-		app:      app,
-		callFunc: callFunc,
-	}
-	return obj, nil
+	return &App{app: app}, nil
 }
 
 func getMapStr(opts *object.Map, key string) (string, error) {

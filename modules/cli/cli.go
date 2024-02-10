@@ -16,11 +16,7 @@ func AppFunc(ctx context.Context, args ...object.Object) object.Object {
 	if objErr != nil {
 		return objErr
 	}
-	callFunc, ok := object.GetCallFunc(ctx)
-	if !ok {
-		return object.Errorf("no call function found")
-	}
-	app, err := New(opts, callFunc)
+	app, err := NewApp(opts)
 	if err != nil {
 		return object.NewError(err)
 	}

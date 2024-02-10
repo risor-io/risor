@@ -1,0 +1,27 @@
+#!/usr/bin/env risor --
+
+app := cli.app({
+    name: "encode",
+    help_name: "encode",
+    description: "Encode text in various formats",
+    commands: [
+        cli.command({
+            name: "base64",
+            action: func(ctx) {
+                for _, text := range ctx.args() {
+                    print(encode(text, "base64"))
+                }
+            }
+        }),
+        cli.command({
+            name: "hex",
+            action: func(ctx) {
+                for _, text := range ctx.args() {
+                    print(encode(text, "hex"))
+                }
+            }
+        }),
+    ]
+})
+
+app.run()

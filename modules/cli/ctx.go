@@ -45,10 +45,7 @@ func (c *Ctx) RunOperation(opType op.BinaryOpType, right object.Object) object.O
 }
 
 func (c *Ctx) Equals(other object.Object) object.Object {
-	if other.Type() != "cli.ctx" {
-		return object.False
-	}
-	return object.NewBool(c.value == other.(*Ctx).value)
+	return object.NewBool(c == other)
 }
 
 func (c *Ctx) SetAttr(name string, value object.Object) error {
@@ -177,6 +174,6 @@ func (c *Ctx) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func NewContext(c *ucli.Context) *Ctx {
+func NewCtx(c *ucli.Context) *Ctx {
 	return &Ctx{value: c}
 }
