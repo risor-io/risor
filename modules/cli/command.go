@@ -11,7 +11,8 @@ import (
 const COMMAND object.Type = "cli.command"
 
 type Command struct {
-	value *ucli.Command
+	value  *ucli.Command
+	action *object.Function
 }
 
 func (c *Command) Type() object.Type {
@@ -52,6 +53,26 @@ func (c *Command) Equals(other object.Object) object.Object {
 func (c *Command) SetAttr(name string, value object.Object) error {
 	var errObj *object.Error
 	switch name {
+	case "action":
+		fn, ok := value.(*object.Function)
+		if !ok {
+			return fmt.Errorf("expected %s, got %s", object.FUNCTION, value.Type())
+		}
+		c.action = fn
+	case "flags":
+		flagsList, ok := value.(*object.List)
+		if !ok {
+			return fmt.Errorf("expected %s, got %s", object.LIST, value.Type())
+		}
+		flags := make([]ucli.Flag, flagsList.Size())
+		for i, f := range flagsList.Value() {
+			flag, ok := f.(*Flag)
+			if !ok {
+				return fmt.Errorf("expected %s, got %s", FLAG, f.Type())
+			}
+			flags[i] = flag.value
+		}
+		c.value.Flags = flags
 	case "name":
 		c.value.Name, errObj = object.AsString(value)
 		if errObj != nil {
@@ -130,6 +151,14 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 
 func (c *Command) GetAttr(name string) (object.Object, bool) {
 	switch name {
+	case "action":
+		return c.action, true
+	case "flags":
+		l := make([]object.Object, len(c.value.Flags))
+		for i, f := range c.value.Flags {
+			l[i] = NewFlag(f)
+		}
+		return object.NewList(l), true
 	case "name":
 		return object.NewString(c.value.Name), true
 	case "aliases":
@@ -169,5 +198,23 @@ func (c *Command) GetAttr(name string) (object.Object, bool) {
 }
 
 func NewCommand(c *ucli.Command) *Command {
-	return &Command{value: c}
+	cmd := &Command{
+		value: c,
+	}
+	c.Action = func(ctx *ucli.Context) error {
+		if cmd.action == nil {
+			return nil
+		}
+		callFunc, ok := object.GetCallFunc(ctx.Context)
+		if !ok {
+			return fmt.Errorf("no call function found")
+		}
+		_, err := callFunc(
+			ctx.Context,
+			cmd.action,
+			[]object.Object{NewContext(ctx)},
+		)
+		return err
+	}
+	return cmd
 }

@@ -78,7 +78,7 @@ func (app *App) GetAttr(name string) (object.Object, bool) {
 					return errObj
 				}
 			}
-			if err := app.app.Run(strArgs); err != nil {
+			if err := app.app.RunContext(ctx, strArgs); err != nil {
 				return object.NewError(err)
 			}
 			return object.Nil
@@ -93,34 +93,34 @@ func (app *App) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-// func (app *App) Run()
-
 func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
 
 	app := &ucli.App{}
 
-	if nameOpt := opts.Get("name"); nameOpt != object.Nil {
-		if name, err := object.AsString(nameOpt); err == nil {
-			app.Name = name
-		}
+	var err error
+	app.Name, err = getMapStr(opts, "name")
+	if err != nil {
+		return nil, err
 	}
-
-	if usageOpt := opts.Get("usage"); usageOpt != object.Nil {
-		if usage, err := object.AsString(usageOpt); err == nil {
-			app.Usage = usage
-		}
+	app.HelpName, err = getMapStr(opts, "help_name")
+	if err != nil {
+		return nil, err
 	}
-
-	if descriptionOpt := opts.Get("description"); descriptionOpt != object.Nil {
-		if description, err := object.AsString(descriptionOpt); err == nil {
-			app.Description = description
-		}
+	app.Usage, err = getMapStr(opts, "usage")
+	if err != nil {
+		return nil, err
 	}
-
-	if versionOpt := opts.Get("version"); versionOpt != object.Nil {
-		if version, err := object.AsString(versionOpt); err == nil {
-			app.Version = version
-		}
+	app.UsageText, err = getMapStr(opts, "usage_text")
+	if err != nil {
+		return nil, err
+	}
+	app.Description, err = getMapStr(opts, "description")
+	if err != nil {
+		return nil, err
+	}
+	app.Version, err = getMapStr(opts, "version")
+	if err != nil {
+		return nil, err
 	}
 
 	if authorsOpt := opts.Get("authors"); authorsOpt != object.Nil {
@@ -163,12 +163,32 @@ func New(opts *object.Map, callFunc object.CallFunc) (*App, error) {
 		}
 	}
 
+	if flagsOpt := opts.Get("flags"); flagsOpt != object.Nil {
+		if flags, err := object.AsList(flagsOpt); err == nil {
+			app.Flags = []ucli.Flag{}
+			for _, flagOpt := range flags.Value() {
+				flagObj, ok := flagOpt.(*Flag)
+				if !ok {
+					return nil, fmt.Errorf("type error: expected a flag, got %T", flagOpt)
+				}
+				app.Flags = append(app.Flags, flagObj.value)
+			}
+		}
+	}
+
 	obj := &App{
 		app:      app,
 		callFunc: callFunc,
 	}
-
-	// obj.app.Action = func(c *ucli.Context) error {
-
 	return obj, nil
+}
+
+func getMapStr(opts *object.Map, key string) (string, error) {
+	if opt := opts.Get(key); opt != object.Nil {
+		if str, err := object.AsString(opt); err == nil {
+			return str, nil
+		}
+		return "", fmt.Errorf("type error: %s must be a string", key)
+	}
+	return "", nil
 }

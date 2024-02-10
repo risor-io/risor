@@ -13,8 +13,7 @@ import (
 const CTX object.Type = "cli.ctx"
 
 type Ctx struct {
-	value    *ucli.Context
-	callFunc object.CallFunc
+	value *ucli.Context
 }
 
 func (c *Ctx) Type() object.Type {
@@ -130,10 +129,54 @@ func (c *Ctx) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("cli.ctx.num_flags", func(ctx context.Context, args ...object.Object) object.Object {
 			return object.NewInt(int64(c.value.NumFlags()))
 		}), true
+	case "bool":
+		return object.NewBuiltin("cli.ctx.bool", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("cli.ctx.bool", 1, args); err != nil {
+				return err
+			}
+			name, err := object.AsString(args[0])
+			if err != nil {
+				return err
+			}
+			return object.NewBool(c.value.Bool(name))
+		}), true
+	case "int":
+		return object.NewBuiltin("cli.ctx.int", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("cli.ctx.int", 1, args); err != nil {
+				return err
+			}
+			name, err := object.AsString(args[0])
+			if err != nil {
+				return err
+			}
+			return object.NewInt(int64(c.value.Int(name)))
+		}), true
+	case "string":
+		return object.NewBuiltin("cli.ctx.string", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("cli.ctx.string", 1, args); err != nil {
+				return err
+			}
+			name, err := object.AsString(args[0])
+			if err != nil {
+				return err
+			}
+			return object.NewString(c.value.String(name))
+		}), true
+	case "string_slice":
+		return object.NewBuiltin("cli.ctx.string_slice", func(ctx context.Context, args ...object.Object) object.Object {
+			if err := arg.Require("cli.ctx.string_slice", 1, args); err != nil {
+				return err
+			}
+			name, err := object.AsString(args[0])
+			if err != nil {
+				return err
+			}
+			return object.NewStringList(c.value.StringSlice(name))
+		}), true
 	}
 	return nil, false
 }
 
-func NewContext(c *ucli.Context, callFunc object.CallFunc) *Ctx {
-	return &Ctx{c, callFunc}
+func NewContext(c *ucli.Context) *Ctx {
+	return &Ctx{value: c}
 }

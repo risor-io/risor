@@ -115,7 +115,19 @@ func setNamedField(i interface{}, name string, value object.Object) error {
 	if !fieldVal.CanSet() {
 		return fmt.Errorf("cannot set field: %s in obj", name)
 	}
-	fieldVal.Set(reflect.ValueOf(value.Interface()))
+	if listObj, ok := value.(*object.List); ok {
+		var values []string
+		for _, v := range listObj.Value() {
+			str, err := object.AsString(v)
+			if err != nil {
+				return err.Value()
+			}
+			values = append(values, str)
+		}
+		fieldVal.Set(reflect.ValueOf(values))
+	} else {
+		fieldVal.Set(reflect.ValueOf(value.Interface()))
+	}
 	return nil
 }
 
