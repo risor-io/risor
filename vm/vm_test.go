@@ -1867,6 +1867,62 @@ func TestSpawn(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestMaps(t *testing.T) {
+	tests := []testCase{
+		{`{"a": 1}`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(1),
+		})},
+		{`{"a": 1,}`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(1),
+		})},
+		{`{"a": 1,
+		  }`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(1),
+		})},
+		{`{"a": 1,
+		   "b": 2}`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(1),
+			"b": object.NewInt(2),
+		})},
+		{`{"a": 1,
+			"b": 2
+		}`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(1),
+			"b": object.NewInt(2),
+		})},
+	}
+	runTests(t, tests)
+}
+
+func TestLists(t *testing.T) {
+	tests := []testCase{
+		{`[1,2,3]`, object.NewList([]object.Object{
+			object.NewInt(1),
+			object.NewInt(2),
+			object.NewInt(3),
+		})},
+		{`[1,
+		   2,
+		   3]`, object.NewList([]object.Object{
+			object.NewInt(1),
+			object.NewInt(2),
+			object.NewInt(3),
+		})},
+		{`[1,
+		   2,]`, object.NewList([]object.Object{
+			object.NewInt(1),
+			object.NewInt(2),
+		})},
+		{`[1,
+		2
+		]`, object.NewList([]object.Object{
+			object.NewInt(1),
+			object.NewInt(2),
+		})},
+	}
+	runTests(t, tests)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
