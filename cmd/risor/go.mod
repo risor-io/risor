@@ -1,10 +1,11 @@
 module github.com/risor-io/risor/cmd/risor
 
-go 1.21
+go 1.21.6
 
 replace (
 	github.com/risor-io/risor => ../..
 	github.com/risor-io/risor/modules/aws => ../../modules/aws
+	github.com/risor-io/risor/modules/cli => ../../modules/cli
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
 	github.com/risor-io/risor/modules/image => ../../modules/image
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
@@ -98,6 +99,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/xray v1.18.0 // indirect
 	github.com/aws/smithy-go v1.14.2 // indirect
 	github.com/containerd/console v1.0.3 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
@@ -145,6 +147,8 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/risor-io/risor/modules/cli v0.0.0-00010101000000-000000000000 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
@@ -152,7 +156,9 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/urfave/cli/v2 v2.27.1 // indirect
 	github.com/xo/dburl v0.20.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect
 	golang.org/x/image v0.14.0 // indirect
