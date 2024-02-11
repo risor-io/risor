@@ -14,28 +14,27 @@ import (
 const APP object.Type = "cli.app"
 
 type App struct {
-	app      *ucli.App
-	callFunc object.CallFunc
+	value *ucli.App
 }
 
 func (app *App) Type() object.Type {
-	return "app"
+	return APP
 }
 
 func (app *App) Inspect() string {
-	return "cli.app"
+	return fmt.Sprintf("%s()", app.Type())
 }
 
 func (app *App) Interface() interface{} {
-	return app.app
+	return app.value
 }
 
 func (app *App) IsTruthy() bool {
-	return app.app != nil
+	return true
 }
 
 func (app *App) Cost() int {
-	return 8
+	return 0
 }
 
 func (app *App) MarshalJSON() ([]byte, error) {
@@ -47,10 +46,7 @@ func (app *App) RunOperation(opType op.BinaryOpType, right object.Object) object
 }
 
 func (app *App) Equals(other object.Object) object.Object {
-	if other.Type() != "cli.app" {
-		return object.False
-	}
-	return object.NewBool(app.app == other.(*App).app)
+	return object.NewBool(app == other)
 }
 
 func (app *App) SetAttr(name string, value object.Object) error {
@@ -60,32 +56,33 @@ func (app *App) SetAttr(name string, value object.Object) error {
 func (app *App) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "name":
-		return object.NewString(app.app.Name), true
+		return object.NewString(app.value.Name), true
 	case "usage":
-		return object.NewString(app.app.Usage), true
+		return object.NewString(app.value.Usage), true
 	case "run":
-		return object.NewBuiltin("cli.app.run", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.RequireRange("cli.app.run", 0, 1, args); err != nil {
-				return err
-			}
-			var strArgs []string
-			if len(args) == 0 {
-				strArgs = os.GetDefaultOS(ctx).Args()
-			} else {
-				var errObj *object.Error
-				strArgs, errObj = object.AsStringSlice(args[0])
-				if errObj != nil {
-					return errObj
+		return object.NewBuiltin("cli.app.run",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.RequireRange("cli.app.run", 0, 1, args); err != nil {
+					return err
 				}
-			}
-			if err := app.app.RunContext(ctx, strArgs); err != nil {
-				return object.NewError(err)
-			}
-			return object.Nil
-		}), true
+				var strArgs []string
+				if len(args) == 0 {
+					strArgs = os.GetDefaultOS(ctx).Args()
+				} else {
+					var errObj *object.Error
+					strArgs, errObj = object.AsStringSlice(args[0])
+					if errObj != nil {
+						return errObj
+					}
+				}
+				if err := app.value.RunContext(ctx, strArgs); err != nil {
+					return object.NewError(err)
+				}
+				return object.Nil
+			}), true
 	case "commands":
 		var commands []object.Object
-		for _, cmd := range app.app.Commands {
+		for _, cmd := range app.value.Commands {
 			commands = append(commands, NewCommand(cmd))
 		}
 		return object.NewList(commands), true
@@ -171,7 +168,7 @@ func NewApp(opts *object.Map) (*App, error) {
 		}
 	}
 
-	return &App{app: app}, nil
+	return &App{value: app}, nil
 }
 
 func getMapStr(opts *object.Map, key string) (string, error) {

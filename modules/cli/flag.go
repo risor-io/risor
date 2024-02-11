@@ -17,11 +17,11 @@ type Flag struct {
 }
 
 func (f *Flag) Type() object.Type {
-	return "cli.flag"
+	return FLAG
 }
 
 func (f *Flag) Inspect() string {
-	return "cli.flag"
+	return fmt.Sprintf("%s()", f.Type())
 }
 
 func (f *Flag) Interface() interface{} {
@@ -45,10 +45,7 @@ func (f *Flag) RunOperation(opType op.BinaryOpType, right object.Object) object.
 }
 
 func (f *Flag) Equals(other object.Object) object.Object {
-	if other.Type() != "cli.flag" {
-		return object.False
-	}
-	return object.NewBool(f.value == other.(*Flag).value)
+	return object.NewBool(f == other)
 }
 
 func (f *Flag) SetAttr(name string, value object.Object) error {

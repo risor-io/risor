@@ -17,11 +17,11 @@ type Ctx struct {
 }
 
 func (c *Ctx) Type() object.Type {
-	return "cli.ctx"
+	return CTX
 }
 
 func (c *Ctx) Inspect() string {
-	return "cli.ctx"
+	return fmt.Sprintf("%s()", c.Type())
 }
 
 func (c *Ctx) Interface() interface{} {
@@ -55,121 +55,134 @@ func (c *Ctx) SetAttr(name string, value object.Object) error {
 func (c *Ctx) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "args":
-		return object.NewBuiltin("cli.ctx.args", func(ctx context.Context, args ...object.Object) object.Object {
-			return object.NewStringList(c.value.Args().Slice())
-		}), true
+		return object.NewBuiltin("cli.ctx.args",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				return object.NewStringList(c.value.Args().Slice())
+			}), true
 	case "narg":
-		return object.NewBuiltin("cli.ctx.narg", func(ctx context.Context, args ...object.Object) object.Object {
-			return object.NewInt(int64(c.value.NArg()))
-		}), true
+		return object.NewBuiltin("cli.ctx.narg",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				return object.NewInt(int64(c.value.NArg()))
+			}), true
 	case "value":
-		return object.NewBuiltin("cli.ctx.value", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.value", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			val := c.value.Value(name)
-			return object.FromGoType(val)
-		}), true
+		return object.NewBuiltin("cli.ctx.value",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.value", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				val := c.value.Value(name)
+				return object.FromGoType(val)
+			}), true
 	case "count":
-		return object.NewBuiltin("cli.ctx.count", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.count", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewInt(int64(c.value.Count(name)))
-		}), true
+		return object.NewBuiltin("cli.ctx.count",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.count", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewInt(int64(c.value.Count(name)))
+			}), true
 	case "flag_names":
-		return object.NewBuiltin("cli.ctx.flag_names", func(ctx context.Context, args ...object.Object) object.Object {
-			return object.NewStringList(c.value.FlagNames())
-		}), true
+		return object.NewBuiltin("cli.ctx.flag_names",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				return object.NewStringList(c.value.FlagNames())
+			}), true
 	case "local_flag_names":
-		return object.NewBuiltin("cli.ctx.local_flag_names", func(ctx context.Context, args ...object.Object) object.Object {
-			return object.NewStringList(c.value.LocalFlagNames())
-		}), true
+		return object.NewBuiltin("cli.ctx.local_flag_names",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				return object.NewStringList(c.value.LocalFlagNames())
+			}), true
 	case "is_set":
-		return object.NewBuiltin("cli.ctx.is_set", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.is_set", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewBool(c.value.IsSet(name))
-		}), true
+		return object.NewBuiltin("cli.ctx.is_set",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.is_set", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewBool(c.value.IsSet(name))
+			}), true
 	case "set":
-		return object.NewBuiltin("cli.ctx.set", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.set", 2, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			value, err := object.AsString(args[1])
-			if err != nil {
-				return err
-			}
-			if err := c.value.Set(name, value); err != nil {
-				return object.NewError(err)
-			}
-			return object.Nil
-		}), true
+		return object.NewBuiltin("cli.ctx.set",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.set", 2, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				value, err := object.AsString(args[1])
+				if err != nil {
+					return err
+				}
+				if err := c.value.Set(name, value); err != nil {
+					return object.NewError(err)
+				}
+				return object.Nil
+			}), true
 	case "num_flags":
-		return object.NewBuiltin("cli.ctx.num_flags", func(ctx context.Context, args ...object.Object) object.Object {
-			return object.NewInt(int64(c.value.NumFlags()))
-		}), true
+		return object.NewBuiltin("cli.ctx.num_flags",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				return object.NewInt(int64(c.value.NumFlags()))
+			}), true
 	case "bool":
-		return object.NewBuiltin("cli.ctx.bool", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.bool", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewBool(c.value.Bool(name))
-		}), true
+		return object.NewBuiltin("cli.ctx.bool",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.bool", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewBool(c.value.Bool(name))
+			}), true
 	case "int":
-		return object.NewBuiltin("cli.ctx.int", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.int", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewInt(int64(c.value.Int(name)))
-		}), true
+		return object.NewBuiltin("cli.ctx.int",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.int", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewInt(int64(c.value.Int(name)))
+			}), true
 	case "string":
-		return object.NewBuiltin("cli.ctx.string", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.string", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewString(c.value.String(name))
-		}), true
+		return object.NewBuiltin("cli.ctx.string",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.string", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewString(c.value.String(name))
+			}), true
 	case "string_slice":
-		return object.NewBuiltin("cli.ctx.string_slice", func(ctx context.Context, args ...object.Object) object.Object {
-			if err := arg.Require("cli.ctx.string_slice", 1, args); err != nil {
-				return err
-			}
-			name, err := object.AsString(args[0])
-			if err != nil {
-				return err
-			}
-			return object.NewStringList(c.value.StringSlice(name))
-		}), true
+		return object.NewBuiltin("cli.ctx.string_slice",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if err := arg.Require("cli.ctx.string_slice", 1, args); err != nil {
+					return err
+				}
+				name, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+				return object.NewStringList(c.value.StringSlice(name))
+			}), true
 	}
 	return nil, false
 }

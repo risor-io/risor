@@ -16,11 +16,11 @@ type Command struct {
 }
 
 func (c *Command) Type() object.Type {
-	return "cli.command"
+	return COMMAND
 }
 
 func (c *Command) Inspect() string {
-	return "cli.command"
+	return fmt.Sprintf("%s()", c.Type())
 }
 
 func (c *Command) Interface() interface{} {
