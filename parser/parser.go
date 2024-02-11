@@ -736,19 +736,58 @@ func (p *Parser) parseFromImport() ast.Node {
 		}))
 		return nil
 	}
+	importToken := p.curToken
+	// If the imports are surrounded by parentheses, we are in a grouped import
+	// which may span multiple lines
+	isGrouped := false
+	if p.peekTokenIs(token.LPAREN) {
+		isGrouped = true
+		p.nextToken()
+		for p.peekTokenIs(token.NEWLINE) {
+			p.nextToken()
+		}
+	}
+	// Move to the first identifier
 	if !p.expectPeek("a from-import statement", token.IDENT) {
 		return nil
 	}
-	moduleName := ast.NewIdent(p.curToken)
-	var alias *ast.Ident
-	if p.peekTokenIs(token.AS) {
-		p.nextToken()
-		if !p.expectPeek("a from-import statement", token.IDENT) {
+	var imports []*ast.Import
+	for {
+		name := ast.NewIdent(p.curToken)
+		var alias *ast.Ident
+		if p.peekTokenIs(token.AS) {
+			p.nextToken()
+			if !p.expectPeek("a from-import statement", token.IDENT) {
+				return nil
+			}
+			alias = ast.NewIdent(p.curToken)
+		}
+		thisImport := ast.NewImport(importToken, name, alias)
+		imports = append(imports, thisImport)
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			if isGrouped {
+				for p.peekTokenIs(token.NEWLINE) {
+					p.nextToken()
+				}
+				if p.peekTokenIs(token.RPAREN) {
+					break
+				}
+			}
+			// Advance to the next identifier
+			if !p.expectPeek("a from-import statement", token.IDENT) {
+				return nil
+			}
+		} else {
+			break
+		}
+	}
+	if isGrouped {
+		if !p.expectPeek("a from-import statement", token.RPAREN) {
 			return nil
 		}
-		alias = ast.NewIdent(p.curToken)
 	}
-	return ast.NewFromImport(fromToken, parentModule, moduleName, alias)
+	return ast.NewFromImport(fromToken, parentModule, imports, isGrouped)
 }
 
 func (p *Parser) parseBoolean() ast.Node {

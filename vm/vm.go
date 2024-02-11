@@ -530,13 +530,17 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(module)
 		case op.FromImport:
 			parentLen := vm.fetch()
-			nameLen := vm.fetch()
-			if nameLen != 1 {
-				return fmt.Errorf("exec error: from-import name length is not 1: %d", nameLen)
+			importsCount := vm.fetch()
+			if importsCount > 255 {
+				return fmt.Errorf("exec error: invalid imports count: %d", importsCount)
 			}
-			name, ok := vm.pop().(*object.String)
-			if !ok {
-				return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
+			var names []string
+			for i := uint16(0); i < importsCount; i++ {
+				name, ok := vm.pop().(*object.String)
+				if !ok {
+					return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
+				}
+				names = append(names, name.Value())
 			}
 			from := make([]string, parentLen)
 			for i := int(parentLen - 1); i >= 0; i-- {
@@ -546,22 +550,24 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				}
 				from[i] = val.Value()
 			}
-			// name is a real module name
-			module, err := vm.loadModule(ctx, filepath.Join(filepath.Join(from...), name.Value()))
-			if err == nil {
-				vm.push(module)
-			} else {
-				// name is a symbol
-				module, err := vm.loadModule(ctx, filepath.Join(from...))
-				if err != nil {
-					return err
+			for _, name := range names {
+				// check if the name matches a module
+				module, err := vm.loadModule(ctx, filepath.Join(filepath.Join(from...), name))
+				if err == nil {
+					vm.push(module)
+				} else {
+					// otherwise, the name is a symbol inside a module
+					module, err := vm.loadModule(ctx, filepath.Join(from...))
+					if err != nil {
+						return err
+					}
+					attr, found := module.GetAttr(name)
+					if !found {
+						return fmt.Errorf("import error: cannot import name %q from %q",
+							name, module.Name())
+					}
+					vm.push(attr)
 				}
-				attr, found := module.GetAttr(name.String())
-				if !found {
-					return fmt.Errorf("import error: cannot import name %q from %q",
-						name.String(), module.Name())
-				}
-				vm.push(attr)
 			}
 		case op.PopTop:
 			vm.pop()

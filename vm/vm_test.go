@@ -1589,6 +1589,11 @@ func TestFromImport(t *testing.T) {
 		{`from a.b import data as b_data; from a.function import plusOne; plusOne(b_data.mapValue["1"]) `, object.NewInt(2)},
 		{`from math import min; min(3,-7)`, object.NewFloat(-7)},
 		{`from math import min as m; m(3,-7)`, object.NewFloat(-7)},
+		{`from math import (min as a, max as b); [a(1,2), b(1,2)]`,
+			object.NewList([]object.Object{
+				object.NewFloat(1),
+				object.NewFloat(2),
+			})},
 	}
 	runTests(t, tests)
 }

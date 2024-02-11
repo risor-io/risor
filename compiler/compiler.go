@@ -591,7 +591,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {
-	name := node.Module().String()
+	name := node.Name().String()
 	c.emit(op.LoadConst, c.constant(name))
 	c.emit(op.Import)
 	if node.Alias() != nil {
@@ -616,33 +616,41 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 }
 
 func (c *Compiler) compileFromImport(node *ast.FromImport) error {
-	if len(node.Parents()) > math.MaxUint16 {
-		return fmt.Errorf("compile error: too many parents in from import")
+	if len(node.Parents()) > 255 {
+		return fmt.Errorf("compile error: too many parents in from-import")
 	}
 	for _, parent := range node.Parents() {
 		c.emit(op.LoadConst, c.constant(parent.String()))
 	}
-	model := node.Module().String()
-	c.emit(op.LoadConst, c.constant(model))
-	c.emit(op.FromImport, uint16(len(node.Parents())), 1)
-	name := model
-	if node.Alias() != nil {
-		name = node.Alias().String()
-	}
-	var sym *Symbol
-	var found bool
-	sym, found = c.current.symbols.Get(name)
-	if !found {
-		var err error
-		sym, err = c.current.symbols.InsertConstant(name)
-		if err != nil {
-			return err
+	aliases := map[string]string{}
+	for _, im := range node.Imports() {
+		name := im.Name().String()
+		alias := name
+		if im.Alias() != nil {
+			alias = im.Alias().String()
 		}
+		c.emit(op.LoadConst, c.constant(name))
+		aliases[name] = alias
 	}
-	if c.current.parent == nil {
-		c.emit(op.StoreGlobal, sym.Index())
-	} else {
-		c.emit(op.StoreFast, sym.Index())
+	c.emit(op.FromImport, uint16(len(node.Parents())), uint16(len(node.Imports())))
+	for _, im := range node.Imports() {
+		name := im.Name().String()
+		alias := aliases[name]
+		var sym *Symbol
+		var found bool
+		sym, found = c.current.symbols.Get(alias)
+		if !found {
+			var err error
+			sym, err = c.current.symbols.InsertConstant(alias)
+			if err != nil {
+				return err
+			}
+		}
+		if c.current.parent == nil {
+			c.emit(op.StoreGlobal, sym.Index())
+		} else {
+			c.emit(op.StoreFast, sym.Index())
+		}
 	}
 	return nil
 }
