@@ -1032,3 +1032,45 @@ func TestInvalidDeferStatements(t *testing.T) {
 		require.Equal(t, "parse error: invalid defer statement", err.Error())
 	}
 }
+
+func TestFromImport(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"from math import min", "from math import min"},
+		{"from math import min, max", "from math import min, max"},
+		{"from math import min as a, max as b", "from math import min as a, max as b"},
+		{`from math import (
+			min as a,
+			max as b,
+		  )`, "from math import (min as a, max as b)"},
+	}
+	for _, tt := range tests {
+		result, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Equal(t, tt.expected, result.String())
+		require.IsType(t, &ast.FromImport{}, result.Statements()[0])
+	}
+}
+
+func TestBadFromImport(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"from math import", "parse error: unexpected end of file while parsing a from-import statement (expected identifier)"},
+		{"from math import min,", "parse error: unexpected end of file while parsing a from-import statement (expected identifier)"},
+		{"from math import min as a,", "parse error: unexpected end of file while parsing a from-import statement (expected identifier)"},
+		{"from math import ", "parse error: unexpected end of file while parsing a from-import statement (expected identifier)"},
+		{"from math", "parse error: from-import is missing import statement"},
+		{"from math import (a", "parse error: unexpected end of file while parsing a from-import statement (expected ))"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			_, err := Parse(context.Background(), tt.input)
+			require.NotNil(t, err)
+			require.Equal(t, tt.expected, err.Error())
+		})
+	}
+}

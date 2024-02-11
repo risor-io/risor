@@ -422,7 +422,7 @@ func (i *Import) Token() token.Token { return i.token }
 
 func (i *Import) Literal() string { return i.token.Literal }
 
-func (i *Import) Module() *Ident { return i.name }
+func (i *Import) Name() *Ident { return i.name }
 
 func (i *Import) Alias() *Ident { return i.alias }
 
@@ -433,21 +433,30 @@ func (i *Import) String() string {
 	if i.alias != nil {
 		out.WriteString(" as " + i.alias.Literal())
 	}
-	out.WriteString(";")
 	return out.String()
 }
 
 // FromImport is a statement node that describes a module import statement.
 type FromImport struct {
-	token   token.Token // the "from" token
-	parents []*Ident    // parent modules
-	name    *Ident      // name of the module to import
-	alias   *Ident      // optional alias for the module
+	token     token.Token // the "from" token
+	parents   []*Ident    // parent modules
+	imports   []*Import   // the imports, each with optional alias
+	isGrouped bool
 }
 
 // NewFromImport creates a new FromImport node.
-func NewFromImport(token token.Token, parents []*Ident, name *Ident, alias *Ident) *FromImport {
-	return &FromImport{token: token, parents: parents, name: name, alias: alias}
+func NewFromImport(
+	token token.Token,
+	parents []*Ident,
+	imports []*Import,
+	isGrouped bool,
+) *FromImport {
+	return &FromImport{
+		token:     token,
+		parents:   parents,
+		imports:   imports,
+		isGrouped: isGrouped,
+	}
 }
 
 func (i *FromImport) StatementNode() {}
@@ -460,21 +469,33 @@ func (i *FromImport) Literal() string { return i.token.Literal }
 
 func (i *FromImport) Parents() []*Ident { return i.parents }
 
-func (i *FromImport) Module() *Ident { return i.name }
-
-func (i *FromImport) Alias() *Ident { return i.alias }
+func (i *FromImport) Imports() []*Import { return i.imports }
 
 func (i *FromImport) String() string {
 	var out bytes.Buffer
 	out.WriteString(i.Literal() + " ")
-	for _, parent := range i.parents {
-		out.WriteString(parent.Literal() + ".")
+	for i, parent := range i.parents {
+		if i > 0 {
+			out.WriteString(".")
+		}
+		out.WriteString(parent.Literal())
 	}
-	out.WriteString(i.name.Literal())
-	if i.alias != nil {
-		out.WriteString(" as " + i.alias.Literal())
+	out.WriteString(" import ")
+	if i.isGrouped {
+		out.WriteString("(")
 	}
-	out.WriteString(";")
+	for idx, im := range i.imports {
+		if idx > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(im.name.Literal())
+		if im.alias != nil {
+			out.WriteString(" as " + im.alias.Literal())
+		}
+	}
+	if i.isGrouped {
+		out.WriteString(")")
+	}
 	return out.String()
 }
 
