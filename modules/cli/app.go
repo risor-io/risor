@@ -91,7 +91,6 @@ func (app *App) GetAttr(name string) (object.Object, bool) {
 }
 
 func NewApp(opts *object.Map) (*App, error) {
-
 	app := &ucli.App{}
 
 	var err error
