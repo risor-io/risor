@@ -23,61 +23,60 @@ func AppFunc(ctx context.Context, args ...object.Object) object.Object {
 	return app
 }
 
-func NewStringFlag(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("cli.string_flag", 1, args); err != nil {
+func FlagFunc(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("cli.flag", 1, args); err != nil {
 		return err
 	}
-	opts, objErr := object.AsMap(args[0])
+	optsMap, objErr := object.AsMap(args[0])
 	if objErr != nil {
 		return objErr
 	}
-	flag := NewFlag(&ucli.StringFlag{})
-	if err := setFlagAttrs(flag, opts.Value()); err != nil {
-		return object.NewError(err)
-	}
-	return flag
-}
+	opts := optsMap.Value()
 
-func NewIntFlag(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("cli.int_flag", 1, args); err != nil {
-		return err
+	// Infer flag type from the options
+	// - If `type` is set, use that
+	// - If `value` is set, match its type (string, int, bool, string slice)
+	var flag *Flag
+	flagValue, hasFlagValue := opts["value"]
+	if typ, ok := opts["type"]; ok {
+		typStr, ok := typ.(*object.String)
+		if !ok {
+			return object.Errorf("cli.flag type expected string (got %s)", typ.Type())
+		}
+		switch typStr.Value() {
+		case "string":
+			flag = NewFlag(&ucli.StringFlag{})
+		case "int":
+			flag = NewFlag(&ucli.Int64Flag{})
+		case "float":
+			flag = NewFlag(&ucli.Float64Flag{})
+		case "bool":
+			flag = NewFlag(&ucli.BoolFlag{})
+		case "string_slice":
+			flag = NewFlag(&ucli.StringSliceFlag{})
+		case "int_slice":
+			flag = NewFlag(&ucli.Int64SliceFlag{})
+		case "float_slice":
+			flag = NewFlag(&ucli.Float64SliceFlag{})
+		default:
+			return object.Errorf("unsupported cli.flag type: %s", typStr.Value())
+		}
+	} else if hasFlagValue {
+		switch flagValue.(type) {
+		case *object.String:
+			flag = NewFlag(&ucli.StringFlag{})
+		case *object.Int:
+			flag = NewFlag(&ucli.Int64Flag{})
+		case *object.Float:
+			flag = NewFlag(&ucli.Float64Flag{})
+		case *object.Bool:
+			flag = NewFlag(&ucli.BoolFlag{})
+		}
 	}
-	opts, objErr := object.AsMap(args[0])
-	if objErr != nil {
-		return objErr
+	if flag == nil {
+		return object.Errorf("cli.flag type must be specified")
 	}
-	flag := NewFlag(&ucli.Int64Flag{})
-	if err := setFlagAttrs(flag, opts.Value()); err != nil {
-		return object.NewError(err)
-	}
-	return flag
-}
-
-func NewBoolFlag(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("cli.bool_flag", 1, args); err != nil {
-		return err
-	}
-	opts, objErr := object.AsMap(args[0])
-	if objErr != nil {
-		return objErr
-	}
-	flag := NewFlag(&ucli.BoolFlag{})
-	if err := setFlagAttrs(flag, opts.Value()); err != nil {
-		return object.NewError(err)
-	}
-	return flag
-}
-
-func NewStringSliceFlag(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("cli.string_slice_flag", 1, args); err != nil {
-		return err
-	}
-	opts, objErr := object.AsMap(args[0])
-	if objErr != nil {
-		return objErr
-	}
-	flag := NewFlag(&ucli.StringSliceFlag{})
-	if err := setFlagAttrs(flag, opts.Value()); err != nil {
+	if err := setFlagAttrs(flag, opts); err != nil {
 		return object.NewError(err)
 	}
 	return flag
@@ -102,12 +101,9 @@ func CommandFunc(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("cli", map[string]object.Object{
-		"app":               object.NewBuiltin("cli.app", AppFunc),
-		"command":           object.NewBuiltin("cli.command", CommandFunc),
-		"string_flag":       object.NewBuiltin("cli.string_flag", NewStringFlag),
-		"int_flag":          object.NewBuiltin("cli.int_flag", NewIntFlag),
-		"bool_flag":         object.NewBuiltin("cli.bool_flag", NewBoolFlag),
-		"string_slice_flag": object.NewBuiltin("cli.string_slice_flag", NewStringSliceFlag),
+		"app":     object.NewBuiltin("cli.app", AppFunc),
+		"command": object.NewBuiltin("cli.command", CommandFunc),
+		"flag":    object.NewBuiltin("cli.flag", FlagFunc),
 	})
 }
 

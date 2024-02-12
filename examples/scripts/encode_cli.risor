@@ -1,6 +1,6 @@
 #!/usr/bin/env risor --
 
-from cli import app, command, bool_flag
+from cli import app, command, flag
 
 // Usage:
 // ./examples/scripts/encode_cli.risor base64 hello
@@ -44,10 +44,12 @@ app({
         command({
             name: "list-codecs",
             flags: [
-                bool_flag({
+                flag({
                     name: "verbose",
                     aliases: ["v"],
-                    usage: "Print verbose output"
+                    usage: "Print verbose output",
+                    env_vars: ["VERBOSE"],
+                    value: false,
                 }),
             ],
             action: func(ctx) {

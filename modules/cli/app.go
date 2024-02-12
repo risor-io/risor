@@ -126,11 +126,8 @@ func NewApp(opts *object.Map) (*App, error) {
 				if !ok {
 					return fmt.Errorf("no call function found")
 				}
-				args := []object.Object{}
-				for _, arg := range c.Args().Slice() {
-					args = append(args, object.NewString(arg))
-				}
-				if _, err := callFunc(context.Background(), action, args); err != nil {
+				args := []object.Object{NewCtx(c)}
+				if _, err := callFunc(c.Context, action, args); err != nil {
 					return err
 				}
 				return nil
