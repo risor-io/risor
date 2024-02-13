@@ -1,6 +1,6 @@
 module github.com/risor-io/risor/cmd/risor
 
-go 1.21.6
+go 1.21
 
 replace (
 	github.com/risor-io/risor => ../..
@@ -26,9 +26,10 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/risor-io/risor v1.2.0
+	github.com/risor-io/risor v1.3.2
 	github.com/risor-io/risor/modules/aws v1.1.1
-	github.com/risor-io/risor/modules/gha v0.0.0-20240123174440-6fad525f7b67
+	github.com/risor-io/risor/modules/cli v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/gha v0.0.0-20240213105055-b1d3a53935e5
 	github.com/risor-io/risor/modules/image v1.1.1
 	github.com/risor-io/risor/modules/jmespath v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/kubernetes v0.0.0-00010101000000-000000000000
@@ -115,7 +116,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -147,7 +148,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/risor-io/risor/modules/cli v0.0.0-00010101000000-000000000000 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
@@ -159,13 +159,13 @@ require (
 	github.com/urfave/cli/v2 v2.27.1 // indirect
 	github.com/xo/dburl v0.20.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect
 	golang.org/x/image v0.14.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/term v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

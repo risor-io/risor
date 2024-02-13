@@ -1,6 +1,8 @@
 module github.com/risor-io/risor/modules/cli
 
-go 1.21.6
+go 1.21
+
+replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/risor-io/risor v1.3.2
