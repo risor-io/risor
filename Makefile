@@ -3,7 +3,7 @@ export GOFLAGS=-tags=aws,k8s,vault
 
 .PHONY: test
 test:
-	gotestsum --format-hide-empty-pkg ./...
+	gotestsum --format-hide-empty-pkg -- -coverprofile=coverage.out -covermode=atomic ./...
 
 .PHONY: bench
 bench:
