@@ -31,7 +31,6 @@ jobs:
             gotestsum --junitfile /tmp/test-reports/unit-tests.xml
       - store_test_results:
           path: /tmp/test-reports
-
   generate:
     working_directory: ~/repo
     docker:
@@ -48,7 +47,6 @@ jobs:
           command: |
             make generate
             git -c color.ui=always diff --exit-code --stat
-
   format:
     working_directory: ~/repo
     docker:
@@ -72,7 +70,6 @@ jobs:
           command: |
             make format
             git -c color.ui=always diff --exit-code --stat
-
 workflows:
   test:
     jobs:
