@@ -21,10 +21,10 @@ must include the shebang line including `--` at the top of the file to ensure
 that arguments and options are _passed to the app_, rather than being used as
 options by the Risor binary itself.
 
-```go copy filename="myapp.risor"
+```risor copy filename="myapp.risor"
 #!/usr/bin/env risor --
 
-from cli import app, command
+from cli import app, command as c
 
 app({
     name: "myapp",
@@ -66,7 +66,7 @@ Returns a new app initialized with the given options. A simple app may consist
 of just a `name`, `description`, and `action` function. Call `.run()` on the
 app to run it.
 
-```go copy filename="Example"
+```risor copy filename="Example"
 app := cli.app({
     name: "myapp",
     description: "My app description",
@@ -192,11 +192,11 @@ Attributes on the ctx object include:
 | ---------------- | ---------------------------- | ----------------------------------------------------------------------- |
 | args             | func() []string              | Returns the command-line arguments                                      |
 | narg             | func() int                   | Returns the number of arguments                                         |
-| value            | func(name string)            | Returns the value of the flag corresponding to `name`                   |
-| count            | func(name string)            | Returns the count of the flag corresponding to `name`                   |
+| value            | func(name string) object     | Returns the value of the flag corresponding to `name`                   |
+| count            | func(name string) int        | Returns the count of the flag corresponding to `name`                   |
 | flag_names       | func() []string              | Returns the names of all flags used by this context and parent contexts |
 | local_flag_names | func() []string              | Returns the names of all flags used by this context                     |
-| is_set           | func(name string)            | Returns true if the flag corresponding to `name` is set                 |
+| is_set           | func(name string) bool       | Returns true if the flag corresponding to `name` is set                 |
 | set              | func(name string, value obj) | Sets the value of the flag corresponding to `name`                      |
 | num_flags        | func() int                   | Returns the number of flags set                                         |
 | bool             | func(name string) bool       | Returns the value of the bool flag corresponding to `name`              |
