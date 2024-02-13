@@ -21,6 +21,7 @@ import (
 	"github.com/risor-io/risor/cmd/risor/repl"
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/modules/aws"
+	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/jmespath"
@@ -239,6 +240,7 @@ var rootCmd = &cobra.Command{
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
 			globals := map[string]any{
+				"cli":      cli.Module(),
 				"gha":      gha.Module(),
 				"image":    image.Module(),
 				"pgx":      pgx.Module(),
