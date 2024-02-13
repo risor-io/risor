@@ -76,7 +76,4 @@ workflows:
       - test
       - format
       - generate
-  upload-to-codecov:
-    jobs:
-      - checkout
       - codecov/upload
