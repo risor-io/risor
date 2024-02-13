@@ -8,7 +8,7 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.21
-    resource_class: medium
+    resource_class: small
     steps:
       - checkout
       - restore_cache:
@@ -28,14 +28,15 @@ jobs:
           name: Run tests
           command: |
             mkdir -p /tmp/test-reports
-            gotestsum --junitfile /tmp/test-reports/unit-tests.xml
+            gotestsum --junitfile /tmp/test-reports/unit-tests.xml -- -coverprofile=coverage.out -covermode=atomic
+      - codecov/upload
       - store_test_results:
           path: /tmp/test-reports
   generate:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.21
-    resource_class: medium
+    resource_class: small
     steps:
       - checkout
       # No save_cache, as the "tests" job already does that.
@@ -51,7 +52,7 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.21
-    resource_class: medium
+    resource_class: small
     steps:
       - checkout
       - restore_cache:
@@ -76,4 +77,3 @@ workflows:
       - test
       - format
       - generate
-      - codecov/upload

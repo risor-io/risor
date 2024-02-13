@@ -21,3 +21,4 @@ terraform.tfstate.backup
 .terraform/
 .DS_Store
 test/
+coverage.out
