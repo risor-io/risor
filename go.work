@@ -1,4 +1,4 @@
-go 1.21
+go 1.21.6
 
 use (
 	.
@@ -9,6 +9,7 @@ use (
 	./cmd/risor-modgen
 	./examples/go/struct
 	./modules/aws
+	./modules/cli
 	./modules/gha
 	./modules/image
 	./modules/jmespath

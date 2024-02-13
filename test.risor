@@ -1,8 +1,0 @@
-#!/usr/bin/env risor --
-
-i := 0
-
-for i < 10 {
-    print(i)
-    i++
-}

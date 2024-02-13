@@ -104,6 +104,14 @@ func fatal(msg string, args ...interface{}) {
 	os.Exit(1)
 }
 
+func isTerminalIO() bool {
+	stdin := os.Stdin.Fd()
+	stdout := os.Stdout.Fd()
+	inTerm := isatty.IsTerminal(stdin) || isatty.IsCygwinTerminal(stdin)
+	outTerm := isatty.IsTerminal(stdout) || isatty.IsCygwinTerminal(stdout)
+	return inTerm && outTerm
+}
+
 // this works around issues with cobra not passing args after -- to the script
 // see: https://github.com/spf13/cobra/issues/1877
 // passedargs is everything after the '--'
@@ -272,10 +280,9 @@ var rootCmd = &cobra.Command{
 		if len(args) > 0 && codeWasSupplied {
 			fatal(red("cannot specify both code and a filepath"))
 		}
-		if len(args) == 0 && !codeWasSupplied && !viper.GetBool("stdin") {
-			stdoutFd := os.Stdout.Fd()
-			if !isatty.IsTerminal(stdoutFd) && !isatty.IsCygwinTerminal(stdoutFd) {
-				fatal("cannot show repl: stdout is not a terminal")
+		if len(args) == 0 && !codeWasSupplied && !viper.GetBool("stdin") && len(passedargs) == 0 {
+			if !isTerminalIO() {
+				fatal("cannot show repl: stdin or stdout is not a terminal")
 			}
 			if err := repl.Run(ctx, opts); err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", red(err.Error()))
@@ -294,6 +301,12 @@ var rootCmd = &cobra.Command{
 			code = string(data)
 		} else if len(args) > 0 {
 			bytes, err := os.ReadFile(args[0])
+			if err != nil {
+				fatal(red(err.Error()))
+			}
+			code = string(bytes)
+		} else if len(passedargs) > 0 {
+			bytes, err := os.ReadFile(passedargs[0])
 			if err != nil {
 				fatal(red(err.Error()))
 			}

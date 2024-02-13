@@ -252,6 +252,8 @@ func FromGoType(obj interface{}) Object {
 		return NewString(obj.String())
 	case string:
 		return NewString(obj)
+	case []string:
+		return NewStringList(obj)
 	case byte:
 		return NewByte(obj)
 	case []byte:

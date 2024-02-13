@@ -8,6 +8,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modCli "github.com/risor-io/risor/modules/cli"
 	modDns "github.com/risor-io/risor/modules/dns"
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
@@ -97,6 +98,7 @@ func (cfg *Config) addDefaultGlobals() {
 	modules := map[string]object.Object{
 		"base64":   modBase64.Module(),
 		"bytes":    modBytes.Module(),
+		"cli":      modCli.Module(),
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),
 		"fmt":      modFmt.Module(),

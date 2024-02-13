@@ -632,6 +632,24 @@ func TestMapExpression(t *testing.T) {
 	require.Len(t, m.Items(), 2)
 }
 
+func TestMapExpressionWithoutComma(t *testing.T) {
+	input := `{
+		"a": "b",
+
+		"c": "d"
+
+
+	}
+	`
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	expr := program.First()
+	m, ok := expr.(*ast.Map)
+	require.True(t, ok)
+	require.Len(t, m.Items(), 2)
+}
+
 func TestSetExpression(t *testing.T) {
 	input := `{
 		"a",
@@ -904,6 +922,10 @@ func TestBadInputs(t *testing.T) {
 		{"x in", `parse error: invalid in expression`},
 		{"switch x { case 1: \xf5\xf51 case 2: 2 default: 3 }", `syntax error: invalid identifier: �`},
 		{"switch x { case 1: 1 case 2: 2 defaultIIIIIII: 3 }", "parse error: invalid syntax (unexpected \":\")"},
+		{`{ one: 1
+			two: 2}`, "parse error: unexpected two while parsing map (expected })"},
+		{`[1 2]`, "parse error: unexpected 2 while parsing an expression list (expected ])"},
+		{`[1, 2, ,]`, "parse error: invalid syntax (unexpected \",\")"},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
