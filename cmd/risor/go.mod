@@ -1,6 +1,6 @@
 module github.com/risor-io/risor/cmd/risor
 
-go 1.21
+go 1.22
 
 replace (
 	github.com/risor-io/risor => ../..

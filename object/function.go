@@ -143,6 +143,18 @@ func (f *Function) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("type error: unable to marshal function")
 }
 
+func (f *Function) Call(ctx context.Context, args ...Object) Object {
+	callFunc, found := GetCallFunc(ctx)
+	if !found {
+		return Errorf("eval error: context did not contain a call function")
+	}
+	result, err := callFunc(ctx, f, args)
+	if err != nil {
+		return NewError(err)
+	}
+	return result
+}
+
 type FunctionOpts struct {
 	Name           string
 	ParameterNames []string

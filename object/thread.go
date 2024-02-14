@@ -60,15 +60,19 @@ func (t *Thread) GetAttr(name string) (Object, bool) {
 	case "wait":
 		return NewBuiltin("thread.wait", func(ctx context.Context, args ...Object) Object {
 			// Wait for the thread to finish or the context to be cancelled
-			select {
-			case <-ctx.Done():
-				return Errorf("eval error: %s", ctx.Err())
-			case <-t.done:
-				return t.result
-			}
+			return t.Wait(ctx)
 		}), true
 	}
 	return nil, false
+}
+
+func (t *Thread) Wait(ctx context.Context) Object {
+	select {
+	case <-ctx.Done():
+		return NewError(fmt.Errorf("eval error: %s", ctx.Err()))
+	case <-t.done:
+		return t.result
+	}
 }
 
 func NewThread(ctx context.Context, callable Callable, args []Object) *Thread {
@@ -81,8 +85,6 @@ func NewThread(ctx context.Context, callable Callable, args []Object) *Thread {
 		args:     args,
 		done:     make(chan bool),
 	}
-
-	ctx = WithThread(ctx, t)
 
 	go func() {
 		defer func() {

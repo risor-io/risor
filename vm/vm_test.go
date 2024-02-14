@@ -979,8 +979,6 @@ func TestQuicksort(t *testing.T) {
 func TestMergesort(t *testing.T) {
 	result, err := run(context.Background(), `
 	func mergesort(arr) {
-		print()
-		print("mergesort", arr)
 		length := len(arr)
 		if length <= 1 {
 			return arr

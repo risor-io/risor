@@ -83,6 +83,17 @@ func (r *HttpRequest) GetAttr(name string) (object.Object, bool) {
 		return r.ContentLength(), true
 	case "header":
 		return r.Header(), true
+	case "path_value":
+		return object.NewBuiltin("http.request.path_value", func(ctx context.Context, args ...object.Object) object.Object {
+			if numArgs := len(args); numArgs != 1 {
+				return object.NewArgsError("http.request.path_value", 1, numArgs)
+			}
+			key, err := object.AsString(args[0])
+			if err != nil {
+				return err
+			}
+			return object.NewString(r.req.PathValue(key))
+		}), true
 	case "send":
 		return object.NewBuiltin("http.request.send", func(ctx context.Context, args ...object.Object) object.Object {
 			return r.Send(ctx)
@@ -449,4 +460,8 @@ func NewRequestFromParams(url string, params *object.Map) (*HttpRequest, *object
 	r.client = c
 
 	return r, nil
+}
+
+func NewRequest(r *http.Request) *HttpRequest {
+	return &HttpRequest{req: r}
 }
