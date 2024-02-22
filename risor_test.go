@@ -270,6 +270,10 @@ func TestWithoutGlobal1(t *testing.T) {
 	require.Equal(t, map[string]any{
 		"foo": object.NewInt(1),
 	}, cfg.Globals())
+
+	require.Equal(t, map[string]any{
+		"foo": object.NewInt(1),
+	}, cfg.CombinedGlobals())
 }
 
 func TestWithoutGlobal2(t *testing.T) {
@@ -339,4 +343,24 @@ func TestWithGlobalOverride(t *testing.T) {
 			"qux": object.NewInt(2),
 		}),
 	}, cfg.Globals())
+}
+
+func TestWithLocalImporter(t *testing.T) {
+	result, err := Eval(context.Background(),
+		`import data; data.mydata.count`,
+		WithLocalImporter("./vm/fixtures"))
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(1), result)
+}
+
+func TestWithConcurrency(t *testing.T) {
+	script := `c := chan(); go func() { c <- 33 }(); <-c`
+
+	result, err := Eval(context.Background(), script, WithConcurrency())
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(33), result)
+
+	_, err = Eval(context.Background(), script)
+	require.NotNil(t, err)
+	require.Equal(t, "eval error: context did not contain a spawn function", err.Error())
 }
