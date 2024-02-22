@@ -3,6 +3,10 @@ package http
 import (
 	"context"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
@@ -34,8 +38,27 @@ func ListenAndServe(ctx context.Context, args ...object.Object) object.Object {
 	} else {
 		handler = http.DefaultServeMux
 	}
-	if err := http.ListenAndServe(addr, handler); err != nil {
+
+	var listenErr error
+	server := &http.Server{Addr: addr, Handler: handler}
+	go func() {
+		listenErr = server.ListenAndServe()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case <-ctx.Done():
+	case <-stop:
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
 		return object.NewError(err)
+	}
+	if listenErr != nil {
+		return object.NewError(listenErr)
 	}
 	return object.Nil
 }
@@ -74,8 +97,20 @@ func ListenAndServeTLS(ctx context.Context, args ...object.Object) object.Object
 	} else {
 		handler = http.DefaultServeMux
 	}
-	if err := http.ListenAndServeTLS(addr, certFile, keyFile, handler); err != nil {
+
+	var listenErr error
+	server := &http.Server{Addr: addr, Handler: handler}
+	go func() {
+		listenErr = server.ListenAndServeTLS(certFile, keyFile)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
 		return object.NewError(err)
+	}
+	if listenErr != nil {
+		return object.NewError(listenErr)
 	}
 	return object.Nil
 }
