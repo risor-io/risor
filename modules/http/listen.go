@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,9 +40,12 @@ func ListenAndServe(ctx context.Context, args ...object.Object) object.Object {
 		handler = http.DefaultServeMux
 	}
 
+	var wg sync.WaitGroup
 	var listenErr error
 	server := &http.Server{Addr: addr, Handler: handler}
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		listenErr = server.ListenAndServe()
 	}()
 
@@ -57,6 +61,7 @@ func ListenAndServe(ctx context.Context, args ...object.Object) object.Object {
 	if err := server.Shutdown(ctx); err != nil {
 		return object.NewError(err)
 	}
+	wg.Wait()
 	if listenErr != nil {
 		return object.NewError(listenErr)
 	}
@@ -98,9 +103,12 @@ func ListenAndServeTLS(ctx context.Context, args ...object.Object) object.Object
 		handler = http.DefaultServeMux
 	}
 
+	var wg sync.WaitGroup
 	var listenErr error
 	server := &http.Server{Addr: addr, Handler: handler}
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		listenErr = server.ListenAndServeTLS(certFile, keyFile)
 	}()
 
@@ -109,6 +117,7 @@ func ListenAndServeTLS(ctx context.Context, args ...object.Object) object.Object
 	if err := server.Shutdown(ctx); err != nil {
 		return object.NewError(err)
 	}
+	wg.Wait()
 	if listenErr != nil {
 		return object.NewError(listenErr)
 	}
