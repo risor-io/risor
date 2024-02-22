@@ -119,6 +119,7 @@ func (w *ResponseWriter) Write(obj object.Object) (int, error) {
 		w.AddHeader("Content-Type", "application/json")
 		data, err := obj.MarshalJSON()
 		if err != nil {
+			w.writeMarshalError()
 			return 0, err
 		}
 		return w.writer.Write(data)
@@ -126,12 +127,19 @@ func (w *ResponseWriter) Write(obj object.Object) (int, error) {
 		w.AddHeader("Content-Type", "application/json")
 		data, err := obj.MarshalJSON()
 		if err != nil {
+			w.writeMarshalError()
 			return 0, err
 		}
 		return w.writer.Write(data)
 	default:
+		w.writeMarshalError()
 		return 0, fmt.Errorf("type error: unsupported type for http.response_writer.write: %T", obj)
 	}
+}
+
+func (w *ResponseWriter) writeMarshalError() {
+	w.writer.WriteHeader(http.StatusInternalServerError)
+	w.writer.Write([]byte("io error: failed to marshal response"))
 }
 
 func (w *ResponseWriter) AddHeader(key, value string) {
