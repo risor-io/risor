@@ -1,4 +1,4 @@
-<img align="right" width="300" style="margin-top: 16px" src="https://github.com/risor-io/risor/raw/main/static/images/risor-logo-1024.png">
+<h1><img src="https://github.com/risor-io/risor/raw/main/static/images/risor-logo-nopad.png" alt="Risor logo" height="64" valign="middle"> Risor</h1>
 
 # Risor
 
