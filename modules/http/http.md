@@ -70,6 +70,17 @@ head(url string, headers map, params map) request
 Creates a new HEAD request with the given URL, headers, and query parameters.
 The headers and query parameters are optional.
 
+### listen_and_serve
+
+```go filename="Function signature"
+listen_and_serve(addr string, handler func(w response_writer, r request))
+```
+
+Starts an HTTP server that listens on the specified address and calls the
+handler function to handle requests. As a convenience, the handler function
+may return a map or list object to be marshaled as JSON, or a string or byte
+slice object which will be written as the response body as-is.
+
 ### patch
 
 ```go filename="Function signature"
@@ -154,3 +165,16 @@ Represents an HTTP response.
 | json           | func() object | The response body as JSON.       |
 | text           | func() string | The response body as text.       |
 | close          | func()        | Closes the response body.        |
+
+### response_writer
+
+Represents an HTTP response writer.
+
+#### Attributes
+
+| Name         | Type                    | Description                                                  |
+| ------------ | ----------------------- | ------------------------------------------------------------ |
+| add_header   | func(key, value string) | Adds a header to the header map that will be sent.           |
+| del_header   | func(key string)        | Deletes a header from the header map that will be sent.      |
+| write        | func(object)            | Writes the object as the HTTP reply.                         |
+| write_header | func(status_code int)   | Sends an HTTP response header with the provided status code. |

@@ -54,10 +54,6 @@ func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr, re
 	} //lint:ignore S1001 - this loop is faster than using copy
 }
 
-func (f *frame) SetReturnAddr(addr int) {
-	f.returnAddr = addr
-}
-
 func (f *frame) Locals() []object.Object {
 	return f.locals
 }
@@ -75,14 +71,6 @@ func (f *frame) CaptureLocals() []object.Object {
 	f.capturedLocals = newStorage
 	f.locals = newStorage
 	return newStorage
-}
-
-func (f *frame) Function() *object.Function {
-	return f.fn
-}
-
-func (f *frame) Code() *code {
-	return f.code
 }
 
 func (f *frame) Defer(p *object.Partial) {

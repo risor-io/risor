@@ -6,12 +6,13 @@ import (
 
 type contextKey string
 
-////////////////////////////////////////////////////////////////////////////////
-// Store and retrieve a function that can call a compiled Risor function
-////////////////////////////////////////////////////////////////////////////////
-
 // CallFunc is a type signature for a function that can call a Risor function.
 type CallFunc func(ctx context.Context, fn *Function, args []Object) (Object, error)
+
+// SpawnFunc is a type signature for a function that can spawn a Risor thread.
+type SpawnFunc func(ctx context.Context, fn Callable, args []Object) (*Thread, error)
+
+////////////////////////////////////////////////////////////////////////////////
 
 const callFuncKey = contextKey("risor:call")
 
@@ -23,14 +24,15 @@ func WithCallFunc(ctx context.Context, fn CallFunc) context.Context {
 
 // GetCallFunc returns the CallFunc from the context, if it exists.
 func GetCallFunc(ctx context.Context) (CallFunc, bool) {
-	fn, ok := ctx.Value(callFuncKey).(CallFunc)
-	return fn, ok
+	if fn, ok := ctx.Value(callFuncKey).(CallFunc); ok {
+		if fn != nil {
+			return fn, ok
+		}
+	}
+	return nil, false
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-// SpawnFunc is a type signature for a function that can spawn a Risor thread.
-type SpawnFunc func(ctx context.Context, fn Callable, args []Object) (*Thread, error)
 
 const spawnFuncKey = contextKey("risor:spawn")
 
@@ -42,21 +44,33 @@ func WithSpawnFunc(ctx context.Context, fn SpawnFunc) context.Context {
 
 // GetSpawnFunc returns the SpawnFunc from the context, if it exists.
 func GetSpawnFunc(ctx context.Context) (SpawnFunc, bool) {
-	fn, ok := ctx.Value(spawnFuncKey).(SpawnFunc)
-	return fn, ok
+	if fn, ok := ctx.Value(spawnFuncKey).(SpawnFunc); ok {
+		if fn != nil {
+			return fn, ok
+		}
+	}
+	return nil, false
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const threadKey = contextKey("risor:thread")
+const cloneCallKey = contextKey("risor:clone-call")
 
-// WithThread returns a context with a Thread associated.
-func WithThread(ctx context.Context, t *Thread) context.Context {
-	return context.WithValue(ctx, threadKey, t)
+// WithCloneCallFunc returns a context with a "clone-call" function
+// associated. This function can be used to clone a Risor VM and then call a
+// function on it synchronously.
+func WithCloneCallFunc(ctx context.Context, fn CallFunc) context.Context {
+	return context.WithValue(ctx, cloneCallKey, fn)
 }
 
-// GetThread returns the thread associated with the context, if it exists.
-func GetThread(ctx context.Context) (*Thread, bool) {
-	t, ok := ctx.Value(threadKey).(*Thread)
-	return t, ok
+// GetCloneCallFunc returns the "clone-call" function from the context,
+// if it exists. This function can be used to clone a Risor VM and then call a
+// function on it synchronously.
+func GetCloneCallFunc(ctx context.Context) (CallFunc, bool) {
+	if fn, ok := ctx.Value(cloneCallKey).(CallFunc); ok {
+		if fn != nil {
+			return fn, ok
+		}
+	}
+	return nil, false
 }

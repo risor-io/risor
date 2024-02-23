@@ -116,7 +116,7 @@ exit(1)`,
 	}
 	for _, tc := range testCases {
 		_, err := Eval(context.Background(), tc.input, WithoutGlobals("any", "os.exit", "json", "cat"))
-		t.Logf("want: %q; got: %q", tc.expectedErr, err)
+		t.Logf("want: %q; got: %v", tc.expectedErr, err)
 		if tc.expectedErr != nil {
 			require.NotNil(t, err)
 			require.Equal(t, tc.expectedErr.Error(), err.Error())
@@ -259,98 +259,108 @@ func TestCall(t *testing.T) {
 }
 
 func TestWithoutGlobal1(t *testing.T) {
-	cfg := NewConfig()
-	cfg.DefaultGlobals = map[string]object.Object{
+	cfg := NewConfig(
+		WithoutDefaultGlobals(),
+		WithGlobals(map[string]any{
+			"foo": object.NewInt(1),
+			"bar": object.NewInt(2),
+		}),
+		WithoutGlobal("bar"),
+	)
+	require.Equal(t, map[string]any{
 		"foo": object.NewInt(1),
-		"bar": object.NewInt(2),
-	}
-	option := WithoutGlobal("bar")
-	option(cfg)
+	}, cfg.Globals())
 
-	require.Equal(t, map[string]object.Object{
+	require.Equal(t, map[string]any{
 		"foo": object.NewInt(1),
-	}, cfg.DefaultGlobals)
+	}, cfg.CombinedGlobals())
 }
 
 func TestWithoutGlobal2(t *testing.T) {
-	cfg := NewConfig()
-	cfg.DefaultGlobals = map[string]object.Object{
+	cfg := NewConfig(
+		WithoutDefaultGlobals(),
+		WithGlobals(map[string]any{
+			"foo": object.NewInt(1),
+			"bar": object.NewInt(2),
+		}),
+		WithoutGlobal("xyz"),
+	)
+	require.Equal(t, map[string]any{
 		"foo": object.NewInt(1),
 		"bar": object.NewInt(2),
-	}
-	option := WithoutGlobal("xyz")
-	option(cfg)
-
-	require.Equal(t, map[string]object.Object{
-		"foo": object.NewInt(1),
-		"bar": object.NewInt(2),
-	}, cfg.DefaultGlobals)
+	}, cfg.Globals())
 }
 
 func TestWithoutGlobal3(t *testing.T) {
-	cfg := NewConfig()
-	cfg.DefaultGlobals = map[string]object.Object{
-		"foo": object.NewInt(1),
-	}
-	cfg.Globals = map[string]any{
-		"foo": object.NewInt(1),
-	}
-	option := WithoutGlobal("foo")
-	option(cfg)
-
-	require.Equal(t, map[string]object.Object{}, cfg.DefaultGlobals)
-	require.Equal(t, map[string]any{}, cfg.Globals)
+	cfg := NewConfig(
+		WithGlobal("foo", object.NewInt(1)),
+		WithoutGlobal("foo"),
+	)
+	_, hasFoo := cfg.Globals()["foo"]
+	require.False(t, hasFoo)
 }
 
 func TestWithoutGlobal4(t *testing.T) {
-	cfg := NewConfig()
-	cfg.DefaultGlobals = map[string]object.Object{
+	cfg := NewConfig(
+		WithoutDefaultGlobals(),
+		WithGlobals(map[string]any{
+			"foo": object.NewBuiltinsModule("foo", map[string]object.Object{
+				"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
+					"baz": object.NewInt(1),
+					"qux": object.NewInt(2),
+				}),
+			}),
+		}),
+		WithoutGlobal("foo.bar.baz"),
+	)
+	require.Equal(t, map[string]any{
 		"foo": object.NewBuiltinsModule("foo", map[string]object.Object{
+			"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
+				"qux": object.NewInt(2),
+			}),
+		}),
+	}, cfg.Globals())
+}
+
+func TestWithGlobalOverride(t *testing.T) {
+	cfg := NewConfig(
+		WithoutDefaultGlobals(),
+		WithGlobals(map[string]any{
+			"foo": object.NewInt(1),
 			"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
 				"baz": object.NewInt(1),
 				"qux": object.NewInt(2),
 			}),
 		}),
-	}
-	option := WithoutGlobal("foo.bar.baz")
-	option(cfg)
-
-	require.Equal(t, map[string]object.Object{
-		"foo": object.NewBuiltinsModule("foo", map[string]object.Object{
-			"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
-				"qux": object.NewInt(2),
-			}),
-		}),
-	}, cfg.DefaultGlobals)
-}
-
-func TestWithGlobalOverride(t *testing.T) {
-	cfg := NewConfig()
-	cfg.DefaultGlobals = map[string]object.Object{
-		"foo": object.NewInt(1),
-		"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
-			"baz": object.NewInt(1),
-			"qux": object.NewInt(2),
-		}),
-	}
-
-	options := []Option{
 		WithGlobalOverride("foo", object.NewString("FOO")),
 		WithGlobalOverride("bar.baz", object.NewString("BAZ")),
-	}
-	for _, option := range options {
-		option(cfg)
-	}
+	)
 
-	require.Equal(t, map[string]object.Object{
+	require.Equal(t, map[string]any{
+		"foo": object.NewString("FOO"),
 		"bar": object.NewBuiltinsModule("bar", map[string]object.Object{
 			"baz": object.NewString("BAZ"),
 			"qux": object.NewInt(2),
 		}),
-	}, cfg.DefaultGlobals)
+	}, cfg.Globals())
+}
 
-	// Top-level overrides move to the Globals map
-	require.Equal(t, map[string]any{
-		"foo": object.NewString("FOO"),
-	}, cfg.Globals)
+func TestWithLocalImporter(t *testing.T) {
+	result, err := Eval(context.Background(),
+		`import data; data.mydata.count`,
+		WithLocalImporter("./vm/fixtures"))
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(1), result)
+}
+
+func TestWithConcurrency(t *testing.T) {
+	script := `c := chan(); go func() { c <- 33 }(); <-c`
+
+	result, err := Eval(context.Background(), script, WithConcurrency())
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(33), result)
+
+	_, err = Eval(context.Background(), script)
+	require.NotNil(t, err)
+	require.Equal(t, "eval error: context did not contain a spawn function", err.Error())
 }

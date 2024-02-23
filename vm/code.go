@@ -54,31 +54,8 @@ func wrapCode(cc *compiler.Code) *code {
 	return c
 }
 
-func (c *code) InstructionCount() int {
-	return len(c.Instructions)
-}
-
-func (c *code) ConstantsCount() int {
-	return len(c.Constants)
-}
-
 func (c *code) GlobalsCount() int {
 	return len(c.Globals)
-}
-
-func (c *code) Clone() *code {
-	clone := &code{
-		Code:         c.Code,
-		Instructions: make([]op.Code, len(c.Instructions)),
-		Constants:    make([]object.Object, len(c.Constants)),
-		Globals:      make([]object.Object, len(c.Globals)),
-		Names:        make([]string, len(c.Names)),
-	}
-	copy(clone.Instructions, c.Instructions)
-	copy(clone.Constants, c.Constants)
-	copy(clone.Globals, c.Globals)
-	copy(clone.Names, c.Names)
-	return clone
 }
 
 func loadChildCode(root *code, cc *compiler.Code) *code {

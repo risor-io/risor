@@ -1,6 +1,6 @@
 module github.com/risor-io/risor
 
-go 1.21
+go 1.22
 
 require (
 	github.com/risor-io/risor/modules/gha v0.0.0-20240213105055-b1d3a53935e5

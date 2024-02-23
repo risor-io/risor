@@ -666,6 +666,7 @@ func TestArithmetic(t *testing.T) {
 		{`11 % 3`, object.NewInt(2)},
 		{`-11`, object.NewInt(-11)},
 		{`x := -11; -x`, object.NewInt(11)},
+		{`-1.5`, object.NewFloat(-1.5)},
 	}
 	runTests(t, tests)
 }
@@ -979,8 +980,6 @@ func TestQuicksort(t *testing.T) {
 func TestMergesort(t *testing.T) {
 	result, err := run(context.Background(), `
 	func mergesort(arr) {
-		print()
-		print("mergesort", arr)
 		length := len(arr)
 		if length <= 1 {
 			return arr

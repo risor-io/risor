@@ -235,7 +235,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Build up a list of options to pass to the VM
-		var opts []risor.Option
+		opts := []risor.Option{
+			risor.WithConcurrency(),
+			risor.WithListenersAllowed(),
+		}
 		if viper.GetBool("no-default-globals") {
 			opts = append(opts, risor.WithoutDefaultGlobals())
 		} else {
@@ -273,7 +276,6 @@ var rootCmd = &cobra.Command{
 		if modulesDir := viper.GetString("modules"); modulesDir != "" {
 			opts = append(opts, risor.WithLocalImporter(modulesDir))
 		}
-		opts = append(opts, risor.WithConcurrency())
 
 		// Determine what code is to be executed. The code may be supplied
 		// via the --code option, a path supplied as an arg, or stdin.
