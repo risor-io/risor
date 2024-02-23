@@ -1,7 +1,9 @@
-<div style="display: flex; align-items: center;">
-  <img src="https://github.com/risor-io/risor/raw/main/static/images/risor-logo-1024.png" alt="Risor logo" style="width: 80px; height: auto; margin-right: 10px; margin-bottom: 10px">
-  <h1 style="margin-top: 5px">Risor</h1>
-</div>
+<table>
+  <tr>
+    <td><img src="https://github.com/risor-io/risor/raw/main/static/images/risor-logo-1024.png" alt="Risor logo" width="80"></td>
+    <td><h1>Risor</h1></td>
+  </tr>
+</table>
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/risor-io/risor/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/risor-io/risor/tree/main)
 [![Apache-2.0 license](https://img.shields.io/badge/License-Apache%202.0-brightgreen.svg)](https://opensource.org/licenses/Apache-2.0)
