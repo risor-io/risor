@@ -81,6 +81,15 @@ handler function to handle requests. As a convenience, the handler function
 may return a map or list object to be marshaled as JSON, or a string or byte
 slice object which will be written as the response body as-is.
 
+### listen_and_serve_tls
+
+```go filename="Function signature"
+listen_and_serve_tls(addr, cert_file, key_file string, handler func(w response_writer, r request))
+```
+
+Acts the same as `listen_and_serve`, but uses the provided certificate and key
+files to work over HTTPS.
+
 ### patch
 
 ```go filename="Function signature"
