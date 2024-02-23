@@ -79,7 +79,7 @@ go install -tags aws,k8s,vault .
 Use `go get` to add Risor as a dependency of your Go program:
 
 ```bash
-go get github.com/risor-io/risor@v1.3.2
+go get github.com/risor-io/risor@v1.4.0
 ```
 
 Here's an example of using the `risor.Eval` API to evaluate some code:
@@ -162,16 +162,17 @@ installed with `go get` as separate dependencies:
 
 | Name     | Path                                       | Go Get Command                                               |
 | -------- | ------------------------------------------ | ------------------------------------------------------------ |
-| aws      | [modules/aws](./modules/aws)               | `go get github.com/risor-io/risor/modules/aws@v1.3.2`        |
-| image    | [modules/image](./modules/image)           | `go get github.com/risor-io/risor/modules/image@v1.3.2`      |
-| jmespath | [modules/jmespath](./modules/jmespath)     | `go get github.com/risor-io/risor/modules/jmespath@v1.3.2`   |
-| k8s      | [modules/kubernetes](./modules/kubernetes) | `go get github.com/risor-io/risor/modules/kubernetes@v1.3.2` |
-| pgx      | [modules/pgx](./modules/pgx)               | `go get github.com/risor-io/risor/modules/pgx@v1.3.2`        |
-| sql      | [modules/sql](./modules/sql)               | `go get github.com/risor-io/risor/modules/sql@v1.3.2`        |
-| s3fs     | [os/s3fs](./os/s3fs)                       | `go get github.com/risor-io/risor/os/s3fs@v1.3.2`            |
-| template | [modules/template](./modules/template)     | `go get github.com/risor-io/risor/modules/template@v1.3.2`   |
-| uuid     | [modules/uuid](./modules/uuid)             | `go get github.com/risor-io/risor/modules/uuid@v1.3.2`       |
-| vault    | [modules/vault](./modules/vault)           | `go get github.com/risor-io/risor/modules/vault@v1.3.2`      |
+| aws      | [modules/aws](./modules/aws)               | `go get github.com/risor-io/risor/modules/aws@v1.4.0`        |
+| cli      | [modules/cli](./modules/cli)               | `go get github.com/risor-io/risor/modules/cli@v1.4.0`        |
+| image    | [modules/image](./modules/image)           | `go get github.com/risor-io/risor/modules/image@v1.4.0`      |
+| jmespath | [modules/jmespath](./modules/jmespath)     | `go get github.com/risor-io/risor/modules/jmespath@v1.4.0`   |
+| k8s      | [modules/kubernetes](./modules/kubernetes) | `go get github.com/risor-io/risor/modules/kubernetes@v1.4.0` |
+| pgx      | [modules/pgx](./modules/pgx)               | `go get github.com/risor-io/risor/modules/pgx@v1.4.0`        |
+| s3fs     | [os/s3fs](./os/s3fs)                       | `go get github.com/risor-io/risor/os/s3fs@v1.4.0`            |
+| sql      | [modules/sql](./modules/sql)               | `go get github.com/risor-io/risor/modules/sql@v1.4.0`        |
+| template | [modules/template](./modules/template)     | `go get github.com/risor-io/risor/modules/template@v1.4.0`   |
+| uuid     | [modules/uuid](./modules/uuid)             | `go get github.com/risor-io/risor/modules/uuid@v1.4.0`       |
+| vault    | [modules/vault](./modules/vault)           | `go get github.com/risor-io/risor/modules/vault@v1.4.0`      |
 
 These add-ons are included by default when using the Risor CLI. However, when
 building Risor into your own program, you'll need to opt-in using `go get` as
