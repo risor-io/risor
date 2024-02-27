@@ -178,7 +178,7 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 		}
 		inputGoType, err := newGoType(inputType)
 		if err != nil {
-			return nil, fmt.Errorf("type error: unsupported type used in go method input %t.%s: %w",
+			return nil, fmt.Errorf("type error: unsupported type used in go method input %T.%s: %w",
 				m.Type, m.Name, err)
 		}
 		method.inputTypes[i] = inputGoType
@@ -192,7 +192,7 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 		outputType := m.Type.Out(i)
 		outputGoType, err := newGoType(outputType)
 		if err != nil {
-			return nil, fmt.Errorf("type error: unsupported type used in go method output %t.%s: %w",
+			return nil, fmt.Errorf("type error: unsupported type used in go method output %T.%s: %w",
 				m.Type, m.Name, err)
 		}
 		method.outputTypes[i] = outputGoType
