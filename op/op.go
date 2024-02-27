@@ -13,19 +13,17 @@ const (
 	BuildSet
 	BuildString
 	Call
-	CallDeferred
 	CompareOp
 	ContainsOp
 	Copy
 	Defer
-	DeleteSubscr
 	False
 	ForIter
+	FromImport
 	GetIter
 	Go
 	Halt
 	Import
-	FromImport
 	JumpBackward
 	JumpForward
 	Length
@@ -35,17 +33,12 @@ const (
 	LoadFast
 	LoadFree
 	LoadGlobal
-	LoadName
 	MakeCell
 	Nil
 	Partial
-	PopJumpBackwardIfFalse
-	PopJumpBackwardIfTrue
 	PopJumpForwardIfFalse
 	PopJumpForwardIfTrue
 	PopTop
-	Print
-	PushNil
 	Range
 	Receive
 	ReturnValue
@@ -55,14 +48,11 @@ const (
 	StoreFast
 	StoreFree
 	StoreGlobal
-	StoreName
 	StoreSubscr
 	Swap
 	True
-	UnaryInvert
 	UnaryNegative
 	UnaryNot
-	UnaryPositive
 	Unpack
 )
 
@@ -123,7 +113,6 @@ func init() {
 		{ContainsOp, "CONTAINS_OP", 1},
 		{Copy, "COPY", 1},
 		{Defer, "DEFER", 0},
-		{DeleteSubscr, "DELETE_SUBSCR", 0},
 		{False, "FALSE", 0},
 		{GetIter, "GET_ITER", 0},
 		{Go, "GO", 0},
@@ -139,17 +128,13 @@ func init() {
 		{LoadFast, "LOAD_FAST", 1},
 		{LoadFree, "LOAD_FREE", 1},
 		{LoadGlobal, "LOAD_GLOBAL", 1},
-		{LoadName, "LOAD_NAME", 1},
 		{MakeCell, "MAKE_CELL", 2},
 		{Nil, "NIL", 0},
 		{Nop, "NOP", 0},
 		{Partial, "PARTIAL", 1},
-		{PopJumpBackwardIfFalse, "POP_JUMP_BACKWARD_IF_FALSE", 1},
-		{PopJumpBackwardIfTrue, "POP_JUMP_BACKWARD_IF_TRUE", 1},
 		{PopJumpForwardIfFalse, "POP_JUMP_FORWARD_IF_FALSE", 1},
 		{PopJumpForwardIfTrue, "POP_JUMP_FORWARD_IF_TRUE", 1},
 		{PopTop, "POP_TOP", 0},
-		{Print, "PRINT", 0},
 		{Range, "RANGE", 0},
 		{ReturnValue, "RETURN_VALUE", 0},
 		{Slice, "SLICE", 0},
@@ -157,13 +142,11 @@ func init() {
 		{StoreFast, "STORE_FAST", 1},
 		{StoreFree, "STORE_FREE", 1},
 		{StoreGlobal, "STORE_GLOBAL", 1},
-		{StoreName, "STORE_NAME", 1},
 		{StoreSubscr, "STORE_SUBSCR", 0},
 		{Swap, "SWAP", 1},
 		{True, "TRUE", 0},
 		{UnaryNegative, "UNARY_NEGATIVE", 0},
 		{UnaryNot, "UNARY_NOT", 0},
-		{UnaryPositive, "UNARY_POSITIVE", 0},
 		{Unpack, "UNPACK", 1},
 		{ForIter, "FOR_ITER", 2},
 	}

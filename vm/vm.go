@@ -332,18 +332,6 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			if !tos.IsTruthy() {
 				vm.ip += delta
 			}
-		case op.PopJumpBackwardIfTrue:
-			tos := vm.pop()
-			delta := int(vm.fetch()) - 2
-			if tos.IsTruthy() {
-				vm.ip -= delta
-			}
-		case op.PopJumpBackwardIfFalse:
-			tos := vm.pop()
-			delta := int(vm.fetch()) - 2
-			if !tos.IsTruthy() {
-				vm.ip -= delta
-			}
 		case op.JumpForward:
 			base := vm.ip - 1
 			delta := int(vm.fetch())
