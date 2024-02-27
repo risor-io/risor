@@ -428,7 +428,7 @@ func getTypeConverter(typ reflect.Type) (TypeConverter, error) {
 			converter = &DynamicConverter{}
 		}
 	default:
-		return nil, fmt.Errorf("type error: unsupported kind: %q", kind)
+		return nil, fmt.Errorf("type error: unsupported kind: %s", kind)
 	}
 	return converter, nil
 }

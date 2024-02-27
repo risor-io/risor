@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/risor-io/risor/op"
 )
@@ -156,7 +157,7 @@ func (m *GoMethod) MarshalJSON() ([]byte, error) {
 
 // Returns a Risor *GoMethod Object that represents the given Go method.
 // This aids in calling Go methods from Risor.
-func newGoMethod(m reflect.Method) (*GoMethod, error) {
+func newGoMethod(typ reflect.Type, m reflect.Method) (*GoMethod, error) {
 	numIn := m.Type.NumIn()
 	numOut := m.Type.NumOut()
 
@@ -178,8 +179,9 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 		}
 		inputGoType, err := newGoType(inputType)
 		if err != nil {
-			return nil, fmt.Errorf("type error: unsupported type used in go method input %t.%s: %w",
-				m.Type, m.Name, err)
+			errMsg := strings.TrimPrefix(err.Error(), "type error: ")
+			return nil, fmt.Errorf("type error: (%s).%s has input parameter of type %s; \n%s",
+				typ, m.Name, inputType, errMsg)
 		}
 		method.inputTypes[i] = inputGoType
 	}
@@ -192,8 +194,9 @@ func newGoMethod(m reflect.Method) (*GoMethod, error) {
 		outputType := m.Type.Out(i)
 		outputGoType, err := newGoType(outputType)
 		if err != nil {
-			return nil, fmt.Errorf("type error: unsupported type used in go method output %t.%s: %w",
-				m.Type, m.Name, err)
+			errMsg := strings.TrimPrefix(err.Error(), "type error: ")
+			return nil, fmt.Errorf("type error: (%s).%s has output parameter of type %s; \n%s",
+				typ, m.Name, outputType, errMsg)
 		}
 		method.outputTypes[i] = outputGoType
 		if outputType.Implements(errorInterface) {
@@ -215,7 +218,7 @@ func getMethods(typ reflect.Type) (map[string]*GoMethod, error) {
 		if !method.IsExported() {
 			continue
 		}
-		goMethod, err := newGoMethod(method)
+		goMethod, err := newGoMethod(typ, method)
 		if err != nil {
 			return nil, err
 		}
