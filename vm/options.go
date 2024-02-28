@@ -38,7 +38,7 @@ func WithGlobals(globals map[string]any) Option {
 	}
 }
 
-// WithConcurrency opts into allowing the spawning of Goroutines
+// WithConcurrency opts into allowing the spawning of goroutines.
 func WithConcurrency() Option {
 	return func(vm *VirtualMachine) {
 		vm.concAllowed = true

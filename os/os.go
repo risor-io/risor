@@ -116,13 +116,13 @@ func GetDefaultOS(ctx context.Context) OS {
 	return NewSimpleOS(ctx)
 }
 
-// if risor is started from the comand line and args
+// if risor is started from the command line and args
 // are passed in, this is is how the to tell the os package about them
 func SetScriptArgs(args []string) {
 	globalScriptargs = args
 }
 
-// if risor is started from the comand line and args
+// if risor is started from the command line and args
 // are passed in, this is is how the to get them
 func GetScriptArgs() []string {
 	return globalScriptargs
