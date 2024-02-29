@@ -322,7 +322,7 @@ func (l *Lexer) Next() (token.Token, error) {
 	return tok, nil
 }
 
-// Advance one charaacter in the input string. Calling this when
+// Advance one character in the input string. Calling this when
 // we are already at the end of the input has no effect.
 func (l *Lexer) readChar() {
 	// Return if we are already at the end of the input. Note that

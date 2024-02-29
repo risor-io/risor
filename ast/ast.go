@@ -3,7 +3,7 @@ package ast
 
 import "github.com/risor-io/risor/token"
 
-// Node reresents a portion of the syntax tree. All nodes have a token, which is
+// Node represents a portion of the syntax tree. All nodes have a token, which is
 // the token that begins the node. A Node may be an Expression, in which case
 // it evaluates to a value.
 type Node interface {
