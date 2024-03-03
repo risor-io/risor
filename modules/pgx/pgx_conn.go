@@ -51,6 +51,8 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "query":
 		return object.NewBuiltin("pgx.conn.query", c.Query), true
+	case "execute":
+		return object.NewBuiltin("pgx.conn.execute", c.Execute), true
 	case "close":
 		return object.NewBuiltin("pgx.conn.close", func(ctx context.Context, args ...object.Object) object.Object {
 			if err := arg.Require("pgx.conn.close", 0, args); err != nil {
@@ -165,4 +167,33 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 		results = append(results, object.NewMap(row))
 	}
 	return object.NewList(results)
+}
+
+func (c *PgxConn) Execute(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return object.Errorf("type error: pgx.conn.execute() one or more arguments (%d given)", len(args))
+	}
+	query, errObj := object.AsString(args[0])
+	if errObj != nil {
+		return errObj
+	}
+	var queryArgs []interface{}
+	if len(args) == 2 {
+		if list, ok := args[1].(*object.List); ok {
+			for _, item := range list.Value() {
+				queryArgs = append(queryArgs, item.Interface())
+			}
+		} else {
+			queryArgs = append(queryArgs, args[1].Interface())
+		}
+	} else {
+		for _, queryArg := range args[1:] {
+			queryArgs = append(queryArgs, queryArg.Interface())
+		}
+	}
+	commandTag, err := c.conn.Exec(ctx, query, queryArgs...)
+	if err != nil {
+		return object.NewError(err)
+	}
+	return object.NewString(commandTag.String())
 }

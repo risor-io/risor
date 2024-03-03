@@ -20,7 +20,7 @@ func TestCompareUnknownComparison(t *testing.T) {
 	obj1 := NewInt(1)
 	obj2 := NewInt(2)
 	require.Panics(t, func() {
-		Compare(op.CompareOpType(op.Halt), obj1, obj2)
+		Compare(op.CompareOpType(222), obj1, obj2)
 	})
 }
 

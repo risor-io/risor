@@ -7,7 +7,7 @@ toolchain go1.22.0
 replace github.com/risor-io/risor => ../../..
 
 require (
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.16.0
 	github.com/risor-io/risor v1.3.2
 )
 
