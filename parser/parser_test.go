@@ -1096,3 +1096,13 @@ func TestBadFromImport(t *testing.T) {
 		})
 	}
 }
+
+func TestInvalidListTermination(t *testing.T) {
+	input := `
+	{ data: { blocks: [ { type: "divider" },
+		}
+	}`
+	_, err := Parse(context.Background(), input)
+	require.Error(t, err)
+	require.Equal(t, `parse error: invalid syntax (unexpected "}")`, err.Error())
+}

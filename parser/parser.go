@@ -744,7 +744,9 @@ func (p *Parser) parseFromImport() ast.Node {
 		isGrouped = true
 		p.nextToken()
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextToken(); err != nil {
+				return nil
+			}
 		}
 	}
 	// Move to the first identifier
@@ -768,7 +770,9 @@ func (p *Parser) parseFromImport() ast.Node {
 			p.nextToken()
 			if isGrouped {
 				for p.peekTokenIs(token.NEWLINE) {
-					p.nextToken()
+					if err := p.nextToken(); err != nil {
+						return nil
+					}
 				}
 				if p.peekTokenIs(token.RPAREN) {
 					break
@@ -1433,7 +1437,9 @@ func (p *Parser) parseMapOrSet() ast.Node {
 			}
 		}
 		for p.peekTokenIs(token.NEWLINE) {
-			p.nextToken()
+			if err := p.nextToken(); err != nil {
+				return nil
+			}
 		}
 		if !p.expectPeek("map", token.RBRACE) {
 			return nil
