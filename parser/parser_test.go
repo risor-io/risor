@@ -1096,3 +1096,12 @@ func TestBadFromImport(t *testing.T) {
 		})
 	}
 }
+
+func TestInvalidListTermination(t *testing.T) {
+	input := `
+	{ data: { blocks: [ { type: "divider" },
+		}
+	}`
+	_, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+}
