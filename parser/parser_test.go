@@ -1103,5 +1103,6 @@ func TestInvalidListTermination(t *testing.T) {
 		}
 	}`
 	_, err := Parse(context.Background(), input)
-	require.Nil(t, err)
+	require.Error(t, err)
+	require.Equal(t, `parse error: invalid syntax (unexpected "}")`, err.Error())
 }
