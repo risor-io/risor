@@ -3,6 +3,7 @@ package limits
 import (
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,8 @@ type StandardLimits struct {
 	// Metrics
 	httpRequestsCount int64
 	cost              int64
+	// Thread safety
+	mutex sync.Mutex
 }
 
 func (l *StandardLimits) IOTimeout() time.Duration {
@@ -26,6 +29,8 @@ func (l *StandardLimits) MaxBufferSize() int64 {
 }
 
 func (l *StandardLimits) TrackHTTPRequest(req *http.Request) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.httpRequestsCount++
 	if l.maxHttpRequestCount > NoLimit && l.httpRequestsCount > l.maxHttpRequestCount {
 		return NewLimitsError("limit error: reached maximum number of http requests (%d)", l.maxHttpRequestCount)
@@ -34,6 +39,8 @@ func (l *StandardLimits) TrackHTTPRequest(req *http.Request) error {
 }
 
 func (l *StandardLimits) TrackHTTPResponse(resp *http.Response) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	if l.maxBufferSize > NoLimit && resp.ContentLength >= 0 && resp.ContentLength > l.maxBufferSize {
 		return NewLimitsError("limit error: http response content length exceeds maximum allowed buffer size of %d bytes (got %d bytes)",
 			l.maxBufferSize, resp.ContentLength)
@@ -42,6 +49,8 @@ func (l *StandardLimits) TrackHTTPResponse(resp *http.Response) error {
 }
 
 func (l *StandardLimits) TrackCost(cost int) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	l.cost += int64(cost)
 	if l.maxCost > NoLimit && l.cost > l.maxCost {
 		return NewLimitsError("limit error: reached maximum processing cost (%d)", l.maxCost)
@@ -50,6 +59,8 @@ func (l *StandardLimits) TrackCost(cost int) error {
 }
 
 func (l *StandardLimits) ReadAll(reader io.Reader) ([]byte, error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	if l.maxCost <= NoLimit {
 		return io.ReadAll(reader)
 	}

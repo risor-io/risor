@@ -77,10 +77,6 @@ func NewLimitsError(message string, args ...interface{}) error {
 	return &LimitsError{message: fmt.Sprintf(message, args...)}
 }
 
-// LimitsNotFound is a standard error that indicates limits were expected to be
-// present in a context, but were not found.
-var LimitsNotFound = NewLimitsError("limit error: limits not found in context")
-
 // ReadAll reads from the given reader until EOF or the limit is reached.
 // If the given limit is less than zero, the entire reader is read.
 func ReadAll(reader io.Reader, limit int64) ([]byte, error) {
