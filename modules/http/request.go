@@ -339,34 +339,39 @@ func (r *HttpRequest) SetData(dataObj object.Object) *object.Error {
 }
 
 func (r *HttpRequest) Send(ctx context.Context) object.Object {
-	lim, ok := limits.GetLimits(ctx)
-	if !ok {
-		return object.NewError(limits.LimitsNotFound)
-	}
+	lim, _ := limits.GetLimits(ctx)
 	if r.req == nil {
 		return object.Errorf("bad request")
 	}
 	if r.client == nil {
 		r.client = &http.Client{}
 	}
-	r.client.Timeout = lim.IOTimeout()
+	if lim != nil {
+		r.client.Timeout = lim.IOTimeout()
+	}
 	if r.timeout != 0 {
 		if r.timeout < r.client.Timeout {
 			r.client.Timeout = r.timeout
 		}
 	}
 	req := r.req.WithContext(ctx)
-	if err := lim.TrackHTTPRequest(req); err != nil {
-		return object.NewError(err)
+	if lim != nil {
+		if err := lim.TrackHTTPRequest(req); err != nil {
+			return object.NewError(err)
+		}
 	}
 	resp, err := r.client.Do(req)
 	if err != nil {
 		return object.NewError(err)
 	}
-	if err := lim.TrackHTTPResponse(resp); err != nil {
-		return object.NewError(err)
+	readerLimit := int64(-1)
+	if lim != nil {
+		if err := lim.TrackHTTPResponse(resp); err != nil {
+			return object.NewError(err)
+		}
+		readerLimit = lim.MaxBufferSize()
 	}
-	return NewHttpResponse(resp, r.client.Timeout, lim.MaxBufferSize())
+	return NewHttpResponse(resp, r.client.Timeout, readerLimit)
 }
 
 func NewRequestFromParams(url string, params *object.Map) (*HttpRequest, *object.Error) {

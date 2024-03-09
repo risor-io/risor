@@ -4,25 +4,17 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-
-	"github.com/risor-io/risor/limits"
 )
 
 var _ OS = (*SimpleOS)(nil)
 
 type SimpleOS struct {
-	ctx    context.Context
-	limits limits.Limits
-	args   []string
+	ctx  context.Context
+	args []string
 }
 
 func NewSimpleOS(ctx context.Context) *SimpleOS {
 	sos := &SimpleOS{ctx: ctx}
-	if lim, ok := limits.GetLimits(ctx); ok {
-		sos.limits = lim
-	} else {
-		sos.limits = limits.New()
-	}
 	sos.args = globalScriptargs
 	return sos
 }

@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/risor-io/risor/limits"
 )
 
 var _ OS = (*VirtualOS)(nil)
@@ -24,7 +23,6 @@ type Mount struct {
 
 type VirtualOS struct {
 	ctx           context.Context
-	limits        limits.Limits
 	userCacheDir  string
 	userConfigDir string
 	userHomeDir   string
@@ -155,11 +153,6 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 		cwd:    "/",
 		stdin:  &NilFile{},
 		stdout: &NilFile{},
-	}
-	if lim, ok := limits.GetLimits(ctx); ok {
-		vos.limits = lim
-	} else {
-		vos.limits = limits.New()
 	}
 	for _, opt := range opts {
 		opt(vos)
@@ -322,7 +315,7 @@ func (osObj *VirtualOS) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer file.Close()
-	return osObj.limits.ReadAll(file)
+	return io.ReadAll(file)
 }
 
 func (osObj *VirtualOS) Remove(name string) error {

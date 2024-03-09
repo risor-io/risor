@@ -3,13 +3,8 @@ package vm
 import (
 	"fmt"
 
-	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
-
-func defaultLimits() limits.Limits {
-	return limits.New(limits.WithMaxBufferSize(100 * MB))
-}
 
 func checkCallArgs(fn *object.Function, argc int) error {
 	// Number of parameters in the function signature

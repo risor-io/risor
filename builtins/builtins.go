@@ -15,7 +15,6 @@ import (
 	"unicode"
 
 	"github.com/risor-io/risor/internal/arg"
-	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 )
 
@@ -43,9 +42,6 @@ func Sprintf(ctx context.Context, args ...object.Object) object.Object {
 		fmtArgs[i] = v.Interface()
 	}
 	result := object.NewString(fmt.Sprintf(fs, fmtArgs...))
-	if err := limits.TrackCost(ctx, result.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	return result
 }
 
@@ -72,9 +68,6 @@ func Set(ctx context.Context, args ...object.Object) object.Object {
 		return set
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	iter, err := object.AsIterator(arg)
 	if err != nil {
 		return err
@@ -103,9 +96,6 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 		if count < 0 {
 			return object.Errorf("value error: list() argument must be >= 0 (%d given)", count)
 		}
-		if err := limits.TrackCost(ctx, int(count)*8); err != nil {
-			return object.NewError(err)
-		}
 		arr := make([]object.Object, count)
 		for i := 0; i < int(count); i++ {
 			arr[i] = object.Nil
@@ -113,9 +103,6 @@ func List(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewList(arr)
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	iter, err := object.AsIterator(arg)
 	if err != nil {
 		return err
@@ -140,9 +127,6 @@ func Map(ctx context.Context, args ...object.Object) object.Object {
 		return result
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	list, ok := arg.(*object.List)
 	if ok {
 		for _, obj := range list.Value() {
@@ -187,29 +171,15 @@ func String(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewString("")
 	}
 	arg := args[0]
-	argCost := arg.Cost()
-	lim, ok := limits.GetLimits(ctx)
-	if !ok {
-		return object.NewError(limits.LimitsNotFound)
-	}
 	switch arg := arg.(type) {
 	case *object.Buffer:
-		if err := lim.TrackCost(argCost); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewString(arg.Value().String())
 	case *object.ByteSlice:
-		if err := lim.TrackCost(argCost); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewString(string(arg.Value()))
 	case *object.String:
-		if err := lim.TrackCost(argCost); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewString(arg.Value())
 	case io.Reader:
-		bytes, err := lim.ReadAll(arg)
+		bytes, err := io.ReadAll(arg)
 		if err != nil {
 			return object.NewError(err)
 		}
@@ -230,18 +200,11 @@ func FloatSlice(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewFloatSlice(nil)
 	}
 	arg := args[0]
-	argCost := arg.Cost()
-	if err := limits.TrackCost(ctx, argCost); err != nil {
-		return object.NewError(err)
-	}
 	switch arg := arg.(type) {
 	case *object.FloatSlice:
 		return arg.Clone()
 	case *object.Int:
 		val := arg.Value()
-		if err := limits.TrackCost(ctx, int(val)-argCost); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewFloatSlice(make([]float64, val))
 	case *object.List:
 		items := arg.Value()
@@ -272,10 +235,6 @@ func ByteSlice(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewByteSlice(nil)
 	}
 	arg := args[0]
-	argCost := arg.Cost()
-	if err := limits.TrackCost(ctx, argCost); err != nil {
-		return object.NewError(err)
-	}
 	switch arg := arg.(type) {
 	case *object.Buffer:
 		return object.NewByteSlice(arg.Value().Bytes())
@@ -285,9 +244,6 @@ func ByteSlice(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewByteSlice([]byte(arg.Value()))
 	case *object.Int:
 		val := arg.Value()
-		if err := limits.TrackCost(ctx, int(val)-argCost); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewByteSlice(make([]byte, val))
 	case *object.List:
 		items := arg.Value()
@@ -316,35 +272,19 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewBuffer(new(bytes.Buffer))
 	}
 	arg := args[0]
-	lim, ok := limits.GetLimits(ctx)
-	if !ok {
-		return object.NewError(limits.LimitsNotFound)
-	}
 	switch arg := arg.(type) {
 	case *object.Buffer:
-		if err := lim.TrackCost(arg.Cost()); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewBufferFromBytes(arg.Value().Bytes())
 	case *object.ByteSlice:
-		if err := lim.TrackCost(arg.Cost()); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewBufferFromBytes(arg.Value())
 	case *object.String:
-		if err := lim.TrackCost(arg.Cost()); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewBufferFromBytes([]byte(arg.Value()))
 	case *object.Int:
 		// Special case: treat the value as the size to allocate
 		val := arg.Value()
-		if err := lim.TrackCost(int(val)); err != nil {
-			return object.NewError(err)
-		}
 		return object.NewBufferFromBytes(make([]byte, val))
 	case io.Reader:
-		bytes, err := lim.ReadAll(arg)
+		bytes, err := io.ReadAll(arg)
 		if err != nil {
 			return object.NewError(err)
 		}
@@ -509,9 +449,6 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	var items []object.Object
 	switch arg := arg.(type) {
 	case *object.List:
@@ -540,9 +477,6 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	switch arg := arg.(type) {
 	case *object.List:
 		return arg.Reversed()
@@ -600,9 +534,6 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	arg := args[0]
-	if err := limits.TrackCost(ctx, arg.Cost()); err != nil {
-		return object.NewError(err)
-	}
 	switch arg := arg.(type) {
 	case *object.Map:
 		return arg.Keys()
@@ -898,9 +829,6 @@ func Make(ctx context.Context, args ...object.Object) object.Object {
 	}
 	if size < 0 {
 		return object.Errorf("value error: make() size must be >= 0 (%d given)", size)
-	}
-	if err := limits.TrackCost(ctx, size*8); err != nil {
-		return object.NewError(err)
 	}
 	switch typ := typ.(type) {
 	case *object.List:

@@ -14,7 +14,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/risor-io/risor/limits"
 	ros "github.com/risor-io/risor/os"
 )
 
@@ -138,7 +137,6 @@ type Filesystem struct {
 	ctx    context.Context
 	base   string
 	bucket string
-	limits limits.Limits
 	client *s3.Client
 }
 
@@ -169,11 +167,6 @@ func WithBucket(bucket string) Option {
 // New creates a new S3 filesystem with the given options.
 func New(ctx context.Context, opts ...Option) (*Filesystem, error) {
 	fs := &Filesystem{ctx: ctx}
-	if lim, ok := limits.GetLimits(ctx); ok {
-		fs.limits = lim
-	} else {
-		fs.limits = limits.New()
-	}
 	for _, opt := range opts {
 		opt(fs)
 	}
@@ -269,7 +262,7 @@ func (fs *Filesystem) ReadFile(name string) ([]byte, error) {
 	if err := f.get(); err != nil {
 		return nil, err
 	}
-	return fs.limits.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func (fs *Filesystem) Remove(name string) error {

@@ -77,10 +77,6 @@ func NewLimitsError(message string, args ...interface{}) error {
 	return &LimitsError{message: fmt.Sprintf(message, args...)}
 }
 
-// LimitsNotFound is a standard error that indicates limits were expected to be
-// present in a context, but were not found.
-var LimitsNotFound = NewLimitsError("limit error: limits not found in context")
-
 // ReadAll reads from the given reader until EOF or the limit is reached.
 // If the given limit is less than zero, the entire reader is read.
 func ReadAll(reader io.Reader, limit int64) ([]byte, error) {
@@ -89,12 +85,12 @@ func ReadAll(reader io.Reader, limit int64) ([]byte, error) {
 	}
 	// Bump limit by one so we can detect if the supplied limit was exceeded,
 	// in which case we'll return an error.
-	limit++
-	body, err := io.ReadAll(io.LimitReader(reader, limit))
+	limitPlusOne := limit + 1
+	body, err := io.ReadAll(io.LimitReader(reader, limitPlusOne))
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(body)) >= limit {
+	if int64(len(body)) >= limitPlusOne {
 		return nil, NewLimitsError("limit error: data size exceeded limit of %d bytes", limit)
 	}
 	return body, nil
