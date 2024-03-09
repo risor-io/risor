@@ -85,12 +85,12 @@ func ReadAll(reader io.Reader, limit int64) ([]byte, error) {
 	}
 	// Bump limit by one so we can detect if the supplied limit was exceeded,
 	// in which case we'll return an error.
-	limit++
-	body, err := io.ReadAll(io.LimitReader(reader, limit))
+	limitPlusOne := limit + 1
+	body, err := io.ReadAll(io.LimitReader(reader, limitPlusOne))
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(body)) >= limit {
+	if int64(len(body)) >= limitPlusOne {
 		return nil, NewLimitsError("limit error: data size exceeded limit of %d bytes", limit)
 	}
 	return body, nil

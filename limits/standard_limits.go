@@ -61,18 +61,13 @@ func (l *StandardLimits) TrackCost(cost int) error {
 func (l *StandardLimits) ReadAll(reader io.Reader) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.maxCost <= NoLimit {
+	if l.maxBufferSize <= 0 {
 		return io.ReadAll(reader)
 	}
-	remainingCost := l.maxCost - l.cost
-	if remainingCost <= 0 {
-		return nil, NewLimitsError("limit error: reached maximum processing cost (%d)", l.maxCost)
-	}
-	bytes, err := ReadAll(reader, remainingCost)
+	bytes, err := ReadAll(reader, l.maxBufferSize)
 	if err != nil {
 		return nil, err
 	}
-	l.cost += int64(len(bytes))
 	return bytes, nil
 }
 
