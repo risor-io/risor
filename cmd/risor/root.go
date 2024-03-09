@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/pprof"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -111,6 +113,16 @@ func isTerminalIO() bool {
 	inTerm := isatty.IsTerminal(stdin) || isatty.IsCygwinTerminal(stdin)
 	outTerm := isatty.IsTerminal(stdout) || isatty.IsCygwinTerminal(stdout)
 	return inTerm && outTerm
+}
+
+func handleSigForProfiler() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		pprof.StopCPUProfile()
+		os.Exit(1)
+	}()
 }
 
 // this works around issues with cobra not passing args after -- to the script
@@ -232,6 +244,7 @@ var rootCmd = &cobra.Command{
 			}
 			pprof.StartCPUProfile(f)
 			defer pprof.StopCPUProfile()
+			handleSigForProfiler()
 		}
 
 		// Build up a list of options to pass to the VM
