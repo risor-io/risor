@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -68,11 +67,7 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				return NewArgsRangeError("file.read", 0, 1, len(args))
 			}
 			if len(args) == 0 {
-				lim, ok := limits.GetLimits(ctx)
-				if !ok {
-					return NewError(limits.LimitsNotFound)
-				}
-				bytes, err := lim.ReadAll(f.value)
+				bytes, err := io.ReadAll(f.value)
 				if err != nil {
 					return NewError(err)
 				}
@@ -97,9 +92,6 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				size := stat.Size()
 				if size > math.MaxInt32 {
 					return NewError(errors.New("file.read: file size exceeds maximum int32"))
-				}
-				if err := limits.TrackCost(ctx, int(size)); err != nil {
-					return NewError(err)
 				}
 				buf := obj.Value()
 				buf.Grow(int(size)) // review: this can panic

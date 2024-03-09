@@ -2,7 +2,6 @@ package vm
 
 import (
 	"github.com/risor-io/risor/importer"
-	"github.com/risor-io/risor/limits"
 )
 
 // Option is a configuration function for a Virtual Machine.
@@ -19,13 +18,6 @@ func WithInstructionOffset(offset int) Option {
 func WithImporter(importer importer.Importer) Option {
 	return func(vm *VirtualMachine) {
 		vm.importer = importer
-	}
-}
-
-// WithLimits sets the limits for the Virtual Machine.
-func WithLimits(limits limits.Limits) Option {
-	return func(vm *VirtualMachine) {
-		vm.limits = limits
 	}
 }
 

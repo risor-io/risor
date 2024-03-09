@@ -3,20 +3,19 @@ package localfs
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/risor-io/risor/limits"
 	ros "github.com/risor-io/risor/os"
 )
 
 var _ ros.FS = (*Filesystem)(nil)
 
 type Filesystem struct {
-	ctx    context.Context
-	base   string
-	limits limits.Limits
+	ctx  context.Context
+	base string
 }
 
 // Option is a configuration function for a local Filesystem.
@@ -32,11 +31,6 @@ func WithBase(dir string) Option {
 // New creates a new local filesystem with the given options.
 func New(ctx context.Context, opts ...Option) (*Filesystem, error) {
 	fs := &Filesystem{ctx: ctx}
-	if lim, ok := limits.GetLimits(ctx); ok {
-		fs.limits = lim
-	} else {
-		fs.limits = limits.New()
-	}
 	for _, opt := range opts {
 		opt(fs)
 	}
@@ -134,7 +128,7 @@ func (fs *Filesystem) ReadFile(name string) ([]byte, error) {
 		return nil, ros.MassagePathError(fs.base, err)
 	}
 	defer f.Close()
-	return fs.limits.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func (fs *Filesystem) Remove(name string) error {

@@ -12,7 +12,6 @@ import (
 
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
-	"github.com/risor-io/risor/limits"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -37,7 +36,6 @@ type VirtualMachine struct {
 	modules      map[string]*object.Module
 	inputGlobals map[string]any
 	globals      map[string]object.Object
-	limits       limits.Limits
 	loadedCode   map[*compiler.Code]*code
 	running      bool
 	concAllowed  bool
@@ -63,9 +61,6 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 	}
 	for _, opt := range options {
 		opt(vm)
-	}
-	if vm.limits == nil {
-		vm.limits = defaultLimits()
 	}
 	// Convert globals to Risor objects
 	var err error
@@ -932,10 +927,6 @@ func (vm *VirtualMachine) importModule(ctx context.Context, name string) (*objec
 // beginning of the main entrypoint.
 //
 // Do not use Clone if you want a strict guarantee of isolation between VMs.
-//
-// The VM limits are not currently copied from the original because limits
-// implementations are not currently thread safe. Consequently it's not safe to
-// use Clone when limits are required.
 func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 	// Locking cloneMutex is done to prevent clones while code is being loaded
 	// or modules are being imported
@@ -958,7 +949,6 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 		sp:           -1,
 		ip:           0,
 		fp:           0,
-		limits:       nil,
 		running:      false,
 		importer:     vm.importer,
 		main:         vm.main,
@@ -974,7 +964,7 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 
 // Clones the VM and then calls the function asynchronously in the clone. A
 // thread object is returned that can be used to wait for the result of the
-// function call. Limits are not preserved in the cloned VM.
+// function call.
 func (vm *VirtualMachine) cloneCallAsync(
 	ctx context.Context,
 	fn object.Callable,
@@ -988,7 +978,6 @@ func (vm *VirtualMachine) cloneCallAsync(
 }
 
 // Clones the VM and then calls the function synchronously in the clone.
-// Limits are not preserved in the cloned VM.
 func (vm *VirtualMachine) cloneCallSync(
 	ctx context.Context,
 	fn *object.Function,
@@ -1002,7 +991,6 @@ func (vm *VirtualMachine) cloneCallSync(
 }
 
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
-	ctx = limits.WithLimits(ctx, vm.limits)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	if vm.concAllowed {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
