@@ -152,10 +152,7 @@ result, err := risor.Eval(ctx, "len(ex.Message)", risor.WithGlobal("ex", example
 
 ## Dependencies and Build Options
 
-Risor is designed to have zero external dependencies in its core libraries.
-Although, strictly speaking, the core does have one external dependency on
-`github.com/stretchr/testify` for unit tests only.
-
+Risor is designed to have minimal external dependencies in its core libraries.
 You can choose to opt into various add-on modules if they are of value in your
 application. The modules are present in this same Git repository, but must be
 installed with `go get` as separate dependencies:

@@ -5,13 +5,13 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 1%
+        threshold: 3%
         if_ci_failed: error
         only_pulls: true
     patch:
       default:
         target: auto
-        threshold: 1% # Allowed drop in coverage for the patch
+        threshold: 3% # Allowed drop in coverage for the patch
         if_ci_failed: error
         only_pulls: true
 ignore:

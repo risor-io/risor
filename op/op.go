@@ -5,90 +5,178 @@ package op
 type Code uint16
 
 const (
-	Nop Code = iota
-	BinaryOp
-	BinarySubscr
-	BuildList
-	BuildMap
-	BuildSet
-	BuildString
-	Call
-	CompareOp
-	ContainsOp
-	Copy
-	Defer
-	False
-	ForIter
-	FromImport
-	GetIter
-	Go
-	Halt
-	Import
-	JumpBackward
-	JumpForward
-	Length
-	LoadAttr
-	LoadClosure
-	LoadConst
-	LoadFast
-	LoadFree
-	LoadGlobal
-	MakeCell
-	Nil
-	Partial
-	PopJumpForwardIfFalse
-	PopJumpForwardIfTrue
-	PopTop
-	Range
-	Receive
-	ReturnValue
-	Send
-	Slice
-	StoreAttr
-	StoreFast
-	StoreFree
-	StoreGlobal
-	StoreSubscr
-	Swap
-	True
-	UnaryNegative
-	UnaryNot
-	Unpack
+	Invalid Code = 0
+
+	// Execution
+	Nop         Code = 1
+	Halt        Code = 2
+	Call        Code = 3
+	ReturnValue Code = 4
+	Defer       Code = 5
+	Go          Code = 6
+
+	// Jump
+	JumpBackward          Code = 10
+	JumpForward           Code = 11
+	PopJumpForwardIfFalse Code = 12
+	PopJumpForwardIfTrue  Code = 13
+
+	// Load
+	LoadAttr   Code = 20
+	LoadFast   Code = 21
+	LoadFree   Code = 22
+	LoadGlobal Code = 23
+	LoadConst  Code = 24
+
+	// Store
+	StoreAttr   Code = 30
+	StoreFast   Code = 31
+	StoreFree   Code = 32
+	StoreGlobal Code = 33
+
+	// Operations
+	BinaryOp      Code = 40
+	CompareOp     Code = 41
+	UnaryNegative Code = 42
+	UnaryNot      Code = 43
+
+	// Build
+	BuildList   Code = 50
+	BuildMap    Code = 51
+	BuildSet    Code = 52
+	BuildString Code = 53
+
+	// Containers
+	BinarySubscr Code = 60
+	StoreSubscr  Code = 61
+	ContainsOp   Code = 62
+	Length       Code = 63
+	Slice        Code = 64
+	Unpack       Code = 65
+
+	// Stack
+	Swap   Code = 70
+	Copy   Code = 71
+	PopTop Code = 72
+
+	// Push constants
+	Nil   Code = 80
+	False Code = 81
+	True  Code = 82
+
+	// Iteration
+	ForIter Code = 90
+	GetIter Code = 91
+	Range   Code = 92
+
+	// Import
+	FromImport Code = 100
+	Import     Code = 101
+
+	// Channels
+	Receive Code = 110
+	Send    Code = 111
+
+	// Closures
+	LoadClosure Code = 120
+	MakeCell    Code = 121
+
+	// Partials
+	Partial Code = 130
 )
 
-// BinaryOpType describes a type of binary operation.
+// BinaryOpType describes a type of binary operation, as in an operation that
+// takes two operands. For example, addition, subtraction, multiplication, etc.
 type BinaryOpType uint16
 
 const (
-	Add BinaryOpType = iota + 1
-	Subtract
-	Multiply
-	Divide
-	Modulo
-	And
-	Or
-	Xor
-	Power
-	LShift
-	RShift
-	BitwiseAnd
-	BitwiseOr
+	Add        BinaryOpType = 1
+	Subtract   BinaryOpType = 2
+	Multiply   BinaryOpType = 3
+	Divide     BinaryOpType = 4
+	Modulo     BinaryOpType = 5
+	And        BinaryOpType = 6
+	Or         BinaryOpType = 7
+	Xor        BinaryOpType = 8
+	Power      BinaryOpType = 9
+	LShift     BinaryOpType = 10
+	RShift     BinaryOpType = 11
+	BitwiseAnd BinaryOpType = 12
+	BitwiseOr  BinaryOpType = 13
 )
 
-// CompareOpType describes a type of comparison operation.
+// String returns a string representation of the binary operation.
+// For example "+" for addition.
+func (bop BinaryOpType) String() string {
+	switch bop {
+	case Add:
+		return "+"
+	case Subtract:
+		return "-"
+	case Multiply:
+		return "*"
+	case Divide:
+		return "/"
+	case Modulo:
+		return "%"
+	case And:
+		return "&&"
+	case Or:
+		return "||"
+	case Xor:
+		return "^"
+	case Power:
+		return "**"
+	case LShift:
+		return "<<"
+	case RShift:
+		return ">>"
+	case BitwiseAnd:
+		return "&^"
+	case BitwiseOr:
+		return "|^"
+	default:
+		return ""
+	}
+}
+
+// CompareOpType describes a type of comparison operation. For example, less
+// than, greater than, equal, etc.
 type CompareOpType uint16
 
 const (
-	LessThan CompareOpType = iota + 1
-	LessThanOrEqual
-	Equal
-	NotEqual
-	GreaterThan
-	GreaterThanOrEqual
+	LessThan           CompareOpType = 1
+	LessThanOrEqual    CompareOpType = 2
+	Equal              CompareOpType = 3
+	NotEqual           CompareOpType = 4
+	GreaterThan        CompareOpType = 5
+	GreaterThanOrEqual CompareOpType = 6
 )
+
+// String returns a string representation of the comparison operation.
+// For example "<" for less than.
+func (cop CompareOpType) String() string {
+	switch cop {
+	case LessThan:
+		return "<"
+	case LessThanOrEqual:
+		return "<="
+	case Equal:
+		return "=="
+	case NotEqual:
+		return "!="
+	case GreaterThan:
+		return ">"
+	case GreaterThanOrEqual:
+		return ">="
+	default:
+		return ""
+	}
+}
 
 // Info contains information about an opcode.
 type Info struct {
+	Code         Code
 	Name         string
 	OperandCount int
 }
@@ -114,11 +202,12 @@ func init() {
 		{Copy, "COPY", 1},
 		{Defer, "DEFER", 0},
 		{False, "FALSE", 0},
+		{ForIter, "FOR_ITER", 2},
+		{FromImport, "FROM_IMPORT", 2},
 		{GetIter, "GET_ITER", 0},
 		{Go, "GO", 0},
 		{Halt, "HALT", 0},
 		{Import, "IMPORT", 0},
-		{FromImport, "FROM_IMPORT", 2},
 		{JumpBackward, "JUMP_BACKWARD", 1},
 		{JumpForward, "JUMP_FORWARD", 1},
 		{Length, "LENGTH", 0},
@@ -136,7 +225,9 @@ func init() {
 		{PopJumpForwardIfTrue, "POP_JUMP_FORWARD_IF_TRUE", 1},
 		{PopTop, "POP_TOP", 0},
 		{Range, "RANGE", 0},
+		{Receive, "RECEIVE", 0},
 		{ReturnValue, "RETURN_VALUE", 0},
+		{Send, "SEND", 0},
 		{Slice, "SLICE", 0},
 		{StoreAttr, "STORE_ATTR", 1},
 		{StoreFast, "STORE_FAST", 1},
@@ -148,11 +239,11 @@ func init() {
 		{UnaryNegative, "UNARY_NEGATIVE", 0},
 		{UnaryNot, "UNARY_NOT", 0},
 		{Unpack, "UNPACK", 1},
-		{ForIter, "FOR_ITER", 2},
 	}
 	for _, o := range ops {
 		infos[o.op] = Info{
 			Name:         o.name,
+			Code:         o.op,
 			OperandCount: o.count,
 		}
 	}

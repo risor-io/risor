@@ -28,7 +28,7 @@ jobs:
           name: Run tests
           command: |
             mkdir -p /tmp/test-reports
-            gotestsum --junitfile /tmp/test-reports/unit-tests.xml -- -coverprofile=coverage.out -covermode=atomic ./...
+            gotestsum --junitfile /tmp/test-reports/unit-tests.xml -- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/...
       - codecov/upload
       - store_test_results:
           path: /tmp/test-reports
