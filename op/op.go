@@ -220,7 +220,7 @@ func init() {
 		{MakeCell, "MAKE_CELL", 2},
 		{Nil, "NIL", 0},
 		{Nop, "NOP", 0},
-		{Partial, "PARTIAL", 1},
+		{Partial, "PARTIAL", 2},
 		{PopJumpForwardIfFalse, "POP_JUMP_FORWARD_IF_FALSE", 1},
 		{PopJumpForwardIfTrue, "POP_JUMP_FORWARD_IF_TRUE", 1},
 		{PopTop, "POP_TOP", 0},

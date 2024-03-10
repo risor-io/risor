@@ -791,7 +791,7 @@ func (c *Compiler) compilePipe(node *ast.Pipe) error {
 		// Swap the function (TOS) with the argument below it on the stack
 		// and then call the function with one argument
 		c.emit(op.Swap, 1)
-		c.emit(op.Call, 1)
+		c.emit(op.Call, 1, 0)
 	}
 	return nil
 }
@@ -928,10 +928,17 @@ func (c *Compiler) compileObjectCall(node *ast.ObjectCall) error {
 			return err
 		}
 	}
+	hasEllipsis := uint16(0)
+	if method.HasEllipsis() {
+		hasEllipsis = 1
+		if len(args) == 0 {
+			return fmt.Errorf("compile error: invalid use of ellipsis")
+		}
+	}
 	if c.current.pipeActive {
-		c.emit(op.Partial, uint16(len(args)))
+		c.emit(op.Partial, uint16(len(args)), hasEllipsis)
 	} else {
-		c.emit(op.Call, uint16(len(args)))
+		c.emit(op.Call, uint16(len(args)), hasEllipsis)
 	}
 	return nil
 }
@@ -1747,7 +1754,14 @@ func (c *Compiler) compilePartial(call *ast.Call) error {
 			return err
 		}
 	}
-	c.emit(op.Partial, uint16(argc))
+	hasEllipsis := uint16(0)
+	if call.HasEllipsis() {
+		hasEllipsis = 1
+		if len(args) == 0 {
+			return fmt.Errorf("compile error: invalid use of ellipsis")
+		}
+	}
+	c.emit(op.Partial, uint16(argc), hasEllipsis)
 	return nil
 }
 
@@ -1772,7 +1786,14 @@ func (c *Compiler) compilePartialObjectCall(node *ast.ObjectCall) error {
 			return err
 		}
 	}
-	c.emit(op.Partial, uint16(len(args)))
+	hasEllipsis := uint16(0)
+	if method.HasEllipsis() {
+		hasEllipsis = 1
+		if len(args) == 0 {
+			return fmt.Errorf("compile error: invalid use of ellipsis")
+		}
+	}
+	c.emit(op.Partial, uint16(len(args)), hasEllipsis)
 	return nil
 }
 
@@ -1797,7 +1818,8 @@ func (c *Compiler) emit(opcode op.Code, operands ...uint16) int {
 func makeInstruction(opcode op.Code, operands ...uint16) []op.Code {
 	opInfo := op.GetInfo(opcode)
 	if len(operands) != opInfo.OperandCount {
-		panic("compile error: wrong operand count")
+		panic(fmt.Sprintf("compile error: wrong operand count for %s (got %d)",
+			opInfo.Name, len(operands)))
 	}
 	instruction := make([]op.Code, 1+opInfo.OperandCount)
 	instruction[0] = opcode

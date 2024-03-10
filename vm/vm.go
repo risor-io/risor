@@ -288,9 +288,26 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
-			hasEllipsis := vm.fetch() == 1
+			hasEllipsis := vm.fetch() != 0
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
 				vm.tmp[argIndex] = vm.pop()
+			}
+			if hasEllipsis {
+				containerObj := vm.tmp[argc-1]
+				container, ok := containerObj.(object.Container)
+				if !ok {
+					return fmt.Errorf("type error: object is not a container (got %s)",
+						containerObj.Type())
+				}
+				items := getContainerItems(ctx, container)
+				count := len(items)
+				totalCount := argc - 1 + int(count)
+				if totalCount > MaxArgs {
+					return fmt.Errorf("exec error: max args limit of %d exceeded (got %d)",
+						MaxArgs, totalCount)
+				}
+				copy(vm.tmp[argc-1:], items)
+				argc = totalCount
 			}
 			obj := vm.pop()
 			if err := vm.callObject(ctx, obj, vm.tmp[:argc]); err != nil {
@@ -298,10 +315,20 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 		case op.Partial:
 			argc := int(vm.fetch())
-			hasEllipsis := vm.fetch() == 1
+			hasEllipsis := vm.fetch() != 0
 			args := make([]object.Object, argc)
 			for i := argc - 1; i >= 0; i-- {
 				args[i] = vm.pop()
+			}
+			if hasEllipsis {
+				containerObj := args[argc-1]
+				container, ok := containerObj.(object.Container)
+				if !ok {
+					return fmt.Errorf("type error: object is not a container (got %s)",
+						containerObj.Type())
+				}
+				items := getContainerItems(ctx, container)
+				args = append(args[:argc-1], items...)
 			}
 			obj := vm.pop()
 			partial := object.NewPartial(obj, args)
@@ -999,4 +1026,17 @@ func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 		ctx = object.WithCloneCallFunc(ctx, vm.cloneCallSync)
 	}
 	return ctx
+}
+
+func getContainerItems(ctx context.Context, c object.Container) []object.Object {
+	var items []object.Object
+	iter := c.Iter()
+	for {
+		item, ok := iter.Next(ctx)
+		if !ok {
+			break
+		}
+		items = append(items, item)
+	}
+	return items
 }
