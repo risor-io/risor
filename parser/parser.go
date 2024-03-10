@@ -165,6 +165,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	// Register postfix functions
 	p.registerPostfix(token.MINUS_MINUS, p.parsePostfix)
 	p.registerPostfix(token.PLUS_PLUS, p.parsePostfix)
+	// p.registerPostfix(token.ELLIPSIS, p.parsePostfix)
 	return p
 }
 
@@ -1204,33 +1205,33 @@ func (p *Parser) parseExprList(end token.Type) []ast.Expression {
 	return list
 }
 
-func (p *Parser) parseNodeList(end token.Type) []ast.Node {
+func (p *Parser) parseNodeList(end token.Type) ([]ast.Node, bool) {
 	list := make([]ast.Node, 0)
 	if p.peekTokenIs(end) {
 		p.nextToken()
-		return list
+		return list, false
 	}
 	for p.peekTokenIs(token.NEWLINE) {
 		if err := p.nextToken(); err != nil {
-			return nil
+			return nil, false
 		}
 	}
 	p.nextToken()
 	expr := p.parseNode(LOWEST)
 	if expr == nil {
 		p.setTokenError(p.curToken, "invalid syntax in list expression")
-		return nil
+		return nil, false
 	}
 	list = append(list, expr)
 	for p.peekTokenIs(token.COMMA) {
 		// move to the comma
 		if err := p.nextToken(); err != nil {
-			return nil
+			return nil, false
 		}
 		// advance across any extra newlines
 		for p.peekTokenIs(token.NEWLINE) {
 			if err := p.nextToken(); err != nil {
-				return nil
+				return nil, false
 			}
 		}
 		// check if the list has ended after the newlines
@@ -1239,14 +1240,19 @@ func (p *Parser) parseNodeList(end token.Type) []ast.Node {
 		}
 		// move to the next expression
 		if err := p.nextToken(); err != nil {
-			return nil
+			return nil, false
 		}
 		list = append(list, p.parseNode(LOWEST))
 	}
-	if !p.expectPeek("a node list", end) {
-		return nil
+	hasEllipsis := false
+	if p.peekTokenIs(token.ELLIPSIS) {
+		p.nextToken()
+		hasEllipsis = true
 	}
-	return list
+	if !p.expectPeek("call arguments", end) {
+		return nil, false
+	}
+	return list, hasEllipsis
 }
 
 func (p *Parser) parseIndex(leftNode ast.Node) ast.Node {
@@ -1320,11 +1326,11 @@ func (p *Parser) parseCall(functionNode ast.Node) ast.Node {
 		return nil
 	}
 	callToken := p.curToken
-	arguments := p.parseNodeList(token.RPAREN)
+	arguments, hasEllipsis := p.parseNodeList(token.RPAREN)
 	if arguments == nil {
 		return nil
 	}
-	return ast.NewCall(callToken, function, arguments)
+	return ast.NewCall(callToken, function, arguments, hasEllipsis)
 }
 
 func (p *Parser) parsePipe(firstNode ast.Node) ast.Node {

@@ -196,7 +196,7 @@ func init() {
 		{BuildMap, "BUILD_MAP", 1},
 		{BuildSet, "BUILD_SET", 1},
 		{BuildString, "BUILD_STRING", 1},
-		{Call, "CALL", 1},
+		{Call, "CALL", 2},
 		{CompareOp, "COMPARE_OP", 1},
 		{ContainsOp, "CONTAINS_OP", 1},
 		{Copy, "COPY", 1},

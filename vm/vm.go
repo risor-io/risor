@@ -288,6 +288,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
+			hasEllipsis := vm.fetch() == 1
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
 				vm.tmp[argIndex] = vm.pop()
 			}
@@ -297,6 +298,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 		case op.Partial:
 			argc := int(vm.fetch())
+			hasEllipsis := vm.fetch() == 1
 			args := make([]object.Object, argc)
 			for i := argc - 1; i >= 0; i-- {
 				args[i] = vm.pop()

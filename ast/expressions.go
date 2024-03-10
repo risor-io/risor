@@ -199,14 +199,20 @@ func (t *Ternary) String() string {
 
 // Call is an expression node that describes the invocation of a function.
 type Call struct {
-	token     token.Token // the '(' token
-	function  Expression  // the function being called
-	arguments []Node      // the arguments supplied to the call
+	token       token.Token // the '(' token
+	function    Expression  // the function being called
+	arguments   []Node      // the arguments supplied to the call
+	hasEllipsis bool        // whether the call has an ellipsis
 }
 
 // NewCall creates a new Call node.
-func NewCall(token token.Token, function Expression, arguments []Node) *Call {
-	return &Call{token: token, function: function, arguments: arguments}
+func NewCall(token token.Token, function Expression, arguments []Node, hasEllipsis bool) *Call {
+	return &Call{
+		token:       token,
+		function:    function,
+		arguments:   arguments,
+		hasEllipsis: hasEllipsis,
+	}
 }
 
 func (c *Call) ExpressionNode() {}
@@ -221,6 +227,8 @@ func (c *Call) Function() Expression { return c.function }
 
 func (c *Call) Arguments() []Node { return c.arguments }
 
+func (c *Call) HasEllipsis() bool { return c.hasEllipsis }
+
 func (c *Call) String() string {
 	var out bytes.Buffer
 	args := make([]string, 0)
@@ -230,6 +238,9 @@ func (c *Call) String() string {
 	out.WriteString(c.function.String())
 	out.WriteString("(")
 	out.WriteString(strings.Join(args, ", "))
+	if c.hasEllipsis {
+		out.WriteString("...")
+	}
 	out.WriteString(")")
 	return out.String()
 }

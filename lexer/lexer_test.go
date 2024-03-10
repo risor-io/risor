@@ -34,7 +34,7 @@ func TestNil(t *testing.T) {
 }
 
 func TestNextToken1(t *testing.T) {
-	input := "%=+(){},;?|| &&`/foo`++--***=.."
+	input := "%=+(){},;?|| &&`/foo`++--***=."
 
 	tests := []struct {
 		expectedType    token.Type
@@ -57,7 +57,6 @@ func TestNextToken1(t *testing.T) {
 		{token.MINUS_MINUS, "--"},
 		{token.POW, "**"},
 		{token.ASTERISK_EQUALS, "*="},
-		{token.PERIOD, "."},
 		{token.PERIOD, "."},
 		{token.EOF, ""},
 	}
@@ -760,6 +759,8 @@ bar = baz
 
 	line := l.GetLineText(tok)
 	require.Equal(t, " var x = 32; foo = bar", line)
+
+	require.Equal(t, "", New("").GetLineText(token.Token{}))
 }
 
 func TestInvalids(t *testing.T) {
@@ -786,4 +787,69 @@ func TestInvalids(t *testing.T) {
 			require.Equal(t, tt.err, err.Error())
 		})
 	}
+}
+
+func TestEllipsis(t *testing.T) {
+	tokens, err := getTokens("myfunc(p, array...)")
+	require.Nil(t, err)
+	require.Equal(t, []token.Type{
+		token.IDENT,
+		token.LPAREN,
+		token.IDENT,
+		token.COMMA,
+		token.IDENT,
+		token.ELLIPSIS,
+		token.RPAREN,
+		token.EOF,
+	}, tokens)
+}
+
+func TestMiscTokens(t *testing.T) {
+	tokens, err := getTokens(`
+		ch <- 1 << 4
+		x := value >> 2 | test()
+	`)
+	require.Nil(t, err)
+	require.Equal(t, []token.Type{
+		token.NEWLINE,
+		token.IDENT,
+		token.SEND,
+		token.INT,
+		token.LT_LT,
+		token.INT,
+		token.NEWLINE,
+		token.IDENT,
+		token.DECLARE,
+		token.IDENT,
+		token.GT_GT,
+		token.INT,
+		token.PIPE,
+		token.IDENT,
+		token.LPAREN,
+		token.RPAREN,
+		token.NEWLINE,
+		token.EOF,
+	}, tokens)
+}
+
+func TestWithFile(t *testing.T) {
+	l := New("1 + 2", WithFile("awesome-script.risor"))
+	require.Equal(t, "awesome-script.risor", l.Filename())
+	l.SetFilename("x.risor")
+	require.Equal(t, "x.risor", l.Filename())
+}
+
+func getTokens(s string) (tokens []token.Type, err error) {
+	l := New(s)
+	for {
+		tok, err := l.Next()
+		if err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, tok.Type)
+		if tok.Type == token.EOF {
+			break
+		}
+	}
+	return
 }

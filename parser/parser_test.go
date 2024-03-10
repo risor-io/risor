@@ -699,6 +699,29 @@ func TestGetAttr(t *testing.T) {
 	require.Equal(t, "foo.bar", getAttr.String())
 }
 
+func TestPostfixPlusPlus(t *testing.T) {
+	program, err := Parse(context.Background(), "x++")
+	require.Nil(t, err)
+	statements := program.Statements()
+	require.Len(t, statements, 2)
+	ident := statements[0].(*ast.Ident)
+	require.Equal(t, "x", ident.String())
+	postfix := statements[1].(*ast.Postfix)
+	require.Equal(t, "(x++)", postfix.String())
+	require.Equal(t, "x", postfix.Literal())
+	require.Equal(t, "++", postfix.Operator())
+}
+
+func TestPostfixEllipsis(t *testing.T) {
+	program, err := Parse(context.Background(), "foo(bar...)")
+	require.Nil(t, err)
+	statements := program.Statements()
+	require.Len(t, statements, 1)
+	call := statements[0].(*ast.Call)
+	require.Equal(t, "foo(bar...)", call.String())
+	require.True(t, call.HasEllipsis())
+}
+
 func TestForLoop(t *testing.T) {
 	tests := []struct {
 		input   string
@@ -926,6 +949,7 @@ func TestBadInputs(t *testing.T) {
 			two: 2}`, "parse error: unexpected two while parsing map (expected })"},
 		{`[1 2]`, "parse error: unexpected 2 while parsing an expression list (expected ])"},
 		{`[1, 2, ,]`, "parse error: invalid syntax (unexpected \",\")"},
+		{`foo(x..., y)`, "parse error: unexpected , while parsing call arguments (expected ))"},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)

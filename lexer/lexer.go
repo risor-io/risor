@@ -3,6 +3,7 @@
 package lexer
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -158,7 +159,17 @@ func (l *Lexer) Next() (token.Token, error) {
 	case rune(','):
 		tok = l.newToken(token.COMMA, string(l.ch))
 	case rune('.'):
-		tok = l.newToken(token.PERIOD, string(l.ch))
+		if l.peekChar() == rune('.') {
+			l.readChar()
+			if l.peekChar() == rune('.') {
+				l.readChar()
+				tok = l.newToken(token.ELLIPSIS, "...")
+			} else {
+				return token.Token{}, errors.New(`unexpected ".."`)
+			}
+		} else {
+			tok = l.newToken(token.PERIOD, string(l.ch))
+		}
 	case rune('+'):
 		if l.peekChar() == rune('+') {
 			ch := l.ch

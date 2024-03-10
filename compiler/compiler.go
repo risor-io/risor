@@ -818,6 +818,8 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 		c.emit(op.LoadConst, c.constant(int64(1)))
 	} else if operator == "--" {
 		c.emit(op.LoadConst, c.constant(int64(-1)))
+	} else if operator == "..." {
+		return fmt.Errorf("compile error: invalid position for ... operator")
 	} else {
 		return fmt.Errorf("compile error: unknown postfix operator %q", operator)
 	}
@@ -890,10 +892,17 @@ func (c *Compiler) compileCall(node *ast.Call) error {
 			return err
 		}
 	}
+	hasEllipsis := uint16(0)
+	if node.HasEllipsis() {
+		hasEllipsis = 1
+		if len(args) == 0 {
+			return fmt.Errorf("compile error: invalid use of ellipsis")
+		}
+	}
 	if c.current.pipeActive {
-		c.emit(op.Partial, uint16(argc))
+		c.emit(op.Partial, uint16(argc), hasEllipsis)
 	} else {
-		c.emit(op.Call, uint16(argc))
+		c.emit(op.Call, uint16(argc), hasEllipsis)
 	}
 	return nil
 }
