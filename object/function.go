@@ -131,6 +131,10 @@ func (f *Function) Defaults() []Object {
 	return f.defaults
 }
 
+func (f *Function) IsVariadic() bool {
+	return f.fn.IsVariadic()
+}
+
 func (f *Function) RequiredArgsCount() int {
 	return len(f.parameters) - f.defaultsCount
 }

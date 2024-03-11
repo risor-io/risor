@@ -1009,18 +1009,18 @@ func (p *Parser) parseFunc() ast.Node {
 	if !p.expectPeek("function", token.LPAREN) { // Move to the "("
 		return nil
 	}
-	defaults, params := p.parseFuncParams()
+	defaults, params, isVariadic := p.parseFuncParams()
 	if !p.expectPeek("function", token.LBRACE) { // move to the "{"
 		return nil
 	}
-	return ast.NewFunc(funcToken, ident, params, defaults, p.parseBlock())
+	return ast.NewFunc(funcToken, ident, params, defaults, p.parseBlock(), isVariadic)
 }
 
-func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
+func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident, bool) {
 	// If the next parameter is ")", then there are no parameters
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
-		return map[string]ast.Expression{}, nil
+		return map[string]ast.Expression{}, nil, false
 	}
 	defaults := map[string]ast.Expression{}
 	params := make([]*ast.Ident, 0)
@@ -1028,32 +1028,39 @@ func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
 	for !p.curTokenIs(token.RPAREN) { // Keep going until we find a ")"
 		if p.curTokenIs(token.EOF) {
 			p.setTokenError(p.prevToken, "unterminated function parameters")
-			return nil, nil
+			return nil, nil, false
 		}
 		if !p.curTokenIs(token.IDENT) {
 			p.setTokenError(p.curToken, "expected an identifier (got %s)", p.curToken.Literal)
-			return nil, nil
+			return nil, nil, false
 		}
 		ident := ast.NewIdent(p.curToken)
 		params = append(params, ident)
 		if err := p.nextToken(); err != nil {
-			return nil, nil
+			return nil, nil, false
 		}
 		// If there is "=expr" after the name then expr is a default value
 		if p.curTokenIs(token.ASSIGN) {
 			p.nextToken()
 			expr := p.parseExpression(LOWEST)
 			if expr == nil {
-				return nil, nil
+				return nil, nil, false
 			}
 			defaults[ident.String()] = expr
 			p.nextToken()
+		} else if p.curTokenIs(token.ELLIPSIS) {
+			p.nextToken()
+			if !p.curTokenIs(token.RPAREN) {
+				p.setTokenError(p.curToken, "variadic parameter must be the last parameter")
+				return nil, nil, false
+			}
+			return defaults, params, true
 		}
 		if p.curTokenIs(token.COMMA) {
 			p.nextToken()
 		}
 	}
-	return defaults, params
+	return defaults, params, false
 }
 
 func (p *Parser) parseGo() ast.Node {

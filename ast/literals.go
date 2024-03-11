@@ -115,16 +115,27 @@ type Func struct {
 
 	// body contains the set of statements within the function.
 	body *Block
+
+	// isVariadic indicates if the function accepts a variable number of arguments.
+	isVariadic bool
 }
 
 // NewFunc creates a new Func node.
-func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[string]Expression, body *Block) *Func {
+func NewFunc(
+	token token.Token,
+	name *Ident,
+	parameters []*Ident,
+	defaults map[string]Expression,
+	body *Block,
+	isVariadic bool,
+) *Func {
 	return &Func{
 		token:      token,
 		name:       name,
 		parameters: parameters,
 		defaults:   defaults,
 		body:       body,
+		isVariadic: isVariadic,
 	}
 }
 
@@ -164,6 +175,9 @@ func (f *Func) String() string {
 	}
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
+	if f.isVariadic {
+		out.WriteString("...")
+	}
 	out.WriteString(") { ")
 	out.WriteString(f.body.String())
 	out.WriteString(" }")
