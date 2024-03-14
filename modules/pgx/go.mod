@@ -7,7 +7,7 @@ toolchain go1.22.0
 replace github.com/risor-io/risor => ../..
 
 require (
-	github.com/jackc/pgx/v5 v5.5.0
+	github.com/jackc/pgx/v5 v5.5.4
 	github.com/risor-io/risor v1.1.0
 )
 
