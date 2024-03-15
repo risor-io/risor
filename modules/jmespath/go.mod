@@ -8,7 +8,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/jmespath-community/go-jmespath v1.1.1
-	github.com/risor-io/risor v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor v1.5.0
 )
 
-require golang.org/x/exp v0.0.0-20230314191032-db074128a8ec // indirect
+require golang.org/x/exp v0.0.0-20240314144324-c7f7c6466f7f // indirect

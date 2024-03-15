@@ -7,8 +7,8 @@ jobs:
   test:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.21
-    resource_class: small
+      - image: cimg/go:1.22
+    resource_class: large
     steps:
       - checkout
       - restore_cache:
@@ -28,14 +28,14 @@ jobs:
           name: Run tests
           command: |
             mkdir -p /tmp/test-reports
-            gotestsum --junitfile /tmp/test-reports/unit-tests.xml -- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/...
+            make test
       - codecov/upload
       - store_test_results:
           path: /tmp/test-reports
   generate:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.21
+      - image: cimg/go:1.22
     resource_class: small
     steps:
       - checkout
@@ -51,7 +51,7 @@ jobs:
   format:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.21
+      - image: cimg/go:1.22
     resource_class: small
     steps:
       - checkout

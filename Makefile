@@ -5,7 +5,8 @@ export GIT_REVISION=$(shell git rev-parse --short HEAD)
 
 .PHONY: test
 test:
-	gotestsum --format-hide-empty-pkg -- -coverprofile=coverage.out -covermode=atomic ./...
+	gotestsum --junitfile /tmp/test-reports/unit-tests.xml \
+		-- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/...
 
 .PHONY: bench
 bench:
