@@ -8,7 +8,7 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: cimg/go:1.22
-    resource_class: small
+    resource_class: medium
     steps:
       - checkout
       - restore_cache:
