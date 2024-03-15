@@ -8,5 +8,5 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/risor-io/risor v1.1.0
+	github.com/risor-io/risor v1.5.0
 )

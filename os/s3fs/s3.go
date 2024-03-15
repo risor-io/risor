@@ -48,9 +48,13 @@ func (f *File) Stat() (ros.FileInfo, error) {
 	if result.LastModified != nil {
 		lastModified = *result.LastModified
 	}
+	var contentLen int64
+	if result.ContentLength != nil {
+		contentLen = *result.ContentLength
+	}
 	return ros.NewFileInfo(ros.GenericFileInfoOpts{
 		Name:    filepath.Base(f.key),
-		Size:    result.ContentLength,
+		Size:    contentLen,
 		ModTime: lastModified,
 		IsDir:   false,
 	}), nil
@@ -350,7 +354,10 @@ func (fs *Filesystem) ReadDir(name string) ([]ros.DirEntry, error) {
 		if obj.LastModified != nil {
 			mod = *obj.LastModified
 		}
-		size := obj.Size
+		var size int64
+		if obj.Size != nil {
+			size = *obj.Size
+		}
 		mode := ros.FileMode(0o660)
 		isDir := strings.HasSuffix(key, "/")
 		if isDir {
