@@ -1,6 +1,8 @@
 
 export GOFLAGS=-tags=aws,k8s,vault
 
+export GIT_REVISION=$(shell git rev-parse --short HEAD)
+
 .PHONY: test
 test:
 	gotestsum --format-hide-empty-pkg -- -coverprofile=coverage.out -covermode=atomic ./...
@@ -72,3 +74,19 @@ docs-dev:
 .PHONY: modgen
 modgen:
 	find modules -name '*.go' -not -name '*_test.go' -not -name '*_gen.go' | entr go run ./cmd/risor-modgen
+
+.PHONY: docker-build-init
+docker-build-init:
+	docker buildx create --use --name builder --platform linux/arm64,linux/amd64
+	docker buildx inspect --bootstrap
+
+.PHONY: docker-build
+docker-build:
+	docker buildx build \
+		-t risor/risor:latest \
+		-t risor/risor:$(GIT_REVISION) \
+		--build-arg "RISOR_VERSION=1.5" \
+		--build-arg "GIT_REVISION=$(GIT_REVISION)" \
+		--build-arg "BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		--platform linux/amd64,linux/arm64 \
+		--push .
