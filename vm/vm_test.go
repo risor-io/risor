@@ -1922,6 +1922,20 @@ func TestLists(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestFunctionStack(t *testing.T) {
+	code := `
+	for i := range 1 {
+		try(func() {
+		  42
+		  error("kaboom")
+		})
+	  }
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.Nil, result)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()

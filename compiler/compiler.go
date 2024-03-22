@@ -411,9 +411,15 @@ func (c *Compiler) compileFunctionBlock(node *ast.Block) error {
 		code.symbols = code.symbols.parent
 	}()
 	statements := normalizeFunctionBlock(node)
-	for _, stmt := range statements {
+	count := len(statements)
+	for i, stmt := range statements {
 		if err := c.compile(stmt); err != nil {
 			return err
+		}
+		if i < count-1 {
+			if stmt.IsExpression() {
+				c.emit(op.PopTop)
+			}
 		}
 	}
 	return nil
