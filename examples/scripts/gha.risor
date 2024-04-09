@@ -1,4 +1,4 @@
-#!/usr/bin/env risor
+#!/usr/bin/env risor --
 
 // Using the gh module requires that Risor is built with `-tags gh`
 

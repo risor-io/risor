@@ -1,3 +1,4 @@
+#!/usr/bin/env risor --
 
 // Return a channel that will be used to send random values
 func work(count) {

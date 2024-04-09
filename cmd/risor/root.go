@@ -52,6 +52,7 @@ func init() {
 	// Root command flags
 	rootCmd.Flags().Bool("timing", false, "Show timing information")
 	rootCmd.Flags().StringP("output", "o", "", "Set the output format")
+	rootCmd.Flags().Bool("no-repl", false, "Disable the REPL")
 	rootCmd.RegisterFlagCompletionFunc("output",
 		cobra.FixedCompletions(
 			outputFormatsCompletion,
@@ -61,6 +62,7 @@ func init() {
 
 	viper.BindPFlag("timing", rootCmd.Flags().Lookup("timing"))
 	viper.BindPFlag("output", rootCmd.Flags().Lookup("output"))
+	viper.BindPFlag("no-repl", rootCmd.Flags().Lookup("no-repl"))
 
 	viper.AutomaticEnv()
 }
@@ -133,7 +135,7 @@ var rootCmd = &cobra.Command{
 		// Separate arguments belonging to the Risor CLI from those that are
 		// to be passed to the script.
 		var scriptArgs []string
-		args, scriptArgs, _ = getScriptArgs(args)
+		args, scriptArgs = getScriptArgs(args)
 		ros.SetScriptArgs(scriptArgs)
 
 		// Optional virtual operating system with filesystem mounts.
