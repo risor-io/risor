@@ -455,7 +455,7 @@ func Copy(ctx context.Context, args ...object.Object) object.Object {
 	}
 	os := GetOS(ctx)
 	srcData, ioErr := os.ReadFile(src)
-	if err != nil {
+	if ioErr != nil {
 		return object.NewError(ioErr)
 	}
 	if ioErr := os.WriteFile(dst, srcData, 0o644); ioErr != nil {

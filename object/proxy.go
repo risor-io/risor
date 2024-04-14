@@ -205,24 +205,9 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	outputCount := len(outputs) - len(m.errorIndices)
 	if outputCount <= 1 {
 		for i, output := range outputs {
-			if !m.IsOutputError(i) {
-				outType := m.outputTypes[i]
-				outConv, err := outType.GetConverter()
-				if err != nil {
-					return NewError(err)
-				}
-				result, err := outConv.From(output.Interface())
-				if err != nil {
-					return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
-				}
-				return result
+			if m.IsOutputError(i) {
+				continue
 			}
-		}
-		return Nil
-	}
-	var results []Object
-	for i, output := range outputs {
-		if !m.IsOutputError(i) {
 			outType := m.outputTypes[i]
 			outConv, err := outType.GetConverter()
 			if err != nil {
@@ -232,8 +217,25 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 			if err != nil {
 				return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
 			}
-			results = append(results, result)
+			return result
 		}
+		return Nil
+	}
+	var results []Object
+	for i, output := range outputs {
+		if m.IsOutputError(i) {
+			continue
+		}
+		outType := m.outputTypes[i]
+		outConv, err := outType.GetConverter()
+		if err != nil {
+			return NewError(err)
+		}
+		result, err := outConv.From(output.Interface())
+		if err != nil {
+			return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
+		}
+		results = append(results, result)
 	}
 	return NewList(results)
 }

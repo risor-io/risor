@@ -381,7 +381,7 @@ func NewRequestFromParams(url string, params *object.Map) (*HttpRequest, *object
 
 	// Simple request configuration with no parameters
 	if params == nil {
-		req, err := http.NewRequest(method, url, nil)
+		req, err := http.NewRequest(method, url, http.NoBody)
 		if err != nil {
 			return nil, object.NewError(err)
 		}

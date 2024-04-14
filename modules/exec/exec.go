@@ -39,7 +39,7 @@ func LookPath(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	result, execErr := exec.LookPath(path)
-	if err != nil {
+	if execErr != nil {
 		return object.NewError(execErr)
 	}
 	return object.NewString(result)

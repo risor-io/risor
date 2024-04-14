@@ -96,7 +96,7 @@ func (b *Buffer) runOperationByteSlice(opType op.BinaryOpType, right *ByteSlice)
 func (b *Buffer) runOperationString(opType op.BinaryOpType, right *String) Object {
 	switch opType {
 	case op.Add:
-		if _, err := b.value.Write([]byte(right.value)); err != nil {
+		if _, err := b.value.WriteString(right.value); err != nil {
 			return NewError(err)
 		}
 		return Nil
@@ -118,7 +118,7 @@ func (b *Buffer) Cost() int {
 }
 
 func (b *Buffer) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf("\"%s\"", b.value.String())), nil
+	return []byte(fmt.Sprintf("%q", b.value.String())), nil
 }
 
 func NewBuffer(buf *bytes.Buffer) *Buffer {
