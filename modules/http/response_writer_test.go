@@ -14,7 +14,7 @@ func recordGetResponse(t *testing.T, handler http.HandlerFunc) *httptest.Respons
 	t.Helper()
 	svr := httptest.NewServer(handler)
 	defer svr.Close()
-	r, err := http.NewRequest("GET", svr.URL, nil)
+	r, err := http.NewRequest("GET", svr.URL, http.NoBody)
 	require.Nil(t, err)
 	w := httptest.NewRecorder()
 	svr.Config.Handler.ServeHTTP(w, r)

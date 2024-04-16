@@ -8,6 +8,7 @@ import (
 	"io"
 	"reflect"
 	"time"
+	"unicode/utf8"
 
 	"github.com/risor-io/risor/compiler"
 )
@@ -477,7 +478,8 @@ func (c *RuneConverter) To(obj Object) (interface{}, error) {
 		if len(obj.value) != 1 {
 			return nil, fmt.Errorf("type error: expected single rune string (got length %d)", len(obj.value))
 		}
-		return []rune(obj.value)[0], nil
+		r, _ := utf8.DecodeRuneInString(obj.value)
+		return r, nil
 	case *Int:
 		return rune(obj.value), nil
 	default:

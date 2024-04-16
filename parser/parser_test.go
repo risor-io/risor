@@ -740,17 +740,13 @@ func TestForLoop(t *testing.T) {
 		require.Equal(t, tt.condStr, expr.Condition().String())
 		if tt.initStr != "" {
 			require.Equal(t, tt.initStr, expr.Init().String())
-		} else {
-			if expr.Init() != nil {
-				t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
-			}
+		} else if expr.Init() != nil {
+			t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
 		}
 		if tt.postStr != "" {
 			require.Equal(t, tt.postStr, expr.Post().String())
-		} else {
-			if expr.Post() != nil {
-				t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
-			}
+		} else if expr.Post() != nil {
+			t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
 		}
 	}
 }

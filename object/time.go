@@ -23,7 +23,7 @@ func (t *Time) Value() time.Time {
 }
 
 func (t *Time) Inspect() string {
-	return fmt.Sprintf("time(\"%s\")", t.value.Format(time.RFC3339))
+	return fmt.Sprintf("time(%q)", t.value.Format(time.RFC3339))
 }
 
 func (t *Time) GetAttr(name string) (Object, bool) {

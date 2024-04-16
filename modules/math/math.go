@@ -16,13 +16,13 @@ func Abs(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Int:
 		v := arg.Value()
 		if v < 0 {
-			v = v * -1
+			v *= -1
 		}
 		return object.NewInt(v)
 	case *object.Float:
 		v := arg.Value()
 		if v < 0 {
-			v = v * -1
+			v *= -1
 		}
 		return object.NewFloat(v)
 	default:
