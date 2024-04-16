@@ -427,14 +427,13 @@ func (ls *List) String() string {
 }
 
 func (ls *List) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(ls, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherList, ok := other.(*List)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare list and %s", other.Type())
 	}
-	otherArr := other.(*List)
-	if len(ls.items) > len(otherArr.items) {
+	if len(ls.items) > len(otherList.items) {
 		return 1, nil
-	} else if len(ls.items) < len(otherArr.items) {
+	} else if len(ls.items) < len(otherList.items) {
 		return -1, nil
 	}
 	for i := 0; i < len(ls.items); i++ {
@@ -443,7 +442,7 @@ func (ls *List) Compare(other Object) (int, error) {
 			return 0, fmt.Errorf("type error: %s object is not comparable",
 				ls.items[i].Type())
 		}
-		comp, err := comparable.Compare(otherArr.items[i])
+		comp, err := comparable.Compare(otherList.items[i])
 		if err != nil {
 			return 0, err
 		}

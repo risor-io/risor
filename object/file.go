@@ -226,10 +226,6 @@ func (f *File) String() string {
 	return f.Inspect()
 }
 
-func (f *File) Compare(other Object) (int, error) {
-	return 0, errors.New("type error: unable to compare files")
-}
-
 func (f *File) Equals(other Object) Object {
 	if f == other {
 		return True

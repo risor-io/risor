@@ -213,11 +213,10 @@ func (s *String) Interface() interface{} {
 }
 
 func (s *String) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(s, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherStr, ok := other.(*String)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare string and %s", other.Type())
 	}
-	otherStr := other.(*String)
 	if s.value == otherStr.value {
 		return 0, nil
 	}

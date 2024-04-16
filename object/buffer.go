@@ -41,7 +41,7 @@ func (b *Buffer) Compare(other Object) (int, error) {
 	case *ByteSlice:
 		return bytes.Compare(b.value.Bytes(), other.Value()), nil
 	default:
-		return 0, fmt.Errorf("type error: cannot compare buffer to type %s", other.Type())
+		return 0, fmt.Errorf("type error: unable to compare buffer and %s", other.Type())
 	}
 }
 

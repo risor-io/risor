@@ -32,10 +32,6 @@ func (d *DynamicAttr) String() string {
 	return d.Inspect()
 }
 
-func (d *DynamicAttr) Compare(other Object) (int, error) {
-	return 0, errors.New("type error: unable to compare dynamic_attr")
-}
-
 func (d *DynamicAttr) Equals(other Object) Object {
 	if d == other {
 		return True

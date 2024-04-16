@@ -201,7 +201,7 @@ func (b *ByteSlice) Compare(other Object) (int, error) {
 	case *String:
 		return bytes.Compare(b.value, []byte(other.value)), nil
 	default:
-		return 0, fmt.Errorf("type error: cannot compare byte_slice to type %s", other.Type())
+		return 0, fmt.Errorf("type error: unable to compare byte_slice and %s", other.Type())
 	}
 }
 

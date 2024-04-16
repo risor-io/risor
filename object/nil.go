@@ -31,7 +31,10 @@ func (n *NilType) HashKey() HashKey {
 }
 
 func (n *NilType) Compare(other Object) (int, error) {
-	return CompareTypes(n, other), nil
+	if _, ok := other.(*NilType); ok {
+		return 0, nil
+	}
+	return 0, fmt.Errorf("type error: unable to compare nil and %s", other.Type())
 }
 
 func (n *NilType) Equals(other Object) Object {

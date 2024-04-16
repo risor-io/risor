@@ -37,10 +37,6 @@ func (f *FileInfo) String() string {
 		v.Name(), v.Mode().String(), v.Size(), v.ModTime().Format(time.RFC3339))
 }
 
-func (f *FileInfo) Compare(other Object) (int, error) {
-	return 0, errors.New("type error: unable to compare file_info objects")
-}
-
 func (f *FileInfo) Equals(other Object) Object {
 	if f == other {
 		return True

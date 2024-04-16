@@ -51,7 +51,7 @@ func (m *FileMode) Compare(other Object) (int, error) {
 		}
 		return 0, nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare file_mode to %s", other.Type())
+		return 0, fmt.Errorf("type error: unable to compare file_mode and %s", other.Type())
 	}
 }
 

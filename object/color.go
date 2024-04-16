@@ -3,7 +3,6 @@ package object
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"image/color"
 
@@ -58,10 +57,6 @@ func (c *Color) Interface() interface{} {
 func (c *Color) String() string {
 	r, g, b, a := c.value.RGBA()
 	return fmt.Sprintf("color(r=%d g=%d b=%d a=%d)", r, g, b, a)
-}
-
-func (c *Color) Compare(other Object) (int, error) {
-	return 0, errors.New("type error: unable to compare colors")
 }
 
 func (c *Color) Equals(other Object) Object {
