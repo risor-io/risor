@@ -1102,3 +1102,22 @@ func TestInvalidListTermination(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, `parse error: invalid syntax (unexpected "}")`, err.Error())
 }
+
+func TestMultilineInfixExprs(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"1 +\n2", "(1 + 2)"},
+		{"1 +\n2 /\n3", "(1 + (2 / 3))"},
+		{"false || \n\n\ntrue", "(false || true)"},
+		{"true &&\n \nfalse", "(true && false)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result, err := Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, result.String())
+		})
+	}
+}
