@@ -34,13 +34,12 @@ func (e *Error) Interface() interface{} {
 }
 
 func (e *Error) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(e, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherErr, ok := other.(*Error)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare error and %s", other.Type())
 	}
-	otherStr := other.(*Error)
 	thisMsg := e.Message().Value()
-	otherMsg := otherStr.Message().Value()
+	otherMsg := otherErr.Message().Value()
 	if thisMsg == otherMsg {
 		return 0, nil
 	}

@@ -89,11 +89,10 @@ func (m *Module) Code() *compiler.Code {
 }
 
 func (m *Module) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(m, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherMod, ok := other.(*Module)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare module and %s", other.Type())
 	}
-	otherMod := other.(*Module)
 	if m.name == otherMod.name {
 		return 0, nil
 	}

@@ -36,10 +36,6 @@ func (d *DirEntry) String() string {
 	return fmt.Sprintf("dir_entry(%v)", d.value)
 }
 
-func (d *DirEntry) Compare(other Object) (int, error) {
-	return 0, errors.New("type error: unable to compare dir_entry objects")
-}
-
 func (d *DirEntry) Equals(other Object) Object {
 	if d == other {
 		return True

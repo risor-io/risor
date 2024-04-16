@@ -52,11 +52,10 @@ func (t *Time) String() string {
 }
 
 func (t *Time) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(t, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherStr, ok := other.(*Time)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare time and %s", other.Type())
 	}
-	otherStr := other.(*Time)
 	if t.value == otherStr.value {
 		return 0, nil
 	}

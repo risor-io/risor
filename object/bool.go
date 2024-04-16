@@ -43,11 +43,10 @@ func (b *Bool) String() string {
 }
 
 func (b *Bool) Compare(other Object) (int, error) {
-	typeComp := CompareTypes(b, other)
-	if typeComp != 0 {
-		return typeComp, nil
+	otherBool, ok := other.(*Bool)
+	if !ok {
+		return 0, fmt.Errorf("type error: unable to compare bool and %s", other.Type())
 	}
-	otherBool := other.(*Bool)
 	if b.value == otherBool.value {
 		return 0, nil
 	}

@@ -66,7 +66,7 @@ func (i *Int) Compare(other Object) (int, error) {
 		}
 		return -1, nil
 	default:
-		return CompareTypes(i, other), nil
+		return 0, fmt.Errorf("type error: unable to compare int and %s", other.Type())
 	}
 }
 

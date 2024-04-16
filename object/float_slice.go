@@ -36,10 +36,6 @@ func (f *FloatSlice) String() string {
 	return f.Inspect()
 }
 
-func (f *FloatSlice) Compare(other Object) (int, error) {
-	return 0, fmt.Errorf("type error: cannot compare float_slice to type %s", other.Type())
-}
-
 func (f *FloatSlice) Equals(other Object) Object {
 	if f == other {
 		return True
