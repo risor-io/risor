@@ -831,6 +831,11 @@ func (p *Parser) parseInfixExpr(leftNode ast.Node) ast.Node {
 	firstToken := p.curToken
 	precedence := p.currentPrecedence()
 	p.nextToken()
+	for p.curTokenIs(token.NEWLINE) {
+		if err := p.nextToken(); err != nil {
+			return nil
+		}
+	}
 	right := p.parseExpression(precedence)
 	if right == nil {
 		p.setTokenError(p.curToken, "invalid expression")
