@@ -350,7 +350,7 @@ func (r *HttpRequest) Send(ctx context.Context) object.Object {
 		r.client.Timeout = lim.IOTimeout()
 	}
 	if r.timeout != 0 {
-		if r.timeout < r.client.Timeout {
+		if r.client.Timeout == 0 || r.timeout < r.client.Timeout {
 			r.client.Timeout = r.timeout
 		}
 	}
