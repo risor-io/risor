@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"sort"
 	"strconv"
 	"unicode"
 
@@ -445,7 +446,7 @@ func Bool(ctx context.Context, args ...object.Object) object.Object {
 }
 
 func Sorted(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("sorted", 1, args); err != nil {
+	if err := arg.RequireRange("sorted", 1, 2, args); err != nil {
 		return err
 	}
 	arg := args[0]
@@ -466,8 +467,31 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	}
 	resultItems := make([]object.Object, len(items))
 	copy(resultItems, items)
-	if err := object.Sort(resultItems); err != nil {
-		return err
+	if len(args) == 2 {
+		fn, ok := args[1].(*object.Function)
+		if !ok {
+			return object.Errorf("type error: sorted() expected a function as the second argument (%s given)", args[1].Type())
+		}
+		callFunc, found := object.GetCallFunc(ctx)
+		if !found {
+			return object.Errorf("eval error: context did not contain a call function")
+		}
+		var sortErr error
+		sort.SliceStable(resultItems, func(i, j int) bool {
+			result, err := callFunc(ctx, fn, []object.Object{resultItems[i], resultItems[j]})
+			if err != nil {
+				sortErr = err
+				return false
+			}
+			return result.IsTruthy()
+		})
+		if sortErr != nil {
+			return object.NewError(sortErr)
+		}
+	} else {
+		if err := object.Sort(resultItems); err != nil {
+			return err
+		}
 	}
 	return object.NewList(resultItems)
 }

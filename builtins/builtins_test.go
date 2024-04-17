@@ -49,3 +49,81 @@ func TestMakeChan(t *testing.T) {
 	ch, _ := result.(*object.Chan)
 	require.Equal(t, 4, ch.Capacity())
 }
+
+func TestSorted(t *testing.T) {
+	ctx := context.Background()
+	tests := []testCase{
+		{
+			object.NewList([]object.Object{
+				object.NewInt(3),
+				object.NewInt(1),
+				object.NewInt(2),
+			}),
+			object.NewList([]object.Object{
+				object.NewInt(1),
+				object.NewInt(2),
+				object.NewInt(3),
+			}),
+		},
+		{
+			object.NewList([]object.Object{
+				object.NewInt(3),
+				object.NewInt(1),
+				object.NewString("nope"),
+			}),
+			object.Errorf("type error: unable to compare string and int"),
+		},
+		{
+			object.NewList([]object.Object{
+				object.NewString("b"),
+				object.NewString("c"),
+				object.NewString("a"),
+			}),
+			object.NewList([]object.Object{
+				object.NewString("a"),
+				object.NewString("b"),
+				object.NewString("c"),
+			}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input.Inspect(), func(t *testing.T) {
+			result := Sorted(ctx, tt.input)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestSortedWithFunc(t *testing.T) {
+	ctx := context.Background()
+	// We'll sort this list of integers
+	input := object.NewList([]object.Object{
+		object.NewInt(3),
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(99),
+		object.NewInt(0),
+	})
+	// This function will be called for each comparison
+	callFn := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+		require.Len(t, args, 2)
+		a := args[0].(*object.Int).Value()
+		b := args[1].(*object.Int).Value()
+		return object.NewBool(b < a), nil // descending order
+	}
+	ctx = object.WithCallFunc(ctx, callFn)
+
+	// This sort function isn't actually used here in the test. This value
+	// will be passed to callFn but we don't use it.
+	var sortFn *object.Function
+
+	// Confirm Sorted returns the expected sorted list
+	result := Sorted(ctx, input, sortFn)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(99),
+		object.NewInt(3),
+		object.NewInt(2),
+		object.NewInt(1),
+		object.NewInt(0),
+	}), result)
+}
