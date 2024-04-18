@@ -1,6 +1,4 @@
-go 1.22
-
-toolchain go1.22.0
+go 1.22.1
 
 use (
 	.
@@ -11,6 +9,8 @@ use (
 	./cmd/risor-modgen
 	./examples/go/struct
 	./modules/aws
+	./modules/bcrypt
+	./modules/carbon
 	./modules/cli
 	./modules/gha
 	./modules/image

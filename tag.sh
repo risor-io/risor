@@ -12,7 +12,10 @@ fi
 git tag $VERSION
 git tag cmd/risor/$VERSION
 git tag modules/aws/$VERSION
+git tag modules/bcrypt/$VERSION
+git tag modules/carbon/$VERSION
 git tag modules/cli/$VERSION
+git tag modules/gha/$VERSION
 git tag modules/image/$VERSION
 git tag modules/jmespath/$VERSION
 git tag modules/kubernetes/$VERSION
@@ -26,7 +29,10 @@ git tag os/s3fs/$VERSION
 git push origin $VERSION
 git push origin cmd/risor/$VERSION
 git push origin modules/aws/$VERSION
+git push origin modules/bcrypt/$VERSION
+git push origin modules/carbon/$VERSION
 git push origin modules/cli/$VERSION
+git push origin modules/gha/$VERSION
 git push origin modules/image/$VERSION
 git push origin modules/jmespath/$VERSION
 git push origin modules/kubernetes/$VERSION

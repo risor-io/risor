@@ -6,7 +6,6 @@ toolchain go1.22.0
 
 replace github.com/risor-io/risor => ../..
 
-require (
-	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/risor-io/risor v1.5.0
-)
+require github.com/risor-io/risor v1.5.2
+
+require github.com/gofrs/uuid/v5 v5.1.0

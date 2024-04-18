@@ -88,6 +88,11 @@ func AsByte(obj Object) (byte, *Error) {
 		return obj.value, nil
 	case *Float:
 		return byte(obj.value), nil
+	case *String:
+		if len(obj.value) != 1 {
+			return 0, Errorf("type error: expected a single byte string (length %d)", len(obj.value))
+		}
+		return obj.value[0], nil
 	default:
 		return 0, Errorf("type error: expected a byte (%s given)", obj.Type())
 	}
