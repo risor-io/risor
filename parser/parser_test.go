@@ -88,6 +88,24 @@ func TestDeclareStatements(t *testing.T) {
 	fmt.Println(stmt2)
 }
 
+func TestMultiDeclareStatements(t *testing.T) {
+	input := `
+	x, y, z := [1, 2, 3]
+	`
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	statements := program.Statements()
+	require.Len(t, statements, 1)
+	stmt1, ok := statements[0].(*ast.MultiVar)
+	require.True(t, ok)
+	names, expr := stmt1.Value()
+	require.Len(t, names, 3)
+	require.Equal(t, "x", names[0])
+	require.Equal(t, "y", names[1])
+	require.Equal(t, "z", names[2])
+	require.Equal(t, "[1, 2, 3]", expr.String())
+}
+
 func TestBadVarConstStatement(t *testing.T) {
 	inputs := []struct {
 		input string
