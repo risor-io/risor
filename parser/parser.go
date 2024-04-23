@@ -337,16 +337,24 @@ func (p *Parser) parseDeclaration() ast.Node {
 		}
 		idents = append(idents, ast.NewIdent(p.curToken))
 	}
-	if !p.expectPeek("declaration statement", token.DECLARE) {
+	var isWalrus bool
+	switch p.peekToken.Type {
+	case token.ASSIGN:
+		isWalrus = false
+	case token.DECLARE:
+		isWalrus = true
+	default:
+		p.expectPeek("declaration statement", token.ASSIGN)
 		return nil
 	}
-	p.nextToken()
+	p.nextToken() // move to the assignment operator
+	p.nextToken() // move to the value
 	value := p.parseAssignmentValue()
 	if value == nil {
 		return nil
 	}
 	if len(idents) > 1 {
-		return ast.NewMultiVar(tok, idents, value, true)
+		return ast.NewMultiVar(tok, idents, value, isWalrus)
 	}
 	return ast.NewDeclaration(tok, idents[0], value)
 }

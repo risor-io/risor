@@ -1936,6 +1936,20 @@ func TestFunctionStack(t *testing.T) {
 	require.Equal(t, object.Nil, result)
 }
 
+func TestMultivar(t *testing.T) {
+	code := `
+	x, y := [1, 2]
+	x, y = [98, 99]
+	[x, y]
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(98),
+		object.NewInt(99),
+	}), result)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
