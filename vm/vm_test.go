@@ -1766,6 +1766,28 @@ func TestDeferBehavior(t *testing.T) {
 	}), result)
 }
 
+func TestDeferNoStackPollution(t *testing.T) {
+	code := `
+	result := []
+	func append_value(v) {
+		defer func(v) {
+			result.append(v)
+		}(v)
+	}
+	for _, v := range [1, 2, 3] {
+		append_value(v)
+	}
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), result)
+}
+
 func TestFreeVariables(t *testing.T) {
 	code := `
 	func test(count) {
