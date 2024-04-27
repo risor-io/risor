@@ -746,6 +746,10 @@ func (vm *VirtualMachine) callFunction(
 			if err := vm.callObject(ctx, partial.Function(), partial.Args()); err != nil {
 				result = nil
 				resultErr = err
+			} else {
+				// Discard the result of the deferred function call, which is
+				// guaranteed to have pushed a single value onto the stack.
+				vm.pop()
 			}
 		}
 	}()
@@ -758,7 +762,8 @@ func (vm *VirtualMachine) callFunction(
 }
 
 // Call a callable object with the given arguments. Returns an error if the
-// object is not callable.
+// object is not callable. If this call succeeds, the result of the call will
+// have been pushed onto the stack.
 func (vm *VirtualMachine) callObject(
 	ctx context.Context,
 	fn object.Object,
