@@ -43,43 +43,29 @@ func isTerminalIO() bool {
 	return inTerm && outTerm
 }
 
-// this works around issues with cobra not passing args after -- to the script
-// see: https://github.com/spf13/cobra/issues/1877
-// passedargs is everything after the '--'
-// If dropped is true, cobra dropped the double dash in its 'args' slice.
-// argsout returns the cobra args but without the '--' and the items behind it
-// this also supports multiple '--' in the args	list
-func getScriptArgs(args []string) (argsout []string, passedargs []string, dropped bool) {
-	//		lenArgs := len(args)
-	argsout = args
-	ddashcnt := 0
-	for n, arg := range os.Args {
-		if arg == "--" {
-			ddashcnt++
-			if len(passedargs) == 0 {
-				if len(os.Args) > n {
-					passedargs = os.Args[n+1:]
-				}
-			}
+func indexOf(arr []string, val string) int {
+	for i, v := range arr {
+		if v == val {
+			return i
 		}
 	}
-	// drop arg0 from count
-	noddash := true
-	for n2, argz := range args {
-		// don't go past the first '--' - this allows one to pass '--' to risor also
-		if argz == "--" {
-			noddash = false
-			argsout = args[:n2]
-			break
-		}
+	return -1
+}
+
+// Separate arguments pertaining to the Risor CLI from arguments meant for the
+// Risor script. Related Cobra issue: https://github.com/spf13/cobra/issues/1877
+func getScriptArgs(positionalArgs []string) ([]string, []string) {
+	dashIndex := indexOf(os.Args, "--")
+	if dashIndex < 1 {
+		return positionalArgs, []string{}
 	}
-	// cobra seems to drop the '--' in its args if everything before it was a flag
-	// if thats the case then args is just empty b/c evrything else is the '--' and the passed args
-	if (noddash || ddashcnt > 1) && len(passedargs) > 0 {
-		dropped = true
-		argsout = []string{}
+	risorArgs := []string{}
+	scriptArgs := []string{}
+	if len(os.Args) > dashIndex+1 {
+		risorArgs = append(risorArgs, os.Args[dashIndex+1])
+		scriptArgs = os.Args[dashIndex+1:]
 	}
-	return
+	return risorArgs, scriptArgs
 }
 
 var outputFormatsCompletion = []string{"json", "text"}

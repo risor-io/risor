@@ -39,6 +39,7 @@ func FlagFunc(ctx context.Context, args ...object.Object) object.Object {
 	var flag *Flag
 	flagValue, hasFlagValue := opts["value"]
 	if typ, ok := opts["type"]; ok {
+		delete(opts, "type")
 		typStr, ok := typ.(*object.String)
 		if !ok {
 			return object.Errorf("cli.flag type expected string (got %s)", typ.Type())

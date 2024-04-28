@@ -1,3 +1,4 @@
+#!/usr/bin/env risor --
 
 http.handle("/", func(w, r) {
     return "OK"

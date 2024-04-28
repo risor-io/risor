@@ -95,9 +95,16 @@ func getRisorOptions() []risor.Option {
 }
 
 func shouldRunRepl(cmd *cobra.Command, args []string) bool {
-	codeFlagSupplied := cmd.Flags().Lookup("code").Changed
-	noInputCode := len(args) == 0 && !codeFlagSupplied && !viper.GetBool("stdin")
-	return noInputCode && isTerminalIO()
+	if viper.GetBool("no-repl") || viper.GetBool("stdin") {
+		return false
+	}
+	if cmd.Flags().Lookup("code").Changed {
+		return false
+	}
+	if len(args) > 0 {
+		return false
+	}
+	return isTerminalIO()
 }
 
 func getRisorCode(cmd *cobra.Command, args []string) (string, error) {
