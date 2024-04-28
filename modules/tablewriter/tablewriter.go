@@ -26,6 +26,10 @@ func (w *Writer) Type() object.Type {
 	return WRITER
 }
 
+func (w *Writer) Value() *tablewriter.Table {
+	return w.value
+}
+
 func (w *Writer) Inspect() string {
 	return fmt.Sprintf("%s()", WRITER)
 }
@@ -106,10 +110,7 @@ func (w *Writer) Interface() interface{} {
 }
 
 func (w *Writer) Equals(other object.Object) object.Object {
-	if w == other {
-		return object.True
-	}
-	return object.False
+	return object.NewBool(w == other)
 }
 
 func (w *Writer) Cost() int {

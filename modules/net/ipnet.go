@@ -45,11 +45,18 @@ func (n *IPNet) GetAttr(name string) (object.Object, bool) {
 			if err := arg.Require("net.ipnet.contains", 1, args); err != nil {
 				return err
 			}
-			ipAddr, err := object.AsBytes(args[0])
-			if err != nil {
-				return err
+			switch arg := args[0].(type) {
+			case *IP:
+				return object.NewBool(n.value.Contains(arg.value))
+			case *object.String:
+				ipAddr := net.ParseIP(arg.Value())
+				if ipAddr == nil {
+					return object.Errorf("value error: invalid ip address %q", arg.Value())
+				}
+				return object.NewBool(n.value.Contains(ipAddr))
+			default:
+				return object.Errorf("type error: expected ip address (got %s)", args[0].Type())
 			}
-			return object.NewBool(n.value.Contains(ipAddr))
 		}), true
 	case "network":
 		return object.NewBuiltin("network", func(ctx context.Context, args ...object.Object) object.Object {

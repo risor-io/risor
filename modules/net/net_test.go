@@ -22,4 +22,21 @@ func TestModule(t *testing.T) {
 	net, ok := result.(*IPNet)
 	require.True(t, ok)
 	require.Equal(t, "net.ipnet(10.2.0.0/16)", net.Inspect())
+
+	network, ok := net.GetAttr("network")
+	require.True(t, ok)
+	result = network.(*object.Builtin).Call(context.Background())
+	require.NotNil(t, result)
+	require.Equal(t, object.NewString("ip+net"), result)
+
+	contains, ok := net.GetAttr("contains")
+	require.True(t, ok)
+
+	result = contains.(*object.Builtin).Call(context.Background(), object.NewString("10.2.3.4"))
+	require.NotNil(t, result)
+	require.Equal(t, object.True, result)
+
+	result = contains.(*object.Builtin).Call(context.Background(), object.NewString("192.168.1.1"))
+	require.NotNil(t, result)
+	require.Equal(t, object.False, result)
 }
