@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/risor-io/risor/op"
@@ -121,7 +122,23 @@ func (s *Set) SortedItems() []Object {
 	for _, v := range s.items {
 		items = append(items, v)
 	}
-	Sort(items)
+	sort.Slice(items, func(i, j int) bool {
+		h1 := items[i].(Hashable).HashKey()
+		h2 := items[j].(Hashable).HashKey()
+		if h1.Type != h2.Type {
+			return h1.Type < h2.Type
+		}
+		if h1.IntValue != h2.IntValue {
+			return h1.IntValue < h2.IntValue
+		}
+		if h1.StrValue != h2.StrValue {
+			return h1.StrValue < h2.StrValue
+		}
+		if h1.FltValue != h2.FltValue {
+			return h1.FltValue < h2.FltValue
+		}
+		return false
+	})
 	return items
 }
 
