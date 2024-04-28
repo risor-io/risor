@@ -26,6 +26,10 @@ func (n *IPNet) Type() object.Type {
 	return IPNET
 }
 
+func (n *IPNet) Value() *net.IPNet {
+	return n.value
+}
+
 func (n *IPNet) Inspect() string {
 	return fmt.Sprintf("%s(%s)", IPNET, n.value.String())
 }

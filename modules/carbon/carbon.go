@@ -18,6 +18,10 @@ type Carbon struct {
 	value carbon.Carbon
 }
 
+func (c *Carbon) Value() carbon.Carbon {
+	return c.value
+}
+
 func (c *Carbon) IsTruthy() bool {
 	return true
 }
@@ -279,10 +283,11 @@ func (c *Carbon) Interface() interface{} {
 }
 
 func (c *Carbon) Equals(other object.Object) object.Object {
-	if c == other {
-		return object.True
+	otherCarbon, ok := other.(*Carbon)
+	if !ok {
+		return object.False
 	}
-	return object.False
+	return object.NewBool(otherCarbon.Value().Eq(c.value))
 }
 
 func (c *Carbon) Cost() int {

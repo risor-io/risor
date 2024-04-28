@@ -30,6 +30,10 @@ func (c *Color) Inspect() string {
 	return fmt.Sprintf("%s()", COLOR)
 }
 
+func (c *Color) Value() *color.Color {
+	return c.value
+}
+
 func (c *Color) SetAttr(name string, value object.Object) error {
 	return fmt.Errorf("attribute error: cannot set %q on %s object", name, COLOR)
 }

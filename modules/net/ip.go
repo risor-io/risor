@@ -26,6 +26,10 @@ func (ip *IP) Type() object.Type {
 	return IPTYPE
 }
 
+func (ip *IP) Value() net.IP {
+	return ip.value
+}
+
 func (ip *IP) Inspect() string {
 	return fmt.Sprintf("%s(%s)", IPTYPE, ip.value.String())
 }

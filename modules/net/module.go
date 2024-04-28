@@ -95,14 +95,11 @@ func ParseCIDR(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	ip, ipNet, netErr := net.ParseCIDR(cidr)
+	_, ipNet, netErr := net.ParseCIDR(cidr)
 	if netErr != nil {
 		return object.NewError(netErr)
 	}
-	return object.NewList([]object.Object{
-		object.NewString(ip.String()),
-		NewIPNet(ipNet),
-	})
+	return NewIPNet(ipNet)
 }
 
 func SplitHostPort(ctx context.Context, args ...object.Object) object.Object {
