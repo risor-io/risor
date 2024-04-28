@@ -298,15 +298,10 @@ func (c *Compiler) compile(node ast.Node) error {
 // startLoop should be called when starting to compile a new loop. This is used
 // to understand which loop that "break" and "continue" statements should target.
 func (c *Compiler) startLoop() *loop {
-	loop := &loop{}
-	c.current.loops = append(c.current.loops, loop)
+	currentCode := c.current
+	loop := &loop{code: currentCode}
+	currentCode.loops = append(currentCode.loops, loop)
 	return loop
-}
-
-// endLoop should be called when the compilation of a loop is done.
-func (c *Compiler) endLoop() {
-	code := c.current
-	code.loops = code.loops[:len(code.loops)-1]
 }
 
 // currentLoop returns the loop that is currently being compiled, which is the
@@ -1284,7 +1279,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
-		c.endLoop()
+		loop.end()
 		code.symbols = code.symbols.parent
 	}()
 
@@ -1348,7 +1343,7 @@ func (c *Compiler) compileForCondition(forNode *ast.For, condition ast.Expressio
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
-		c.endLoop()
+		loop.end()
 		code.symbols = code.symbols.parent
 	}()
 	startPos := c.currentPosition()
@@ -1429,7 +1424,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
-		c.endLoop()
+		loop.end()
 		code.symbols = code.symbols.parent
 	}()
 
@@ -1516,7 +1511,7 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
 	defer func() {
-		c.endLoop()
+		loop.end()
 		code.symbols = code.symbols.parent
 	}()
 	startPos := c.currentPosition()
