@@ -72,3 +72,20 @@ func TestCompileErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestCompilerLoopError(t *testing.T) {
+	input := `
+for _, v := range [1, 2, 3] {
+	func() {
+		undefined_var
+	}()
+}
+	`
+	c, err := New()
+	require.Nil(t, err)
+	ast, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+	_, err = c.Compile(ast)
+	require.NotNil(t, err)
+	require.Equal(t, "compile error: undefined variable \"undefined_var\" (line 4)", err.Error())
+}

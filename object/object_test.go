@@ -33,8 +33,9 @@ func TestObjectString(t *testing.T) {
 			t.Errorf("object.String() not implemented for %T", tt.input)
 			continue
 		}
-		if str.String() != tt.expected {
-			t.Errorf("object.String() wrong. want=%q, got=%q", tt.expected, str.String())
+		result := str.String()
+		if result != tt.expected {
+			t.Errorf("object.String() wrong. want=%q, got=%q", tt.expected, result)
 		}
 	}
 }

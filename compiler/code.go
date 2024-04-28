@@ -8,8 +8,14 @@ import (
 )
 
 type loop struct {
+	code        *Code
 	continuePos []int
 	breakPos    []int
+}
+
+func (l *loop) end() {
+	code := l.code
+	code.loops = code.loops[:len(code.loops)-1]
 }
 
 type Code struct {
