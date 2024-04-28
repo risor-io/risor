@@ -8,7 +8,6 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/risor-io/risor/modules/gha v0.0.0-20240213105055-b1d3a53935e5
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/mod v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
