@@ -28,7 +28,6 @@ func TestModule(t *testing.T) {
 }
 
 func TestV5(t *testing.T) {
-
 	m := Module()
 	require.NotNil(t, m)
 

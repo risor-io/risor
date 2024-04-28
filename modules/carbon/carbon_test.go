@@ -35,7 +35,6 @@ func TestModule(t *testing.T) {
 }
 
 func TestCarbonMethods(t *testing.T) {
-
 	c := NewCarbon(carbon.Parse("2021-03-14"))
 
 	testCases := []struct {
