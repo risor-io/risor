@@ -7,13 +7,19 @@ import (
 
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/modules/aws"
+	"github.com/risor-io/risor/modules/bcrypt"
+	"github.com/risor-io/risor/modules/carbon"
 	"github.com/risor-io/risor/modules/cli"
+	"github.com/risor-io/risor/modules/color"
 	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/image"
+	"github.com/risor-io/risor/modules/isatty"
 	"github.com/risor-io/risor/modules/jmespath"
 	k8s "github.com/risor-io/risor/modules/kubernetes"
+	"github.com/risor-io/risor/modules/net"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/sql"
+	"github.com/risor-io/risor/modules/tablewriter"
 	"github.com/risor-io/risor/modules/template"
 	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/modules/vault"
@@ -32,13 +38,19 @@ func getGlobals() risor.Option {
 	//************************************************************************//
 
 	globals := map[string]any{
-		"cli":      cli.Module(),
-		"gha":      gha.Module(),
-		"image":    image.Module(),
-		"pgx":      pgx.Module(),
-		"sql":      sql.Module(),
-		"template": template.Module(),
-		"uuid":     uuid.Module(),
+		"bcrypt":      bcrypt.Module(),
+		"carbon":      carbon.Module(),
+		"cli":         cli.Module(),
+		"color":       color.Module(),
+		"gha":         gha.Module(),
+		"image":       image.Module(),
+		"isatty":      isatty.Module(),
+		"net":         net.Module(),
+		"pgx":         pgx.Module(),
+		"sql":         sql.Module(),
+		"tablewriter": tablewriter.Module(),
+		"template":    template.Module(),
+		"uuid":        uuid.Module(),
 	}
 
 	//************************************************************************//

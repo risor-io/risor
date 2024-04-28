@@ -8,6 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBuiltins(t *testing.T) {
+	m := Builtins()
+	count := len(m)
+	require.Greater(t, count, 30)
+}
+
 type testCase struct {
 	input    object.Object
 	expected object.Object
@@ -126,4 +132,98 @@ func TestSortedWithFunc(t *testing.T) {
 		object.NewInt(1),
 		object.NewInt(0),
 	}), result)
+}
+
+func TestCoalesce(t *testing.T) {
+	ctx := context.Background()
+	tests := []testCase{
+		{
+			object.NewList([]object.Object{
+				object.NewInt(3),
+				object.NewInt(1),
+				object.NewInt(2),
+			}),
+			object.NewInt(3),
+		},
+		{
+			object.NewList([]object.Object{
+				object.Nil,
+				object.Nil,
+				object.NewString("yup"),
+			}),
+			object.NewString("yup"),
+		},
+		{
+			object.NewList([]object.Object{}),
+			object.Nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input.Inspect(), func(t *testing.T) {
+			result := Coalesce(ctx, tt.input.(*object.List).Value()...)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestChunk(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		input    object.Object
+		size     int64
+		expected object.Object
+	}{
+		{
+			object.NewList([]object.Object{
+				object.NewInt(1),
+				object.NewInt(2),
+				object.NewInt(3),
+			}),
+			2,
+			object.NewList([]object.Object{
+				object.NewList([]object.Object{
+					object.NewInt(1),
+					object.NewInt(2),
+				}),
+				object.NewList([]object.Object{
+					object.NewInt(3),
+				}),
+			}),
+		},
+		{
+			object.NewList([]object.Object{
+				object.NewString("a"),
+				object.NewString("b"),
+				object.NewString("c"),
+				object.NewString("d"),
+			}),
+			2,
+			object.NewList([]object.Object{
+				object.NewList([]object.Object{
+					object.NewString("a"),
+					object.NewString("b"),
+				}),
+				object.NewList([]object.Object{
+					object.NewString("c"),
+					object.NewString("d"),
+				}),
+			}),
+		},
+		{
+			object.NewString("wrong"),
+			2,
+			object.Errorf("type error: chunk() expected a list (string given)"),
+		},
+		{
+			object.NewList([]object.Object{}),
+			-1,
+			object.Errorf("value error: chunk() size must be > 0 (-1 given)"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input.Inspect(), func(t *testing.T) {
+			result := Chunk(ctx, tt.input, object.NewInt(tt.size))
+			require.Equal(t, tt.expected, result)
+		})
+	}
 }

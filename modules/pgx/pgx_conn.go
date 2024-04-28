@@ -39,8 +39,7 @@ func (c *PgxConn) Value() *pgx.Conn {
 }
 
 func (c *PgxConn) Equals(other object.Object) object.Object {
-	value := other.Type() == PGX_CONN && c.conn == other.(*PgxConn).conn
-	return object.NewBool(value)
+	return object.NewBool(c == other)
 }
 
 func (c *PgxConn) IsTruthy() bool {
@@ -51,8 +50,8 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "query":
 		return object.NewBuiltin("pgx.conn.query", c.Query), true
-	case "execute":
-		return object.NewBuiltin("pgx.conn.execute", c.Execute), true
+	case "exec", "execute": // "exec" for backwards compatibility
+		return object.NewBuiltin("pgx.conn.execute", c.Exec), true
 	case "close":
 		return object.NewBuiltin("pgx.conn.close", func(ctx context.Context, args ...object.Object) object.Object {
 			if err := arg.Require("pgx.conn.close", 0, args); err != nil {
@@ -158,7 +157,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 			if val == nil {
 				return object.Errorf("type error: pgx.conn.query() encountered unsupported type: %T", value)
 			}
-			if val != nil && !object.IsError(val) {
+			if !object.IsError(val) {
 				row[key] = val
 			} else {
 				row[key] = object.NewString(fmt.Sprintf("__error__%s", value))
@@ -169,9 +168,9 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	return object.NewList(results)
 }
 
-func (c *PgxConn) Execute(ctx context.Context, args ...object.Object) object.Object {
+func (c *PgxConn) Exec(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.Errorf("type error: pgx.conn.execute() one or more arguments (%d given)", len(args))
+		return object.Errorf("type error: pgx.conn.exec() one or more arguments (%d given)", len(args))
 	}
 	query, errObj := object.AsString(args[0])
 	if errObj != nil {

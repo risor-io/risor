@@ -1,10 +1,12 @@
 module github.com/risor-io/risor/cmd/risor
 
-go 1.22
+go 1.22.1
 
 replace (
 	github.com/risor-io/risor => ../..
 	github.com/risor-io/risor/modules/aws => ../../modules/aws
+	github.com/risor-io/risor/modules/bcrypt => ../../modules/bcrypt
+	github.com/risor-io/risor/modules/carbon => ../../modules/carbon
 	github.com/risor-io/risor/modules/cli => ../../modules/cli
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
 	github.com/risor-io/risor/modules/image => ../../modules/image
@@ -26,8 +28,10 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/risor-io/risor v1.5.0
+	github.com/risor-io/risor v1.5.2
 	github.com/risor-io/risor/modules/aws v1.5.0
+	github.com/risor-io/risor/modules/bcrypt v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/carbon v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/cli v1.4.0
 	github.com/risor-io/risor/modules/gha v0.0.0-20240311123501-2f555f133e80
 	github.com/risor-io/risor/modules/image v1.4.0
@@ -112,8 +116,9 @@ require (
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.0 // indirect
-	github.com/gofrs/uuid v4.4.0+incompatible // indirect
+	github.com/gofrs/uuid/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-module/carbon/v2 v2.3.12 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -167,13 +172,13 @@ require (
 	github.com/xo/dburl v0.21.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/exp v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect

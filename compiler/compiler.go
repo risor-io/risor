@@ -446,7 +446,8 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 	name := node.Literal()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q", name)
+		return fmt.Errorf("compile error: undefined variable %q (line %d)",
+			name, node.Token().StartPosition.LineNumber())
 	}
 	switch resolution.scope {
 	case Global:
@@ -490,7 +491,8 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 		name := names[i]
 		resolution, found := c.current.symbols.Resolve(name)
 		if !found {
-			return fmt.Errorf("compile error: undefined variable %q", name)
+			return fmt.Errorf("compile error: undefined variable %q (line %d)",
+				name, node.Token().StartPosition.LineNumber())
 		}
 		symbolIndex := resolution.symbol.Index()
 		switch resolution.scope {
@@ -806,7 +808,8 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	name := node.Literal()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q", name)
+		return fmt.Errorf("compile error: undefined variable %q (line %d)",
+			name, node.Token().StartPosition.LineNumber())
 	}
 	symbolIndex := resolution.symbol.Index()
 	// Push the named variable onto the stack
@@ -1200,7 +1203,8 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	name := node.Name()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q", name)
+		return fmt.Errorf("compile error: undefined variable %q (line %d)",
+			name, node.Token().StartPosition.LineNumber())
 	}
 	sym := resolution.symbol
 	if sym.IsConstant() {

@@ -26,15 +26,15 @@ func TestConfirmNoBuiltins(t *testing.T) {
 	testCases := []testCase{
 		{
 			input:       "keys({foo: 1})",
-			expectedErr: "compile error: undefined variable \"keys\"",
+			expectedErr: "compile error: undefined variable \"keys\" (line 1)",
 		},
 		{
 			input:       "any([0, 0, 1])",
-			expectedErr: "compile error: undefined variable \"any\"",
+			expectedErr: "compile error: undefined variable \"any\" (line 1)",
 		},
 		{
 			input:       "string(42)",
-			expectedErr: "compile error: undefined variable \"string\"",
+			expectedErr: "compile error: undefined variable \"string\" (line 1)",
 		},
 	}
 	for _, tc := range testCases {
@@ -90,11 +90,11 @@ func TestWithDenyList(t *testing.T) {
 		},
 		{
 			input:       "any([0, 0, 1])",
-			expectedErr: errors.New(`compile error: undefined variable "any"`),
+			expectedErr: errors.New(`compile error: undefined variable "any" (line 1)`),
 		},
 		{
 			input:       "json.marshal(42)",
-			expectedErr: errors.New(`compile error: undefined variable "json"`),
+			expectedErr: errors.New(`compile error: undefined variable "json" (line 1)`),
 		},
 		{
 			input:       `os.getenv("USER")`,
@@ -111,7 +111,7 @@ exit(1)`,
 		},
 		{
 			input:       "cat /etc/issue",
-			expectedErr: errors.New(`compile error: undefined variable "cat"`),
+			expectedErr: errors.New(`compile error: undefined variable "cat" (line 1)`),
 		},
 	}
 	for _, tc := range testCases {
@@ -129,13 +129,13 @@ exit(1)`,
 func TestWithoutDefaultGlobals(t *testing.T) {
 	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobals())
 	require.NotNil(t, err)
-	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\" (line 1)"), err)
 }
 
 func TestWithoutDefaultGlobal(t *testing.T) {
 	_, err := Eval(context.Background(), "json.marshal(42)", WithoutGlobal("json"))
 	require.NotNil(t, err)
-	require.Equal(t, errors.New("compile error: undefined variable \"json\""), err)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\" (line 1)"), err)
 }
 
 func TestWithVirtualOSStdinBuffer(t *testing.T) {

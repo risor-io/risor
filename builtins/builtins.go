@@ -23,11 +23,14 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("len", 1, args); err != nil {
 		return err
 	}
-	container, ok := args[0].(object.Container)
-	if !ok {
+	switch arg := args[0].(type) {
+	case object.Container:
+		return arg.Len()
+	case *object.Buffer:
+		return object.NewInt(int64(arg.Value().Len()))
+	default:
 		return object.Errorf("type error: len() unsupported argument (%s given)", args[0].Type())
 	}
-	return container.Len()
 }
 
 func Sprintf(ctx context.Context, args ...object.Object) object.Object {
@@ -880,6 +883,54 @@ func Make(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+func Coalesce(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.RequireRange("coalesce", 0, 64, args); err != nil {
+		return err
+	}
+	for _, arg := range args {
+		if arg != object.Nil {
+			return arg
+		}
+	}
+	return object.Nil
+}
+
+func Chunk(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("chunk", 2, args); err != nil {
+		return err
+	}
+	list, ok := args[0].(*object.List)
+	if !ok {
+		return object.Errorf("type error: chunk() expected a list (%s given)", args[0].Type())
+	}
+	listSize := int64(list.Size())
+	chunkSizeObj, ok := args[1].(*object.Int)
+	if !ok {
+		return object.Errorf("type error: chunk() expected an int (%s given)", args[1].Type())
+	}
+	chunkSize := chunkSizeObj.Value()
+	if chunkSize <= 0 {
+		return object.Errorf("value error: chunk() size must be > 0 (%d given)", chunkSize)
+	}
+	items := list.Value()
+	nChunks := listSize / chunkSize
+	if listSize%chunkSize != 0 {
+		nChunks++
+	}
+	chunks := make([]object.Object, nChunks)
+	for i := int64(0); i < nChunks; i++ {
+		start := i * chunkSize
+		end := start + chunkSize
+		if end > listSize {
+			end = listSize
+		}
+		chunk := make([]object.Object, end-start)
+		copy(chunk, items[start:end])
+		chunks[i] = object.NewList(chunk)
+	}
+	return object.NewList(chunks)
+}
+
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"all":         object.NewBuiltin("all", All),
@@ -892,7 +943,9 @@ func Builtins() map[string]object.Object {
 		"call":        object.NewBuiltin("call", Call),
 		"chan":        object.NewBuiltin("chan", Chan),
 		"chr":         object.NewBuiltin("chr", Chr),
+		"chunk":       object.NewBuiltin("chunk", Chunk),
 		"close":       object.NewBuiltin("close", Close),
+		"coalesce":    object.NewBuiltin("coalesce", Coalesce),
 		"decode":      object.NewBuiltin("decode", Decode),
 		"delete":      object.NewBuiltin("delete", Delete),
 		"encode":      object.NewBuiltin("encode", Encode),
