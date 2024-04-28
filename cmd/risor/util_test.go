@@ -9,8 +9,7 @@ import (
 )
 
 func TestGetScriptArguments(t *testing.T) {
-
-	var test = []struct {
+	test := []struct {
 		args      []string
 		expOS     []string
 		expScript []string
