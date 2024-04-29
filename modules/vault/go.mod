@@ -8,7 +8,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/hashicorp/vault-client-go v0.4.3
-	github.com/risor-io/risor v1.5.0
+	github.com/risor-io/risor v1.6.0
 )
 
 require (

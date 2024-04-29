@@ -8,7 +8,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/risor-io/risor v1.5.0
+	github.com/risor-io/risor v1.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
