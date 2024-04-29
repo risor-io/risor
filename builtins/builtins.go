@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"os"
 	"sort"
 	"strconv"
 	"unicode"
@@ -698,29 +699,38 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("error", 1, 64, args); err != nil {
 		return err
 	}
-	msg, ok := args[0].(*object.String)
-	if !ok {
+	switch arg := args[0].(type) {
+	case *object.Error:
+		return arg
+	case *object.String:
+		msg := arg
+		var msgArgs []interface{}
+		for _, arg := range args[1:] {
+			msgArgs = append(msgArgs, arg.Interface())
+		}
+		return object.Errorf(msg.Value(), msgArgs...)
+	default:
 		return object.Errorf("type error: error() expected a string (%s given)", args[0].Type())
 	}
-	var msgArgs []interface{}
-	for _, arg := range args[1:] {
-		msgArgs = append(msgArgs, arg.Interface())
-	}
-	return object.Errorf(msg.Value(), msgArgs...)
 }
 
 func Try(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("try", 1, 64, args); err != nil {
 		return err
 	}
+	var lastErr *object.Error
 	try := func(arg object.Object) (object.Object, error) {
 		switch obj := arg.(type) {
 		case *object.Function:
+			var callArgs []object.Object
+			if len(obj.Parameters()) > 0 && lastErr != nil {
+				callArgs = append(callArgs, lastErr)
+			}
 			callFunc, found := object.GetCallFunc(ctx)
 			if !found {
 				return nil, fmt.Errorf("eval error: context did not contain a call function")
 			}
-			result, err := callFunc(ctx, obj, nil)
+			result, err := callFunc(ctx, obj, callArgs)
 			if err != nil {
 				return nil, err
 			}
@@ -746,7 +756,12 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 		result, err := try(arg)
 		if err == nil {
 			return result
+		} else {
+			lastErr = object.NewError(err)
 		}
+	}
+	if os.Getenv("RISOR_TRY_COMPAT_V1") == "" && lastErr != nil {
+		return lastErr
 	}
 	return object.Nil
 }
