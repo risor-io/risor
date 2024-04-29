@@ -838,15 +838,15 @@ func TestTry(t *testing.T) {
 		{`try(1)`, object.NewInt(1)},
 		{`try(1, 2)`, object.NewInt(1)},
 		{`try(func() { error("oops") }, "nope")`, object.NewString("nope")},
-		{`try(func() { error("oops") }, func() { error("oops") })`, object.Nil},
+		{`try(func() { error("oops") }, func() { error("oops") })`, object.Errorf("oops")},
 		{`try(func() { error("oops") }, func() { error("oops") }, 1)`, object.NewInt(1)},
 		{`x := 0; y := 0; z := try(func() {
 			x = 11
-			error("oops")
+			error("oops1")
 			x = 12
 		  }, func() {
 			y = 21
-			error("oops")
+			error("oops2")
 			y = 22
 		  }, 33); [x, y, z]`, object.NewList([]object.Object{
 			object.NewInt(11),
