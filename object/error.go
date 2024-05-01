@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -58,6 +59,17 @@ func (e *Error) Equals(other Object) Object {
 		return False
 	default:
 		return False
+	}
+}
+
+func (e *Error) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "error":
+		return NewBuiltin("error", func(ctx context.Context, args ...Object) Object {
+			return e.Message()
+		}), true
+	default:
+		return nil, false
 	}
 }
 
