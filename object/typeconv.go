@@ -837,6 +837,9 @@ func (c *DynamicConverter) To(obj Object) (interface{}, error) {
 }
 
 func (c *DynamicConverter) From(obj interface{}) (Object, error) {
+	if obj == nil {
+		return Nil, nil
+	}
 	typ := reflect.TypeOf(obj)
 	conv, err := NewTypeConverter(typ)
 	if err != nil {
@@ -852,6 +855,9 @@ type MapConverter struct {
 }
 
 func (c *MapConverter) To(obj Object) (interface{}, error) {
+	if obj.Type() == NIL {
+		return nil, nil
+	}
 	tMap, ok := obj.(*Map)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected map (%s given)", obj.Type())
@@ -959,6 +965,9 @@ type PointerConverter struct {
 }
 
 func (c *PointerConverter) To(obj Object) (interface{}, error) {
+	if obj.Type() == NIL {
+		return nil, nil
+	}
 	v, err := c.valueConverter.To(obj)
 	if err != nil {
 		return nil, err
@@ -969,8 +978,11 @@ func (c *PointerConverter) To(obj Object) (interface{}, error) {
 }
 
 func (c *PointerConverter) From(obj interface{}) (Object, error) {
-	v := reflect.ValueOf(obj).Elem().Interface()
-	return c.valueConverter.From(v)
+	v := reflect.ValueOf(obj)
+	if v.IsZero() {
+		return Nil, nil
+	}
+	return c.valueConverter.From(v.Elem().Interface())
 }
 
 // newPointerConverter creates a TypeConverter for pointers that point to
@@ -990,6 +1002,9 @@ type SliceConverter struct {
 }
 
 func (c *SliceConverter) To(obj Object) (interface{}, error) {
+	if obj.Type() == NIL {
+		return nil, nil
+	}
 	list, ok := obj.(*List)
 	if !ok {
 		return nil, fmt.Errorf("type error: expected a list (%s given)", obj.Type())
