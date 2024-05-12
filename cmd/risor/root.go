@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -131,6 +132,8 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		processGlobalFlags()
+
+		defer pprof.StopCPUProfile()
 
 		// Separate arguments belonging to the Risor CLI from those that are
 		// to be passed to the script.

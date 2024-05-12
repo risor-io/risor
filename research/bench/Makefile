@@ -1,11 +1,22 @@
 
 test:
-	time ../risor ./fib.tm
+	@echo "---- risor ----"
+	time ../../risor ./fib.risor
+
+	@echo "\n---- tengo ----"
 	time tengo ./fib.tengo
+
+	@echo "\n---- glua ----"
 	time glua ./fib.lua
-	time otto ./fib.js
-	time python ./fib.py
+
+	@echo "\n---- python3 ----"
+	time python3 ./fib.py
+
+	@echo "\n---- yaegi ----"
 	time yaegi ./fib.yaegi
+
+# @echo "---- otto ----"
+# time otto ./fib.js
 
 # python 3.11.3: 1.238
 # python 2.7.18: 1.712

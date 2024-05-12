@@ -1,4 +1,4 @@
 
 .PHONY: risor
 risor:
-	../../risor ./main.tm
+	go run ../../cmd/risor ./main.risor

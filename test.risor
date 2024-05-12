@@ -1,0 +1,12 @@
+
+try(func() {
+    error("kaboom 1")
+}, func(e) {
+    print("caught error:", e)
+})
+
+try(func() {
+    error("kaboom 2")
+}, func(e) {
+    error("raising different error from: %s", e.error())
+})

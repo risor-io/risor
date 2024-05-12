@@ -10,8 +10,7 @@ test:
 
 .PHONY: bench
 bench:
-	go build
-	./risor -profile cpu.out ./benchmark/main.mon
+	go run ./cmd/risor --cpu-profile cpu.out ./research/bench/fib.risor
 	go tool pprof -http=:8080 ./cpu.out
 
 # https://code.visualstudio.com/api/working-with-extensions/publishing-extension#packaging-extensions

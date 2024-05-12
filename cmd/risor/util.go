@@ -179,7 +179,6 @@ func processGlobalFlags() {
 			fatal(err)
 		}
 		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
 		handleSigForProfiler()
 	}
 }

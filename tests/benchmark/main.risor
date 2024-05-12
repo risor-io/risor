@@ -5,7 +5,7 @@ func maxArray(array) {
     }
     var max = array[0];
     var len = len(array);
-    for (var idx = 0; idx < len; idx++) {
+    for idx := 0; idx < len; idx++ {
         if (array[idx] > max) {
             max = array[idx];
         }
@@ -13,6 +13,6 @@ func maxArray(array) {
     return max;
 }
 
-// print("MAX", max(k));
+print("MAX", max(k));
 
-assert(false, "this needs to be fixed")
+// assert(false, "this needs to be fixed")
