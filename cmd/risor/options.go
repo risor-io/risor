@@ -12,6 +12,7 @@ import (
 	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/color"
 	"github.com/risor-io/risor/modules/gha"
+	"github.com/risor-io/risor/modules/goproxy"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/isatty"
 	"github.com/risor-io/risor/modules/jmespath"
@@ -43,6 +44,7 @@ func getGlobals() risor.Option {
 		"cli":         cli.Module(),
 		"color":       color.Module(),
 		"gha":         gha.Module(),
+		"goproxy":     goproxy.Module(),
 		"image":       image.Module(),
 		"isatty":      isatty.Module(),
 		"net":         net.Module(),
