@@ -16,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	if script == "" {
-		script = "os.stdin.read() | strings.to_upper"
+		script = "os.stdin.read() | strings.to_upper | print"
 	}
 
 	ctx := context.Background()
@@ -34,5 +34,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(result)
+	fmt.Println("script eval result:", result)
+	fmt.Println("stdout buffer:", string(stdout.Bytes()))
 }
