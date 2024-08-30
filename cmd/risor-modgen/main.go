@@ -14,12 +14,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime/debug"
 	"slices"
 	"strings"
 	"text/template"
-
-	"mvdan.cc/gofumpt/format"
 )
 
 const (
@@ -141,23 +138,7 @@ func Parse(fset *token.FileSet, pkg *ast.Package) (*Module, error) {
 func (m *Module) WriteFile(path string, options Options) (bool, int, error) {
 	var buf bytes.Buffer
 	m.Fprint(&buf, options)
-
-	fmtOpts := format.Options{
-		ModulePath: filepath.Dir(path),
-	}
-
-	if dbg, ok := debug.ReadBuildInfo(); ok {
-		// turn "go1.19.2" into "1.19.2"
-		fmtOpts.LangVersion = strings.TrimPrefix(dbg.GoVersion, "go")
-	}
-
-	// Format using gofumpt
-	b, err := format.Source(buf.Bytes(), fmtOpts)
-	if err != nil {
-		return false, 0, fmt.Errorf("format file %q: %w", path, err)
-	}
-
-	return writeFileCheckChanged(path, b)
+	return writeFileCheckChanged(path, buf.Bytes())
 }
 
 func writeFileCheckChanged(path string, b []byte) (bool, int, error) {

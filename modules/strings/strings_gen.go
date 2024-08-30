@@ -4,9 +4,8 @@ package strings
 
 import (
 	"context"
-	"math"
-
 	"github.com/risor-io/risor/object"
+	"math"
 )
 
 // Contains is a wrapper function around [contains]
