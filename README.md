@@ -206,6 +206,15 @@ is already available which currently only offers syntax highlighting.
 
 You can also make use of the [Risor TextMate grammar](./vscode/syntaxes/risor.grammar.json).
 
+## Benchmarking
+
+There are two Makefile commands that assist with benchmarking and CPU profiling:
+
+```
+make bench
+make pprof
+```
+
 ## Contributing
 
 Risor is intended to be a community project. You can lend a hand in various ways:
