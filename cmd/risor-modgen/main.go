@@ -283,7 +283,7 @@ func {{ .FuncGenName }}(ctx context.Context, args ...object.Object) object.Objec
 // Useful if you want to write your own "Module()" function.
 func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.Object {
 	{{- range .ExportedFuncs }}
-	builtins["{{ .ExportedName }}"] = object.NewBuiltin("{{ $.Package }}.{{ .ExportedName }}", {{ .FuncGenName }})
+	builtins["{{ .ExportedName }}"] = object.NewBuiltin("{{ .ExportedName }}", {{ .FuncGenName }})
 	{{- end }}
 	return builtins
 }
