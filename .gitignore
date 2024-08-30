@@ -1,3 +1,5 @@
+/risor
+/tmp*
 .vscode
 node_modules
 

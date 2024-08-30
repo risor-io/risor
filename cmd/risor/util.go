@@ -173,13 +173,4 @@ func processGlobalFlags() {
 	if viper.GetBool("no-color") {
 		color.NoColor = true
 	}
-	if path := viper.GetString("cpu-profile"); path != "" {
-		f, err := os.Create(path)
-		if err != nil {
-			fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-		handleSigForProfiler()
-	}
 }
