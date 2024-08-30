@@ -8,11 +8,15 @@ test:
 	gotestsum --junitfile /tmp/test-reports/unit-tests.xml \
 		-- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/...
 
-.PHONY: bench
-bench:
+.PHONY: pprof
+pprof:
 	go build
 	./risor --cpu-profile cpu.out ./examples/scripts/fibonacci.risor
 	go tool pprof -http=:8080 ./cpu.out
+
+.PHONY: bench
+bench:
+	go test -bench=. -benchmem ./bench
 
 # https://code.visualstudio.com/api/working-with-extensions/publishing-extension#packaging-extensions
 .PHONY: install-tools
