@@ -1,9 +1,11 @@
 package fmt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/require"
@@ -14,6 +16,14 @@ func TestPrintableValue(t *testing.T) {
 		obj      object.Object
 		expected any
 	}
+
+	testTime, err := time.Parse("2006-01-02", "2021-01-01")
+	require.NoError(t, err)
+
+	builtin := func(ctx context.Context, args ...object.Object) object.Object {
+		return nil
+	}
+
 	cases := []testCase{
 		{object.NewString("hello"), "hello"},
 		{object.NewByte(5), byte(5)},
@@ -23,6 +33,8 @@ func TestPrintableValue(t *testing.T) {
 		{object.NewBool(false), false},
 		{object.Errorf("error"), errors.New("error")},
 		{obj: object.Nil, expected: nil},
+		{obj: object.NewTime(testTime), expected: "2021-01-01T00:00:00Z"},
+		{obj: object.NewBuiltin("foo", builtin), expected: "builtin(foo)"},
 		{ // strings printed inside lists are quoted in Risor
 			obj: object.NewList([]object.Object{
 				object.NewString("hello"),
