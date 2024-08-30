@@ -7,7 +7,7 @@ jobs:
   test:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: cimg/go:1.23
     resource_class: large
     steps:
       - checkout
@@ -35,7 +35,7 @@ jobs:
   generate:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: cimg/go:1.23
     resource_class: small
     steps:
       - checkout
@@ -51,7 +51,7 @@ jobs:
   format:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: cimg/go:1.23
     resource_class: small
     steps:
       - checkout
