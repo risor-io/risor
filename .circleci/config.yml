@@ -45,6 +45,10 @@ jobs:
           keys:
             - go-mod-v6-{{ checksum "go.sum" }}
       - run:
+          name: Install gofumpt
+          command: |
+            go install mvdan.cc/gofumpt@latest
+      - run:
           name: Run generate
           command: |
             make generate
