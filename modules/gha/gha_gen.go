@@ -101,12 +101,12 @@ func AddPath(ctx context.Context, args ...object.Object) object.Object {
 //
 // Useful if you want to write your own "Module()" function.
 func addGeneratedBuiltins(builtins map[string]object.Object) map[string]object.Object {
-	builtins["is_debug"] = object.NewBuiltin("gha.is_debug", IsDebug)
-	builtins["log_debug"] = object.NewBuiltin("gha.log_debug", LogDebug)
-	builtins["start_group"] = object.NewBuiltin("gha.start_group", StartGroup)
-	builtins["end_group"] = object.NewBuiltin("gha.end_group", EndGroup)
-	builtins["set_output"] = object.NewBuiltin("gha.set_output", SetOutput)
-	builtins["set_env"] = object.NewBuiltin("gha.set_env", SetEnv)
-	builtins["add_path"] = object.NewBuiltin("gha.add_path", AddPath)
+	builtins["is_debug"] = object.NewBuiltin("is_debug", IsDebug)
+	builtins["log_debug"] = object.NewBuiltin("log_debug", LogDebug)
+	builtins["start_group"] = object.NewBuiltin("start_group", StartGroup)
+	builtins["end_group"] = object.NewBuiltin("end_group", EndGroup)
+	builtins["set_output"] = object.NewBuiltin("set_output", SetOutput)
+	builtins["set_env"] = object.NewBuiltin("set_env", SetEnv)
+	builtins["add_path"] = object.NewBuiltin("add_path", AddPath)
 	return builtins
 }
