@@ -7,7 +7,7 @@ jobs:
   test:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: golang:1.23.0
     resource_class: large
     steps:
       - checkout
@@ -27,6 +27,7 @@ jobs:
       - run:
           name: Run tests
           command: |
+            go install gotest.tools/gotestsum@latest
             mkdir -p /tmp/test-reports
             make test
       - codecov/upload
@@ -35,7 +36,7 @@ jobs:
   generate:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: golang:1.23.0
     resource_class: small
     steps:
       - checkout
@@ -44,6 +45,10 @@ jobs:
           keys:
             - go-mod-v6-{{ checksum "go.sum" }}
       - run:
+          name: Install gofumpt
+          command: |
+            go install mvdan.cc/gofumpt@latest
+      - run:
           name: Run generate
           command: |
             make generate
@@ -51,7 +56,7 @@ jobs:
   format:
     working_directory: ~/repo
     docker:
-      - image: cimg/go:1.22
+      - image: golang:1.23.0
     resource_class: small
     steps:
       - checkout

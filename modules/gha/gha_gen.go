@@ -4,7 +4,6 @@ package gha
 
 import (
 	"context"
-
 	"github.com/risor-io/risor/object"
 )
 

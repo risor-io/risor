@@ -67,6 +67,7 @@ release:
 .PHONY: generate
 generate:
 	go generate
+	gofumpt -l -w .
 
 # Use entr to watch for changes to markdown files and copy them to the
 # risor-site repo (expected to be at ../risor-site). You can brew install entr.
