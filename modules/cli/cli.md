@@ -30,7 +30,7 @@ app({
     name: "myapp",
     description: "My app description",
     commands: [
-        command({
+        c({
             name: "hello",
             description: "Say hello",
             action: func(ctx) {
