@@ -1126,6 +1126,16 @@ func TestForIntCondition(t *testing.T) {
 	require.Equal(t, object.NewInt(0), result)
 }
 
+func TestForExprCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 10
+	for (count >= 5) { count-- }
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), result)
+}
+
 func TestSimpleLoopBreak(t *testing.T) {
 	result, err := run(context.Background(), `
 	x := 0
