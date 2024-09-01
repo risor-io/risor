@@ -121,7 +121,11 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			return err
 		}
 		if field.CanSet() {
-			field.Set(reflect.ValueOf(result))
+			if result == nil {
+				field.SetZero()
+			} else {
+				field.Set(reflect.ValueOf(result))
+			}
 			return nil
 		} else {
 			return fmt.Errorf("type error: cannot set field %s", name)

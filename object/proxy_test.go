@@ -222,6 +222,116 @@ func TestProxySetGetAttr(t *testing.T) {
 	require.Equal(t, object.NewInt(-3), value)
 }
 
+type proxyTestType3 struct {
+	A int
+	P *string
+	I io.Reader
+	M map[string]int
+	S []string
+}
+
+func TestProxySetGetAttrNil(t *testing.T) {
+	proxy, err := object.NewProxy(&proxyTestType3{})
+	require.Nil(t, err)
+
+	// A is not nillable
+	err = proxy.SetAttr("A", object.Nil)
+	require.Error(t, err)
+	require.Equal(t, "type error: expected int (nil given)", err.Error())
+
+	// P starts at nil
+	value, ok := proxy.GetAttr("P")
+	require.True(t, ok)
+	require.Equal(t, object.Nil, value)
+
+	// Set to "abc"
+	require.Nil(t, proxy.SetAttr("P", object.NewString("abc")))
+
+	// Confirm "abc"
+	value, ok = proxy.GetAttr("P")
+	require.True(t, ok)
+	require.Equal(t, object.NewString("abc"), value)
+
+	// Set to nil
+	require.Nil(t, proxy.SetAttr("P", object.Nil))
+
+	// Confirm nil
+	value, ok = proxy.GetAttr("P")
+	require.True(t, ok)
+	require.Equal(t, object.Nil, value)
+
+	// I starts at nil
+	value, ok = proxy.GetAttr("I")
+	require.True(t, ok)
+	require.Equal(t, object.Nil, value)
+
+	// Set to "abc"
+	require.Nil(t, proxy.SetAttr("I", object.NewBuffer(bytes.NewBufferString("abc"))))
+
+	// Confirm "abc"
+	value, ok = proxy.GetAttr("I")
+	require.True(t, ok)
+	require.Equal(t, object.NewBuffer(bytes.NewBufferString("abc")), value)
+
+	// Set to nil
+	require.Nil(t, proxy.SetAttr("I", object.Nil))
+
+	// Confirm nil
+	value, ok = proxy.GetAttr("I")
+	require.True(t, ok)
+	require.Equal(t, object.Nil, value)
+
+	// M starts at nil
+	value, ok = proxy.GetAttr("M")
+	require.True(t, ok)
+	require.Equal(t, object.NewMap(map[string]object.Object{}), value)
+
+	// Set to {"a": 1, "b": 2, "c": 3}
+	require.Nil(t, proxy.SetAttr("M", object.NewMap(map[string]object.Object{
+		"a": object.NewInt(1),
+		"b": object.NewInt(2),
+		"c": object.NewInt(3),
+	})))
+
+	// Confirm {"a": 1, "b": 2, "c": 3}
+	value, ok = proxy.GetAttr("M")
+	require.True(t, ok)
+	require.Equal(t, object.NewMap(map[string]object.Object{
+		"a": object.NewInt(1),
+		"b": object.NewInt(2),
+		"c": object.NewInt(3),
+	}), value)
+
+	// Set to nil
+	require.Nil(t, proxy.SetAttr("M", object.Nil))
+
+	// Confirm nil
+	value, ok = proxy.GetAttr("M")
+	require.True(t, ok)
+	require.Equal(t, object.NewMap(map[string]object.Object{}), value)
+
+	// S starts at nil
+	value, ok = proxy.GetAttr("S")
+	require.True(t, ok)
+	require.Equal(t, object.NewList([]object.Object{}), value)
+
+	// Set to ["a", "b", "c"]
+	require.Nil(t, proxy.SetAttr("S", object.NewStringList([]string{"a", "b", "c"})))
+
+	// Confirm ["a", "b", "c"]
+	value, ok = proxy.GetAttr("S")
+	require.True(t, ok)
+	require.Equal(t, object.NewStringList([]string{"a", "b", "c"}), value)
+
+	// Set to nil
+	require.Nil(t, proxy.SetAttr("S", object.Nil))
+
+	// Confirm nil
+	value, ok = proxy.GetAttr("S")
+	require.True(t, ok)
+	require.Equal(t, object.NewList([]object.Object{}), value)
+}
+
 func TestProxyOnStructValue(t *testing.T) {
 	p, err := object.NewProxy(proxyTestType2{A: 99})
 	require.NoError(t, err)
