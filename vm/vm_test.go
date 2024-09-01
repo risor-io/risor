@@ -185,17 +185,6 @@ func TestForRange5(t *testing.T) {
 	require.Equal(t, object.NewInt(3), result)
 }
 
-func TestForRange6(t *testing.T) {
-	result, err := run(context.Background(), `
-	x := 0
-	r := range { "a", "b" }
-	for r { x++ }
-	x
-	`)
-	require.Nil(t, err)
-	require.Equal(t, object.NewInt(2), result)
-}
-
 func TestForRange7(t *testing.T) {
 	result, err := run(context.Background(), `
 	x := nil
@@ -1109,6 +1098,32 @@ func TestRangeLoopContinue(t *testing.T) {
 	`)
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(3), result)
+}
+
+func TestForCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	c := true
+	count := 0
+	for c {
+		count++
+		if count == 10 {
+			c = false
+		}
+	}
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), result)
+}
+
+func TestForIntCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 10
+	for count { count-- }
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(0), result)
 }
 
 func TestSimpleLoopBreak(t *testing.T) {
