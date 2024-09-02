@@ -278,26 +278,34 @@ func (p *Parser) setError(err ParserError) {
 }
 
 func (p *Parser) parseStatement() ast.Node {
+	var stmt ast.Node
 	switch p.curToken.Type {
 	case token.VAR:
-		return p.parseVar()
+		stmt = p.parseVar()
 	case token.CONST:
-		return p.parseConst()
+		stmt = p.parseConst()
 	case token.RETURN:
-		return p.parseReturn()
+		stmt = p.parseReturn()
 	case token.BREAK:
-		return p.parseBreak()
+		stmt = p.parseBreak()
 	case token.CONTINUE:
-		return p.parseContinue()
+		stmt = p.parseContinue()
 	case token.NEWLINE:
 		return nil
 	case token.IDENT:
 		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
-			return p.parseDeclaration()
+			stmt = p.parseDeclaration()
+		} else {
+			stmt = p.parseExpressionStatement()
 		}
-		// intentional fallthrough!
+	default:
+		stmt = p.parseExpressionStatement()
 	}
-	return p.parseExpressionStatement()
+	// Consume trailing semicolon if present
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
 }
 
 func (p *Parser) parseVar() ast.Node {
@@ -930,62 +938,112 @@ func (p *Parser) parseIf() ast.Node {
 
 func (p *Parser) parseFor() ast.Node {
 	forToken := p.curToken
+	p.nextToken() // Move past 'for'
+
 	// Check for simple form: "for { ... }"
-	if p.peekTokenIs(token.LBRACE) {
-		p.nextToken()
+	if p.curTokenIs(token.LBRACE) {
 		consequence := p.parseBlock()
 		if consequence == nil {
 			return nil
 		}
 		return ast.NewSimpleFor(forToken, consequence)
 	}
-	p.nextToken()
-	forExprToken := p.curToken
-	firstExpr := p.parseStatement()
-	if firstExpr == nil {
-		p.setTokenError(forExprToken, "invalid for loop expression")
-		p.nextToken()
-		return nil
+
+	// Parse the initialization or condition
+	var init, condition, post ast.Node
+	if !p.curTokenIs(token.SEMICOLON) {
+		init = p.parseStatement()
+		if init == nil {
+			p.setTokenError(p.curToken, "invalid for loop initialization or condition")
+			return nil
+		}
 	}
-	// Check for while loop form: "for condition { ... }"
+
+	// Check for condition-only form: "for condition { ... }"
+	fmt.Println("INIT", init, "CURTOKEN:", p.curToken.Literal)
 	if p.peekTokenIs(token.LBRACE) {
 		p.nextToken()
 		consequence := p.parseBlock()
 		if consequence == nil {
 			return nil
 		}
-		return ast.NewFor(forToken, firstExpr, consequence, nil, nil)
+		return ast.NewFor(forToken, init, consequence, nil, nil)
 	}
+
+	// Check if the init statement is a range statement
+	var isRangeLoop bool
+	switch initNode := init.(type) {
+	case *ast.Var:
+		_, expr := initNode.Value()
+		if _, ok := expr.(*ast.Range); ok {
+			isRangeLoop = true
+		}
+	case *ast.MultiVar:
+		_, expr := initNode.Value()
+		if _, ok := expr.(*ast.Range); ok {
+			isRangeLoop = true
+		}
+	}
+
+	if isRangeLoop {
+		// This is a range-based for loop
+		if !p.expectPeek("for range loop", token.LBRACE) {
+			return nil
+		}
+		consequence := p.parseBlock()
+		if consequence == nil {
+			return nil
+		}
+		// Use the init node (which contains the range expression) as the condition
+		return ast.NewFor(forToken, init, consequence, nil, nil)
+	}
+
+	// If we've reached here, we're dealing with a three-part for loop
 	if !p.curTokenIs(token.SEMICOLON) {
-		p.setTokenError(p.curToken, "expected a semicolon (got %s)", p.curToken.Literal)
+		p.setTokenError(p.curToken, "expected semicolon after for loop initialization")
 		return nil
 	}
-	p.nextToken() // move past the ";"
-	condition := p.parseNode(LOWEST)
+	p.nextToken() // Move past the first semicolon
+
+	// Parse the condition
+	if !p.curTokenIs(token.SEMICOLON) {
+		condition = p.parseExpression(LOWEST)
+		if condition == nil {
+			p.setTokenError(p.curToken, "invalid for loop condition")
+			return nil
+		}
+	}
 	if !p.expectPeek("for loop", token.SEMICOLON) {
 		return nil
 	}
-	if !p.expectPeek("for loop", token.IDENT) {
-		return nil
+	p.nextToken() // Move past the second semicolon
+
+	// Parse the post statement
+	if !p.curTokenIs(token.LBRACE) {
+		if p.curTokenIs(token.IDENT) && (p.peekTokenIs(token.PLUS_PLUS) || p.peekTokenIs(token.MINUS_MINUS)) {
+			identToken := p.curToken
+			p.nextToken()
+			post = ast.NewPostfix(identToken, p.curToken.Literal)
+		} else {
+			post = p.parseStatement()
+		}
+		if post == nil {
+			p.setTokenError(p.curToken, "invalid for loop post statement")
+			return nil
+		}
 	}
-	var postExpr ast.Node
-	if p.peekTokenIs(token.PLUS_PLUS) || p.peekTokenIs(token.MINUS_MINUS) {
-		p.nextToken()
-		postExpr = p.parsePostfix()
-	} else {
-		postExpr = p.parseNode(LOWEST)
-	}
-	if postExpr == nil {
-		return nil
-	}
+
+	// Expect the opening brace of the loop body
 	if !p.expectPeek("for loop", token.LBRACE) {
 		return nil
 	}
+
 	consequence := p.parseBlock()
 	if consequence == nil {
 		return nil
 	}
-	return ast.NewFor(forToken, condition, consequence, firstExpr, postExpr)
+
+	return ast.NewFor(forToken, condition, consequence, init, post)
 }
 
 func (p *Parser) parseBlock() *ast.Block {

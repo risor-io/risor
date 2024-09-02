@@ -1136,6 +1136,16 @@ func TestForExprCondition(t *testing.T) {
 	require.Equal(t, object.NewInt(4), result)
 }
 
+func TestInvalidForCondition(t *testing.T) {
+	_, err := run(context.Background(), `
+	count := 10
+	for count := 0 { count-- }
+	count
+	`)
+	require.Error(t, err)
+	require.Equal(t, err.Error(), "compile error: invalid condition in for loop")
+}
+
 func TestSimpleLoopBreak(t *testing.T) {
 	result, err := run(context.Background(), `
 	x := 0
