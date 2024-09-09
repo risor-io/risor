@@ -15,6 +15,21 @@ func Now(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewTime(time.Now())
 }
 
+func Unix(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("time.unix", 2, args); err != nil {
+		return err
+	}
+	sec, err := object.AsInt(args[0])
+	if err != nil {
+		return err
+	}
+	nsec, err := object.AsInt(args[1])
+	if err != nil {
+		return err
+	}
+	return object.NewTime(time.Unix(sec, nsec))
+}
+
 func Parse(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("time.parse", 2, args); err != nil {
 		return err
@@ -68,6 +83,7 @@ func Module() *object.Module {
 		"parse":       object.NewBuiltin("parse", Parse),
 		"sleep":       object.NewBuiltin("sleep", Sleep),
 		"since":       object.NewBuiltin("since", Since),
+		"unix":        object.NewBuiltin("unix", Unix),
 		"ANSIC":       object.NewString(time.ANSIC),
 		"UnixDate":    object.NewString(time.UnixDate),
 		"RubyDate":    object.NewString(time.RubyDate),
