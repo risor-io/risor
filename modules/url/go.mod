@@ -1,4 +1,4 @@
-module github.com/risor-io/risor/modules/uuid
+module github.com/rubiojr/risor/modules/url
 
 go 1.22
 
