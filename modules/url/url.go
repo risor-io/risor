@@ -1,4 +1,4 @@
-package uuid
+package url
 
 import (
 	"context"
