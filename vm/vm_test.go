@@ -208,15 +208,15 @@ func TestForRange7(t *testing.T) {
 
 func TestIterator(t *testing.T) {
 	tests := []testCase{
-		{`(range { 33, 44, 55 }).next()`, object.NewInt(33)},
-		{`i := range { 33, 44, 55 }; i.next(); i.entry().value`, object.True},
-		{`i := range { 33, 44, 55 }; i.next(); i.entry().key`, object.NewInt(33)},
+		{`(range [ 33, 44, 55 ]).next()`, object.NewInt(33)},
+		{`c := { 33, 44, 55 }; i := range c; i.next(); i.entry().value`, object.True},
+		{`c := { 33, 44, 55 }; i := range c; i.next(); i.entry().key`, object.NewInt(33)},
 		{`(range [ 33, 44, 55 ]).next()`, object.NewInt(33)},
 		{`i := range "abcd"; i.next(); i.entry().key`, object.NewInt(0)},
 		{`i := range "abcd"; i.next(); i.entry().value`, object.NewString("a")},
-		{`(range { a: 33, b: 44 }).next()`, object.NewString("a")},
-		{`i := range { a: 33, b: 44 }; i.next(); i.entry().key`, object.NewString("a")},
-		{`i := range { a: 33, b: 44 }; i.next(); i.entry().value`, object.NewInt(33)},
+		{`c := { a: 33, b: 44 }; (range c).next()`, object.NewString("a")},
+		{`c := { a: 33, b: 44 }; i := range c; i.next(); i.entry().key`, object.NewString("a")},
+		{`c := { a: 33, b: 44 }; i := range c; i.next(); i.entry().value`, object.NewInt(33)},
 	}
 	runTests(t, tests)
 }
@@ -1137,13 +1137,13 @@ func TestForExprCondition(t *testing.T) {
 }
 
 func TestInvalidForCondition(t *testing.T) {
-	_, err := run(context.Background(), `
+	result, err := run(context.Background(), `
 	count := 10
-	for count := 0 { count-- }
+	for x := 2 { count-- }
 	count
 	`)
-	require.Error(t, err)
-	require.Equal(t, err.Error(), "compile error: invalid condition in for loop")
+	require.NoError(t, err)
+	require.Equal(t, object.NewInt(8), result)
 }
 
 func TestSimpleLoopBreak(t *testing.T) {
