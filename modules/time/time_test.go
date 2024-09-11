@@ -26,7 +26,9 @@ func TestUnix(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, _ := object.AsTime(Unix(context.Background(), object.NewInt(tt.sec), object.NewInt(tt.nsec)))
+		got, _ := object.AsTime(
+			Unix(context.Background(), object.NewInt(tt.sec), object.NewInt(tt.nsec)),
+		)
 		require.Equal(t, tt.want.UTC(), got.UTC())
 	}
 }
