@@ -60,7 +60,7 @@ func TestPrintableValue(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%v", tc.expected), func(t *testing.T) {
-			got := printableValue(tc.obj)
+			got := object.PrintableValue(tc.obj)
 			require.Equal(t, tc.expected, got)
 		})
 	}

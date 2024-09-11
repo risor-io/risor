@@ -701,7 +701,9 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch arg := args[0].(type) {
 	case *object.Error:
-		return arg
+		// Return a copy of the error that has its raised flag set.
+		// It's possible an error was passed that did not have raised set.
+		return object.NewError(arg.Value()).WithRaised(true)
 	case *object.String:
 		msg := arg
 		var msgArgs []interface{}
@@ -736,7 +738,10 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			}
 			switch result := result.(type) {
 			case *object.Error:
-				return nil, result.Value()
+				if result.Raised() {
+					return nil, result.Value()
+				}
+				return result, nil
 			default:
 				return result, nil
 			}
@@ -744,7 +749,10 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			result := obj.Call(ctx)
 			switch result := result.(type) {
 			case *object.Error:
-				return nil, result.Value()
+				if result.Raised() {
+					return nil, result.Value()
+				}
+				return result, nil
 			default:
 				return result, nil
 			}
@@ -757,11 +765,11 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 		if err == nil {
 			return result
 		} else {
-			lastErr = object.NewError(err)
+			lastErr = object.NewError(err).WithRaised(false)
 		}
 	}
 	if os.Getenv("RISOR_TRY_COMPAT_V1") == "" && lastErr != nil {
-		return lastErr
+		return lastErr.WithRaised(true)
 	}
 	return object.Nil
 }
