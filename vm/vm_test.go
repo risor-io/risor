@@ -185,17 +185,6 @@ func TestForRange5(t *testing.T) {
 	require.Equal(t, object.NewInt(3), result)
 }
 
-func TestForRange6(t *testing.T) {
-	result, err := run(context.Background(), `
-	x := 0
-	r := range { "a", "b" }
-	for r { x++ }
-	x
-	`)
-	require.Nil(t, err)
-	require.Equal(t, object.NewInt(2), result)
-}
-
 func TestForRange7(t *testing.T) {
 	result, err := run(context.Background(), `
 	x := nil
@@ -219,15 +208,15 @@ func TestForRange7(t *testing.T) {
 
 func TestIterator(t *testing.T) {
 	tests := []testCase{
-		{`(range { 33, 44, 55 }).next()`, object.NewInt(33)},
-		{`i := range { 33, 44, 55 }; i.next(); i.entry().value`, object.True},
-		{`i := range { 33, 44, 55 }; i.next(); i.entry().key`, object.NewInt(33)},
+		{`(range [ 33, 44, 55 ]).next()`, object.NewInt(33)},
+		{`c := { 33, 44, 55 }; i := range c; i.next(); i.entry().value`, object.True},
+		{`c := { 33, 44, 55 }; i := range c; i.next(); i.entry().key`, object.NewInt(33)},
 		{`(range [ 33, 44, 55 ]).next()`, object.NewInt(33)},
 		{`i := range "abcd"; i.next(); i.entry().key`, object.NewInt(0)},
 		{`i := range "abcd"; i.next(); i.entry().value`, object.NewString("a")},
-		{`(range { a: 33, b: 44 }).next()`, object.NewString("a")},
-		{`i := range { a: 33, b: 44 }; i.next(); i.entry().key`, object.NewString("a")},
-		{`i := range { a: 33, b: 44 }; i.next(); i.entry().value`, object.NewInt(33)},
+		{`c := { a: 33, b: 44 }; (range c).next()`, object.NewString("a")},
+		{`c := { a: 33, b: 44 }; i := range c; i.next(); i.entry().key`, object.NewString("a")},
+		{`c := { a: 33, b: 44 }; i := range c; i.next(); i.entry().value`, object.NewInt(33)},
 	}
 	runTests(t, tests)
 }
@@ -1109,6 +1098,52 @@ func TestRangeLoopContinue(t *testing.T) {
 	`)
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(3), result)
+}
+
+func TestForCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	c := true
+	count := 0
+	for c {
+		count++
+		if count == 10 {
+			c = false
+		}
+	}
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), result)
+}
+
+func TestForIntCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 10
+	for count { count-- }
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(0), result)
+}
+
+func TestForExprCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 10
+	for (count >= 5) { count-- }
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(4), result)
+}
+
+func TestInvalidForCondition(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 10
+	for x := 2 { count-- }
+	count
+	`)
+	require.NoError(t, err)
+	require.Equal(t, object.NewInt(8), result)
 }
 
 func TestSimpleLoopBreak(t *testing.T) {

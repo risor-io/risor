@@ -179,7 +179,7 @@ func (c *Control) String() string {
 	var out bytes.Buffer
 	out.WriteString(c.Literal())
 	if c.value != nil {
-		out.WriteString(" " + c.value.Literal())
+		out.WriteString(" " + c.value.String())
 	}
 	return out.String()
 }
@@ -212,7 +212,7 @@ func (r *Return) String() string {
 	var out bytes.Buffer
 	out.WriteString(r.Literal())
 	if r.value != nil {
-		out.WriteString(" " + r.value.Literal())
+		out.WriteString(" " + r.value.String())
 	}
 	return out.String()
 }
