@@ -340,6 +340,9 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"a + add(b*c)+d", "((a + add((b * c))) + d)"},
 		{"a*[1,2,3,4][b*c]*d", "((a * ([1, 2, 3, 4][(b * c)])) * d)"},
 		{"add(a*b[2], b[1], 2 * [1,2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"},
+		{"1 - (2 - 3);", "(1 - (2 - 3))"},
+		{"return 1 - (2 - 3)", "return (1 - (2 - 3))"},
+		{"return foo[0];\n -3;", "return (foo[0])\n(-3)"},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
@@ -554,6 +557,13 @@ func TestIncompleThings(t *testing.T) {
 		{`func foo( a, b ="steve", `, "parse error: unterminated function parameters"},
 		{`func foo() {`, "parse error: unterminated block statement"},
 		{`switch (foo) { `, "parse error: unterminated switch statement"},
+		{`for i := 0; i < 5; i++ {`, "parse error: unterminated block statement"},
+		{`{`, "parse error: invalid syntax in set expression"},
+		{`[`, "parse error: invalid syntax in list expression"},
+		{`{ "a": "b", "c": "d"`, "parse error: unexpected end of file while parsing map (expected })"},
+		{`{ "a", "b", "c"`, "parse error: unexpected end of file while parsing set (expected })"},
+		{`foo |`, "parse error: invalid pipe expression"},
+		{`(1, 2`, "parse error: unexpected , while parsing grouped expression (expected ))"},
 	}
 	for _, tt := range tests {
 		_, err := Parse(context.Background(), tt.input)
@@ -947,7 +957,7 @@ func TestBadInputs(t *testing.T) {
 		{"in", `parse error: invalid syntax (unexpected "in")`},
 		{"x in", `parse error: invalid in expression`},
 		{"switch x { case 1: \xf5\xf51 case 2: 2 default: 3 }", `syntax error: invalid identifier: �`},
-		{"switch x { case 1: 1 case 2: 2 defaultIIIIIII: 3 }", "parse error: invalid syntax (unexpected \":\")"},
+		{"switch x { case 1: 1 case 2: 2 defaultIIIIIII: 3 }", "parse error: unexpected defaultIIIIIII while parsing case statement (expected ;)"},
 		{`{ one: 1
 			two: 2}`, "parse error: unexpected two while parsing map (expected })"},
 		{`[1 2]`, "parse error: unexpected 2 while parsing an expression list (expected ])"},
@@ -1150,4 +1160,25 @@ func TestMultilineInfixExprs(t *testing.T) {
 			require.Equal(t, tt.expected, result.String())
 		})
 	}
+}
+
+func TestDoubleSemicolon(t *testing.T) {
+	input := "42; ;"
+	_, err := Parse(context.Background(), input)
+	require.Error(t, err)
+	require.Equal(t, "parse error: invalid syntax (unexpected \";\")", err.Error())
+}
+
+func TestInvalidMultipleExpressions(t *testing.T) {
+	input := "42 33"
+	_, err := Parse(context.Background(), input)
+	require.Error(t, err)
+	require.Equal(t, "parse error: unexpected token \"33\" following statement", err.Error())
+}
+
+func TestInvalidMultipleExpressions2(t *testing.T) {
+	input := "42\n 33 oops"
+	_, err := Parse(context.Background(), input)
+	require.Error(t, err)
+	require.Equal(t, "parse error: unexpected token \"oops\" following statement", err.Error())
 }

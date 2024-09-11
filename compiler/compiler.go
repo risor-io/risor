@@ -130,7 +130,7 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 func (c *Compiler) compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Nil:
-		if err := c.compileNil(node); err != nil {
+		if err := c.compileNil(); err != nil {
 			return err
 		}
 	case *ast.Int:
@@ -318,7 +318,7 @@ func (c *Compiler) currentPosition() int {
 	return len(c.current.instructions)
 }
 
-func (c *Compiler) compileNil(node *ast.Nil) error {
+func (c *Compiler) compileNil() error {
 	c.emit(op.Nil)
 	return nil
 }
@@ -1412,10 +1412,10 @@ func (c *Compiler) compileFor(node *ast.For) error {
 			}
 		case *ast.Range:
 			return c.compileForRange(node, nil, cond.Container())
-		case *ast.Infix:
+		case ast.Expression:
 			return c.compileForCondition(node, cond)
 		default:
-			return c.compileForRange(node, nil, cond)
+			return fmt.Errorf("compile error: invalid for loop")
 		}
 	}
 
