@@ -63,7 +63,7 @@ func (e *Error) Compare(other Object) (int, error) {
 func (e *Error) Equals(other Object) Object {
 	switch other := other.(type) {
 	case *Error:
-		if e.Message() == other.Message() && e.raised == other.raised {
+		if e.Message().Value() == other.Message().Value() && e.raised == other.raised {
 			return True
 		}
 		return False
@@ -76,6 +76,10 @@ func (e *Error) GetAttr(name string) (Object, bool) {
 	switch name {
 	case "error":
 		return NewBuiltin("error", func(ctx context.Context, args ...Object) Object {
+			return e.Message()
+		}), true
+	case "message":
+		return NewBuiltin("message", func(ctx context.Context, args ...Object) Object {
 			return e.Message()
 		}), true
 	default:
