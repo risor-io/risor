@@ -1311,6 +1311,25 @@ func TestHalt(t *testing.T) {
 	require.Equal(t, context.DeadlineExceeded, err)
 }
 
+func TestCallHalt(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+	defer cancel()
+
+	vm, err := newVM(context.Background(), "func block() { for {} }")
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(context.Background()))
+
+	obj, err := vm.Get("block")
+	require.NoError(t, err)
+
+	fn, ok := obj.(*object.Function)
+	require.True(t, ok)
+
+	_, err = vm.Call(ctx, fn, nil)
+	require.NotNil(t, err)
+	require.Equal(t, context.DeadlineExceeded, err)
+}
+
 func TestReturnGlobalVariable(t *testing.T) {
 	result, err := run(context.Background(), `
 	x := 3
