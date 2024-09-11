@@ -78,13 +78,21 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 	return vm
 }
 
-func (vm *VirtualMachine) start() error {
+func (vm *VirtualMachine) start(ctx context.Context) error {
 	vm.runMutex.Lock()
 	defer vm.runMutex.Unlock()
 	if vm.running {
 		return errors.New("vm is already running")
 	}
 	vm.running = true
+	// Halt execution when the context is cancelled
+	vm.halt = 0
+	if doneChan := ctx.Done(); doneChan != nil {
+		go func() {
+			<-doneChan
+			atomic.StoreInt32(&vm.halt, 1)
+		}()
+	}
 	return nil
 }
 
@@ -99,7 +107,7 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	// 1. It is an error to call Run on a VM that is already running
 	// 2. The running flag will always be set to false when Run returns
 	// 3. Any panics are translated to errors and the VM is stopped
-	if err := vm.start(); err != nil {
+	if err := vm.start(ctx); err != nil {
 		return err
 	}
 	defer func() {
@@ -108,15 +116,6 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 		}
 		vm.stop()
 	}()
-
-	// Halt execution when the context is cancelled
-	vm.halt = 0
-	if doneChan := ctx.Done(); doneChan != nil {
-		go func() {
-			<-doneChan
-			atomic.StoreInt32(&vm.halt, 1)
-		}()
-	}
 
 	// Load the code for main and any functions that are constants. This makes
 	// the set of loaded code constant except for when imports run.
@@ -677,7 +676,7 @@ func (vm *VirtualMachine) Call(
 	fn *object.Function,
 	args []object.Object,
 ) (result object.Object, err error) {
-	if err := vm.start(); err != nil {
+	if err := vm.start(ctx); err != nil {
 		return nil, err
 	}
 	defer func() {
