@@ -48,6 +48,19 @@ Returns the current time as a time object.
 time("2024-01-15T12:51:10-05:00")
 ```
 
+### unix
+
+```go filename="Function signature"
+unix() time
+```
+
+Unix returns the local Time corresponding to the given Unix time, sec seconds and nsec nanoseconds since January 1, 1970 UTC
+
+```go copy filename="Example"
+>>> time.unix(1725885470, 0)
+time("2024-09-09T14:37:50+02:00")
+```
+
 ### parse
 
 ```go filename="Function signature"
