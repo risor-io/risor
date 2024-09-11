@@ -18,7 +18,9 @@ package object
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"time"
 
 	"github.com/risor-io/risor/op"
 )
@@ -224,4 +226,37 @@ func Keys(m map[string]Object) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// PrintableValue returns a value that should be used when printing an object.
+func PrintableValue(obj Object) interface{} {
+	switch obj := obj.(type) {
+	// Primitive types have their underlying Go value passed to fmt.Printf
+	// so that Go's Printf-style formatting directives work as expected. Also,
+	// with these types there's no good reason for the print format to differ.
+	case *String,
+		*Int,
+		*Float,
+		*Byte,
+		*Error,
+		*Bool,
+		*NilType:
+		return obj.Interface()
+	// For time objects, as a personal preference, I'm using RFC3339 format
+	// rather than Go's default time print format, which I find less readable.
+	case *Time:
+		return obj.Value().Format(time.RFC3339)
+	}
+	// For everything else, convert the object to a string directly, relying
+	// on the object type's String() or Inspect() methods. This gives the author
+	// of new types the ability to customize the object print string. Note that
+	// Risor map and list objects fall into this category on purpose and the
+	// print format for these is intentionally a bit different than the print
+	// format for the equivalent Go type (maps and slices).
+	switch obj := obj.(type) {
+	case fmt.Stringer:
+		return obj.String()
+	default:
+		return obj.Inspect()
+	}
 }

@@ -838,7 +838,8 @@ func TestTry(t *testing.T) {
 		{`try(1)`, object.NewInt(1)},
 		{`try(1, 2)`, object.NewInt(1)},
 		{`try(func() { error("oops") }, "nope")`, object.NewString("nope")},
-		{`try(func() { error("oops") }, func() { error("oops") })`, object.Errorf("oops")},
+		{`try(func() { error("oops") }, func(e) { e })`, object.Errorf("oops").WithRaised(false)},
+		{`try(func() { error("oops") }, func(e) { e.error() })`, object.NewString("oops")},
 		{`try(func() { error("oops") }, func() { error("oops") }, 1)`, object.NewInt(1)},
 		{`x := 0; y := 0; z := try(func() {
 			x = 11
@@ -855,6 +856,20 @@ func TestTry(t *testing.T) {
 		})},
 	}
 	runTests(t, tests)
+}
+
+func TestStringTemplateWithRaisedError(t *testing.T) {
+	code := "'the err string is: {error(`oops`)}. sad!'"
+	_, err := run(context.Background(), code)
+	require.NotNil(t, err)
+	require.Equal(t, "oops", err.Error())
+}
+
+func TestStringTemplateWithNonRaisedError(t *testing.T) {
+	code := "'the err string is: {errors.new(`oops`)}. sad!'"
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("the err string is: oops. sad!"), result)
 }
 
 func TestMultiVarAssignment(t *testing.T) {
@@ -2003,6 +2018,21 @@ func TestFunctionStack(t *testing.T) {
 	for i := range 1 {
 		try(func() {
 		  42
+		  error("kaboom")
+		})
+	  }
+	`
+	_, err := run(context.Background(), code)
+	require.NotNil(t, err)
+	require.Equal(t, "kaboom", err.Error())
+}
+
+func TestFunctionStackNewErr(t *testing.T) {
+	code := `
+	for i := range 1 {
+		try(func() {
+		  42
+		}, func(e) {
 		  error("kaboom")
 		})
 	  }

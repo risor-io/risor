@@ -11,7 +11,8 @@ import (
 // Error wraps a Go error interface and implements Object.
 type Error struct {
 	*base
-	err error
+	err    error
+	raised bool
 }
 
 func (e *Error) Type() Type {
@@ -41,19 +42,28 @@ func (e *Error) Compare(other Object) (int, error) {
 	}
 	thisMsg := e.Message().Value()
 	otherMsg := otherErr.Message().Value()
-	if thisMsg == otherMsg {
+	if thisMsg == otherMsg && e.raised == otherErr.raised {
 		return 0, nil
 	}
 	if thisMsg > otherMsg {
 		return 1, nil
 	}
-	return -1, nil
+	if thisMsg < otherMsg {
+		return -1, nil
+	}
+	if e.raised && !otherErr.raised {
+		return 1, nil
+	}
+	if !e.raised && otherErr.raised {
+		return -1, nil
+	}
+	return 0, nil
 }
 
 func (e *Error) Equals(other Object) Object {
 	switch other := other.(type) {
 	case *Error:
-		if e.Message() == other.Message() {
+		if e.Message() == other.Message() && e.raised == other.raised {
 			return True
 		}
 		return False
@@ -77,6 +87,15 @@ func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }
 
+func (e *Error) WithRaised(value bool) *Error {
+	e.raised = value
+	return e
+}
+
+func (e *Error) Raised() bool {
+	return e.raised
+}
+
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
 }
@@ -90,7 +109,7 @@ func Errorf(format string, a ...interface{}) *Error {
 			args = append(args, arg)
 		}
 	}
-	return &Error{err: fmt.Errorf(format, args...)}
+	return &Error{err: fmt.Errorf(format, args...), raised: true}
 }
 
 func (e *Error) MarshalJSON() ([]byte, error) {
@@ -98,7 +117,7 @@ func (e *Error) MarshalJSON() ([]byte, error) {
 }
 
 func NewError(err error) *Error {
-	return &Error{err: err}
+	return &Error{err: err, raised: true}
 }
 
 func IsError(obj Object) bool {

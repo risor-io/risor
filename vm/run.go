@@ -7,6 +7,7 @@ import (
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/importer"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modErrors "github.com/risor-io/risor/modules/errors"
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFmt "github.com/risor-io/risor/modules/fmt"
 	modJSON "github.com/risor-io/risor/modules/json"
@@ -85,6 +86,7 @@ func basicBuiltins() map[string]any {
 		"bytes":   modBytes.Module(),
 		"exec":    modExec.Module(),
 		"json":    modJSON.Module(),
+		"errors":  modErrors.Module(),
 		"math":    modMath.Module(),
 		"rand":    modRand.Module(),
 		"strconv": modStrconv.Module(),
