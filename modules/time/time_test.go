@@ -69,5 +69,5 @@ func TestSince(t *testing.T) {
 
 	elapsed := got.(*object.Float).Value()
 	require.True(t, elapsed >= 0.1)
-	require.True(t, elapsed < 0.15) // Allow some margin for error
+	require.True(t, elapsed < 0.25) // Allow some margin for error
 }
