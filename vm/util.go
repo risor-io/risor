@@ -8,7 +8,6 @@ import (
 )
 
 func checkCallArgs(fn *object.Function, argc int) error {
-
 	// Number of parameters in the function signature
 	paramsCount := len(fn.Parameters())
 
