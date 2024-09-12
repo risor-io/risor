@@ -59,6 +59,36 @@ func TestCompileErrors(t *testing.T) {
 			input:  "\n\n z++;",
 			errMsg: "compile error: undefined variable \"z\" (line 3)",
 		},
+		{
+			name:   "invalid argument defaults",
+			input:  "func bad(a=1, b) {}",
+			errMsg: "compile error: invalid argument defaults for function \"bad\" (line 1)",
+		},
+		{
+			name:   "invalid argument defaults for anonymous function",
+			input:  "func(a=1, b) {}()",
+			errMsg: "compile error: invalid argument defaults for anonymous function (line 1)",
+		},
+		{
+			name:   "unsupported default value",
+			input:  "func(a, b=[1,2,3]) {}()",
+			errMsg: "compile error: unsupported default value (got [1, 2, 3], line 1)",
+		},
+		{
+			name:   "cannot assign to constant",
+			input:  "const a = 1; a = 2",
+			errMsg: "compile error: cannot assign to constant \"a\" (line 1)",
+		},
+		{
+			name:   "invalid for loop",
+			input:  "\nfor a, b, c := range [1, 2, 3] {}",
+			errMsg: "compile error: invalid for loop (line 2)",
+		},
+		{
+			name:   "unknown operator",
+			input:  "\n defer func() {}()",
+			errMsg: "compile error: defer statement outside of a function (line 2)",
+		},
 	}
 	for _, tt := range testCase {
 		t.Run(tt.name, func(t *testing.T) {

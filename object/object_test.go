@@ -1,6 +1,7 @@
 package object
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -30,12 +31,12 @@ func TestObjectString(t *testing.T) {
 	for _, tt := range tests {
 		str, ok := tt.input.(fmt.Stringer)
 		if !ok {
-			t.Errorf("object.String() not implemented for %T", tt.input)
+			t.Errorf("String() not implemented for %T", tt.input)
 			continue
 		}
 		result := str.String()
 		if result != tt.expected {
-			t.Errorf("object.String() wrong. want=%q, got=%q", tt.expected, result)
+			t.Errorf("String() wrong. want=%q, got=%q", tt.expected, result)
 		}
 	}
 }
@@ -94,6 +95,61 @@ func TestComparisons(t *testing.T) {
 			cmp, cmpErr := comparable.Compare(tt.right)
 			require.Equal(t, tt.expected, cmp)
 			require.Equal(t, tt.expectedErr, cmpErr)
+		})
+	}
+}
+
+func TestPrintableValue(t *testing.T) {
+	type testCase struct {
+		obj      Object
+		expected any
+	}
+
+	testTime, err := time.Parse("2006-01-02", "2021-01-01")
+	require.NoError(t, err)
+
+	builtin := func(ctx context.Context, args ...Object) Object {
+		return nil
+	}
+
+	cases := []testCase{
+		{NewString("hello"), "hello"},
+		{NewByte(5), byte(5)},
+		{NewInt(42), int64(42)},
+		{NewFloat(42.42), 42.42},
+		{NewBool(true), true},
+		{NewBool(false), false},
+		{Errorf("error"), errors.New("error")},
+		{obj: Nil, expected: nil},
+		{obj: NewTime(testTime), expected: "2021-01-01T00:00:00Z"},
+		{obj: NewBuiltin("foo", builtin), expected: "builtin(foo)"},
+		{ // strings printed inside lists are quoted in Risor
+			obj: NewList([]Object{
+				NewString("hello"),
+				NewInt(42),
+			}),
+			expected: `["hello", 42]`,
+		},
+		{ // strings printed inside maps are quoted in Risor
+			obj: NewMap(map[string]Object{
+				"a": NewInt(42),
+				"b": NewString("hello"),
+				"c": Nil,
+			}),
+			expected: `{"a": 42, "b": "hello", "c": nil}`,
+		},
+		{
+			obj: NewSet([]Object{
+				NewInt(42),
+				NewString("hi there"),
+			}),
+			expected: `{42, "hi there"}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("%v", tc.expected), func(t *testing.T) {
+			got := PrintableValue(tc.obj)
+			require.Equal(t, tc.expected, got)
 		})
 	}
 }

@@ -1068,7 +1068,8 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		case *ast.Nil:
 			value = nil
 		default:
-			return fmt.Errorf("compile error: unsupported default value (got %s)", expr)
+			line := node.Token().StartPosition.Line + 1
+			return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
 		}
 		index := paramsIdx[name]
 		defaults[index] = value
@@ -1088,7 +1089,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 				} else {
 					msg = fmt.Sprintf("%s anonymous function", msg)
 				}
-				return fmt.Errorf("%s on line %d", msg, node.Token().StartPosition.Line+1)
+				return fmt.Errorf("%s (line %d)", msg, node.Token().StartPosition.Line+1)
 			}
 		}
 	}
@@ -1216,15 +1217,15 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	if node.Index() != nil {
 		return c.compileSetItem(node)
 	}
+	lineNum := node.Token().StartPosition.LineNumber()
 	name := node.Name()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q (line %d)",
-			name, node.Token().StartPosition.LineNumber())
+		return fmt.Errorf("compile error: undefined variable %q (line %d)", name, lineNum)
 	}
 	sym := resolution.symbol
 	if sym.IsConstant() {
-		return fmt.Errorf("compile error: cannot assign to constant %q", name)
+		return fmt.Errorf("compile error: cannot assign to constant %q (line %d)", name, lineNum)
 	}
 	symbolIndex := sym.Index()
 	if node.Operator() == "=" {
@@ -1410,6 +1411,8 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		return c.compileSimpleFor(node)
 	}
 
+	lineNum := node.Token().StartPosition.LineNumber()
+
 	// For-Range loop e.g. `for i, value := range container { ... }`
 	if node.Init() == nil && node.Post() == nil {
 		cond := node.Condition()
@@ -1424,7 +1427,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		case *ast.MultiVar:
 			names, rhs := cond.Value()
 			if len(names) != 2 {
-				return fmt.Errorf("compile error: invalid for loop")
+				return fmt.Errorf("compile error: invalid for loop (line %d)", lineNum)
 			}
 			if rangeNode, ok := rhs.(*ast.Range); ok {
 				return c.compileForRange(node, names, rangeNode.Container())
@@ -1436,7 +1439,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		case ast.Expression:
 			return c.compileForCondition(node, cond)
 		default:
-			return fmt.Errorf("compile error: invalid for loop")
+			return fmt.Errorf("compile error: invalid for loop (line %d)", lineNum)
 		}
 	}
 
@@ -1627,6 +1630,7 @@ func (c *Compiler) changeOperand(instructionIndex int, operand uint16) {
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
 	operator := node.Operator()
+	lineNum := node.Token().StartPosition.LineNumber()
 	// Short-circuit operators
 	if operator == "&&" {
 		return c.compileAnd(node)
@@ -1670,7 +1674,7 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 	case "!=":
 		c.emit(op.CompareOp, uint16(op.NotEqual))
 	default:
-		return fmt.Errorf("compile error: unknown operator %q", node.Operator())
+		return fmt.Errorf("compile error: unknown operator %q (line %d)", node.Operator(), lineNum)
 	}
 	return nil
 }
@@ -1733,7 +1737,8 @@ func (c *Compiler) compileGoStmt(node *ast.Go) error {
 
 func (c *Compiler) compileDeferStmt(node *ast.Defer) error {
 	if c.current.parent == nil {
-		return fmt.Errorf("compile error: defer statement outside of a function")
+		return fmt.Errorf("compile error: defer statement outside of a function (line %d)",
+			node.Token().StartPosition.LineNumber())
 	}
 	expr := node.Call()
 	switch expr := expr.(type) {
