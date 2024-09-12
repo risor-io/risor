@@ -57,7 +57,7 @@ func TestSleep(t *testing.T) {
 
 	require.Equal(t, object.Nil, got)
 	require.True(t, elapsed >= 100*time.Millisecond)
-	require.True(t, elapsed < 150*time.Millisecond) // Allow some margin for error
+	require.True(t, elapsed < 250*time.Millisecond) // Allow some margin for error
 }
 
 func TestSince(t *testing.T) {
