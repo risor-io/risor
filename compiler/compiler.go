@@ -1053,6 +1053,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Build an array of default values for parameters, supporting only
 	// the basic types of int, string, bool, float, and nil.
 	defaults := make([]any, len(params))
+	defaultsSet := map[int]bool{}
 	for name, expr := range node.Defaults() {
 		var value any
 		switch expr := expr.(type) {
@@ -1069,7 +1070,27 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		default:
 			return fmt.Errorf("compile error: unsupported default value (got %s)", expr)
 		}
-		defaults[paramsIdx[name]] = value
+		index := paramsIdx[name]
+		defaults[index] = value
+		defaultsSet[index] = true
+	}
+
+	// Confirm only trailing parameters have defaults
+	if len(node.Defaults()) > 0 {
+		hasDefaults := false
+		for i := 0; i < len(params); i++ {
+			if defaultsSet[i] {
+				hasDefaults = true
+			} else if hasDefaults {
+				msg := "compile error: invalid argument defaults for"
+				if functionName != "" {
+					msg = fmt.Sprintf("%s function %q", msg, functionName)
+				} else {
+					msg = fmt.Sprintf("%s anonymous function", msg)
+				}
+				return fmt.Errorf("%s on line %d", msg, node.Token().StartPosition.Line+1)
+			}
+		}
 	}
 
 	// Add the parameter names to the symbol table

@@ -18,7 +18,7 @@ func TestObjectString(t *testing.T) {
 		{True, "true"},
 		{False, "false"},
 		{Nil, "nil"},
-		{NewError(errors.New("kaboom")), "error(kaboom)"},
+		{NewError(errors.New("kaboom")), "kaboom"},
 		{NewFloat(3.0), "3"},
 		{NewInt(-3), "-3"},
 		{NewString("foo"), "foo"},
