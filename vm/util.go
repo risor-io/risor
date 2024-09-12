@@ -1,12 +1,14 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
 )
 
 func checkCallArgs(fn *object.Function, argc int) error {
+
 	// Number of parameters in the function signature
 	paramsCount := len(fn.Parameters())
 
@@ -15,14 +17,19 @@ func checkCallArgs(fn *object.Function, argc int) error {
 
 	// Check if too many or too few arguments were passed
 	if argc > paramsCount || argc < requiredArgsCount {
+		msg := "type error: function"
+		if name := fn.Name(); name != "" {
+			msg = fmt.Sprintf("%s %q", msg, name)
+		}
 		switch paramsCount {
 		case 0:
-			return fmt.Errorf("type error: function takes no arguments (%d given)", argc)
+			msg = fmt.Sprintf("%s takes 0 arguments (%d given)", msg, argc)
 		case 1:
-			return fmt.Errorf("type error: function takes 1 argument (%d given)", argc)
+			msg = fmt.Sprintf("%s takes 1 argument (%d given)", msg, argc)
 		default:
-			return fmt.Errorf("type error: function takes %d arguments (%d given)", paramsCount, argc)
+			msg = fmt.Sprintf("%s takes %d arguments (%d given)", msg, paramsCount, argc)
 		}
+		return errors.New(msg)
 	}
 	return nil
 }

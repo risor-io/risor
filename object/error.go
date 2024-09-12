@@ -24,7 +24,7 @@ func (e *Error) Inspect() string {
 }
 
 func (e *Error) String() string {
-	return fmt.Sprintf("error(%s)", e.err.Error())
+	return e.err.Error()
 }
 
 func (e *Error) Value() error {
