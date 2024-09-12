@@ -606,7 +606,7 @@ func TestRecursiveExample2(t *testing.T) {
 func TestConstant(t *testing.T) {
 	_, err := run(context.Background(), `const x = 1; x = 2`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"x\"", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"x\" (line 1)", err.Error())
 }
 
 func TestConstantFunction(t *testing.T) {
@@ -615,7 +615,7 @@ func TestConstantFunction(t *testing.T) {
 	add = "bloop"
 	`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"add\"", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"add\" (line 3)", err.Error())
 }
 
 func TestStatementsNilValue(t *testing.T) {
