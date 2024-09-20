@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
 
-	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
