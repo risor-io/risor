@@ -40,15 +40,15 @@ func TestErrorCompareRaised(t *testing.T) {
 	a := NewError(errors.New("a")).WithRaised(true)
 	b := NewError(errors.New("a")) // raised is set by default
 
-	require.True(t, a.Raised())
-	require.True(t, b.Raised())
+	require.True(t, a.IsRaised())
+	require.True(t, b.IsRaised())
 
 	result, err := a.Compare(b)
 	require.Nil(t, err)
 	require.Equal(t, 0, result)
 
 	b.WithRaised(false)
-	require.False(t, b.Raised())
+	require.False(t, b.IsRaised())
 
 	result, err = a.Compare(b)
 	require.Nil(t, err)

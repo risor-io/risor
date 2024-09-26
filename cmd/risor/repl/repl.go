@@ -212,7 +212,7 @@ func getEvaluator(cfg *risor.Config) func(ctx context.Context, source string) (o
 		switch result := result.(type) {
 		case *object.Error:
 			errStr := result.Value().Error()
-			if result.Raised() {
+			if result.IsRaised() {
 				color.Red(errStr)
 			} else {
 				color.Magenta(errStr)

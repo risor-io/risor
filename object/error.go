@@ -96,7 +96,7 @@ func (e *Error) WithRaised(value bool) *Error {
 	return e
 }
 
-func (e *Error) Raised() bool {
+func (e *Error) IsRaised() bool {
 	return e.raised
 }
 

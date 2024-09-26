@@ -17,7 +17,7 @@ func TestErrors(t *testing.T) {
 	require.IsType(t, &object.Error{}, e)
 	errObj, ok := e.(*object.Error)
 	require.True(t, ok)
-	require.False(t, errObj.Raised())
+	require.False(t, errObj.IsRaised())
 	require.Equal(t, "error \"foo bar\" 42", errObj.Value().Error())
 }
 
@@ -26,6 +26,6 @@ func TestBadErrorsCall(t *testing.T) {
 	require.IsType(t, &object.Error{}, e)
 	errObj, ok := e.(*object.Error)
 	require.True(t, ok)
-	require.True(t, errObj.Raised())
+	require.True(t, errObj.IsRaised())
 	require.Equal(t, "type error: errors.new() takes 1 or more arguments (0 given)", errObj.Value().Error())
 }
