@@ -65,7 +65,7 @@ func (r *Regexp) MarshalJSON() ([]byte, error) {
 }
 
 func (r *Regexp) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for regexp: %v", opType)
+	return object.EvalErrorf("eval error: unsupported operation for regexp: %v", opType)
 }
 
 func (r *Regexp) SetAttr(name string, value object.Object) error {

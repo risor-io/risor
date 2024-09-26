@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -38,11 +39,11 @@ func (t *Template) Cost() int {
 }
 
 func (t *Template) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal template")
+	return nil, errz.TypeErrorf("type error: unable to marshal template")
 }
 
 func (db *Template) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", TEMPLATE, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", TEMPLATE, opType)
 }
 
 func (t *Template) Equals(other object.Object) object.Object {

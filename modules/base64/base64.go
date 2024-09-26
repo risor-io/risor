@@ -10,7 +10,7 @@ import (
 func Encode(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs < 1 || nArgs > 2 {
-		return object.Errorf("type error: base64.encode() takes 1 or 2 arguments (%d given)", nArgs)
+		return object.ArgsErrorf("args error: base64.encode() takes 1 or 2 arguments (%d given)", nArgs)
 	}
 	data, err := object.AsBytes(args[0])
 	if err != nil {
@@ -38,7 +38,7 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 func URLEncode(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs < 1 || nArgs > 2 {
-		return object.Errorf("type error: base64.url_encode() takes 1 or 2 arguments (%d given)", nArgs)
+		return object.ArgsErrorf("args error: base64.url_encode() takes 1 or 2 arguments (%d given)", nArgs)
 	}
 	data, err := object.AsBytes(args[0])
 	if err != nil {
@@ -66,7 +66,7 @@ func URLEncode(ctx context.Context, args ...object.Object) object.Object {
 func Decode(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs < 1 || nArgs > 2 {
-		return object.Errorf("type error: base64.decode() takes 1 or 2 arguments (%d given)", nArgs)
+		return object.ArgsErrorf("args error: base64.decode() takes 1 or 2 arguments (%d given)", nArgs)
 	}
 	data, err := object.AsString(args[0])
 	if err != nil {
@@ -97,7 +97,7 @@ func Decode(ctx context.Context, args ...object.Object) object.Object {
 func URLDecode(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs < 1 || nArgs > 2 {
-		return object.Errorf("type error: base64.url_decode() takes 1 or 2 arguments (%d given)", nArgs)
+		return object.ArgsErrorf("args error: base64.url_decode() takes 1 or 2 arguments (%d given)", nArgs)
 	}
 	data, err := object.AsString(args[0])
 	if err != nil {

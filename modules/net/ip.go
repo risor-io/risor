@@ -143,7 +143,7 @@ func (ip *IP) Cost() int {
 }
 
 func (ip *IP) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", IPTYPE, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", IPTYPE, opType)
 }
 
 func NewIP(v net.IP) *IP {

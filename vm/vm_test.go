@@ -1710,7 +1710,7 @@ func TestBadImports(t *testing.T) {
 func TestModifyModule(t *testing.T) {
 	_, err := run(context.Background(), `math.max = 123`)
 	require.Error(t, err)
-	require.Equal(t, "attribute error: cannot modify module attributes", err.Error())
+	require.Equal(t, "type error: cannot modify module attributes", err.Error())
 }
 
 func TestEarlyForRangeReturn(t *testing.T) {
@@ -2036,9 +2036,9 @@ func TestFunctionStack(t *testing.T) {
 		})
 	  }
 	`
-	_, err := run(context.Background(), code)
-	require.NotNil(t, err)
-	require.Equal(t, "kaboom", err.Error())
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.Nil, result)
 }
 
 func TestFunctionStackNewErr(t *testing.T) {

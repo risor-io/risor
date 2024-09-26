@@ -22,7 +22,7 @@ func Unmarshal(ctx context.Context, args ...object.Object) object.Object {
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
-		return object.Errorf("type error: yaml.unmarshal failed")
+		return object.TypeErrorf("type error: yaml.unmarshal failed")
 	}
 	return scriptObj
 }

@@ -2,10 +2,10 @@ package object
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -42,7 +42,7 @@ func (m *Module) GetAttr(name string) (Object, bool) {
 }
 
 func (m *Module) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: cannot modify module attributes")
+	return errz.TypeErrorf("type error: cannot modify module attributes")
 }
 
 // Override provides a mechanism to modify module attributes after loading.
@@ -91,7 +91,7 @@ func (m *Module) Code() *compiler.Code {
 func (m *Module) Compare(other Object) (int, error) {
 	otherMod, ok := other.(*Module)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare module and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare module and %s", other.Type())
 	}
 	if m.name == otherMod.name {
 		return 0, nil
@@ -103,7 +103,7 @@ func (m *Module) Compare(other Object) (int, error) {
 }
 
 func (m *Module) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for module: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for module: %v", opType)
 }
 
 func (m *Module) Equals(other Object) Object {
@@ -114,7 +114,7 @@ func (m *Module) Equals(other Object) Object {
 }
 
 func (m *Module) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal module")
+	return nil, errz.TypeErrorf("type error: unable to marshal module")
 }
 
 func (m *Module) UseGlobals(globals []Object) {
@@ -127,7 +127,7 @@ func (m *Module) UseGlobals(globals []Object) {
 
 func (m *Module) Call(ctx context.Context, args ...Object) Object {
 	if m.callable == nil {
-		return NewError(fmt.Errorf("exec error: module %q is not callable", m.name))
+		return TypeErrorf("type error: module %q is not callable", m.name)
 	}
 	return m.callable(ctx, args...)
 }

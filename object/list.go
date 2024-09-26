@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -220,7 +221,7 @@ func (ls *List) GetAttr(name string) (Object, bool) {
 func (ls *List) Map(ctx context.Context, fn Object) Object {
 	callFunc, found := GetCallFunc(ctx)
 	if !found {
-		return Errorf("eval error: list.map() context did not contain a call function")
+		return EvalErrorf("eval error: list.map() context did not contain a call function")
 	}
 	var numParameters int
 	switch obj := fn.(type) {
@@ -237,10 +238,10 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 	case *Function:
 		numParameters = len(obj.parameters)
 	default:
-		return Errorf("type error: list.map() expected a function (%s given)", obj.Type())
+		return TypeErrorf("type error: list.map() expected a function (%s given)", obj.Type())
 	}
 	if numParameters < 1 || numParameters > 2 {
-		return Errorf("type error: list.map() received an incompatible function")
+		return TypeErrorf("type error: list.map() received an incompatible function")
 	}
 	compiledFunc := fn.(*Function)
 	var index Int
@@ -271,13 +272,13 @@ func (ls *List) Map(ctx context.Context, fn Object) Object {
 func (ls *List) Filter(ctx context.Context, fn Object) Object {
 	callFunc, found := GetCallFunc(ctx)
 	if !found {
-		return Errorf("eval error: list.filter() context did not contain a call function")
+		return EvalErrorf("eval error: list.filter() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
 	case *Function, *Builtin:
 		// Nothing do do here
 	default:
-		return Errorf("type error: list.filter() expected a function (%s given)", obj.Type())
+		return TypeErrorf("type error: list.filter() expected a function (%s given)", obj.Type())
 	}
 	filterArgs := make([]Object, 1)
 	var result []Object
@@ -300,13 +301,13 @@ func (ls *List) Filter(ctx context.Context, fn Object) Object {
 func (ls *List) Each(ctx context.Context, fn Object) Object {
 	callFunc, found := GetCallFunc(ctx)
 	if !found {
-		return Errorf("eval error: list.each() context did not contain a call function")
+		return EvalErrorf("eval error: list.each() context did not contain a call function")
 	}
 	switch obj := fn.(type) {
 	case *Function, *Builtin:
 		// Nothing do do here
 	default:
-		return Errorf("type error: list.each() expected a function (%s given)", obj.Type())
+		return TypeErrorf("type error: list.each() expected a function (%s given)", obj.Type())
 	}
 	eachArgs := make([]Object, 1)
 	for _, value := range ls.items {
@@ -429,7 +430,7 @@ func (ls *List) String() string {
 func (ls *List) Compare(other Object) (int, error) {
 	otherList, ok := other.(*List)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare list and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare list and %s", other.Type())
 	}
 	if len(ls.items) > len(otherList.items) {
 		return 1, nil
@@ -439,8 +440,7 @@ func (ls *List) Compare(other Object) (int, error) {
 	for i := 0; i < len(ls.items); i++ {
 		comparable, ok := ls.items[i].(Comparable)
 		if !ok {
-			return 0, fmt.Errorf("type error: %s object is not comparable",
-				ls.items[i].Type())
+			return 0, errz.TypeErrorf("type error: %s object is not comparable", ls.items[i].Type())
 		}
 		comp, err := comparable.Compare(otherList.items[i])
 		if err != nil {
@@ -494,7 +494,7 @@ func (ls *List) Keys() Object {
 func (ls *List) GetItem(key Object) (Object, *Error) {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return nil, Errorf("type error: list index must be an int (got %s)", key.Type())
+		return nil, TypeErrorf("type error: list index must be an int (got %s)", key.Type())
 	}
 	idx, err := ResolveIndex(indexObj.value, int64(len(ls.items)))
 	if err != nil {
@@ -519,7 +519,7 @@ func (ls *List) GetSlice(s Slice) (Object, *Error) {
 func (ls *List) SetItem(key, value Object) *Error {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return Errorf("type error: list index must be an int (got %s)", key.Type())
+		return TypeErrorf("type error: list index must be an int (got %s)", key.Type())
 	}
 	idx, err := ResolveIndex(indexObj.value, int64(len(ls.items)))
 	if err != nil {
@@ -533,7 +533,7 @@ func (ls *List) SetItem(key, value Object) *Error {
 func (ls *List) DelItem(key Object) *Error {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return Errorf("type error: list index must be an int (got %s)", key.Type())
+		return TypeErrorf("type error: list index must be an int (got %s)", key.Type())
 	}
 	idx, err := ResolveIndex(indexObj.value, int64(len(ls.items)))
 	if err != nil {
@@ -571,8 +571,8 @@ func (ls *List) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *List:
 		return ls.runOperationList(opType, right)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for list: %v on type %s",
-			opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for list: %v on type %s",
+			opType, right.Type())
 	}
 }
 
@@ -584,8 +584,8 @@ func (ls *List) runOperationList(opType op.BinaryOpType, right *List) Object {
 		copy(combined[len(ls.items):], right.items)
 		return NewList(combined)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for list: %v on type %s",
-			opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for list: %v on type %s",
+			opType, right.Type())
 	}
 }
 
@@ -637,7 +637,7 @@ func ResolveIntSlice(slice Slice, size int64) (start int64, stop int64, err erro
 	if slice.Start != nil {
 		startObj, ok := slice.Start.(*Int)
 		if !ok {
-			err = fmt.Errorf("type error: slice start index must be an int (got %s)", slice.Start.Type())
+			err = errz.TypeErrorf("type error: slice start index must be an int (got %s)", slice.Start.Type())
 			return
 		}
 		start = startObj.value
@@ -645,7 +645,7 @@ func ResolveIntSlice(slice Slice, size int64) (start int64, stop int64, err erro
 	if slice.Stop != nil {
 		stopObj, ok := slice.Stop.(*Int)
 		if !ok {
-			err = fmt.Errorf("type error: slice stop index must be an int (got %s)", slice.Stop.Type())
+			err = errz.TypeErrorf("type error: slice stop index must be an int (got %s)", slice.Stop.Type())
 			return
 		}
 		stop = stopObj.value

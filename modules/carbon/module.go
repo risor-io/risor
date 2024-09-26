@@ -47,7 +47,7 @@ func Create(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Time:
 		return NewCarbon(carbon.CreateFromStdTime(arg.Value()))
 	default:
-		return object.Errorf("type error: expected string or time (got %s)", arg.Type())
+		return object.TypeErrorf("type error: expected string or time (got %s)", arg.Type())
 	}
 }
 

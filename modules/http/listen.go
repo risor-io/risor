@@ -34,7 +34,7 @@ func ListenAndServe(ctx context.Context, args ...object.Object) object.Object {
 		case *object.Function:
 			handler = HandlerFunc(fn, callFn)
 		default:
-			return object.Errorf("type error: unsupported http handler type: %s", fn.Type())
+			return object.TypeErrorf("type error: unsupported http handler type: %s", fn.Type())
 		}
 	} else {
 		handler = http.DefaultServeMux
@@ -97,7 +97,7 @@ func ListenAndServeTLS(ctx context.Context, args ...object.Object) object.Object
 		case *object.Function:
 			handler = HandlerFunc(fn, callFn)
 		default:
-			return object.Errorf("type error: unsupported http handler type: %s", fn.Type())
+			return object.TypeErrorf("type error: unsupported http handler type: %s", fn.Type())
 		}
 	} else {
 		handler = http.DefaultServeMux

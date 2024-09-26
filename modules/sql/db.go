@@ -13,6 +13,7 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 	"github.com/xo/dburl"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -47,11 +48,11 @@ func (db *DB) Cost() int {
 }
 
 func (db *DB) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal db.conn")
+	return nil, errz.TypeErrorf("type error: unable to marshal db.conn")
 }
 
 func (db *DB) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", DB_CONN, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", DB_CONN, opType)
 }
 
 func (db *DB) Equals(other object.Object) object.Object {
@@ -88,7 +89,7 @@ func (db *DB) GetAttr(name string) (object.Object, bool) {
 func (db *DB) Exec(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return object.Errorf("type error: sql.exec() requires at least one argument")
+		return object.TypeErrorf("type error: sql.exec() requires at least one argument")
 	}
 
 	query, errObj := object.AsString(args[0])
@@ -112,7 +113,7 @@ func (db *DB) Exec(ctx context.Context, args ...object.Object) object.Object {
 func (db *DB) Query(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return object.Errorf("type error: sql.query() requires at least one argument")
+		return object.TypeErrorf("type error: sql.query() requires at least one argument")
 	}
 
 	query, errObj := object.AsString(args[0])

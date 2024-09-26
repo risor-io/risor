@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -146,7 +146,7 @@ func (s *Set) Add(items ...Object) Object {
 	for _, item := range items {
 		hashable, ok := item.(Hashable)
 		if !ok {
-			return Errorf("type error: %s object is unhashable", item.Type())
+			return TypeErrorf("type error: %s object is unhashable", item.Type())
 		}
 		s.items[hashable.HashKey()] = item
 	}
@@ -157,7 +157,7 @@ func (s *Set) Remove(items ...Object) Object {
 	for _, item := range items {
 		hashable, ok := item.(Hashable)
 		if !ok {
-			return Errorf("type error: %s object is unhashable", item.Type())
+			return TypeErrorf("type error: %s object is unhashable", item.Type())
 		}
 		delete(s.items, hashable.HashKey())
 	}
@@ -225,7 +225,7 @@ func (s *Set) Equals(other Object) Object {
 func (s *Set) GetItem(key Object) (Object, *Error) {
 	hashable, ok := key.(Hashable)
 	if !ok {
-		return nil, Errorf("type error: %s object is unhashable", key.Type())
+		return nil, TypeErrorf("type error: %s object is unhashable", key.Type())
 	}
 	if _, ok := s.items[hashable.HashKey()]; ok {
 		return True, nil
@@ -235,19 +235,19 @@ func (s *Set) GetItem(key Object) (Object, *Error) {
 
 // GetSlice implements the [start:stop] operator for a container type.
 func (s *Set) GetSlice(slice Slice) (Object, *Error) {
-	return nil, Errorf("eval error: set does not support get slice")
+	return nil, TypeErrorf("type error: set does not support get slice")
 }
 
 // SetItem assigns a value to the given key in the map.
 func (s *Set) SetItem(key, value Object) *Error {
-	return Errorf("eval error: set does not support set item")
+	return TypeErrorf("type error: set does not support set item")
 }
 
 // DelItem deletes the item with the given key from the map.
 func (s *Set) DelItem(key Object) *Error {
 	hashable, ok := key.(Hashable)
 	if !ok {
-		return Errorf("type error: %s object is unhashable", key.Type())
+		return TypeErrorf("type error: %s object is unhashable", key.Type())
 	}
 	delete(s.items, hashable.HashKey())
 	return nil
@@ -268,7 +268,7 @@ func (s *Set) IsTruthy() bool {
 }
 
 func (s *Set) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for set: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for set: %v", opType)
 }
 
 // Len returns the number of items in this container.
@@ -286,7 +286,7 @@ func (s *Set) Keys() []HashKey {
 	for _, item := range items {
 		hashable, ok := item.(Hashable)
 		if !ok {
-			panic(fmt.Errorf("type error: %s object is unhashable", item.Type()))
+			panic(errz.TypeErrorf("type error: %s object is unhashable", item.Type()))
 		}
 		keys = append(keys, hashable.HashKey())
 	}

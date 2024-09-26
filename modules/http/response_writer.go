@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -42,11 +43,11 @@ func (w *ResponseWriter) GetAttr(name string) (object.Object, bool) {
 				}
 				key, errObj := object.AsString(args[0])
 				if errObj != nil {
-					return object.Errorf("type error: %s", errObj)
+					return object.TypeErrorf("type error: %s", errObj)
 				}
 				value, errObj := object.AsString(args[1])
 				if errObj != nil {
-					return object.Errorf("type error: %s", errObj)
+					return object.TypeErrorf("type error: %s", errObj)
 				}
 				w.AddHeader(key, value)
 				return object.Nil
@@ -59,7 +60,7 @@ func (w *ResponseWriter) GetAttr(name string) (object.Object, bool) {
 				}
 				key, errObj := object.AsString(args[0])
 				if errObj != nil {
-					return object.Errorf("type error: %s", errObj)
+					return object.TypeErrorf("type error: %s", errObj)
 				}
 				w.DelHeader(key)
 				return object.Nil
@@ -84,7 +85,7 @@ func (w *ResponseWriter) GetAttr(name string) (object.Object, bool) {
 				}
 				statusCode, errObj := object.AsInt(args[0])
 				if errObj != nil {
-					return object.Errorf("type error: %s", errObj)
+					return object.TypeErrorf("type error: %s", errObj)
 				}
 				w.WriteHeader(int(statusCode))
 				return object.Nil
@@ -102,7 +103,7 @@ func (w *ResponseWriter) Equals(other object.Object) object.Object {
 }
 
 func (w *ResponseWriter) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for http.response: %v", opType)
+	return object.EvalErrorf("eval error: unsupported operation for http.response: %v", opType)
 }
 
 func (w *ResponseWriter) Cost() int {
@@ -133,7 +134,7 @@ func (w *ResponseWriter) Write(obj object.Object) (int, error) {
 		return w.writer.Write(data)
 	default:
 		w.writeMarshalError()
-		return 0, fmt.Errorf("type error: unsupported type for http.response_writer.write: %T", obj)
+		return 0, errz.TypeErrorf("type error: unsupported type for http.response_writer.write: %T", obj)
 	}
 }
 

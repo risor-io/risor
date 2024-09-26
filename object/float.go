@@ -2,10 +2,10 @@ package object
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -68,7 +68,7 @@ func (f *Float) Compare(other Object) (int, error) {
 		}
 		return -1, nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare float and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare float and %s", other.Type())
 	}
 }
 
@@ -104,7 +104,7 @@ func (f *Float) RunOperation(opType op.BinaryOpType, right Object) Object {
 		rightFloat := float64(right.value)
 		return f.runOperationFloat(opType, rightFloat)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for float: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -121,7 +121,7 @@ func (f *Float) runOperationFloat(opType op.BinaryOpType, right float64) Object 
 	case op.Power:
 		return NewFloat(math.Pow(f.value, right))
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for float: %v", opType))
+		return TypeErrorf("type error: unsupported operation for float: %v", opType)
 	}
 }
 

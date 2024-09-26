@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -43,11 +44,11 @@ func (v *Vault) Cost() int {
 }
 
 func (v *Vault) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", VAULT)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", VAULT)
 }
 
 func (v *Vault) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", VAULT, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", VAULT, opType)
 }
 
 func (v *Vault) Equals(other object.Object) object.Object {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -90,7 +91,7 @@ func (f *Function) GetAttr(name string) (Object, bool) {
 }
 
 func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for function: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for function: %v", opType)
 }
 
 func (f *Function) Equals(other Object) Object {
@@ -140,7 +141,7 @@ func (f *Function) LocalsCount() int {
 }
 
 func (f *Function) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal function")
+	return nil, errz.TypeErrorf("type error: unable to marshal function")
 }
 
 func (f *Function) Call(ctx context.Context, args ...Object) Object {

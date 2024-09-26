@@ -40,5 +40,5 @@ func TestRunError(t *testing.T) {
 	require.Nil(t, err)
 	_, err = Run(ctx, code)
 	require.NotNil(t, err)
-	require.Equal(t, "exec error: attribute \"bar\" not found on int object", err.Error())
+	require.Equal(t, "eval error: attribute \"bar\" not found on int object", err.Error())
 }

@@ -206,7 +206,7 @@ func WalkDir(ctx context.Context, args ...object.Object) object.Object {
 			return result
 		}
 	default:
-		return object.Errorf("type error: filepath.walk() expected a function (%s given)", obj.Type())
+		return object.TypeErrorf("type error: filepath.walk() expected a function (%s given)", obj.Type())
 	}
 
 	walkFn := func(path string, d fs.DirEntry, err error) error {

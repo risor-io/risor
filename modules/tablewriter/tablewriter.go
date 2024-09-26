@@ -118,7 +118,7 @@ func (w *Writer) Cost() int {
 }
 
 func (w *Writer) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", WRITER, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", WRITER, opType)
 }
 
 func NewWriter(v *tablewriter.Table) *Writer {
@@ -212,7 +212,7 @@ func (w *Writer) appendBulk(args ...object.Object) object.Object {
 		case *object.List:
 			strs = append(strs, stringsFromList(inner))
 		default:
-			return object.Errorf("type error: expected list (got %s)", inner.Type())
+			return object.TypeErrorf("type error: expected list (got %s)", inner.Type())
 		}
 	}
 	w.value.AppendBulk(strs)

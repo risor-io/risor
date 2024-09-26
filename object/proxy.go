@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -75,7 +76,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 	case *GoField:
 		conv, ok := attr.Converter()
 		if !ok {
-			return Errorf("type error: no converter for field %s", name), true
+			return TypeErrorf("type error: no converter for field %s", name), true
 		}
 		var value interface{}
 		if p.typ.IsPointerType() {
@@ -108,7 +109,7 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 	case *GoField:
 		conv, ok := attr.Converter()
 		if !ok {
-			return fmt.Errorf("type error: no converter for field %s", name)
+			return errz.TypeErrorf("type error: no converter for field %s", name)
 		}
 		var field reflect.Value
 		if p.typ.IsPointerType() {
@@ -128,7 +129,7 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			}
 			return nil
 		} else {
-			return fmt.Errorf("type error: cannot set field %s", name)
+			return errz.TypeErrorf("type error: cannot set field %s", name)
 		}
 	case *GoMethod:
 		return fmt.Errorf("attribute error: cannot set method %s", name)
@@ -144,7 +145,7 @@ func (p *Proxy) Equals(other Object) Object {
 }
 
 func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for proxy: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for proxy: %v", opType)
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
@@ -165,8 +166,8 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 	}
 	if !inputs[0].IsValid() || inputs[0].IsZero() {
-		return NewError(fmt.Errorf("eval error: unable to call method %s on %s (check pointer receiver)",
-			methodName, p.typ.Name()))
+		return EvalErrorf("eval error: unable to call method %s on %s (check pointer receiver)",
+			methodName, p.typ.Name())
 	}
 	minArgs := numIn
 	if isVariadic {
@@ -187,13 +188,13 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 		input, err := inConv.To(args[argIndex])
 		if err != nil {
-			return Errorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
+			return TypeErrorf("type error: failed to convert argument %d in %s() call: %s", i, methodName, err)
 		}
 		inputs = append(inputs, reflect.ValueOf(input))
 		argIndex++
 	}
 	if len(inputs) < minArgs {
-		return Errorf("type error: %s() requires %d arguments, but %d were given",
+		return ArgsErrorf("args error: %s() requires %d arguments, but %d were given",
 			methodFullName, minArgs, len(inputs))
 	}
 	outputs := m.method.Func.Call(inputs)
@@ -219,7 +220,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 			}
 			result, err := outConv.From(output.Interface())
 			if err != nil {
-				return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
+				return TypeErrorf("type error: failed to convert output from %s() call: %s", methodName, err)
 			}
 			return result
 		}
@@ -237,7 +238,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 		result, err := outConv.From(output.Interface())
 		if err != nil {
-			return Errorf("call error: failed to convert output from %s() call: %s", methodName, err)
+			return TypeErrorf("type error: failed to convert output from %s() call: %s", methodName, err)
 		}
 		results = append(results, result)
 	}
@@ -248,7 +249,7 @@ func (p *Proxy) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.obj)
 }
 
-// NewProxy returns a new Risor proxy object that wraps the given Go object.
+// NewProxy returns a new Risor proxy object that wraps the given Go
 // This operation may fail if the Go type has attributes whose types cannot be
 // converted to Risor types.
 func NewProxy(obj interface{}) (*Proxy, error) {
@@ -256,7 +257,7 @@ func NewProxy(obj interface{}) (*Proxy, error) {
 
 	// Is this type proxyable?
 	if !IsProxyableType(typ) {
-		return nil, fmt.Errorf("type error: unable to proxy type (%T given)", obj)
+		return nil, errz.TypeErrorf("type error: unable to proxy type (%T given)", obj)
 	}
 
 	goType, err := NewGoType(typ)

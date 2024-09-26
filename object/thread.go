@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -40,7 +41,7 @@ func (t *Thread) Cost() int {
 }
 
 func (t *Thread) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", THREAD)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", THREAD)
 }
 
 func (t *Thread) RunOperation(opType op.BinaryOpType, right Object) Object {
@@ -69,7 +70,7 @@ func (t *Thread) GetAttr(name string) (Object, bool) {
 func (t *Thread) Wait(ctx context.Context) Object {
 	select {
 	case <-ctx.Done():
-		return NewError(fmt.Errorf("eval error: %s", ctx.Err()))
+		return EvalErrorf("eval error: %s", ctx.Err())
 	case <-t.done:
 		return t.result
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -111,11 +112,11 @@ func (b *Builtin) Equals(other Object) Object {
 }
 
 func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for builtin: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for builtin: %v", opType)
 }
 
 func (b *Builtin) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal builtin")
+	return nil, errz.TypeErrorf("type error: unable to marshal builtin")
 }
 
 // NewNoopBuiltin creates a builtin function that has no effect.

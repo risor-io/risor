@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"os"
 	"sort"
 	"strconv"
 	"unicode"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/internal/arg"
 	"github.com/risor-io/risor/object"
 )
@@ -30,7 +30,7 @@ func Len(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Buffer:
 		return object.NewInt(int64(arg.Value().Len()))
 	default:
-		return object.Errorf("type error: len() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: len() unsupported argument (%s given)", args[0].Type())
 	}
 }
 
@@ -56,7 +56,7 @@ func Delete(ctx context.Context, args ...object.Object) object.Object {
 	}
 	container, ok := args[0].(object.Container)
 	if !ok {
-		return object.Errorf("type error: delete() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: delete() unsupported argument (%s given)", args[0].Type())
 	}
 	if err := container.DelItem(args[1]); err != nil {
 		return err
@@ -137,12 +137,12 @@ func Map(ctx context.Context, args ...object.Object) object.Object {
 		for _, obj := range list.Value() {
 			subListObj, ok := obj.(*object.List)
 			if !ok || len(subListObj.Value()) != 2 {
-				return object.Errorf("type error: map() received a list with an unsupported structure")
+				return object.Errorf("value error: map() received a list with an unsupported structure")
 			}
 			subList := subListObj.Value()
 			key, ok := subList[0].(*object.String)
 			if !ok {
-				return object.Errorf("type error: map() received a list with an unsupported structure")
+				return object.Errorf("value error: map() received a list with an unsupported structure")
 			}
 			result.Set(key.Value(), subList[1])
 		}
@@ -223,12 +223,15 @@ func FloatSlice(ctx context.Context, args ...object.Object) object.Object {
 			case *object.Float:
 				floats[i] = item.Value()
 			default:
-				return object.Errorf("type error: float_slice() list item unsupported (%s given)", item.Type())
+				return object.TypeErrorf(
+					"type error: float_slice() list item unsupported (%s given)",
+					item.Type())
 			}
 		}
 		return object.NewFloatSlice(floats)
 	default:
-		return object.Errorf("type error: float_slice() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: float_slice() unsupported argument (%s given)",
+			args[0].Type())
 	}
 }
 
@@ -260,12 +263,15 @@ func ByteSlice(ctx context.Context, args ...object.Object) object.Object {
 			case *object.Byte:
 				bytes[i] = item.Value()
 			default:
-				return object.Errorf("type error: byte_slice() list item unsupported (%s given)", item.Type())
+				return object.TypeErrorf(
+					"type error: byte_slice() list item unsupported (%s given)",
+					item.Type())
 			}
 		}
 		return object.NewByteSlice(bytes)
 	default:
-		return object.Errorf("type error: byte_slice() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: byte_slice() unsupported argument (%s given)",
+			args[0].Type())
 	}
 }
 
@@ -295,7 +301,8 @@ func Buffer(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewBufferFromBytes(bytes)
 	default:
-		return object.Errorf("type error: buffer() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: buffer() unsupported argument (%s given)",
+			args[0].Type())
 	}
 }
 
@@ -375,7 +382,7 @@ func Any(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	default:
-		return object.Errorf("type error: any() argument must be a container (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: any() argument must be a container (%s given)", args[0].Type())
 	}
 	return object.False
 }
@@ -431,7 +438,7 @@ func All(ctx context.Context, args ...object.Object) object.Object {
 			}
 		}
 	default:
-		return object.Errorf("type error: all() argument must be a container (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: all() argument must be a container (%s given)", args[0].Type())
 	}
 	return object.True
 }
@@ -467,18 +474,18 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 	case *object.ByteSlice:
 		items = arg.Integers()
 	default:
-		return object.Errorf("type error: sorted() unsupported argument (%s given)", arg.Type())
+		return object.TypeErrorf("type error: sorted() unsupported argument (%s given)", arg.Type())
 	}
 	resultItems := make([]object.Object, len(items))
 	copy(resultItems, items)
 	if len(args) == 2 {
 		fn, ok := args[1].(*object.Function)
 		if !ok {
-			return object.Errorf("type error: sorted() expected a function as the second argument (%s given)", args[1].Type())
+			return object.TypeErrorf("type error: sorted() expected a function as the second argument (%s given)", args[1].Type())
 		}
 		callFunc, found := object.GetCallFunc(ctx)
 		if !found {
-			return object.Errorf("eval error: context did not contain a call function")
+			return object.EvalErrorf("eval error: context did not contain a call function")
 		}
 		var sortErr error
 		sort.SliceStable(resultItems, func(i, j int) bool {
@@ -490,7 +497,7 @@ func Sorted(ctx context.Context, args ...object.Object) object.Object {
 			return result.IsTruthy()
 		})
 		if sortErr != nil {
-			return object.NewError(sortErr)
+			return object.TypeErrorf(sortErr.Error())
 		}
 	} else {
 		if err := object.Sort(resultItems); err != nil {
@@ -513,7 +520,8 @@ func Reversed(ctx context.Context, args ...object.Object) object.Object {
 	case *object.ByteSlice:
 		return arg.Reversed()
 	default:
-		return object.Errorf("type error: reversed() unsupported argument (%s given)", arg.Type())
+		return object.TypeErrorf("type error: reversed() unsupported argument (%s given)",
+			arg.Type())
 	}
 }
 
@@ -531,7 +539,7 @@ func GetAttr(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) == 3 {
 		return args[2]
 	}
-	return object.Errorf("type error: getattr() %s object has no attribute %q",
+	return object.TypeErrorf("type error: getattr() %s object has no attribute %q",
 		args[0].Type(), attrName)
 }
 
@@ -543,7 +551,7 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 	case *object.Function:
 		callFunc, found := object.GetCallFunc(ctx)
 		if !found {
-			return object.Errorf("eval error: context did not contain a call function")
+			return object.EvalErrorf("eval error: context did not contain a call function")
 		}
 		result, err := callFunc(ctx, fn, args[1:])
 		if err != nil {
@@ -553,7 +561,8 @@ func Call(ctx context.Context, args ...object.Object) object.Object {
 	case object.Callable:
 		return fn.Call(ctx, args[1:]...)
 	default:
-		return object.Errorf("type error: call() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: call() unsupported argument (%s given)",
+			args[0].Type())
 	}
 }
 
@@ -574,7 +583,7 @@ func Keys(ctx context.Context, args ...object.Object) object.Object {
 	case object.Iterator:
 		return iterKeys(ctx, arg)
 	default:
-		return object.Errorf("type error: keys() unsupported argument (%s given)", arg.Type())
+		return object.TypeErrorf("type error: keys() unsupported argument (%s given)", arg.Type())
 	}
 }
 
@@ -610,7 +619,7 @@ func Byte(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.Errorf("value error: invalid literal for byte(): %q", obj.Value())
 	default:
-		return object.Errorf("type error: byte() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: byte() unsupported argument (%s given)", args[0].Type())
 	}
 }
 
@@ -634,7 +643,7 @@ func Int(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.Errorf("value error: invalid literal for int(): %q", obj.Value())
 	default:
-		return object.Errorf("type error: int() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: int() unsupported argument (%s given)", args[0].Type())
 	}
 }
 
@@ -658,7 +667,7 @@ func Float(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.Errorf("value error: invalid literal for float(): %q", obj.Value())
 	default:
-		return object.Errorf("type error: float() unsupported argument (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: float() unsupported argument (%s given)", args[0].Type())
 	}
 }
 
@@ -674,7 +683,7 @@ func Ord(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewInt(int64(runes[0]))
 	}
-	return object.Errorf("type error: ord() expected a string of length 1 (%s given)", args[0].Type())
+	return object.Errorf("value error: ord() expected a string of length 1 (%s given)", args[0].Type())
 }
 
 func Chr(ctx context.Context, args ...object.Object) object.Object {
@@ -692,7 +701,7 @@ func Chr(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.NewString(string(rune(v)))
 	}
-	return object.Errorf("type error: chr() expected an int (%s given)", args[0].Type())
+	return object.TypeErrorf("type error: chr() expected an int (%s given)", args[0].Type())
 }
 
 func Error(ctx context.Context, args ...object.Object) object.Object {
@@ -712,7 +721,8 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.Errorf(msg.Value(), msgArgs...)
 	default:
-		return object.Errorf("type error: error() expected a string (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: error() expected a string or error (%s given)",
+			args[0].Type())
 	}
 }
 
@@ -730,46 +740,42 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			}
 			callFunc, found := object.GetCallFunc(ctx)
 			if !found {
-				return nil, fmt.Errorf("eval error: context did not contain a call function")
+				return nil, errz.EvalErrorf("eval error: context did not contain a call function")
 			}
-			result, err := callFunc(ctx, obj, callArgs)
-			if err != nil {
-				return nil, err
-			}
-			switch result := result.(type) {
-			case *object.Error:
-				if result.IsRaised() {
-					return nil, result.Value()
-				}
-				return result, nil
-			default:
-				return result, nil
-			}
+			return callFunc(ctx, obj, callArgs)
 		case object.Callable:
-			result := obj.Call(ctx)
-			switch result := result.(type) {
-			case *object.Error:
-				if result.IsRaised() {
-					return nil, result.Value()
-				}
-				return result, nil
-			default:
-				return result, nil
+			var callArgs []object.Object
+			if lastErr != nil {
+				callArgs = append(callArgs, lastErr)
 			}
+			return obj.Call(ctx, callArgs...), nil
 		default:
 			return obj, nil
 		}
 	}
 	for _, arg := range args {
 		result, err := try(arg)
-		if err == nil {
-			return result
-		} else {
+		if err != nil {
+			if rErr, ok := err.(errz.Error); ok && rErr.IsFatal() {
+				// This indicates an unrecoverable evaluation error
+				return object.NewError(err)
+			}
 			lastErr = object.NewError(err).WithRaised(false)
+			continue
 		}
-	}
-	if os.Getenv("RISOR_TRY_COMPAT_V1") == "" && lastErr != nil {
-		return lastErr.WithRaised(true)
+		switch result := result.(type) {
+		case *object.Error:
+			if !result.IsRaised() {
+				// In this case, an error was returned as a value, not raised.
+				// We should return the value as is.
+				return result
+			}
+			// Here the error was raised, so we should save it to provide to the
+			// next function in the chain
+			lastErr = result.WithRaised(false)
+		default:
+			return result
+		}
 	}
 	return object.Nil
 }
@@ -780,7 +786,7 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 	}
 	container, ok := args[0].(object.Iterable)
 	if !ok {
-		return object.Errorf("type error: iter() expected an iterable (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: iter() expected an iterable (%s given)", args[0].Type())
 	}
 	return container.Iter()
 }
@@ -788,7 +794,7 @@ func Iter(ctx context.Context, args ...object.Object) object.Object {
 func Hash(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs < 1 || nArgs > 2 {
-		return object.Errorf("type error: hash() takes 1 or 2 arguments (%d given)", nArgs)
+		return object.ArgsErrorf("args error: hash() takes 1 or 2 arguments (%d given)", nArgs)
 	}
 	data, err := object.AsBytes(args[0])
 	if err != nil {
@@ -815,7 +821,7 @@ func Hash(ctx context.Context, args ...object.Object) object.Object {
 	case "md5":
 		h = md5.New()
 	default:
-		return object.Errorf("type error: hash() algorithm must be one of sha256, sha512, sha1, md5")
+		return object.Errorf("value error: hash() algorithm must be one of sha256, sha512, sha1, md5")
 	}
 	h.Write(data)
 	return object.NewByteSlice(h.Sum(nil))
@@ -842,7 +848,7 @@ func Chan(ctx context.Context, args ...object.Object) object.Object {
 		case *object.Int:
 			size = int(arg.Value())
 		default:
-			return object.Errorf("type error: chan() expected an int (%s given)", arg.Type())
+			return object.TypeErrorf("type error: chan() expected an int (%s given)", arg.Type())
 		}
 	}
 	return object.NewChan(size)
@@ -859,7 +865,7 @@ func Close(ctx context.Context, args ...object.Object) object.Object {
 		}
 		return object.Nil
 	default:
-		return object.Errorf("type error: close() expected a chan (%s given)", obj.Type())
+		return object.TypeErrorf("type error: close() expected a chan (%s given)", obj.Type())
 	}
 }
 
@@ -874,7 +880,7 @@ func Make(ctx context.Context, args ...object.Object) object.Object {
 		case *object.Int:
 			size = int(arg.Value())
 		default:
-			return object.Errorf("type error: make() expected an int (%s given)", arg.Type())
+			return object.TypeErrorf("type error: make() expected an int (%s given)", arg.Type())
 		}
 	}
 	if size < 0 {
@@ -899,10 +905,10 @@ func Make(ctx context.Context, args ...object.Object) object.Object {
 		case "set":
 			return object.NewSetWithSize(size)
 		default:
-			return object.Errorf("type error: make() unsupported type name (%s given)", name)
+			return object.Errorf("value error: make() unsupported type name (%s given)", name)
 		}
 	default:
-		return object.Errorf("type error: make() unsupported type (%s given)", typ.Type())
+		return object.TypeErrorf("type error: make() unsupported type (%s given)", typ.Type())
 	}
 }
 
@@ -924,12 +930,12 @@ func Chunk(ctx context.Context, args ...object.Object) object.Object {
 	}
 	list, ok := args[0].(*object.List)
 	if !ok {
-		return object.Errorf("type error: chunk() expected a list (%s given)", args[0].Type())
+		return object.TypeErrorf("type error: chunk() expected a list (%s given)", args[0].Type())
 	}
 	listSize := int64(list.Size())
 	chunkSizeObj, ok := args[1].(*object.Int)
 	if !ok {
-		return object.Errorf("type error: chunk() expected an int (%s given)", args[1].Type())
+		return object.TypeErrorf("type error: chunk() expected an int (%s given)", args[1].Type())
 	}
 	chunkSize := chunkSizeObj.Value()
 	if chunkSize <= 0 {
@@ -952,6 +958,14 @@ func Chunk(ctx context.Context, args ...object.Object) object.Object {
 		chunks[i] = object.NewList(chunk)
 	}
 	return object.NewList(chunks)
+}
+
+func IsHashable(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("is_hashable", 1, args); err != nil {
+		return err
+	}
+	_, ok := args[0].(object.Hashable)
+	return object.NewBool(ok)
 }
 
 func Builtins() map[string]object.Object {
@@ -978,6 +992,7 @@ func Builtins() map[string]object.Object {
 		"getattr":     object.NewBuiltin("getattr", GetAttr),
 		"hash":        object.NewBuiltin("hash", Hash),
 		"int":         object.NewBuiltin("int", Int),
+		"is_hashable": object.NewBuiltin("is_hashable", IsHashable),
 		"iter":        object.NewBuiltin("iter", Iter),
 		"keys":        object.NewBuiltin("keys", Keys),
 		"len":         object.NewBuiltin("len", Len),
