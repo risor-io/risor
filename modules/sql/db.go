@@ -13,7 +13,7 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 	"github.com/xo/dburl"
 
-	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )

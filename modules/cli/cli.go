@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 
-	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
 	ucli "github.com/urfave/cli/v2"
 )

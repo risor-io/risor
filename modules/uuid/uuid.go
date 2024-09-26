@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/gofrs/uuid/v5"
-	"github.com/risor-io/risor/internal/arg"
+	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
 )
 
