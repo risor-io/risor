@@ -287,11 +287,16 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(object.BinaryOp(opType, a, b))
 		case op.Call:
 			argc := int(vm.fetch())
+			if argc > MaxArgs {
+				return fmt.Errorf("exec error: max args limit of %d exceeded (got %d)",
+					MaxArgs, argc)
+			}
+			args := make([]object.Object, argc)
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
-				vm.tmp[argIndex] = vm.pop()
+				args[argIndex] = vm.pop()
 			}
 			obj := vm.pop()
-			if err := vm.callObject(ctx, obj, vm.tmp[:argc]); err != nil {
+			if err := vm.callObject(ctx, obj, args); err != nil {
 				return err
 			}
 		case op.Partial:
@@ -794,10 +799,11 @@ func (vm *VirtualMachine) callObject(
 			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)",
 				MaxArgs, expandedCount)
 		}
-		copy(vm.tmp[:argc], args)
-		copy(vm.tmp[argc:], fn.Args())
+		newArgs := make([]object.Object, expandedCount)
+		copy(newArgs[:argc], args)
+		copy(newArgs[argc:], fn.Args())
 		// Recursive call with the wrapped function and the combined args
-		return vm.callObject(ctx, fn.Function(), vm.tmp[:expandedCount])
+		return vm.callObject(ctx, fn.Function(), newArgs)
 	default:
 		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
 	}
