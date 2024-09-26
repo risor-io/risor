@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -40,7 +41,7 @@ func (c *Chan) Cost() int {
 }
 
 func (c *Chan) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", CHANNEL)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", CHANNEL)
 }
 
 func (c *Chan) RunOperation(opType op.BinaryOpType, right Object) Object {

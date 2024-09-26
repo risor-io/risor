@@ -13,7 +13,7 @@ func TestCompareNonComparable(t *testing.T) {
 	result := Compare(op.LessThan, s1, s2)
 	resultErr, ok := result.(*Error)
 	require.True(t, ok)
-	require.Equal(t, Errorf("type error: expected a comparable object (got set)"), resultErr)
+	require.Equal(t, TypeErrorf("type error: expected a comparable object (got set)"), resultErr)
 }
 
 func TestCompareUnknownComparison(t *testing.T) {

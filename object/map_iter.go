@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -88,7 +89,7 @@ func (iter *MapIter) IsTruthy() bool {
 }
 
 func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for map_iter: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for map_iter: %v", opType)
 }
 
 func (iter *MapIter) Next(ctx context.Context) (Object, bool) {
@@ -115,7 +116,7 @@ func (iter *MapIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *MapIter) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal map_iter")
+	return nil, errz.TypeErrorf("type error: unable to marshal map_iter")
 }
 
 func NewMapIter(m *Map) *MapIter {

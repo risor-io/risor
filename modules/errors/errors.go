@@ -10,7 +10,7 @@ import (
 func New(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return object.Errorf("type error: errors.new() takes 1 or more arguments (%d given)", len(args))
+		return object.TypeErrorf("type error: errors.new() takes 1 or more arguments (%d given)", len(args))
 	}
 	format, err := object.AsString(args[0])
 	if err != nil {

@@ -177,7 +177,7 @@ func (r *HttpRequest) Cost() int {
 }
 
 func (r *HttpRequest) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for http.request: %v", opType)
+	return object.EvalErrorf("eval error: unsupported operation for http.request: %v", opType)
 }
 
 func (r *HttpRequest) AddHeaders(headers *object.Map) {

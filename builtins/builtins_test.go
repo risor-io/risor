@@ -77,7 +77,7 @@ func TestSorted(t *testing.T) {
 				object.NewInt(1),
 				object.NewString("nope"),
 			}),
-			object.Errorf("type error: unable to compare string and int"),
+			object.TypeErrorf("type error: unable to compare string and int"),
 		},
 		{
 			object.NewList([]object.Object{
@@ -212,7 +212,7 @@ func TestChunk(t *testing.T) {
 		{
 			object.NewString("wrong"),
 			2,
-			object.Errorf("type error: chunk() expected a list (string given)"),
+			object.TypeErrorf("type error: chunk() expected a list (string given)"),
 		},
 		{
 			object.NewList([]object.Object{}),
@@ -246,7 +246,7 @@ func TestTry(t *testing.T) {
 	require.Equal(t, object.NewString("ok"), result)
 
 	result = Try(ctx, errFunc)
-	require.Equal(t, object.Errorf("kaboom"), result)
+	require.Equal(t, object.Nil, result)
 
 	result = Try(ctx, errFunc, object.NewString("fallback"))
 	require.Equal(t, object.NewString("fallback"), result)

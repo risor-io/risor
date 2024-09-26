@@ -4,7 +4,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"unicode"
@@ -45,6 +44,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
 	"github.com/aws/aws-sdk-go-v2/service/xray"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -105,7 +105,7 @@ func (c *Client) String() string {
 }
 
 func (c *Client) Compare(other object.Object) (int, error) {
-	return 0, errors.New("type error: unable to compare aws.client")
+	return 0, errz.TypeErrorf("type error: unable to compare aws.client")
 }
 
 func (c *Client) Equals(other object.Object) object.Object {
@@ -120,7 +120,7 @@ func (c *Client) IsTruthy() bool {
 }
 
 func (c *Client) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for aws.client: %v ", opType)
+	return object.EvalErrorf("eval error: unsupported operation for aws.client: %v ", opType)
 }
 
 func (c *Client) Cost() int {
@@ -128,7 +128,7 @@ func (c *Client) Cost() int {
 }
 
 func (c *Client) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal aws.client")
+	return nil, errz.TypeErrorf("type error: unable to marshal aws.client")
 }
 
 func NewClient(service string, client interface{}, config *Config) *Client {

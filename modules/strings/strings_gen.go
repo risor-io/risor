@@ -113,10 +113,10 @@ func Repeat(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 	if countParamRaw > math.MaxInt {
-		return object.Errorf("type error: strings.repeat argument 'count' (index 1) cannot be > %v", math.MaxInt)
+		return object.TypeErrorf("type error: strings.repeat argument 'count' (index 1) cannot be > %v", math.MaxInt)
 	}
 	if countParamRaw < math.MinInt {
-		return object.Errorf("type error: strings.repeat argument 'count' (index 1) cannot be < %v", math.MinInt)
+		return object.TypeErrorf("type error: strings.repeat argument 'count' (index 1) cannot be < %v", math.MinInt)
 	}
 	countParam := int(countParamRaw)
 	result := repeat(sParam, countParam)

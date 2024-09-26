@@ -2,9 +2,9 @@ package object
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -38,7 +38,7 @@ func (e *Error) Interface() interface{} {
 func (e *Error) Compare(other Object) (int, error) {
 	otherErr, ok := other.(*Error)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare error and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare error and %s", other.Type())
 	}
 	thisMsg := e.Message().Value()
 	otherMsg := otherErr.Message().Value()
@@ -101,7 +101,7 @@ func (e *Error) IsRaised() bool {
 }
 
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for error: %v", opType)
 }
 
 func Errorf(format string, a ...interface{}) *Error {
@@ -117,7 +117,7 @@ func Errorf(format string, a ...interface{}) *Error {
 }
 
 func (e *Error) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal error")
+	return nil, errz.TypeErrorf("type error: unable to marshal error")
 }
 
 func NewError(err error) *Error {

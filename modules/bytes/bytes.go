@@ -10,7 +10,7 @@ import (
 func asBytes(obj object.Object) (*object.ByteSlice, *object.Error) {
 	b, ok := obj.(*object.ByteSlice)
 	if !ok {
-		return nil, object.Errorf("type error: expected a byte_slice (%s given)", obj.Type())
+		return nil, object.TypeErrorf("type error: expected a byte_slice (%s given)", obj.Type())
 	}
 	return b, nil
 }

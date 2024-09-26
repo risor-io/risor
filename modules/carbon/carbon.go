@@ -238,7 +238,7 @@ func (c *Carbon) GetAttr(name string) (object.Object, bool) {
 			case *object.Time:
 				return object.NewString(c.value.DiffForHumans(carbon.CreateFromStdTime(arg.Value())))
 			default:
-				return object.Errorf("type error: expected carbon (got %s)", args[0].Type())
+				return object.TypeErrorf("type error: expected carbon (got %s)", args[0].Type())
 			}
 		}), true
 	case "std_time":
@@ -295,7 +295,7 @@ func (c *Carbon) Cost() int {
 }
 
 func (c *Carbon) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", CARBON, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", CARBON, opType)
 }
 
 func NewCarbon(v carbon.Carbon) *Carbon {

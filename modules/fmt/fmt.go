@@ -12,7 +12,7 @@ import (
 func Printf(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return object.Errorf("type error: fmt.printf() takes 1 or more arguments (%d given)", len(args))
+		return object.TypeErrorf("type error: fmt.printf() takes 1 or more arguments (%d given)", len(args))
 	}
 	format, err := object.AsString(args[0])
 	if err != nil {
@@ -44,7 +44,7 @@ func Println(ctx context.Context, args ...object.Object) object.Object {
 func Errorf(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 	if numArgs < 1 {
-		return object.Errorf("type error: fmt.errorf() takes 1 or more arguments (%d given)", len(args))
+		return object.TypeErrorf("type error: fmt.errorf() takes 1 or more arguments (%d given)", len(args))
 	}
 	format, err := object.AsString(args[0])
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/arg"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 	"github.com/risor-io/risor/os"
@@ -38,11 +39,11 @@ func (app *App) Cost() int {
 }
 
 func (app *App) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", APP)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", APP)
 }
 
 func (app *App) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", APP, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", APP, opType)
 }
 
 func (app *App) Equals(other object.Object) object.Object {
@@ -133,7 +134,7 @@ func NewApp(opts *object.Map) (*App, error) {
 				return nil
 			}
 		} else {
-			return nil, fmt.Errorf("type error: action must be a function")
+			return nil, errz.TypeErrorf("type error: action must be a function")
 		}
 	}
 
@@ -145,7 +146,7 @@ func NewApp(opts *object.Map) (*App, error) {
 				case *Command:
 					app.Commands = append(app.Commands, command.value)
 				default:
-					return nil, fmt.Errorf("type error: expected a command (got %s)", command.Type())
+					return nil, errz.TypeErrorf("type error: expected a command (got %s)", command.Type())
 				}
 			}
 		}
@@ -157,7 +158,7 @@ func NewApp(opts *object.Map) (*App, error) {
 			for _, flagOpt := range flags.Value() {
 				flagObj, ok := flagOpt.(*Flag)
 				if !ok {
-					return nil, fmt.Errorf("type error: expected a flag (got %s)", flagOpt.Type())
+					return nil, errz.TypeErrorf("type error: expected a flag (got %s)", flagOpt.Type())
 				}
 				app.Flags = append(app.Flags, flagObj.value)
 			}
@@ -172,7 +173,7 @@ func getMapStr(opts *object.Map, key string) (string, error) {
 		if str, err := object.AsString(opt); err == nil {
 			return str, nil
 		}
-		return "", fmt.Errorf("type error: %s must be a string", key)
+		return "", errz.TypeErrorf("type error: %s must be a string", key)
 	}
 	return "", nil
 }

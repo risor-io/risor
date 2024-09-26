@@ -3,6 +3,7 @@ package object
 import (
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -18,7 +19,7 @@ func Compare(opType op.CompareOpType, a, b Object) Object {
 
 	comparable, ok := a.(Comparable)
 	if !ok {
-		return NewError(fmt.Errorf("type error: expected a comparable object (got %s)", a.Type()))
+		return NewError(errz.TypeErrorf("type error: expected a comparable object (got %s)", a.Type()))
 	}
 	value, err := comparable.Compare(b)
 	if err != nil {

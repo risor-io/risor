@@ -67,7 +67,7 @@ func (c *Color) Equals(other Object) Object {
 }
 
 func (c *Color) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for color: %v ", opType))
+	return EvalErrorf("eval error: unsupported operation for color: %v ", opType)
 }
 
 func (c *Color) MarshalJSON() ([]byte, error) {

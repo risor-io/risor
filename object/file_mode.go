@@ -2,10 +2,10 @@ package object
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -51,7 +51,7 @@ func (m *FileMode) Compare(other Object) (int, error) {
 		}
 		return 0, nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare file_mode and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare file_mode and %s", other.Type())
 	}
 }
 
@@ -84,7 +84,7 @@ func (m *FileMode) GetAttr(name string) (Object, bool) {
 }
 
 func (m *FileMode) SetAttr(name string, value Object) error {
-	return errors.New("type error: unable to set attributes on file_mode objects")
+	return errz.TypeErrorf("type error: unable to set attributes on file_mode objects")
 }
 
 func (m *FileMode) IsTruthy() bool {
@@ -92,7 +92,7 @@ func (m *FileMode) IsTruthy() bool {
 }
 
 func (m *FileMode) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for file_mode: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for file_mode: %v", opType)
 }
 
 func (m *FileMode) Cost() int {

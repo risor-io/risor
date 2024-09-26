@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 	ucli "github.com/urfave/cli/v2"
@@ -36,11 +37,11 @@ func (c *Command) Cost() int {
 }
 
 func (c *Command) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", COMMAND)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", COMMAND)
 }
 
 func (c *Command) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", COMMAND, opType)
+	return object.EvalErrorf("eval error: unsupported operation for %s: %v", COMMAND, opType)
 }
 
 func (c *Command) Equals(other object.Object) object.Object {

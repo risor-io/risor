@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -41,7 +42,7 @@ func (b *Buffer) Compare(other Object) (int, error) {
 	case *ByteSlice:
 		return bytes.Compare(b.value.Bytes(), other.Value()), nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare buffer and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare buffer and %s", other.Type())
 	}
 }
 
@@ -196,7 +197,7 @@ func (b *Buffer) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *ByteSlice:
 		return b.runOperationByteSlice(opType, right)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type()))
+		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -208,7 +209,7 @@ func (b *Buffer) runOperationBytes(opType op.BinaryOpType, right *Buffer) Object
 		}
 		return Nil
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type()))
+		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -220,7 +221,7 @@ func (b *Buffer) runOperationByteSlice(opType op.BinaryOpType, right *ByteSlice)
 		}
 		return Nil
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type()))
+		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -232,7 +233,7 @@ func (b *Buffer) runOperationString(opType op.BinaryOpType, right *String) Objec
 		}
 		return Nil
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type()))
+		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 

@@ -3,6 +3,7 @@ package object
 import (
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -45,7 +46,7 @@ func (b *Bool) String() string {
 func (b *Bool) Compare(other Object) (int, error) {
 	otherBool, ok := other.(*Bool)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare bool and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare bool and %s", other.Type())
 	}
 	if b.value == otherBool.value {
 		return 0, nil
@@ -68,7 +69,7 @@ func (b *Bool) IsTruthy() bool {
 }
 
 func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for bool: %v", opType))
+	return EvalErrorf("eval error: unsupported operation for bool: %v", opType)
 }
 
 func (b *Bool) MarshalJSON() ([]byte, error) {

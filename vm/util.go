@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 )
 
@@ -16,7 +16,7 @@ func checkCallArgs(fn *object.Function, argc int) error {
 
 	// Check if too many or too few arguments were passed
 	if argc > paramsCount || argc < requiredArgsCount {
-		msg := "type error: function"
+		msg := "args error: function"
 		if name := fn.Name(); name != "" {
 			msg = fmt.Sprintf("%s %q", msg, name)
 		}
@@ -28,7 +28,7 @@ func checkCallArgs(fn *object.Function, argc int) error {
 		default:
 			msg = fmt.Sprintf("%s takes %d arguments (%d given)", msg, paramsCount, argc)
 		}
-		return errors.New(msg)
+		return errz.ArgsErrorf(msg)
 	}
 	return nil
 }
