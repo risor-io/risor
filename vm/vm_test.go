@@ -858,6 +858,20 @@ func TestTry(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestTryWithErrorValues(t *testing.T) {
+	code := `
+	const myerr = errors.new("errno == 1")
+	try(func() {
+		print("testing 1 2 3")
+		error(myerr)
+	}, func(e) {
+		return e == myerr ? "YES" : "NO"
+	})`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("YES"), result)
+}
+
 func TestStringTemplateWithRaisedError(t *testing.T) {
 	code := "'the err string is: {error(`oops`)}. sad!'"
 	_, err := run(context.Background(), code)
