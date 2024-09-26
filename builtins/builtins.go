@@ -708,18 +708,27 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("error", 1, 64, args); err != nil {
 		return err
 	}
+	var callStack *object.CallStack
+	if stackFunc, found := object.GetStackFunc(ctx); found {
+		var err error
+		callStack, err = stackFunc(ctx)
+		if err != nil {
+			return object.EvalErrorf("eval error: unable to get call stack: %v", err)
+		}
+		fmt.Println("ERROR STACK:", callStack)
+	}
 	switch arg := args[0].(type) {
 	case *object.Error:
 		// Return a copy of the error that has its raised flag set.
 		// It's possible an error was passed that did not have raised set.
-		return object.NewError(arg.Value()).WithRaised(true)
+		return object.NewError(arg.Value()).WithRaised(true).WithCallStack(callStack)
 	case *object.String:
 		msg := arg
 		var msgArgs []interface{}
 		for _, arg := range args[1:] {
 			msgArgs = append(msgArgs, arg.Interface())
 		}
-		return object.Errorf(msg.Value(), msgArgs...)
+		return object.Errorf(msg.Value(), msgArgs...).WithCallStack(callStack)
 	default:
 		return object.TypeErrorf("type error: error() expected a string or error (%s given)",
 			args[0].Type())
@@ -734,6 +743,7 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 	try := func(arg object.Object) (object.Object, error) {
 		switch obj := arg.(type) {
 		case *object.Function:
+			fmt.Println("A", obj)
 			var callArgs []object.Object
 			if len(obj.Parameters()) > 0 && lastErr != nil {
 				callArgs = append(callArgs, lastErr)
@@ -744,6 +754,7 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			}
 			return callFunc(ctx, obj, callArgs)
 		case object.Callable:
+			fmt.Println("B", obj)
 			var callArgs []object.Object
 			if lastErr != nil {
 				callArgs = append(callArgs, lastErr)
@@ -760,7 +771,13 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 				// This indicates an unrecoverable evaluation error
 				return object.NewError(err)
 			}
-			lastErr = object.NewError(err).WithRaised(false)
+			var callStack *object.CallStack
+			if rErr, ok := err.(*object.Error); ok {
+				if stack, ok := rErr.CallStack(); ok {
+					callStack = stack
+				}
+			}
+			lastErr = object.NewError(err).WithRaised(false).WithCallStack(callStack)
 			continue
 		}
 		switch result := result.(type) {
@@ -770,9 +787,10 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 				// We should return the value as is.
 				return result
 			}
+			stack, _ := result.CallStack()
 			// Here the error was raised, so we should save it to provide to the
 			// next function in the chain
-			lastErr = result.WithRaised(false)
+			lastErr = result.WithRaised(false).WithCallStack(stack)
 		default:
 			return result
 		}

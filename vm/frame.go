@@ -11,6 +11,7 @@ type frame struct {
 	returnSp       int
 	localsCount    uint16
 	fn             *object.Function
+	fnName         string
 	code           *code
 	storage        [DefaultFrameLocals]object.Object
 	locals         []object.Object
@@ -26,6 +27,9 @@ func (f *frame) ActivateCode(code *code) {
 	f.localsCount = uint16(code.LocalsCount())
 	f.capturedLocals = nil
 	f.defers = nil
+	if code.IsRoot() {
+		f.fnName = "main"
+	}
 	for i := 0; i < DefaultFrameLocals; i++ {
 		f.storage[i] = nil
 	}
@@ -45,6 +49,9 @@ func (f *frame) ActivateFunction(fn *object.Function, code *code, returnAddr, re
 	// Activate the function's code
 	f.ActivateCode(code)
 	f.fn = fn
+	if name := fn.Name(); name != "" {
+		f.fnName = name
+	}
 	// Save the instruction and stack pointers of the caller
 	f.returnAddr = returnAddr
 	f.returnSp = returnSp

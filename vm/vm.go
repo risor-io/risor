@@ -764,6 +764,7 @@ func (vm *VirtualMachine) callFunction(
 
 	// Evaluate the function code then return the result from TOS
 	if err := vm.eval(ctx); err != nil {
+		fmt.Println("eval err:", err)
 		return nil, err
 	}
 	return vm.pop(), nil
@@ -786,9 +787,17 @@ func (vm *VirtualMachine) callObject(
 		vm.push(result)
 		return nil
 	case object.Callable:
+		vm.fp++
+		if fn, ok := fn.(*object.Builtin); ok {
+			fmt.Println("calling builtin", fn.Name(), vm.fp)
+			vm.frames[vm.fp].fnName = fn.Name()
+		}
+		defer func() {
+			vm.fp--
+		}()
 		result := fn.Call(ctx, args...)
 		if err, ok := result.(*object.Error); ok && err.IsRaised() {
-			return err.Value()
+			return err // err.Value()
 		}
 		vm.push(result)
 		return nil
@@ -1004,8 +1013,33 @@ func (vm *VirtualMachine) cloneCallSync(
 	return clone.callFunction(clone.initContext(ctx), fn, args)
 }
 
+func (vm *VirtualMachine) getCallStack(ctx context.Context) (*object.CallStack, error) {
+	fmt.Println("STACK!", vm.fp, vm.activeFrame)
+	stack := &object.CallStack{}
+	for i := 0; i < vm.fp; i++ {
+		frame := &vm.frames[i]
+		var fnName string
+		if frame.fn != nil {
+			fnName = frame.fn.Name()
+		}
+		if fnName == "" {
+			fnName = "anon"
+		}
+		stack.Frames = append(stack.Frames, &object.CallFrame{
+			Depth:    i,
+			Function: fnName,
+			// Locals:   frame.Locals(),
+			// IP:       frame.ip,
+			// Code:     frame.code,
+		})
+		fmt.Println("added frame", i)
+	}
+	return stack, nil
+}
+
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
+	ctx = object.WithStackFunc(ctx, vm.getCallStack)
 	if vm.concAllowed {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
 		ctx = object.WithCloneCallFunc(ctx, vm.cloneCallSync)

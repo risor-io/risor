@@ -8,11 +8,14 @@ import (
 	"github.com/risor-io/risor/op"
 )
 
+var _ error = (*Error)(nil)
+
 // Error wraps a Go error interface and implements Object.
 type Error struct {
 	*base
 	err    error
 	raised bool
+	stack  *CallStack
 }
 
 func (e *Error) Type() Type {
@@ -82,6 +85,17 @@ func (e *Error) GetAttr(name string) (Object, bool) {
 		return NewBuiltin("message", func(ctx context.Context, args ...Object) Object {
 			return e.Message()
 		}), true
+	case "call_stack":
+		return NewBuiltin("call_stack", func(ctx context.Context, args ...Object) Object {
+			var items []Object
+			if e.stack != nil {
+				fmt.Println("FRAMES:", e.stack.Frames, len(e.stack.Frames))
+				for _, frame := range e.stack.Frames {
+					items = append(items, NewString(fmt.Sprintf("%s:%d", frame.Function, frame.Depth)))
+				}
+			}
+			return NewList(items)
+		}), true
 	default:
 		return nil, false
 	}
@@ -91,9 +105,26 @@ func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }
 
+func (e *Error) Error() string {
+	return e.err.Error()
+}
+
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
 func (e *Error) WithRaised(value bool) *Error {
 	e.raised = value
 	return e
+}
+
+func (e *Error) WithCallStack(stack *CallStack) *Error {
+	e.stack = stack
+	return e
+}
+
+func (e *Error) CallStack() (*CallStack, bool) {
+	return e.stack, e.stack != nil
 }
 
 func (e *Error) IsRaised() bool {
