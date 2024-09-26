@@ -421,7 +421,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				obj := vm.pop()
 				switch obj := obj.(type) {
 				case *object.Error:
-					if obj.Raised() {
+					if obj.IsRaised() {
 						return obj.Value()
 					}
 					items[dst] = obj.Value().Error()
@@ -781,7 +781,7 @@ func (vm *VirtualMachine) callObject(
 		return nil
 	case object.Callable:
 		result := fn.Call(ctx, args...)
-		if err, ok := result.(*object.Error); ok && err.Raised() {
+		if err, ok := result.(*object.Error); ok && err.IsRaised() {
 			return err.Value()
 		}
 		vm.push(result)

@@ -738,7 +738,7 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			}
 			switch result := result.(type) {
 			case *object.Error:
-				if result.Raised() {
+				if result.IsRaised() {
 					return nil, result.Value()
 				}
 				return result, nil
@@ -749,7 +749,7 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			result := obj.Call(ctx)
 			switch result := result.(type) {
 			case *object.Error:
-				if result.Raised() {
+				if result.IsRaised() {
 					return nil, result.Value()
 				}
 				return result, nil
