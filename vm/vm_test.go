@@ -1264,14 +1264,14 @@ func TestIncorrectArgCount(t *testing.T) {
 		expectedErr string
 	}
 	tests := []testCase{
-		{`func ex() { 1 }; ex(1)`, "type error: function \"ex\" takes 0 arguments (1 given)"},
-		{`func ex(x) { x }; ex()`, "type error: function \"ex\" takes 1 argument (0 given)"},
-		{`func ex(x) { x }; ex(1, 2)`, "type error: function \"ex\" takes 1 argument (2 given)"},
-		{`func ex(x, y) { 1 }; ex()`, "type error: function \"ex\" takes 2 arguments (0 given)"},
-		{`func ex(x, y) { 1 }; ex(0)`, "type error: function \"ex\" takes 2 arguments (1 given)"},
-		{`func ex(x, y) { 1 }; ex(1, 2, 3)`, "type error: function \"ex\" takes 2 arguments (3 given)"},
-		{`func ex() { 1 }; [1, 2].filter(ex)`, "type error: function \"ex\" takes 0 arguments (1 given)"},
-		{`func ex() { 1 }; "foo" | ex`, "type error: function \"ex\" takes 0 arguments (1 given)"},
+		{`func ex() { 1 }; ex(1)`, "args error: function \"ex\" takes 0 arguments (1 given)"},
+		{`func ex(x) { x }; ex()`, "args error: function \"ex\" takes 1 argument (0 given)"},
+		{`func ex(x) { x }; ex(1, 2)`, "args error: function \"ex\" takes 1 argument (2 given)"},
+		{`func ex(x, y) { 1 }; ex()`, "args error: function \"ex\" takes 2 arguments (0 given)"},
+		{`func ex(x, y) { 1 }; ex(0)`, "args error: function \"ex\" takes 2 arguments (1 given)"},
+		{`func ex(x, y) { 1 }; ex(1, 2, 3)`, "args error: function \"ex\" takes 2 arguments (3 given)"},
+		{`func ex() { 1 }; [1, 2].filter(ex)`, "args error: function \"ex\" takes 0 arguments (1 given)"},
+		{`func ex() { 1 }; "foo" | ex`, "args error: function \"ex\" takes 0 arguments (1 given)"},
 		{`"foo" | "bar"`, "type error: object is not callable (got string)"},
 	}
 	for _, tt := range tests {
