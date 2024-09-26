@@ -223,6 +223,14 @@ func AsIterator(obj Object) (Iterator, *Error) {
 	}
 }
 
+func AsError(obj Object) (*Error, *Error) {
+	err, ok := obj.(*Error)
+	if !ok {
+		return nil, Errorf("type error: expected an error object (%s given)", obj.Type())
+	}
+	return err, nil
+}
+
 // *****************************************************************************
 // Converting types from Go to Risor
 // *****************************************************************************

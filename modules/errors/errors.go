@@ -1,8 +1,7 @@
-package rand
+package errors
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
@@ -24,26 +23,8 @@ func New(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewError(fmt.Errorf(format, values...)).WithRaised(false)
 }
 
-func Is(ctx context.Context, args ...object.Object) object.Object {
-	numArgs := len(args)
-	if numArgs != 2 {
-		return object.Errorf("type error: errors.is() takes 2 arguments (%d given)", len(args))
-	}
-	err, ok := args[0].(*object.Error)
-	if !ok {
-		return object.Errorf("type error: errors.is() expects an error object as the first argument")
-	}
-	target, ok := args[1].(*object.Error)
-	if !ok {
-		return object.Errorf("type error: errors.is() expects an error object as the second argument")
-	}
-	result := errors.Is(err.Value(), target.Value())
-	return object.NewBool(result)
-}
-
 func Module() *object.Module {
 	return object.NewBuiltinsModule("errors", map[string]object.Object{
 		"new": object.NewBuiltin("new", New),
-		"is":  object.NewBuiltin("is", Is),
 	})
 }
