@@ -18,7 +18,6 @@ import (
 	modOs "github.com/risor-io/risor/modules/os"
 	modRand "github.com/risor-io/risor/modules/rand"
 	modRegexp "github.com/risor-io/risor/modules/regexp"
-	modSemver "github.com/risor-io/risor/modules/semver"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTablewriter "github.com/risor-io/risor/modules/tablewriter"
@@ -45,7 +44,6 @@ func Builtins() map[string]object.Object {
 		"os":          modOs.Module(),
 		"rand":        modRand.Module(),
 		"regexp":      modRegexp.Module(),
-		"semver":      modSemver.Module(),
 		"strconv":     modStrconv.Module(),
 		"strings":     modStrings.Module(),
 		"tablewriter": modTablewriter.Module(),

@@ -16,6 +16,7 @@ use (
 	./modules/image
 	./modules/jmespath
 	./modules/pgx
+	./modules/semver
 	./modules/sql
 	./modules/template
 	./modules/uuid

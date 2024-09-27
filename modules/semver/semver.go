@@ -7,7 +7,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
 )
@@ -134,7 +134,7 @@ func Compare(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(perr)
 	}
 
-	v2s, err := object.AsString(args[0])
+	v2s, err := object.AsString(args[1])
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func Equals(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(perr)
 	}
 
-	v2s, err := object.AsString(args[0])
+	v2s, err := object.AsString(args[1])
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ replace (
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
+	github.com/risor-io/risor/modules/semver => ../../modules/semver
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
 	github.com/risor-io/risor/modules/template => ../../modules/template
 	github.com/risor-io/risor/modules/uuid => ../../modules/uuid
@@ -33,11 +34,12 @@ require (
 	github.com/risor-io/risor/modules/bcrypt v1.6.0
 	github.com/risor-io/risor/modules/carbon v1.6.0
 	github.com/risor-io/risor/modules/cli v1.6.0
-	github.com/risor-io/risor/modules/gha v1.6.0
+	github.com/risor-io/risor/modules/gha v1.6.1-0.20240927135333-245e7b83abf4
 	github.com/risor-io/risor/modules/image v1.6.0
 	github.com/risor-io/risor/modules/jmespath v1.6.0
 	github.com/risor-io/risor/modules/kubernetes v1.6.0
 	github.com/risor-io/risor/modules/pgx v1.6.0
+	github.com/risor-io/risor/modules/semver v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sql v1.6.0
 	github.com/risor-io/risor/modules/template v1.6.0
 	github.com/risor-io/risor/modules/uuid v1.6.0
@@ -106,6 +108,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.52.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/xray v1.27.5 // indirect
 	github.com/aws/smithy-go v1.20.4 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
