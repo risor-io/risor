@@ -211,7 +211,18 @@ func getEvaluator(cfg *risor.Config) func(ctx context.Context, source string) (o
 
 		switch result := result.(type) {
 		case *object.Error:
-			color.Red(result.Value().Error())
+			errStr := result.Value().Error()
+			if result.IsRaised() {
+				color.Red(errStr)
+			} else {
+				color.Magenta(errStr)
+			}
+		case *object.Int, *object.Float, *object.Bool:
+			color.Yellow(result.Inspect())
+		case *object.String:
+			color.Green(result.Inspect())
+		case *object.Builtin, *object.Module:
+			color.New(color.Bold).Println(result.Inspect())
 		case *object.NilType:
 		default:
 			fmt.Println(result.Inspect())

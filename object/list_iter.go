@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -87,7 +88,7 @@ func (iter *ListIter) IsTruthy() bool {
 }
 
 func (iter *ListIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for list_iter: %v", opType))
+	return TypeErrorf("type error: unsupported operation for list_iter: %v", opType)
 }
 
 func (iter *ListIter) Next(ctx context.Context) (Object, bool) {
@@ -109,7 +110,7 @@ func (iter *ListIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *ListIter) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal list_iter")
+	return nil, errz.TypeErrorf("type error: unable to marshal list_iter")
 }
 
 func NewListIter(l *List) *ListIter {

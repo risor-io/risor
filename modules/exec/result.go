@@ -3,10 +3,10 @@ package exec
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os/exec"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -78,7 +78,7 @@ func (r *Result) JSON() object.Object {
 	}
 	scriptObj := object.FromGoType(obj)
 	if scriptObj == nil {
-		return object.Errorf("type error: json.unmarshal failed")
+		return object.TypeErrorf("type error: json.unmarshal failed")
 	}
 	return scriptObj
 }
@@ -92,7 +92,7 @@ func (r *Result) Interface() interface{} {
 }
 
 func (r *Result) Compare(other object.Object) (int, error) {
-	return 0, errors.New("type error: unable to compare exec.result")
+	return 0, errz.TypeErrorf("type error: unable to compare exec.result")
 }
 
 func (r *Result) Equals(other object.Object) object.Object {
@@ -107,7 +107,7 @@ func (r *Result) IsTruthy() bool {
 }
 
 func (r *Result) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for exec.result: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for exec.result: %v", opType)
 }
 
 func (r *Result) Cost() int {

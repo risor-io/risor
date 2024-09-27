@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -40,11 +41,11 @@ func (c *Chan) Cost() int {
 }
 
 func (c *Chan) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", CHANNEL)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", CHANNEL)
 }
 
 func (c *Chan) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return Errorf("eval error: unsupported operation for %s: %v", CHANNEL, opType)
+	return TypeErrorf("type error: unsupported operation for %s: %v", CHANNEL, opType)
 }
 
 func (c *Chan) Equals(other Object) Object {
@@ -52,7 +53,7 @@ func (c *Chan) Equals(other Object) Object {
 }
 
 func (c *Chan) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", CHANNEL, name)
+	return TypeErrorf("type error: %s object has no attribute %q", CHANNEL, name)
 }
 
 func (c *Chan) GetAttr(name string) (Object, bool) {

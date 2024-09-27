@@ -320,13 +320,13 @@ func (m *Map) Equals(other Object) Object {
 }
 
 func (m *Map) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for map: %v", opType))
+	return TypeErrorf("type error: unsupported operation for map: %v", opType)
 }
 
 func (m *Map) GetItem(key Object) (Object, *Error) {
 	strObj, ok := key.(*String)
 	if !ok {
-		return nil, Errorf("key error: map key must be a string (got %s)", key.Type())
+		return nil, TypeErrorf("type error: map key must be a string (got %s)", key.Type())
 	}
 	value, found := m.items[strObj.value]
 	if !found {
@@ -337,14 +337,14 @@ func (m *Map) GetItem(key Object) (Object, *Error) {
 
 // GetSlice implements the [start:stop] operator for a container type.
 func (m *Map) GetSlice(s Slice) (Object, *Error) {
-	return nil, Errorf("map does not support slice operations")
+	return nil, TypeErrorf("map does not support slice operations")
 }
 
 // SetItem assigns a value to the given key in the map.
 func (m *Map) SetItem(key, value Object) *Error {
 	strObj, ok := key.(*String)
 	if !ok {
-		return Errorf("key error: map key must be a string (got %s)", key.Type())
+		return TypeErrorf("type error: map key must be a string (got %s)", key.Type())
 	}
 	m.items[strObj.value] = value
 	return nil
@@ -354,7 +354,7 @@ func (m *Map) SetItem(key, value Object) *Error {
 func (m *Map) DelItem(key Object) *Error {
 	strObj, ok := key.(*String)
 	if !ok {
-		return Errorf("key error: map key must be a string (got %s)", key.Type())
+		return TypeErrorf("type error: map key must be a string (got %s)", key.Type())
 	}
 	delete(m.items, strObj.value)
 	return nil

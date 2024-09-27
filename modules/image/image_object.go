@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"image"
 
 	"github.com/anthonynsimon/bild/imgio"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -68,11 +68,11 @@ func (img *Image) GetAttr(name string) (object.Object, bool) {
 				}
 				x, err := object.AsInt(args[0])
 				if err != nil {
-					return object.Errorf("type error: image.at() expects argument 1 to be an integer")
+					return object.TypeErrorf("type error: image.at() expects argument 1 to be an integer")
 				}
 				y, err := object.AsInt(args[1])
 				if err != nil {
-					return object.Errorf("type error: image.at() expects argument 2 to be an integer")
+					return object.TypeErrorf("type error: image.at() expects argument 2 to be an integer")
 				}
 				return object.NewColor(img.image.At(int(x), int(y)))
 			}), true
@@ -81,7 +81,7 @@ func (img *Image) GetAttr(name string) (object.Object, bool) {
 }
 
 func (img *Image) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: image object has no attribute %q", name)
+	return object.TypeErrorf("type error: image object has no attribute %q", name)
 }
 
 func (img *Image) Interface() interface{} {
@@ -93,7 +93,7 @@ func (img *Image) String() string {
 }
 
 func (img *Image) Compare(other object.Object) (int, error) {
-	return 0, errors.New("type error: unable to compare images")
+	return 0, errz.TypeErrorf("type error: unable to compare images")
 }
 
 func (img *Image) Equals(other object.Object) object.Object {
@@ -127,7 +127,7 @@ func (img *Image) Dimensions() *object.Map {
 }
 
 func (img *Image) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for image: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for image: %v ", opType)
 }
 
 func (img *Image) Bounds() *object.Map {
@@ -156,7 +156,7 @@ func (img *Image) Cost() int {
 }
 
 func (img *Image) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal image")
+	return nil, errz.TypeErrorf("type error: unable to marshal image")
 }
 
 func NewImage(image image.Image, format string) *Image {

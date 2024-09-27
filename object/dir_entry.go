@@ -3,9 +3,9 @@ package object
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -65,7 +65,7 @@ func (d *DirEntry) GetAttr(name string) (Object, bool) {
 }
 
 func (d *DirEntry) SetAttr(name string, value Object) error {
-	return errors.New("type error: unable to set attributes on dir_entry objects")
+	return errz.TypeErrorf("type error: unable to set attributes on dir_entry objects")
 }
 
 func (d *DirEntry) IsTruthy() bool {
@@ -73,7 +73,7 @@ func (d *DirEntry) IsTruthy() bool {
 }
 
 func (d *DirEntry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for dir_entry: %v", opType))
+	return TypeErrorf("type error: unsupported operation for dir_entry: %v", opType)
 }
 
 func (d *DirEntry) Cost() int {

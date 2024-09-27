@@ -2,11 +2,11 @@ package exec
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -144,7 +144,7 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 		}
 		c.value.Stderr = stderr
 	default:
-		return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
+		return object.TypeErrorf("type error: exec.command object has no attribute %q", name)
 	}
 	return nil
 }
@@ -192,7 +192,7 @@ func (c *Command) String() string {
 }
 
 func (c *Command) Compare(other object.Object) (int, error) {
-	return 0, errors.New("type error: unable to compare exec.command")
+	return 0, errz.TypeErrorf("type error: unable to compare exec.command")
 }
 
 func (c *Command) Equals(other object.Object) object.Object {
@@ -207,7 +207,7 @@ func (c *Command) IsTruthy() bool {
 }
 
 func (c *Command) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for exec.command: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for exec.command: %v ", opType)
 }
 
 func (c *Command) Cost() int {
@@ -215,7 +215,7 @@ func (c *Command) Cost() int {
 }
 
 func (c *Command) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal exec.command")
+	return nil, errz.TypeErrorf("type error: unable to marshal exec.command")
 }
 
 func NewCommand(cmd *exec.Cmd) *Command {

@@ -1,8 +1,7 @@
 package object
 
 import (
-	"fmt"
-
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -34,7 +33,7 @@ func (n *NilType) Compare(other Object) (int, error) {
 	if _, ok := other.(*NilType); ok {
 		return 0, nil
 	}
-	return 0, fmt.Errorf("type error: unable to compare nil and %s", other.Type())
+	return 0, errz.TypeErrorf("type error: unable to compare nil and %s", other.Type())
 }
 
 func (n *NilType) Equals(other Object) Object {
@@ -53,5 +52,5 @@ func (n *NilType) MarshalJSON() ([]byte, error) {
 }
 
 func (n *NilType) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
+	return TypeErrorf("type error: unsupported operation for nil: %v", opType)
 }

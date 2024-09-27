@@ -9,11 +9,11 @@ import (
 
 func Connect(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
-		return object.Errorf("type error: pgx.connect() takes exactly one argument (%d given)", len(args))
+		return object.TypeErrorf("type error: pgx.connect() takes exactly one argument (%d given)", len(args))
 	}
 	url, ok := args[0].(*object.String)
 	if !ok {
-		return object.Errorf("type error: pgx.connect() expected a string argument (got %s)", args[0].Type())
+		return object.TypeErrorf("type error: pgx.connect() expected a string argument (got %s)", args[0].Type())
 	}
 	conn, err := pgx.Connect(ctx, url.Value())
 	if err != nil {

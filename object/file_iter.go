@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -88,7 +89,7 @@ func (iter *FileIter) IsTruthy() bool {
 }
 
 func (iter *FileIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for file_iter: %v", opType))
+	return TypeErrorf("type error: unsupported operation for file_iter: %v", opType)
 }
 
 func (iter *FileIter) Next(ctx context.Context) (Object, bool) {
@@ -112,7 +113,7 @@ func (iter *FileIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *FileIter) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal file_iter")
+	return nil, errz.TypeErrorf("type error: unable to marshal file_iter")
 }
 
 func NewFileIter(f *File) *FileIter {

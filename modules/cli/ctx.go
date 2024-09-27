@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/arg"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 	ucli "github.com/urfave/cli/v2"
@@ -37,11 +38,11 @@ func (c *Ctx) Cost() int {
 }
 
 func (c *Ctx) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", CTX)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", CTX)
 }
 
 func (c *Ctx) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", CTX, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", CTX, opType)
 }
 
 func (c *Ctx) Equals(other object.Object) object.Object {
@@ -49,7 +50,7 @@ func (c *Ctx) Equals(other object.Object) object.Object {
 }
 
 func (c *Ctx) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", CTX, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", CTX, name)
 }
 
 func (c *Ctx) GetAttr(name string) (object.Object, bool) {

@@ -35,7 +35,7 @@ func (c *Color) Value() *color.Color {
 }
 
 func (c *Color) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: cannot set %q on %s object", name, COLOR)
+	return object.TypeErrorf("type error: cannot set %q on %s object", name, COLOR)
 }
 
 func (c *Color) GetAttr(name string) (object.Object, bool) {
@@ -81,7 +81,7 @@ func (c *Color) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("printf", func(ctx context.Context, args ...object.Object) object.Object {
 			numArgs := len(args)
 			if numArgs < 1 {
-				return object.Errorf("type error: color.printf() takes 1 or more arguments (%d given)", len(args))
+				return object.TypeErrorf("type error: color.printf() takes 1 or more arguments (%d given)", len(args))
 			}
 			format, err := object.AsString(args[0])
 			if err != nil {
@@ -130,7 +130,7 @@ func (c *Color) Cost() int {
 }
 
 func (c *Color) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", COLOR, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", COLOR, opType)
 }
 
 func NewColor(v *color.Color) *Color {

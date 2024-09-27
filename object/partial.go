@@ -1,10 +1,10 @@
 package object
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -47,11 +47,11 @@ func (p *Partial) Equals(other Object) Object {
 }
 
 func (p *Partial) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for nil: %v", opType))
+	return TypeErrorf("type error: unsupported operation for nil: %v", opType)
 }
 
 func (p *Partial) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal partial")
+	return nil, errz.TypeErrorf("type error: unable to marshal partial")
 }
 
 func NewPartial(fn Object, args []Object) *Partial {

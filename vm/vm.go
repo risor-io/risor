@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
@@ -82,7 +83,7 @@ func (vm *VirtualMachine) start(ctx context.Context) error {
 	vm.runMutex.Lock()
 	defer vm.runMutex.Unlock()
 	if vm.running {
-		return errors.New("vm is already running")
+		return fmt.Errorf("vm is already running")
 	}
 	vm.running = true
 	// Halt execution when the context is cancelled
@@ -201,7 +202,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return fmt.Errorf("exec error: attribute %q not found on %s object",
+				return errz.TypeErrorf("type error: attribute %q not found on %s object",
 					name, obj.Type())
 			}
 			switch value := value.(type) {
@@ -254,7 +255,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				case *object.Cell:
 					free[freeCount-i-1] = obj
 				default:
-					return errors.New("exec error: expected cell")
+					return errz.EvalErrorf("eval error: expected cell")
 				}
 			}
 			fn := vm.activeCode.Constants[constIndex].(*object.Function)
@@ -264,7 +265,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			framesBack := int(vm.fetch())
 			frameIndex := vm.fp - framesBack
 			if frameIndex < 0 {
-				return fmt.Errorf("exec error: no frame at depth %d", framesBack)
+				return errz.EvalErrorf("eval error: no frame at depth %d", framesBack)
 			}
 			frame := &vm.frames[frameIndex]
 			locals := frame.CaptureLocals()
@@ -279,19 +280,32 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			opType := op.CompareOpType(vm.fetch())
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(object.Compare(opType, a, b))
+			result, err := object.Compare(opType, a, b)
+			if err != nil {
+				return err
+			}
+			vm.push(result)
 		case op.BinaryOp:
 			opType := op.BinaryOpType(vm.fetch())
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(object.BinaryOp(opType, a, b))
+			result, err := object.BinaryOp(opType, a, b)
+			if err != nil {
+				return err
+			}
+			vm.push(result)
 		case op.Call:
 			argc := int(vm.fetch())
+			if argc > MaxArgs {
+				return errz.EvalErrorf("eval error: max args limit of %d exceeded (got %d)",
+					MaxArgs, argc)
+			}
+			args := make([]object.Object, argc)
 			for argIndex := argc - 1; argIndex >= 0; argIndex-- {
-				vm.tmp[argIndex] = vm.pop()
+				args[argIndex] = vm.pop()
 			}
 			obj := vm.pop()
-			if err := vm.callObject(ctx, obj, vm.tmp[:argc]); err != nil {
+			if err := vm.callObject(ctx, obj, args); err != nil {
 				return err
 			}
 		case op.Partial:
@@ -362,7 +376,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			lhs := vm.pop()
 			container, ok := lhs.(object.Container)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)", lhs.Type())
+				return errz.TypeErrorf("type error: object is not a container (got %s)", lhs.Type())
 			}
 			result, err := container.GetItem(idx)
 			if err != nil {
@@ -375,7 +389,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			rhs := vm.pop()
 			container, ok := lhs.(object.Container)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)", lhs.Type())
+				return errz.TypeErrorf("type error: object is not a container (got %s)", lhs.Type())
 			}
 			if err := container.SetItem(idx, rhs); err != nil {
 				return err.Value()
@@ -388,7 +402,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			case *object.Float:
 				vm.push(object.NewFloat(-obj.Value()))
 			default:
-				return fmt.Errorf("type error: object is not a number (got %s)", obj.Type())
+				return errz.TypeErrorf("type error: object is not a number (got %s)", obj.Type())
 			}
 		case op.UnaryNot:
 			obj := vm.pop()
@@ -408,7 +422,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				}
 				vm.push(value)
 			} else {
-				return fmt.Errorf("type error: object is not a container (got %s)",
+				return errz.TypeErrorf("type error: object is not a container (got %s)",
 					containerObj.Type())
 			}
 		case op.Swap:
@@ -421,7 +435,10 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				obj := vm.pop()
 				switch obj := obj.(type) {
 				case *object.Error:
-					return obj.Value() // TODO: review this
+					if obj.IsRaised() {
+						return obj.Value()
+					}
+					items[dst] = obj.Value().Error()
 				case *object.String:
 					items[dst] = obj.Value()
 				default:
@@ -433,7 +450,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			iterableObj := vm.pop()
 			iterable, ok := iterableObj.(object.Iterable)
 			if !ok {
-				return fmt.Errorf("type error: object is not an iterable (got %s)",
+				return errz.TypeErrorf("type error: object is not an iterable (got %s)",
 					iterableObj.Type())
 			}
 			vm.push(iterable.Iter())
@@ -443,7 +460,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			containerObj := vm.pop()
 			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)",
+				return errz.TypeErrorf("type error: object is not a container (got %s)",
 					containerObj.Type())
 			}
 			slice := object.Slice{Start: start, Stop: stop}
@@ -456,7 +473,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			containerObj := vm.pop()
 			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)",
+				return errz.TypeErrorf("type error: object is not a container (got %s)",
 					containerObj.Type())
 			}
 			vm.push(container.Len())
@@ -466,7 +483,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.Import:
 			name, ok := vm.pop().(*object.String)
 			if !ok {
-				return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
+				return errz.TypeErrorf("type error: object is not a string (got %s)", name.Type())
 			}
 			module, err := vm.importModule(ctx, name.Value())
 			if err != nil {
@@ -477,13 +494,13 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			parentLen := vm.fetch()
 			importsCount := vm.fetch()
 			if importsCount > 255 {
-				return fmt.Errorf("exec error: invalid imports count: %d", importsCount)
+				return errz.EvalErrorf("eval error: invalid imports count: %d", importsCount)
 			}
 			var names []string
 			for i := uint16(0); i < importsCount; i++ {
 				name, ok := vm.pop().(*object.String)
 				if !ok {
-					return fmt.Errorf("type error: object is not a string (got %s)", name.Type())
+					return errz.TypeErrorf("type error: object is not a string (got %s)", name.Type())
 				}
 				names = append(names, name.Value())
 			}
@@ -491,7 +508,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			for i := int(parentLen - 1); i >= 0; i-- {
 				val, ok := vm.pop().(*object.String)
 				if !ok {
-					return fmt.Errorf("type error: object is not a string (got %s)", val.Type())
+					return errz.TypeErrorf("type error: object is not a string (got %s)", val.Type())
 				}
 				from[i] = val.Value()
 			}
@@ -521,13 +538,12 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			nameCount := int64(vm.fetch())
 			container, ok := containerObj.(object.Container)
 			if !ok {
-				return fmt.Errorf("type error: object is not a container (got %s)",
+				return errz.TypeErrorf("type error: object is not a container (got %s)",
 					containerObj.Type())
 			}
 			containerSize := container.Len().Value()
 			if containerSize != nameCount {
-				return fmt.Errorf("exec error: unpack count mismatch: %d != %d",
-					containerSize, nameCount)
+				return fmt.Errorf("unpack count mismatch: %d != %d", containerSize, nameCount)
 			}
 			iter := container.Iter()
 			for {
@@ -545,7 +561,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			case object.Iterator:
 				vm.push(obj)
 			default:
-				return fmt.Errorf("type error: object is not iterable (got %s)", obj.Type())
+				return errz.TypeErrorf("type error: object is not iterable (got %s)", obj.Type())
 			}
 		case op.ForIter:
 			base := vm.ip - 1
@@ -563,14 +579,14 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 					vm.push(obj.Value())
 					vm.push(obj.Key())
 				} else if nameCount != 0 {
-					return fmt.Errorf("exec error: invalid iteration")
+					return errz.EvalErrorf("eval error: invalid iteration")
 				}
 			}
 		case op.Go:
 			obj := vm.pop()
 			partial, ok := obj.(*object.Partial)
 			if !ok {
-				return fmt.Errorf("type error: object is not a partial (got %s)", obj.Type())
+				return errz.TypeErrorf("type error: object is not a partial (got %s)", obj.Type())
 			}
 			if _, err := object.Spawn(ctx, partial.Function(), partial.Args()); err != nil {
 				return err
@@ -579,7 +595,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			obj := vm.pop()
 			partial, ok := obj.(*object.Partial)
 			if !ok {
-				return fmt.Errorf("type error: object is not a partial (got %s)", obj.Type())
+				return errz.TypeErrorf("type error: object is not a partial (got %s)", obj.Type())
 			}
 			vm.activeFrame.Defer(partial)
 		case op.Send:
@@ -587,7 +603,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			channel := vm.pop()
 			ch, ok := channel.(*object.Chan)
 			if !ok {
-				return fmt.Errorf("type error: object is not a channel (got %s)", channel.Type())
+				return errz.TypeErrorf("type error: object is not a channel (got %s)", channel.Type())
 			}
 			if err := ch.Send(ctx, value); err != nil {
 				return err
@@ -596,7 +612,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			channel := vm.pop()
 			ch, ok := channel.(*object.Chan)
 			if !ok {
-				return fmt.Errorf("type error: object is not a channel (got %s)", channel.Type())
+				return errz.TypeErrorf("type error: object is not a channel (got %s)", channel.Type())
 			}
 			value, err := ch.Receive(ctx)
 			if err != nil {
@@ -606,7 +622,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 		case op.Halt:
 			return nil
 		default:
-			return fmt.Errorf("exec error: unknown opcode: %d", opcode)
+			return errz.EvalErrorf("eval error: unknown opcode: %d", opcode)
 		}
 	}
 	return nil
@@ -700,7 +716,7 @@ func (vm *VirtualMachine) callFunction(
 	argc := len(args)
 
 	if argc > MaxArgs {
-		return nil, fmt.Errorf("exec error: max args limit of %d exceeded (got %d)",
+		return nil, errz.EvalErrorf("eval error: max args limit of %d exceeded (got %d)",
 			MaxArgs, argc)
 	}
 	if err := checkCallArgs(fn, argc); err != nil {
@@ -778,7 +794,7 @@ func (vm *VirtualMachine) callObject(
 		return nil
 	case object.Callable:
 		result := fn.Call(ctx, args...)
-		if err, ok := result.(*object.Error); ok {
+		if err, ok := result.(*object.Error); ok && err.IsRaised() {
 			return err.Value()
 		}
 		vm.push(result)
@@ -788,15 +804,16 @@ func (vm *VirtualMachine) callObject(
 		argc := len(args)
 		expandedCount := argc + len(fn.Args())
 		if expandedCount > MaxArgs {
-			return fmt.Errorf("exec error: max arguments limit of %d exceeded (got %d)",
+			return errz.EvalErrorf("eval error: max arguments limit of %d exceeded (got %d)",
 				MaxArgs, expandedCount)
 		}
-		copy(vm.tmp[:argc], args)
-		copy(vm.tmp[argc:], fn.Args())
+		newArgs := make([]object.Object, expandedCount)
+		copy(newArgs[:argc], args)
+		copy(newArgs[argc:], fn.Args())
 		// Recursive call with the wrapped function and the combined args
-		return vm.callObject(ctx, fn.Function(), vm.tmp[:expandedCount])
+		return vm.callObject(ctx, fn.Function(), newArgs)
 	default:
-		return fmt.Errorf("type error: object is not callable (got %s)", fn.Type())
+		return errz.TypeErrorf("type error: object is not callable (got %s)", fn.Type())
 	}
 }
 
@@ -889,7 +906,7 @@ func (vm *VirtualMachine) importModule(ctx context.Context, name string) (*objec
 		return module, nil
 	}
 	if vm.importer == nil {
-		return nil, fmt.Errorf("exec error: imports are disabled")
+		return nil, fmt.Errorf("imports are disabled")
 	}
 	module, err := vm.importer.Import(ctx, name)
 	if err != nil {

@@ -75,7 +75,7 @@ func (t *GoType) IsTruthy() bool {
 }
 
 func (t *GoType) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return Errorf("type error: unsupported operation on go_type (%s)", opType)
+	return TypeErrorf("type error: unsupported operation on go_type (%s)", opType)
 }
 
 func (t *GoType) Name() string {

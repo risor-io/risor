@@ -3,6 +3,7 @@ package object
 import (
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -54,7 +55,7 @@ func (e *Entry) GetAttr(name string) (Object, bool) {
 }
 
 func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for entry: %v", opType))
+	return TypeErrorf("type error: unsupported operation for entry: %v", opType)
 }
 
 func (e *Entry) Key() Object {
@@ -83,7 +84,7 @@ func (e *Entry) WithValueAsPrimary() *Entry {
 }
 
 func (e *Entry) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal entry")
+	return nil, errz.TypeErrorf("type error: unable to marshal entry")
 }
 
 func NewEntry(key, value Object) *Entry {

@@ -28,7 +28,7 @@ func TestRequire(t *testing.T) {
 		},
 	)
 	require.NotNil(t, err)
-	require.Equal(t, "type error: foo() takes exactly 1 argument (3 given)",
+	require.Equal(t, "args error: foo() takes exactly 1 argument (3 given)",
 		err.Message().Value())
 
 	err = arg.Require(
@@ -37,7 +37,7 @@ func TestRequire(t *testing.T) {
 		[]object.Object{object.NewInt(1)},
 	)
 	require.NotNil(t, err)
-	require.Equal(t, "type error: bar() takes exactly 2 arguments (1 given)",
+	require.Equal(t, "args error: bar() takes exactly 2 arguments (1 given)",
 		err.Message().Value())
 }
 
@@ -64,7 +64,7 @@ func TestRequireRange(t *testing.T) {
 		},
 	)
 	require.NotNil(t, err)
-	require.Equal(t, "type error: foo() takes at most 3 arguments (4 given)",
+	require.Equal(t, "args error: foo() takes at most 3 arguments (4 given)",
 		err.Message().Value())
 
 	err = arg.RequireRange(
@@ -74,6 +74,6 @@ func TestRequireRange(t *testing.T) {
 		[]object.Object{},
 	)
 	require.NotNil(t, err)
-	require.Equal(t, "type error: foo() takes at least 1 argument (0 given)",
+	require.Equal(t, "args error: foo() takes at least 1 argument (0 given)",
 		err.Message().Value())
 }

@@ -2,10 +2,12 @@ package vm
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
@@ -606,7 +608,7 @@ func TestRecursiveExample2(t *testing.T) {
 func TestConstant(t *testing.T) {
 	_, err := run(context.Background(), `const x = 1; x = 2`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"x\"", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"x\" (line 1)", err.Error())
 }
 
 func TestConstantFunction(t *testing.T) {
@@ -615,7 +617,7 @@ func TestConstantFunction(t *testing.T) {
 	add = "bloop"
 	`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"add\"", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"add\" (line 3)", err.Error())
 }
 
 func TestStatementsNilValue(t *testing.T) {
@@ -838,15 +840,16 @@ func TestTry(t *testing.T) {
 		{`try(1)`, object.NewInt(1)},
 		{`try(1, 2)`, object.NewInt(1)},
 		{`try(func() { error("oops") }, "nope")`, object.NewString("nope")},
-		{`try(func() { error("oops") }, func() { error("oops") })`, object.Nil},
+		{`try(func() { error("oops") }, func(e) { e })`, object.Errorf("oops").WithRaised(false)},
+		{`try(func() { error("oops") }, func(e) { e.error() })`, object.NewString("oops")},
 		{`try(func() { error("oops") }, func() { error("oops") }, 1)`, object.NewInt(1)},
 		{`x := 0; y := 0; z := try(func() {
 			x = 11
-			error("oops")
+			error("oops1")
 			x = 12
 		  }, func() {
 			y = 21
-			error("oops")
+			error("oops2")
 			y = 22
 		  }, 33); [x, y, z]`, object.NewList([]object.Object{
 			object.NewInt(11),
@@ -855,6 +858,160 @@ func TestTry(t *testing.T) {
 		})},
 	}
 	runTests(t, tests)
+}
+
+func TestTryEvalError(t *testing.T) {
+	code := `
+	try(func() { error(errors.eval_error("oops")) }, 1)
+	`
+	_, err := run(context.Background(), code)
+	require.NotNil(t, err)
+	require.Equal(t, "oops", err.Error())
+	require.Equal(t, errz.EvalErrorf("oops"), err)
+}
+
+func TestTryTypeError(t *testing.T) {
+	code := `
+	i := 0
+	try(func() { i.append("x") }, func(e) { e.message() })
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("type error: attribute \"append\" not found on int object"), result)
+}
+
+func TestTryUnsupportedOperation(t *testing.T) {
+	code := `
+	i := []
+	try(func() { i + 3 }, func(e) { e.message() })
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("type error: unsupported operation for list: + on type int"), result)
+}
+
+func TestTryWithErrorValues(t *testing.T) {
+	code := `
+	const myerr = errors.new("errno == 1")
+	try(func() {
+		print("testing 1 2 3")
+		error(myerr)
+	}, func(e) {
+		return e == myerr ? "YES" : "NO"
+	})`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("YES"), result)
+}
+
+func TestTryWithLoop(t *testing.T) {
+	code := `
+	result := []
+	for i := 0; i < 5; i++ {
+		value := try(
+			func() { if i % 2 == 0 { error("Even number") } else { return i } },
+			func(e) { return e.message() }
+		)
+		result.append(value)
+	}
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewString("Even number"),
+		object.NewInt(1),
+		object.NewString("Even number"),
+		object.NewInt(3),
+		object.NewString("Even number"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestTryWithClosure(t *testing.T) {
+	code := `
+	func makeCounter() {
+		count := 0
+		return func() {
+			count++
+			if count > 3 {
+				error("Count exceeded")
+			}
+			return count
+		}
+	}
+	counter := makeCounter()
+	result := []
+	for i := 0; i < 5; i++ {
+		value := try(counter, func(e) { return e.message() })
+		result.append(value)
+	}
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+		object.NewString("Count exceeded"),
+		object.NewString("Count exceeded"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestTryWithDefer(t *testing.T) {
+	code := `
+	result := []
+	func operation() {
+		try(
+			func() {
+				defer result.append("deferred")
+				result.append("start")
+				error("operation failed")
+			},
+			func(e) { result.append("caught: " + e.message()) }
+		)
+	}
+	operation()
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewString("start"),
+		object.NewString("deferred"),
+		object.NewString("caught: operation failed"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestDeferWithError(t *testing.T) {
+	code := `
+	func operation() {
+		defer func() {
+			error("AGH")
+		}()
+	}
+	operation()
+	`
+	_, err := run(context.Background(), code)
+	require.Error(t, err)
+	require.Equal(t, fmt.Errorf("AGH"), err)
+}
+
+func TestStringTemplateWithRaisedError(t *testing.T) {
+	code := "'the err string is: {error(`oops`)}. sad!'"
+	_, err := run(context.Background(), code)
+	require.NotNil(t, err)
+	require.Equal(t, "oops", err.Error())
+}
+
+func TestStringTemplateWithNonRaisedError(t *testing.T) {
+	code := "'the err string is: {errors.new(`oops`)}. sad!'"
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("the err string is: oops. sad!"), result)
 }
 
 func TestMultiVarAssignment(t *testing.T) {
@@ -1235,14 +1392,14 @@ func TestIncorrectArgCount(t *testing.T) {
 		expectedErr string
 	}
 	tests := []testCase{
-		{`func ex() { 1 }; ex(1)`, "type error: function takes no arguments (1 given)"},
-		{`func ex(x) { x }; ex()`, "type error: function takes 1 argument (0 given)"},
-		{`func ex(x) { x }; ex(1, 2)`, "type error: function takes 1 argument (2 given)"},
-		{`func ex(x, y) { 1 }; ex()`, "type error: function takes 2 arguments (0 given)"},
-		{`func ex(x, y) { 1 }; ex(0)`, "type error: function takes 2 arguments (1 given)"},
-		{`func ex(x, y) { 1 }; ex(1, 2, 3)`, "type error: function takes 2 arguments (3 given)"},
-		{`func ex() { 1 }; [1, 2].filter(ex)`, "type error: function takes no arguments (1 given)"},
-		{`func ex() { 1 }; "foo" | ex`, "type error: function takes no arguments (1 given)"},
+		{`func ex() { 1 }; ex(1)`, "args error: function \"ex\" takes 0 arguments (1 given)"},
+		{`func ex(x) { x }; ex()`, "args error: function \"ex\" takes 1 argument (0 given)"},
+		{`func ex(x) { x }; ex(1, 2)`, "args error: function \"ex\" takes 1 argument (2 given)"},
+		{`func ex(x, y) { 1 }; ex()`, "args error: function \"ex\" takes 2 arguments (0 given)"},
+		{`func ex(x, y) { 1 }; ex(0)`, "args error: function \"ex\" takes 2 arguments (1 given)"},
+		{`func ex(x, y) { 1 }; ex(1, 2, 3)`, "args error: function \"ex\" takes 2 arguments (3 given)"},
+		{`func ex() { 1 }; [1, 2].filter(ex)`, "args error: function \"ex\" takes 0 arguments (1 given)"},
+		{`func ex() { 1 }; "foo" | ex`, "args error: function \"ex\" takes 0 arguments (1 given)"},
 		{`"foo" | "bar"`, "type error: object is not callable (got string)"},
 	}
 	for _, tt := range tests {
@@ -1681,7 +1838,7 @@ func TestBadImports(t *testing.T) {
 func TestModifyModule(t *testing.T) {
 	_, err := run(context.Background(), `math.max = 123`)
 	require.Error(t, err)
-	require.Equal(t, "attribute error: cannot modify module attributes", err.Error())
+	require.Equal(t, "type error: cannot modify module attributes", err.Error())
 }
 
 func TestEarlyForRangeReturn(t *testing.T) {
@@ -2003,6 +2160,21 @@ func TestFunctionStack(t *testing.T) {
 	for i := range 1 {
 		try(func() {
 		  42
+		  error("kaboom")
+		})
+	  }
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestFunctionStackNewErr(t *testing.T) {
+	code := `
+	for i := range 1 {
+		try(func() {
+		  42
+		}, func(e) {
 		  error("kaboom")
 		})
 	  }

@@ -77,7 +77,7 @@ func TestSorted(t *testing.T) {
 				object.NewInt(1),
 				object.NewString("nope"),
 			}),
-			object.Errorf("type error: unable to compare string and int"),
+			object.TypeErrorf("type error: unable to compare string and int"),
 		},
 		{
 			object.NewList([]object.Object{
@@ -212,7 +212,7 @@ func TestChunk(t *testing.T) {
 		{
 			object.NewString("wrong"),
 			2,
-			object.Errorf("type error: chunk() expected a list (string given)"),
+			object.TypeErrorf("type error: chunk() expected a list (string given)"),
 		},
 		{
 			object.NewList([]object.Object{}),
@@ -226,4 +226,39 @@ func TestChunk(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestTry(t *testing.T) {
+	okFunc := object.NewBuiltin("ok",
+		func(ctx context.Context, args ...object.Object) object.Object {
+			return object.NewString("ok")
+		})
+
+	errFunc := object.NewBuiltin("err",
+		func(ctx context.Context, args ...object.Object) object.Object {
+			return object.Errorf("kaboom")
+		})
+
+	fatalFunc := object.NewBuiltin("fatal",
+		func(ctx context.Context, args ...object.Object) object.Object {
+			return object.EvalErrorf("fatal explosion")
+		})
+
+	ctx := context.Background()
+	var result object.Object
+
+	result = Try(ctx, okFunc)
+	require.Equal(t, object.NewString("ok"), result)
+
+	result = Try(ctx, errFunc)
+	require.Equal(t, object.Nil, result)
+
+	result = Try(ctx, errFunc, object.NewString("fallback"))
+	require.Equal(t, object.NewString("fallback"), result)
+
+	result = Try(ctx, errFunc, okFunc, errFunc)
+	require.Equal(t, object.NewString("ok"), result)
+
+	result = Try(ctx, errFunc, fatalFunc, okFunc)
+	require.Equal(t, object.EvalErrorf("fatal explosion").WithRaised(true), result)
 }

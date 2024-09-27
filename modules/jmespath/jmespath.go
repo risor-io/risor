@@ -26,7 +26,7 @@ func Jmespath(ctx context.Context, args ...object.Object) object.Object {
 		*object.Set,
 		*object.NilType:
 	default:
-		return object.Errorf("type error: jmespath() cannot operate on %s", args[0].Type())
+		return object.TypeErrorf("type error: jmespath() cannot operate on %s", args[0].Type())
 	}
 
 	data := args[0].Interface()

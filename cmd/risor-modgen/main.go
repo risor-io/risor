@@ -215,12 +215,12 @@ func {{ .FuncGenName }}(ctx context.Context, args ...object.Object) object.Objec
 	{{- if .CastFunc }}
 	{{- if .CastMaxValue }}
 	if {{ .Name }}ParamRaw > {{ .CastMaxValue }} {
-		return object.Errorf("type error: {{ $.Package }}.{{ $func.ExportedName }} argument '{{ .Name }}' (index {{ $index }}) cannot be > %v", {{ .CastMaxValue }})
+		return object.TypeErrorf("type error: {{ $.Package }}.{{ $func.ExportedName }} argument '{{ .Name }}' (index {{ $index }}) cannot be > %v", {{ .CastMaxValue }})
 	}
 	{{- end }}
 	{{- if .CastMinValue }}
 	if {{ .Name }}ParamRaw < {{ .CastMinValue }} {
-		return object.Errorf("type error: {{ $.Package }}.{{ $func.ExportedName }} argument '{{ .Name }}' (index {{ $index }}) cannot be < %v", {{ .CastMinValue }})
+		return object.TypeErrorf("type error: {{ $.Package }}.{{ $func.ExportedName }} argument '{{ .Name }}' (index {{ $index }}) cannot be < %v", {{ .CastMinValue }})
 	}
 	{{- end }}
 	{{ .Name }}Param := {{ .CastFunc }}({{ .Name }}ParamRaw)

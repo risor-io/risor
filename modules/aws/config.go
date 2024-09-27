@@ -5,13 +5,13 @@ package aws
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/risor-io/risor/arg"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -76,7 +76,7 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 }
 
 func (c *Config) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: aws.config object has no attribute %q", name)
+	return object.TypeErrorf("type error: aws.config object has no attribute %q", name)
 }
 
 func (c *Config) Interface() interface{} {
@@ -88,7 +88,7 @@ func (c *Config) String() string {
 }
 
 func (c *Config) Compare(other object.Object) (int, error) {
-	return 0, errors.New("type error: unable to compare aws.config")
+	return 0, errz.TypeErrorf("type error: unable to compare aws.config")
 }
 
 func (c *Config) Equals(other object.Object) object.Object {
@@ -103,7 +103,7 @@ func (c *Config) IsTruthy() bool {
 }
 
 func (c *Config) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for aws.config: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for aws.config: %v ", opType)
 }
 
 func (c *Config) Cost() int {
@@ -111,7 +111,7 @@ func (c *Config) Cost() int {
 }
 
 func (c *Config) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal aws.config")
+	return nil, errz.TypeErrorf("type error: unable to marshal aws.config")
 }
 
 func (c *Config) Region() string {

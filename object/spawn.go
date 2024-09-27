@@ -3,7 +3,8 @@ package object
 import (
 	"context"
 	"errors"
-	"fmt"
+
+	"github.com/risor-io/risor/errz"
 )
 
 type callFuncAdapter struct {
@@ -48,6 +49,6 @@ func Spawn(ctx context.Context, fnObj Object, args []Object) (*Thread, error) {
 		}
 		return obj, nil
 	default:
-		return nil, fmt.Errorf("type error: spawn() expected a function (%s given)", fn.Type())
+		return nil, errz.TypeErrorf("type error: spawn() expected a function (%s given)", fn.Type())
 	}
 }

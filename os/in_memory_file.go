@@ -2,6 +2,7 @@ package os
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -58,6 +59,7 @@ func (f *InMemoryFile) Write(p []byte) (int, error) {
 		f.data = append(f.data, p[n:]...)
 	}
 	f.pos += l
+	fmt.Println("file write", f.data)
 	return l, nil
 }
 

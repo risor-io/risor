@@ -70,7 +70,7 @@ func (f *GoField) IsTruthy() bool {
 }
 
 func (f *GoField) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return Errorf("type error: unsupported operation on go_field (%s)", opType)
+	return TypeErrorf("type error: unsupported operation on go_field (%s)", opType)
 }
 
 func (f *GoField) Converter() (TypeConverter, bool) {
