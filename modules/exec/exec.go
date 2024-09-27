@@ -72,7 +72,6 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 	var wasList bool
 	var program string
 	var optArgs []string
-	fmt.Println("Exec args", args)
 	if list, err := object.AsList(args[0]); err == nil {
 		wasList = true
 		var args []string
@@ -93,7 +92,6 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 		if err != nil {
 			return err
 		}
-		fmt.Println("program", program)
 		if len(args) > 1 {
 			optArgs, err = object.AsStringSlice(args[1])
 			if err != nil {
@@ -133,18 +131,31 @@ func Exec(ctx context.Context, args ...object.Object) object.Object {
 	return NewResult(cmd)
 }
 
+var allowedKeys = map[string]bool{
+	"dir":    true,
+	"stdin":  true,
+	"stdout": true,
+	"stderr": true,
+	"env":    true,
+}
+
 func configureCommand(cmd *exec.Cmd, params *object.Map) error {
+	for key := range params.Value() {
+		if !allowedKeys[key] {
+			return fmt.Errorf("exec found unexpected key %q", key)
+		}
+	}
 	if stdoutObj := params.GetWithDefault("stdout", nil); stdoutObj != nil {
 		stdoutBuf, ok := stdoutObj.(io.Writer)
 		if !ok {
-			return object.Errorf("eval error: exec expected io.Writer for stdout (%T given)", stdoutObj)
+			return fmt.Errorf("exec expected io.Writer for stdout (got %s)", stdoutObj.Type())
 		}
 		cmd.Stdout = stdoutBuf
 	}
 	if stderrObj := params.GetWithDefault("stderr", nil); stderrObj != nil {
 		stderrBuf, ok := stderrObj.(io.Writer)
 		if !ok {
-			return object.Errorf("eval error: exec expected io.Writer for stderr (%T given)", stderrObj)
+			return fmt.Errorf("exec expected io.Writer for stderr (got %s)", stderrObj.Type())
 		}
 		cmd.Stderr = stderrBuf
 	}
@@ -157,26 +168,26 @@ func configureCommand(cmd *exec.Cmd, params *object.Map) error {
 		case io.Reader:
 			cmd.Stdin = stdinObj
 		default:
-			return object.Errorf("eval error: exec expected io.Reader for stdin (%T given)", stdinObj)
+			return fmt.Errorf("exec expected io.Reader for stdin (got %s)", stdinObj.Type())
 		}
 	}
 	if dirObj := params.GetWithDefault("dir", nil); dirObj != nil {
 		dirStr, err := object.AsString(dirObj)
 		if err != nil {
-			return err
+			return fmt.Errorf("exec expected string for dir (got %s)", dirObj.Type())
 		}
 		cmd.Dir = dirStr
 	}
 	if envObj := params.GetWithDefault("env", nil); envObj != nil {
 		envMap, err := object.AsMap(envObj)
 		if err != nil {
-			return err
+			return fmt.Errorf("exec expected map for env (got %s)", envObj.Type())
 		}
 		var env []string
 		for key, value := range envMap.Value() {
 			valueStr, err := object.AsString(value)
 			if err != nil {
-				return err
+				return fmt.Errorf("exec expected string for env value (got %s)", value.Type())
 			}
 			env = append(env, fmt.Sprintf("%s=%s", key, valueStr))
 		}
