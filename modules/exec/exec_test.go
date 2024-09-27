@@ -104,12 +104,11 @@ func TestLookPath(t *testing.T) {
 }
 
 func TestConfigureWithBadMaps(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		name     string
 		params   *object.Map
 		expected string
 	}{
-
 		{
 			name: "stdin",
 			params: object.NewMap(map[string]object.Object{
