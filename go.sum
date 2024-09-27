@@ -23,8 +23,8 @@ github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/risor-io/risor/modules/gha v0.0.0-20240213105055-b1d3a53935e5 h1:Q9cJd70SbEARv9oid6AJVersnnicFciXlPk6wA0u2TI=
-github.com/risor-io/risor/modules/gha v0.0.0-20240213105055-b1d3a53935e5/go.mod h1:yat4QxAd5AZHmHMP9KCfrerw+GA2ZMnLriEV3u1DHlM=
+github.com/risor-io/risor/modules/gha v1.6.1-0.20240927135333-245e7b83abf4 h1:NpNMhq5lOkx2TR1UVGSy8tgQ5xWSJbbU0YdHYaKNDPw=
+github.com/risor-io/risor/modules/gha v1.6.1-0.20240927135333-245e7b83abf4/go.mod h1:NeIKOZddXtDiLQlpF3YPFGmy/T4Ca91ZhpUAYO6QELs=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
