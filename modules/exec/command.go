@@ -144,7 +144,7 @@ func (c *Command) SetAttr(name string, value object.Object) error {
 		}
 		c.value.Stderr = stderr
 	default:
-		return fmt.Errorf("attribute error: exec.command object has no attribute %q", name)
+		return object.TypeErrorf("type error: exec.command object has no attribute %q", name)
 	}
 	return nil
 }
@@ -207,7 +207,7 @@ func (c *Command) IsTruthy() bool {
 }
 
 func (c *Command) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for exec.command: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for exec.command: %v ", opType)
 }
 
 func (c *Command) Cost() int {

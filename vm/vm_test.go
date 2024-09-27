@@ -880,6 +880,16 @@ func TestTryTypeError(t *testing.T) {
 	require.Equal(t, object.NewString("type error: attribute \"append\" not found on int object"), result)
 }
 
+func TestTryUnsupportedOperation(t *testing.T) {
+	code := `
+	i := []
+	try(func() { i + 3 }, func(e) { e.message() })
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("type error: unsupported operation for list: + on type int"), result)
+}
+
 func TestTryWithErrorValues(t *testing.T) {
 	code := `
 	const myerr = errors.new("errno == 1")

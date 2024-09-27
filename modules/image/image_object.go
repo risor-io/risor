@@ -81,7 +81,7 @@ func (img *Image) GetAttr(name string) (object.Object, bool) {
 }
 
 func (img *Image) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: image object has no attribute %q", name)
+	return object.TypeErrorf("type error: image object has no attribute %q", name)
 }
 
 func (img *Image) Interface() interface{} {
@@ -127,7 +127,7 @@ func (img *Image) Dimensions() *object.Map {
 }
 
 func (img *Image) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for image: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for image: %v ", opType)
 }
 
 func (img *Image) Bounds() *object.Map {

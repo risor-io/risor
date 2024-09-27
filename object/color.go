@@ -47,7 +47,7 @@ func (c *Color) GetAttr(name string) (Object, bool) {
 }
 
 func (c *Color) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: color object has no attribute %q", name)
+	return TypeErrorf("type error: color object has no attribute %q", name)
 }
 
 func (c *Color) Interface() interface{} {
@@ -67,7 +67,7 @@ func (c *Color) Equals(other Object) Object {
 }
 
 func (c *Color) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for color: %v ", opType)
+	return TypeErrorf("type error: unsupported operation for color: %v ", opType)
 }
 
 func (c *Color) MarshalJSON() ([]byte, error) {

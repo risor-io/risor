@@ -280,12 +280,20 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			opType := op.CompareOpType(vm.fetch())
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(object.Compare(opType, a, b))
+			result, err := object.Compare(opType, a, b)
+			if err != nil {
+				return err
+			}
+			vm.push(result)
 		case op.BinaryOp:
 			opType := op.BinaryOpType(vm.fetch())
 			b := vm.pop()
 			a := vm.pop()
-			vm.push(object.BinaryOp(opType, a, b))
+			result, err := object.BinaryOp(opType, a, b)
+			if err != nil {
+				return err
+			}
+			vm.push(result)
 		case op.Call:
 			argc := int(vm.fetch())
 			if argc > MaxArgs {

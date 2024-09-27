@@ -89,7 +89,7 @@ func (iter *MapIter) IsTruthy() bool {
 }
 
 func (iter *MapIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for map_iter: %v", opType)
+	return TypeErrorf("type error: unsupported operation for map_iter: %v", opType)
 }
 
 func (iter *MapIter) Next(ctx context.Context) (Object, bool) {

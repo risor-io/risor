@@ -73,7 +73,7 @@ func (d *DirEntry) IsTruthy() bool {
 }
 
 func (d *DirEntry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for dir_entry: %v", opType)
+	return TypeErrorf("type error: unsupported operation for dir_entry: %v", opType)
 }
 
 func (d *DirEntry) Cost() int {

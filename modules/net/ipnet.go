@@ -35,7 +35,7 @@ func (n *IPNet) Inspect() string {
 }
 
 func (n *IPNet) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: cannot set %q on %s object", name, IPNET)
+	return object.TypeErrorf("type error: cannot set %q on %s object", name, IPNET)
 }
 
 func (n *IPNet) GetAttr(name string) (object.Object, bool) {
@@ -91,7 +91,7 @@ func (n *IPNet) Cost() int {
 }
 
 func (n *IPNet) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", IPNET, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", IPNET, opType)
 }
 
 func NewIPNet(v *net.IPNet) *IPNet {

@@ -93,7 +93,7 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 }
 
 func (c *Client) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: aws.client object has no attribute %q", name)
+	return object.TypeErrorf("type error: aws.client object has no attribute %q", name)
 }
 
 func (c *Client) Interface() interface{} {
@@ -120,7 +120,7 @@ func (c *Client) IsTruthy() bool {
 }
 
 func (c *Client) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for aws.client: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for aws.client: %v ", opType)
 }
 
 func (c *Client) Cost() int {

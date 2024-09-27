@@ -112,7 +112,7 @@ func (iter *SliceIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *SliceIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for slice_iter: %v", opType)
+	return TypeErrorf("type error: unsupported operation for slice_iter: %v", opType)
 }
 
 func (iter *SliceIter) MarshalJSON() ([]byte, error) {

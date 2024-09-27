@@ -45,7 +45,7 @@ func (t *Thread) MarshalJSON() ([]byte, error) {
 }
 
 func (t *Thread) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return Errorf("eval error: unsupported operation for %s: %v", THREAD, opType)
+	return TypeErrorf("type error: unsupported operation for %s: %v", THREAD, opType)
 }
 
 func (t *Thread) Equals(other Object) Object {
@@ -53,7 +53,7 @@ func (t *Thread) Equals(other Object) Object {
 }
 
 func (t *Thread) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", THREAD, name)
+	return TypeErrorf("type error: %s object has no attribute %q", THREAD, name)
 }
 
 func (t *Thread) GetAttr(name string) (Object, bool) {
@@ -70,7 +70,7 @@ func (t *Thread) GetAttr(name string) (Object, bool) {
 func (t *Thread) Wait(ctx context.Context) Object {
 	select {
 	case <-ctx.Done():
-		return EvalErrorf("eval error: %s", ctx.Err())
+		return Errorf("wait error: %s", ctx.Err())
 	case <-t.done:
 		return t.result
 	}

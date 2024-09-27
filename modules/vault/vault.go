@@ -5,7 +5,6 @@ package vault
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/hashicorp/vault-client-go"
@@ -47,7 +46,7 @@ func (v *Vault) MarshalJSON() ([]byte, error) {
 }
 
 func (v *Vault) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", VAULT, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", VAULT, opType)
 }
 
 func (v *Vault) Equals(other object.Object) object.Object {
@@ -72,7 +71,7 @@ func (v *Vault) SetAttr(name string, value object.Object) error {
 		}
 		return v.client.SetNamespace(namespace)
 	}
-	return fmt.Errorf("attribute error: %s object has no attribute %q", VAULT, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", VAULT, name)
 }
 
 func (v *Vault) GetAttr(name string) (object.Object, bool) {

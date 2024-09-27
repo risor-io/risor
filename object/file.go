@@ -235,7 +235,7 @@ func (f *File) Equals(other Object) Object {
 }
 
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for file: %v ", opType)
+	return TypeErrorf("type error: unsupported operation for file: %v ", opType)
 }
 
 func (f *File) Cost() int {

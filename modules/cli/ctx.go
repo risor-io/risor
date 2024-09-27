@@ -42,7 +42,7 @@ func (c *Ctx) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Ctx) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", CTX, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", CTX, opType)
 }
 
 func (c *Ctx) Equals(other object.Object) object.Object {
@@ -50,7 +50,7 @@ func (c *Ctx) Equals(other object.Object) object.Object {
 }
 
 func (c *Ctx) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", CTX, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", CTX, name)
 }
 
 func (c *Ctx) GetAttr(name string) (object.Object, bool) {

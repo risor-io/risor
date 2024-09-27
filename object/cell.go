@@ -53,7 +53,7 @@ func (c *Cell) Equals(other Object) Object {
 }
 
 func (c *Cell) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for cell: %v", opType)
+	return TypeErrorf("type error: unsupported operation for cell: %v", opType)
 }
 
 func (c *Cell) MarshalJSON() ([]byte, error) {

@@ -92,7 +92,7 @@ func (m *FileMode) IsTruthy() bool {
 }
 
 func (m *FileMode) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for file_mode: %v", opType)
+	return TypeErrorf("type error: unsupported operation for file_mode: %v", opType)
 }
 
 func (m *FileMode) Cost() int {

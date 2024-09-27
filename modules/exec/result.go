@@ -107,7 +107,7 @@ func (r *Result) IsTruthy() bool {
 }
 
 func (r *Result) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for exec.result: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for exec.result: %v", opType)
 }
 
 func (r *Result) Cost() int {

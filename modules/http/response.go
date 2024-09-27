@@ -38,7 +38,7 @@ func (r *HttpResponse) Inspect() string {
 }
 
 func (r *HttpResponse) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", HTTP_RESPONSE, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", HTTP_RESPONSE, name)
 }
 
 func (r *HttpResponse) GetAttr(name string) (object.Object, bool) {
@@ -183,7 +183,7 @@ func (r *HttpResponse) Equals(other object.Object) object.Object {
 }
 
 func (r *HttpResponse) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for http.response: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for http.response: %v", opType)
 }
 
 func (r *HttpResponse) Cost() int {

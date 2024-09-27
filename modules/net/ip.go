@@ -35,7 +35,7 @@ func (ip *IP) Inspect() string {
 }
 
 func (ip *IP) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: cannot set %q on %s object", name, IPTYPE)
+	return object.TypeErrorf("type error: cannot set %q on %s object", name, IPTYPE)
 }
 
 func (ip *IP) GetAttr(name string) (object.Object, bool) {
@@ -143,7 +143,7 @@ func (ip *IP) Cost() int {
 }
 
 func (ip *IP) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", IPTYPE, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", IPTYPE, opType)
 }
 
 func NewIP(v net.IP) *IP {

@@ -235,7 +235,7 @@ func (b *ByteSlice) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return b.runOperationString(opType, right)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -247,7 +247,7 @@ func (b *ByteSlice) runOperationBytes(opType op.BinaryOpType, right *ByteSlice) 
 		copy(result[len(b.value):], right.value)
 		return NewByteSlice(result)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -260,7 +260,7 @@ func (b *ByteSlice) runOperationString(opType op.BinaryOpType, right *String) Ob
 		copy(result[len(b.value):], rightBytes)
 		return NewByteSlice(result)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 

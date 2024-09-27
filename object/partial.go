@@ -47,7 +47,7 @@ func (p *Partial) Equals(other Object) Object {
 }
 
 func (p *Partial) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for nil: %v", opType)
+	return TypeErrorf("type error: unsupported operation for nil: %v", opType)
 }
 
 func (p *Partial) MarshalJSON() ([]byte, error) {

@@ -52,7 +52,7 @@ func (db *DB) MarshalJSON() ([]byte, error) {
 }
 
 func (db *DB) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", DB_CONN, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", DB_CONN, opType)
 }
 
 func (db *DB) Equals(other object.Object) object.Object {
@@ -63,7 +63,7 @@ func (db *DB) Equals(other object.Object) object.Object {
 }
 
 func (db *DB) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", DB_CONN, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", DB_CONN, name)
 }
 
 func (db *DB) GetAttr(name string) (object.Object, bool) {

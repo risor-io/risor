@@ -69,7 +69,7 @@ func (b *Bool) IsTruthy() bool {
 }
 
 func (b *Bool) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for bool: %v", opType)
+	return TypeErrorf("type error: unsupported operation for bool: %v", opType)
 }
 
 func (b *Bool) MarshalJSON() ([]byte, error) {

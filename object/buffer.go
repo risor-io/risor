@@ -58,7 +58,7 @@ func (b *Buffer) IsTruthy() bool {
 }
 
 func (b *Buffer) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: buffer object has no attribute %q", name)
+	return TypeErrorf("type error: buffer object has no attribute %q", name)
 }
 
 func (b *Buffer) GetAttr(name string) (Object, bool) {
@@ -197,7 +197,7 @@ func (b *Buffer) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *ByteSlice:
 		return b.runOperationByteSlice(opType, right)
 	default:
-		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -209,7 +209,7 @@ func (b *Buffer) runOperationBytes(opType op.BinaryOpType, right *Buffer) Object
 		}
 		return Nil
 	default:
-		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -221,7 +221,7 @@ func (b *Buffer) runOperationByteSlice(opType op.BinaryOpType, right *ByteSlice)
 		}
 		return Nil
 	default:
-		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -233,7 +233,7 @@ func (b *Buffer) runOperationString(opType op.BinaryOpType, right *String) Objec
 		}
 		return Nil
 	default:
-		return EvalErrorf("eval error: unsupported operation for buffer: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for buffer: %v on type %s", opType, right.Type())
 	}
 }
 

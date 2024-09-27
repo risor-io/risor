@@ -103,7 +103,7 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 func (p *Proxy) SetAttr(name string, value Object) error {
 	attr, found := p.typ.GetAttribute(name)
 	if !found {
-		return fmt.Errorf("attribute error: %s has no attribute %s", p.typ.Name(), name)
+		return errz.TypeErrorf("type error: %s has no attribute %s", p.typ.Name(), name)
 	}
 	switch attr := attr.(type) {
 	case *GoField:
@@ -132,9 +132,9 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			return errz.TypeErrorf("type error: cannot set field %s", name)
 		}
 	case *GoMethod:
-		return fmt.Errorf("attribute error: cannot set method %s", name)
+		return errz.TypeErrorf("type error: cannot set method %s", name)
 	}
-	return fmt.Errorf("attribute error: unknown attribute type")
+	return errz.TypeErrorf("type error: unknown attribute type")
 }
 
 func (p *Proxy) Equals(other Object) Object {
@@ -145,7 +145,7 @@ func (p *Proxy) Equals(other Object) Object {
 }
 
 func (p *Proxy) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for proxy: %v", opType)
+	return TypeErrorf("type error: unsupported operation for proxy: %v", opType)
 }
 
 func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
@@ -166,7 +166,7 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 	}
 	if !inputs[0].IsValid() || inputs[0].IsZero() {
-		return EvalErrorf("eval error: unable to call method %s on %s (check pointer receiver)",
+		return TypeErrorf("type error: unable to call method %s on %s (check pointer receiver)",
 			methodName, p.typ.Name())
 	}
 	minArgs := numIn

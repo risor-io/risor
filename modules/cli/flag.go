@@ -42,7 +42,7 @@ func (f *Flag) MarshalJSON() ([]byte, error) {
 }
 
 func (f *Flag) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", FLAG, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", FLAG, opType)
 }
 
 func (f *Flag) Equals(other object.Object) object.Object {

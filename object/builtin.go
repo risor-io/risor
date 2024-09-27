@@ -112,7 +112,7 @@ func (b *Builtin) Equals(other Object) Object {
 }
 
 func (b *Builtin) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for builtin: %v", opType)
+	return TypeErrorf("type error: unsupported operation for builtin: %v", opType)
 }
 
 func (b *Builtin) MarshalJSON() ([]byte, error) {

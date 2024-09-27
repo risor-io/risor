@@ -2,7 +2,6 @@ package template
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"text/template"
 
@@ -43,7 +42,7 @@ func (t *Template) MarshalJSON() ([]byte, error) {
 }
 
 func (db *Template) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", TEMPLATE, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", TEMPLATE, opType)
 }
 
 func (t *Template) Equals(other object.Object) object.Object {
@@ -55,7 +54,7 @@ func (t *Template) Equals(other object.Object) object.Object {
 }
 
 func (db *Template) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", TEMPLATE, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", TEMPLATE, name)
 }
 
 func (t *Template) GetAttr(name string) (object.Object, bool) {

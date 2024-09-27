@@ -243,7 +243,7 @@ func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return s.runOperationString(opType, right)
 	default:
-		return EvalErrorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for string: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -252,7 +252,7 @@ func (s *String) runOperationString(opType op.BinaryOpType, right *String) Objec
 	case op.Add:
 		return NewString(s.value + right.value)
 	default:
-		return EvalErrorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for string: %v on type %s", opType, right.Type())
 	}
 }
 

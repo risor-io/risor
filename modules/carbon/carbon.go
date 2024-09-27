@@ -35,7 +35,7 @@ func (c *Carbon) Inspect() string {
 }
 
 func (c *Carbon) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: cannot set %q on %s object", name, CARBON)
+	return object.TypeErrorf("type error: cannot set %q on %s object", name, CARBON)
 }
 
 func (c *Carbon) GetAttr(name string) (object.Object, bool) {
@@ -295,7 +295,7 @@ func (c *Carbon) Cost() int {
 }
 
 func (c *Carbon) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for %s: %v", CARBON, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", CARBON, opType)
 }
 
 func NewCarbon(v carbon.Carbon) *Carbon {

@@ -76,7 +76,7 @@ func (c *Config) GetAttr(name string) (object.Object, bool) {
 }
 
 func (c *Config) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: aws.config object has no attribute %q", name)
+	return object.TypeErrorf("type error: aws.config object has no attribute %q", name)
 }
 
 func (c *Config) Interface() interface{} {
@@ -103,7 +103,7 @@ func (c *Config) IsTruthy() bool {
 }
 
 func (c *Config) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for aws.config: %v ", opType)
+	return object.TypeErrorf("type error: unsupported operation for aws.config: %v ", opType)
 }
 
 func (c *Config) Cost() int {

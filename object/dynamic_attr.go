@@ -45,7 +45,7 @@ func (d *DynamicAttr) IsTruthy() bool {
 }
 
 func (d *DynamicAttr) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for dynamic_attr: %v", opType)
+	return TypeErrorf("type error: unsupported operation for dynamic_attr: %v", opType)
 }
 
 func (d *DynamicAttr) MarshalJSON() ([]byte, error) {

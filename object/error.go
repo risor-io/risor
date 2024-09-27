@@ -109,7 +109,7 @@ func (e *Error) Unwrap() error {
 }
 
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for error: %v", opType)
+	return TypeErrorf("type error: unsupported operation for error: %v", opType)
 }
 
 func Errorf(format string, a ...interface{}) *Error {

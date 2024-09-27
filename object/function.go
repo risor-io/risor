@@ -91,7 +91,7 @@ func (f *Function) GetAttr(name string) (Object, bool) {
 }
 
 func (f *Function) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for function: %v", opType)
+	return TypeErrorf("type error: unsupported operation for function: %v", opType)
 }
 
 func (f *Function) Equals(other Object) Object {

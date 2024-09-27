@@ -69,7 +69,7 @@ func (f *FileInfo) IsTruthy() bool {
 }
 
 func (f *FileInfo) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for file_info: %v", opType)
+	return TypeErrorf("type error: unsupported operation for file_info: %v", opType)
 }
 
 func (f *FileInfo) Cost() int {

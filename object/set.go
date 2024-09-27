@@ -268,7 +268,7 @@ func (s *Set) IsTruthy() bool {
 }
 
 func (s *Set) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for set: %v", opType)
+	return TypeErrorf("type error: unsupported operation for set: %v", opType)
 }
 
 // Len returns the number of items in this container.

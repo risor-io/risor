@@ -88,7 +88,7 @@ func (iter *IntIter) IsTruthy() bool {
 }
 
 func (iter *IntIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for int_iter: %v", opType)
+	return TypeErrorf("type error: unsupported operation for int_iter: %v", opType)
 }
 
 func (iter *IntIter) Next(ctx context.Context) (Object, bool) {

@@ -55,7 +55,7 @@ func (e *Entry) GetAttr(name string) (Object, bool) {
 }
 
 func (e *Entry) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for entry: %v", opType)
+	return TypeErrorf("type error: unsupported operation for entry: %v", opType)
 }
 
 func (e *Entry) Key() Object {

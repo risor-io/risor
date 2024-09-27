@@ -320,7 +320,7 @@ func (m *Map) Equals(other Object) Object {
 }
 
 func (m *Map) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for map: %v", opType)
+	return TypeErrorf("type error: unsupported operation for map: %v", opType)
 }
 
 func (m *Map) GetItem(key Object) (Object, *Error) {
@@ -337,7 +337,7 @@ func (m *Map) GetItem(key Object) (Object, *Error) {
 
 // GetSlice implements the [start:stop] operator for a container type.
 func (m *Map) GetSlice(s Slice) (Object, *Error) {
-	return nil, EvalErrorf("map does not support slice operations")
+	return nil, TypeErrorf("map does not support slice operations")
 }
 
 // SetItem assigns a value to the given key in the map.

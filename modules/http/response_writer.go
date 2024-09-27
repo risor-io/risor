@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/risor-io/risor/arg"
@@ -30,7 +29,7 @@ func (w *ResponseWriter) Inspect() string {
 }
 
 func (w *ResponseWriter) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: %s object has no attribute %q", RESPONSE_WRITER, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", RESPONSE_WRITER, name)
 }
 
 func (w *ResponseWriter) GetAttr(name string) (object.Object, bool) {
@@ -103,7 +102,7 @@ func (w *ResponseWriter) Equals(other object.Object) object.Object {
 }
 
 func (w *ResponseWriter) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.EvalErrorf("eval error: unsupported operation for http.response: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for http.response: %v", opType)
 }
 
 func (w *ResponseWriter) Cost() int {

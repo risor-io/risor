@@ -51,7 +51,7 @@ func (m *Module) SetAttr(name string, value Object) error {
 // with a value of nil is equivalent to deleting the attribute.
 func (m *Module) Override(name string, value Object) error {
 	if name == "__name__" {
-		return fmt.Errorf("attribute error: cannot override attribute %q", name)
+		return TypeErrorf("type error: cannot override attribute %q", name)
 	}
 	if _, found := m.builtins[name]; found {
 		if value == nil {
@@ -69,7 +69,7 @@ func (m *Module) Override(name string, value Object) error {
 		m.globals[index] = value
 		return nil
 	}
-	return fmt.Errorf("attribute error: module has no attribute %q", name)
+	return TypeErrorf("type error: module has no attribute %q", name)
 }
 
 func (m *Module) Interface() interface{} {
@@ -103,7 +103,7 @@ func (m *Module) Compare(other Object) (int, error) {
 }
 
 func (m *Module) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return EvalErrorf("eval error: unsupported operation for module: %v", opType)
+	return TypeErrorf("type error: unsupported operation for module: %v", opType)
 }
 
 func (m *Module) Equals(other Object) Object {

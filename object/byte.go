@@ -102,7 +102,7 @@ func (b *Byte) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *Float:
 		return b.runOperationFloat(opType, right.value)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte: %v on type %s", opType, right.Type())
+		return TypeErrorf("type error: unsupported operation for byte: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -131,7 +131,7 @@ func (b *Byte) runOperationByte(opType op.BinaryOpType, right byte) Object {
 	case op.BitwiseOr:
 		return NewByte(b.value | right)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte: %v on type byte", opType)
+		return TypeErrorf("type error: unsupported operation for byte: %v on type byte", opType)
 	}
 }
 
@@ -160,7 +160,7 @@ func (b *Byte) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	case op.BitwiseOr:
 		return NewInt(int64(b.value) | right)
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte: %v on type int", opType)
+		return TypeErrorf("type error: unsupported operation for byte: %v on type int", opType)
 	}
 }
 
@@ -177,7 +177,7 @@ func (b *Byte) runOperationFloat(opType op.BinaryOpType, right float64) Object {
 	case op.Power:
 		return NewFloat(math.Pow(float64(b.value), right))
 	default:
-		return EvalErrorf("eval error: unsupported operation for byte: %v on type float", opType)
+		return TypeErrorf("type error: unsupported operation for byte: %v on type float", opType)
 	}
 }
 
