@@ -1297,6 +1297,11 @@ func (p *Parser) parseNodeList(end token.Type) []ast.Node {
 		}
 		list = append(list, p.parseNode(LOWEST))
 	}
+	for p.peekTokenIs(token.NEWLINE) {
+		if err := p.nextToken(); err != nil {
+			return nil
+		}
+	}
 	if !p.expectPeek("a node list", end) {
 		return nil
 	}
