@@ -22,7 +22,7 @@ exec(name string, args []string, opts map) result
 
 This provides a shorthand way to build and run a command. The function returns a
 `result` object containing the stdout and stderr produced by running the command.
-The `args` and `opts` arguments are optional.
+The `opts` argument is optional.
 
 ```go copy filename="Example"
 >>> exec(["echo", "TEST"]).stdout
