@@ -7,7 +7,14 @@ shell, expand glob patterns, or handle other shell features.
 
 ## Callable
 
-The `exec` module itself is callable with the following signature:
+The `exec` module itself is callable, using one of two signatures. The preferred
+form is now:
+
+```go filename="Function signature"
+exec(args []string, opts map) result
+```
+
+The old form that is still supported for backwards compatibility is:
 
 ```go filename="Function signature"
 exec(name string, args []string, opts map) result
@@ -15,10 +22,10 @@ exec(name string, args []string, opts map) result
 
 This provides a shorthand way to build and run a command. The function returns a
 `result` object containing the stdout and stderr produced by running the command.
-The `args` and `opts` arguments are optional.
+The `opts` argument is optional.
 
 ```go copy filename="Example"
->>> exec("echo", ["TEST"]).stdout
+>>> exec(["echo", "TEST"]).stdout
 byte_slice("TEST\n")
 ```
 
@@ -36,6 +43,14 @@ The `opts` argument may be a map containing any of the following keys:
 
 ### command
 
+Two signatures are supported for the `command` function. The preferred form is now:
+
+```go filename="Function signature"
+command(args []string) command
+```
+
+The old form that is still supported for backwards compatibility is:
+
 ```go filename="Function signature"
 command(name string, args ...string) command
 ```
@@ -46,7 +61,7 @@ Before the command is run, its `path`, `dir`, and `env` attributes may be set.
 Read more about the [command](#command-1) type below.
 
 ```go copy filename="Example"
->>> exec.command("echo", "TEST").output()
+>>> exec.command(["echo", "TEST"]).output()
 byte_slice("TEST\n")
 ```
 

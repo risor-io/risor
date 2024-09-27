@@ -2198,6 +2198,20 @@ func TestMultivar(t *testing.T) {
 	}), result)
 }
 
+func TestExecWithDir(t *testing.T) {
+	code := `exec(["cat", "jabberwocky.txt"], {dir: "fixtures"}).stdout.split("\n")[0]`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
+}
+
+func TestExecOldWayWithDir(t *testing.T) {
+	code := `exec("cat", ["jabberwocky.txt"], {dir: "fixtures"}).stdout.split("\n")[0]`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
