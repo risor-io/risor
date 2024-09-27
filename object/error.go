@@ -100,6 +100,14 @@ func (e *Error) IsRaised() bool {
 	return e.raised
 }
 
+func (e *Error) Error() string {
+	return e.err.Error()
+}
+
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
 	return EvalErrorf("eval error: unsupported operation for error: %v", opType)
 }
@@ -121,7 +129,12 @@ func (e *Error) MarshalJSON() ([]byte, error) {
 }
 
 func NewError(err error) *Error {
-	return &Error{err: err, raised: true}
+	switch err := err.(type) {
+	case *Error: // unwrap to get the inner error, to avoid unhelpful nesting
+		return &Error{err: err.Unwrap(), raised: true}
+	default:
+		return &Error{err: err, raised: true}
+	}
 }
 
 func IsError(obj Object) bool {

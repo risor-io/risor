@@ -8,6 +8,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -748,7 +749,11 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 			if lastErr != nil {
 				callArgs = append(callArgs, lastErr)
 			}
-			return obj.Call(ctx, callArgs...), nil
+			result := obj.Call(ctx, callArgs...)
+			if err, ok := result.(*object.Error); ok && err.IsRaised() {
+				return nil, err
+			}
+			return result, nil
 		default:
 			return obj, nil
 		}
@@ -756,26 +761,15 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 	for _, arg := range args {
 		result, err := try(arg)
 		if err != nil {
-			if rErr, ok := err.(errz.Error); ok && rErr.IsFatal() {
+			var tmpErr errz.Error
+			if errors.As(err, &tmpErr) && tmpErr.IsFatal() {
 				// This indicates an unrecoverable evaluation error
 				return object.NewError(err)
 			}
 			lastErr = object.NewError(err).WithRaised(false)
 			continue
 		}
-		switch result := result.(type) {
-		case *object.Error:
-			if !result.IsRaised() {
-				// In this case, an error was returned as a value, not raised.
-				// We should return the value as is.
-				return result
-			}
-			// Here the error was raised, so we should save it to provide to the
-			// next function in the chain
-			lastErr = result.WithRaised(false)
-		default:
-			return result
-		}
+		return result
 	}
 	return object.Nil
 }

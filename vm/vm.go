@@ -83,7 +83,7 @@ func (vm *VirtualMachine) start(ctx context.Context) error {
 	vm.runMutex.Lock()
 	defer vm.runMutex.Unlock()
 	if vm.running {
-		return errz.EvalErrorf("vm is already running")
+		return fmt.Errorf("vm is already running")
 	}
 	vm.running = true
 	// Halt execution when the context is cancelled
@@ -113,7 +113,7 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			err = errz.EvalErrorf("panic: %v", r)
+			err = fmt.Errorf("panic: %v", r)
 		}
 		vm.stop()
 	}()
@@ -202,7 +202,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			name := vm.activeCode.Names[vm.fetch()]
 			value, found := obj.GetAttr(name)
 			if !found {
-				return errz.EvalErrorf("eval error: attribute %q not found on %s object",
+				return errz.TypeErrorf("type error: attribute %q not found on %s object",
 					name, obj.Type())
 			}
 			switch value := value.(type) {
@@ -535,8 +535,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 			containerSize := container.Len().Value()
 			if containerSize != nameCount {
-				return errz.EvalErrorf("eval error: unpack count mismatch: %d != %d",
-					containerSize, nameCount)
+				return fmt.Errorf("unpack count mismatch: %d != %d", containerSize, nameCount)
 			}
 			iter := container.Iter()
 			for {
@@ -899,7 +898,7 @@ func (vm *VirtualMachine) importModule(ctx context.Context, name string) (*objec
 		return module, nil
 	}
 	if vm.importer == nil {
-		return nil, errz.EvalErrorf("eval error: imports are disabled")
+		return nil, fmt.Errorf("imports are disabled")
 	}
 	module, err := vm.importer.Import(ctx, name)
 	if err != nil {

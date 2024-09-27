@@ -240,8 +240,7 @@ func PrintableValue(obj Object) interface{} {
 		*Float,
 		*Byte,
 		*Error,
-		*Bool,
-		*NilType:
+		*Bool:
 		return obj.Interface()
 	// For time objects, as a personal preference, I'm using RFC3339 format
 	// rather than Go's default time print format, which I find less readable.

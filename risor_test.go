@@ -102,7 +102,7 @@ func TestWithDenyList(t *testing.T) {
 		},
 		{
 			input:       "os.exit(1)",
-			expectedErr: errors.New(`eval error: attribute "exit" not found on module object`),
+			expectedErr: errors.New(`type error: attribute "exit" not found on module object`),
 		},
 		{
 			input: `from os import exit

@@ -2,10 +2,12 @@ package vm
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
@@ -858,6 +860,26 @@ func TestTry(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestTryEvalError(t *testing.T) {
+	code := `
+	try(func() { error(errors.eval_error("oops")) }, 1)
+	`
+	_, err := run(context.Background(), code)
+	require.NotNil(t, err)
+	require.Equal(t, "oops", err.Error())
+	require.Equal(t, errz.EvalErrorf("oops"), err)
+}
+
+func TestTryTypeError(t *testing.T) {
+	code := `
+	i := 0
+	try(func() { i.append("x") }, func(e) { e.message() })
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	require.Equal(t, object.NewString("type error: attribute \"append\" not found on int object"), result)
+}
+
 func TestTryWithErrorValues(t *testing.T) {
 	code := `
 	const myerr = errors.new("errno == 1")
@@ -870,6 +892,102 @@ func TestTryWithErrorValues(t *testing.T) {
 	result, err := run(context.Background(), code)
 	require.NoError(t, err)
 	require.Equal(t, object.NewString("YES"), result)
+}
+
+func TestTryWithLoop(t *testing.T) {
+	code := `
+	result := []
+	for i := 0; i < 5; i++ {
+		value := try(
+			func() { if i % 2 == 0 { error("Even number") } else { return i } },
+			func(e) { return e.message() }
+		)
+		result.append(value)
+	}
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewString("Even number"),
+		object.NewInt(1),
+		object.NewString("Even number"),
+		object.NewInt(3),
+		object.NewString("Even number"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestTryWithClosure(t *testing.T) {
+	code := `
+	func makeCounter() {
+		count := 0
+		return func() {
+			count++
+			if count > 3 {
+				error("Count exceeded")
+			}
+			return count
+		}
+	}
+	counter := makeCounter()
+	result := []
+	for i := 0; i < 5; i++ {
+		value := try(counter, func(e) { return e.message() })
+		result.append(value)
+	}
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+		object.NewString("Count exceeded"),
+		object.NewString("Count exceeded"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestTryWithDefer(t *testing.T) {
+	code := `
+	result := []
+	func operation() {
+		try(
+			func() {
+				defer result.append("deferred")
+				result.append("start")
+				error("operation failed")
+			},
+			func(e) { result.append("caught: " + e.message()) }
+		)
+	}
+	operation()
+	result
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewString("start"),
+		object.NewString("deferred"),
+		object.NewString("caught: operation failed"),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestDeferWithError(t *testing.T) {
+	code := `
+	func operation() {
+		defer func() {
+			error("AGH")
+		}()
+	}
+	operation()
+	`
+	_, err := run(context.Background(), code)
+	require.Error(t, err)
+	require.Equal(t, fmt.Errorf("AGH"), err)
 }
 
 func TestStringTemplateWithRaisedError(t *testing.T) {

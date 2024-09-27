@@ -121,7 +121,7 @@ func TestPrintableValue(t *testing.T) {
 		{NewBool(true), true},
 		{NewBool(false), false},
 		{Errorf("error"), errors.New("error")},
-		{obj: Nil, expected: nil},
+		{obj: Nil, expected: "nil"},
 		{obj: NewTime(testTime), expected: "2021-01-01T00:00:00Z"},
 		{obj: NewBuiltin("foo", builtin), expected: "builtin(foo)"},
 		{ // strings printed inside lists are quoted in Risor

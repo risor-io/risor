@@ -236,7 +236,12 @@ func TestTry(t *testing.T) {
 
 	errFunc := object.NewBuiltin("err",
 		func(ctx context.Context, args ...object.Object) object.Object {
-			return object.Errorf("kaboom").WithRaised(true)
+			return object.Errorf("kaboom")
+		})
+
+	fatalFunc := object.NewBuiltin("fatal",
+		func(ctx context.Context, args ...object.Object) object.Object {
+			return object.EvalErrorf("fatal explosion")
 		})
 
 	ctx := context.Background()
@@ -253,4 +258,7 @@ func TestTry(t *testing.T) {
 
 	result = Try(ctx, errFunc, okFunc, errFunc)
 	require.Equal(t, object.NewString("ok"), result)
+
+	result = Try(ctx, errFunc, fatalFunc, okFunc)
+	require.Equal(t, object.EvalErrorf("fatal explosion").WithRaised(true), result)
 }

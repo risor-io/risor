@@ -1,8 +1,6 @@
 package object
 
-import (
-	"fmt"
-)
+import "github.com/risor-io/risor/errz"
 
 type base struct{}
 
@@ -11,7 +9,7 @@ func (b *base) GetAttr(name string) (Object, bool) {
 }
 
 func (b *base) SetAttr(name string, value Object) error {
-	return fmt.Errorf("attribute error: object has no attribute %q", name)
+	return errz.TypeErrorf("type error: object has no attribute %q", name)
 }
 
 func (b *base) IsTruthy() bool {
