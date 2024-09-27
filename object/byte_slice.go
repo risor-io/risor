@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -201,7 +202,7 @@ func (b *ByteSlice) Compare(other Object) (int, error) {
 	case *String:
 		return bytes.Compare(b.value, []byte(other.value)), nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare byte_slice and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare byte_slice and %s", other.Type())
 	}
 }
 
@@ -234,7 +235,7 @@ func (b *ByteSlice) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return b.runOperationString(opType, right)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -246,7 +247,7 @@ func (b *ByteSlice) runOperationBytes(opType op.BinaryOpType, right *ByteSlice) 
 		copy(result[len(b.value):], right.value)
 		return NewByteSlice(result)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -259,14 +260,14 @@ func (b *ByteSlice) runOperationString(opType op.BinaryOpType, right *String) Ob
 		copy(result[len(b.value):], rightBytes)
 		return NewByteSlice(result)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for byte_slice: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for byte_slice: %v on type %s", opType, right.Type())
 	}
 }
 
 func (b *ByteSlice) GetItem(key Object) (Object, *Error) {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return nil, Errorf("index error: byte_slice index must be an int (got %s)", key.Type())
+		return nil, TypeErrorf("type error: byte_slice index must be an int (got %s)", key.Type())
 	}
 	index, err := ResolveIndex(indexObj.value, int64(len(b.value)))
 	if err != nil {
@@ -286,7 +287,7 @@ func (b *ByteSlice) GetSlice(slice Slice) (Object, *Error) {
 func (b *ByteSlice) SetItem(key, value Object) *Error {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return Errorf("index error: index must be an int (got %s)", key.Type())
+		return TypeErrorf("type error: index must be an int (got %s)", key.Type())
 	}
 	index, err := ResolveIndex(indexObj.value, int64(len(b.value)))
 	if err != nil {
@@ -304,7 +305,7 @@ func (b *ByteSlice) SetItem(key, value Object) *Error {
 }
 
 func (b *ByteSlice) DelItem(key Object) *Error {
-	return Errorf("type error: cannot delete from byte_slice")
+	return TypeErrorf("type error: cannot delete from byte_slice")
 }
 
 func (b *ByteSlice) Contains(obj Object) *Bool {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -215,7 +216,7 @@ func (s *String) Interface() interface{} {
 func (s *String) Compare(other Object) (int, error) {
 	otherStr, ok := other.(*String)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare string and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare string and %s", other.Type())
 	}
 	if s.value == otherStr.value {
 		return 0, nil
@@ -242,7 +243,7 @@ func (s *String) RunOperation(opType op.BinaryOpType, right Object) Object {
 	case *String:
 		return s.runOperationString(opType, right)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for string: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -251,7 +252,7 @@ func (s *String) runOperationString(opType op.BinaryOpType, right *String) Objec
 	case op.Add:
 		return NewString(s.value + right.value)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for string: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for string: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -266,7 +267,7 @@ func (s *String) Reversed() *String {
 func (s *String) GetItem(key Object) (Object, *Error) {
 	indexObj, ok := key.(*Int)
 	if !ok {
-		return nil, Errorf("index error: string index must be an int (got %s)", key.Type())
+		return nil, TypeErrorf("type error: string index must be an int (got %s)", key.Type())
 	}
 	runes := []rune(s.value)
 	index, err := ResolveIndex(indexObj.value, int64(len(runes)))
@@ -287,11 +288,11 @@ func (s *String) GetSlice(slice Slice) (Object, *Error) {
 }
 
 func (s *String) SetItem(key, value Object) *Error {
-	return Errorf("type error: set item is unsupported for string")
+	return TypeErrorf("type error: set item is unsupported for string")
 }
 
 func (s *String) DelItem(key Object) *Error {
-	return Errorf("type error: del item is unsupported for string")
+	return TypeErrorf("type error: del item is unsupported for string")
 }
 
 func (s *String) Contains(obj Object) *Bool {

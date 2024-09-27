@@ -69,7 +69,7 @@ func (r *HttpRequest) SetAttr(name string, value object.Object) error {
 			return err.Value()
 		}
 	default:
-		return fmt.Errorf("attribute error: %s object has no attribute %q", HTTP_REQUEST, name)
+		return object.TypeErrorf("type error: %s object has no attribute %q", HTTP_REQUEST, name)
 	}
 
 	return nil
@@ -177,7 +177,7 @@ func (r *HttpRequest) Cost() int {
 }
 
 func (r *HttpRequest) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for http.request: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for http.request: %v", opType)
 }
 
 func (r *HttpRequest) AddHeaders(headers *object.Map) {

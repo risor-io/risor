@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
@@ -40,5 +41,8 @@ func TestRunError(t *testing.T) {
 	require.Nil(t, err)
 	_, err = Run(ctx, code)
 	require.NotNil(t, err)
-	require.Equal(t, "exec error: attribute \"bar\" not found on int object", err.Error())
+	require.Equal(t, "type error: attribute \"bar\" not found on int object", err.Error())
+	errValue, ok := err.(*errz.TypeError)
+	require.True(t, ok)
+	require.Equal(t, "type error: attribute \"bar\" not found on int object", errValue.Error())
 }

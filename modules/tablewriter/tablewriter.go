@@ -35,7 +35,7 @@ func (w *Writer) Inspect() string {
 }
 
 func (w *Writer) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: cannot set %q on %s object", name, WRITER)
+	return object.TypeErrorf("type error: cannot set %q on %s object", name, WRITER)
 }
 
 func (w *Writer) GetAttr(name string) (object.Object, bool) {
@@ -118,7 +118,7 @@ func (w *Writer) Cost() int {
 }
 
 func (w *Writer) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", WRITER, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", WRITER, opType)
 }
 
 func NewWriter(v *tablewriter.Table) *Writer {
@@ -212,7 +212,7 @@ func (w *Writer) appendBulk(args ...object.Object) object.Object {
 		case *object.List:
 			strs = append(strs, stringsFromList(inner))
 		default:
-			return object.Errorf("type error: expected list (got %s)", inner.Type())
+			return object.TypeErrorf("type error: expected list (got %s)", inner.Type())
 		}
 	}
 	w.value.AppendBulk(strs)

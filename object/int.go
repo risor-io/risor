@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -66,7 +67,7 @@ func (i *Int) Compare(other Object) (int, error) {
 		}
 		return -1, nil
 	default:
-		return 0, fmt.Errorf("type error: unable to compare int and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare int and %s", other.Type())
 	}
 }
 
@@ -102,7 +103,7 @@ func (i *Int) RunOperation(opType op.BinaryOpType, right Object) Object {
 		rightInt := int64(right.value)
 		return i.runOperationInt(opType, rightInt)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type %s", opType, right.Type()))
+		return TypeErrorf("type error: unsupported operation for int: %v on type %s", opType, right.Type())
 	}
 }
 
@@ -131,7 +132,7 @@ func (i *Int) runOperationInt(opType op.BinaryOpType, right int64) Object {
 	case op.BitwiseOr:
 		return NewInt(i.value | right)
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type int", opType))
+		return TypeErrorf("type error: unsupported operation for int: %v on type int", opType)
 	}
 }
 
@@ -149,7 +150,7 @@ func (i *Int) runOperationFloat(opType op.BinaryOpType, right float64) Object {
 	case op.Power:
 		return NewInt(int64(math.Pow(float64(i.value), float64(right))))
 	default:
-		return NewError(fmt.Errorf("eval error: unsupported operation for int: %v on type float", opType))
+		return TypeErrorf("type error: unsupported operation for int: %v on type float", opType)
 	}
 }
 

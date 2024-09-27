@@ -28,7 +28,7 @@ func Args(ctx context.Context, args ...object.Object) object.Object {
 func Exit(ctx context.Context, args ...object.Object) object.Object {
 	nArgs := len(args)
 	if nArgs > 1 {
-		return object.Errorf("type error: exit() expected at most 1 argument (%d given)", nArgs)
+		return object.ArgsErrorf("args error: exit() expected at most 1 argument (%d given)", nArgs)
 	}
 	tos := GetOS(ctx)
 	if nArgs == 0 {
@@ -37,12 +37,12 @@ func Exit(ctx context.Context, args ...object.Object) object.Object {
 	switch obj := args[0].(type) {
 	case *object.Int:
 		tos.Exit(int(obj.Value()))
-		return object.Errorf("exec error: exit(%d)", obj.Value())
+		return object.EvalErrorf("eval error: exit(%d)", obj.Value())
 	case *object.Error:
 		tos.Exit(1)
-		return object.Errorf("exec error: exit(%s)", obj.Value().Error())
+		return object.EvalErrorf("eval error: exit(%s)", obj.Value().Error())
 	}
-	return object.Errorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
+	return object.TypeErrorf("type error: exit() argument must be an int or error (%s given)", args[0].Type())
 }
 
 func Chdir(ctx context.Context, args ...object.Object) object.Object {
@@ -51,7 +51,7 @@ func Chdir(ctx context.Context, args ...object.Object) object.Object {
 	}
 	dir, ok := args[0].(*object.String)
 	if !ok {
-		return object.Errorf("type error: expected a string (got %v)", args[0].Type())
+		return object.TypeErrorf("type error: expected a string (got %v)", args[0].Type())
 	}
 	if err := GetOS(ctx).Chdir(dir.Value()); err != nil {
 		return object.NewError(err)
@@ -297,7 +297,7 @@ func WriteFile(ctx context.Context, args ...object.Object) object.Object {
 	case *object.String:
 		data = []byte(arg.Value())
 	default:
-		return object.Errorf("type error: expected byte_slice or string (got %s)", args[1].Type())
+		return object.TypeErrorf("type error: expected byte_slice or string (got %s)", args[1].Type())
 	}
 	var perm int64 = 0o644
 	if len(args) == 3 {

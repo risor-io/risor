@@ -48,7 +48,7 @@ func (f *FloatSlice) IsTruthy() bool {
 }
 
 func (f *FloatSlice) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for float_slice: %v on type %s", opType, right.Type()))
+	return TypeErrorf("type error: unsupported operation for float_slice: %v on type %s", opType, right.Type())
 }
 
 func (f *FloatSlice) Contains(item Object) *Bool {

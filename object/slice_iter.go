@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -111,17 +112,17 @@ func (iter *SliceIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *SliceIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for slice_iter: %v", opType))
+	return TypeErrorf("type error: unsupported operation for slice_iter: %v", opType)
 }
 
 func (iter *SliceIter) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal slice_iter")
+	return nil, errz.TypeErrorf("type error: unable to marshal slice_iter")
 }
 
 func NewSliceIter(s interface{}) (*SliceIter, error) {
 	typ := reflect.TypeOf(s)
 	if typ.Kind() != reflect.Slice {
-		return nil, fmt.Errorf("type error: cannot create slice_iter (%T given)", s)
+		return nil, errz.TypeErrorf("type error: cannot create slice_iter (%T given)", s)
 	}
 	conv, err := NewTypeConverter(typ.Elem())
 	if err != nil {

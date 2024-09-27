@@ -3,6 +3,7 @@ package object
 import (
 	"testing"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 	"github.com/stretchr/testify/require"
 )
@@ -10,18 +11,17 @@ import (
 func TestCompareNonComparable(t *testing.T) {
 	s1 := NewSet(nil)
 	s2 := NewSet(nil)
-	result := Compare(op.LessThan, s1, s2)
-	resultErr, ok := result.(*Error)
-	require.True(t, ok)
-	require.Equal(t, Errorf("type error: expected a comparable object (got set)"), resultErr)
+	_, err := Compare(op.LessThan, s1, s2)
+	require.Error(t, err)
+	require.Equal(t, errz.TypeErrorf("type error: expected a comparable object (got set)"), err)
 }
 
 func TestCompareUnknownComparison(t *testing.T) {
 	obj1 := NewInt(1)
 	obj2 := NewInt(2)
-	require.Panics(t, func() {
-		Compare(op.CompareOpType(222), obj1, obj2)
-	})
+	_, err := Compare(op.CompareOpType(222), obj1, obj2)
+	require.Error(t, err)
+	require.Equal(t, errz.EvalErrorf("eval error: unknown object comparison operator: 222"), err)
 }
 
 func TestAndOperator(t *testing.T) {
@@ -43,7 +43,8 @@ func TestAndOperator(t *testing.T) {
 		{NewBool(true), NewInt(0), NewInt(0)},
 	}
 	for _, tc := range testCases {
-		result := BinaryOp(op.And, tc.left, tc.right)
+		result, err := BinaryOp(op.And, tc.left, tc.right)
+		require.NoError(t, err)
 		require.Equal(t, tc.want, result)
 	}
 }
@@ -67,7 +68,8 @@ func TestOrOperator(t *testing.T) {
 		{NewBool(true), NewInt(0), NewBool(true)},
 	}
 	for _, tc := range testCases {
-		result := BinaryOp(op.Or, tc.left, tc.right)
+		result, err := BinaryOp(op.Or, tc.left, tc.right)
+		require.NoError(t, err)
 		require.Equal(t, tc.want, result)
 	}
 }

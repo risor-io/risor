@@ -33,13 +33,13 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 	}
 	img, ok := args[0].(*Image)
 	if !ok {
-		return object.Errorf("type error: image.encode() expected an image (got %s)", args[0].Type())
+		return object.TypeErrorf("type error: image.encode() expected an image (got %s)", args[0].Type())
 	}
 	encoding := "png"
 	if len(args) == 2 {
 		encObj, ok := args[1].(*object.String)
 		if !ok {
-			return object.Errorf("type error: image.encode() expected a string (got %s)", args[1].Type())
+			return object.TypeErrorf("type error: image.encode() expected a string (got %s)", args[1].Type())
 		}
 		encoding = encObj.Value()
 	}
@@ -52,7 +52,7 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 	case "bmp":
 		encoder = imgio.BMPEncoder()
 	default:
-		return object.Errorf("type error: image.encode() unsupported encoding %s", encoding)
+		return object.TypeErrorf("type error: image.encode() unsupported encoding %s", encoding)
 	}
 	buf := &bytes.Buffer{}
 	writer := bufio.NewWriter(buf)
@@ -65,7 +65,7 @@ func Encode(ctx context.Context, args ...object.Object) object.Object {
 func encodePNG(ctx context.Context, obj object.Object) object.Object {
 	img, ok := obj.(*Image)
 	if !ok {
-		return object.Errorf("type error: expected an image (got %s)", obj.Type())
+		return object.TypeErrorf("type error: expected an image (got %s)", obj.Type())
 	}
 	encoder := imgio.PNGEncoder()
 	buf := object.NewBuffer(nil)
@@ -78,7 +78,7 @@ func encodePNG(ctx context.Context, obj object.Object) object.Object {
 func encodeJPG(ctx context.Context, obj object.Object) object.Object {
 	img, ok := obj.(*Image)
 	if !ok {
-		return object.Errorf("type error: expected an image (got %s)", obj.Type())
+		return object.TypeErrorf("type error: expected an image (got %s)", obj.Type())
 	}
 	encoder := imgio.JPEGEncoder(100)
 	buf := object.NewBuffer(nil)
@@ -91,7 +91,7 @@ func encodeJPG(ctx context.Context, obj object.Object) object.Object {
 func encodeBMP(ctx context.Context, obj object.Object) object.Object {
 	img, ok := obj.(*Image)
 	if !ok {
-		return object.Errorf("type error: expected an image (got %s)", obj.Type())
+		return object.TypeErrorf("type error: expected an image (got %s)", obj.Type())
 	}
 	encoder := imgio.BMPEncoder()
 	buf := object.NewBuffer(nil)

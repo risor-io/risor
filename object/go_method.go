@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -68,7 +69,7 @@ func (m *GoMethod) GetAttr(name string) (Object, bool) {
 				}
 				index, ok := args[0].(*Int)
 				if !ok {
-					return Errorf("type error: go_method.in_type expected integer (%s given)", args[0].Type())
+					return TypeErrorf("type error: go_method.in_type expected integer (%s given)", args[0].Type())
 				}
 				if index.value < 0 || index.value >= int64(m.NumIn()) {
 					return Errorf("value error: go_method.in_type index out of range [0, %d] (%d given)",
@@ -86,7 +87,7 @@ func (m *GoMethod) GetAttr(name string) (Object, bool) {
 				}
 				index, ok := args[0].(*Int)
 				if !ok {
-					return Errorf("type error: go_method.out_type expected integer (%s given)", args[0].Type())
+					return TypeErrorf("type error: go_method.out_type expected integer (%s given)", args[0].Type())
 				}
 				if index.value < 0 || index.value >= int64(m.NumIn()) {
 					return Errorf("value error: go_method.out_type index out of range [0, %d] (%d given)",
@@ -104,7 +105,7 @@ func (m *GoMethod) IsTruthy() bool {
 }
 
 func (m *GoMethod) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return Errorf("type error: unsupported operation on go_method (%s)", opType)
+	return TypeErrorf("type error: unsupported operation on go_method (%s)", opType)
 }
 
 func (m *GoMethod) Name() string {
@@ -180,7 +181,7 @@ func newGoMethod(typ reflect.Type, m reflect.Method) (*GoMethod, error) {
 		inputGoType, err := newGoType(inputType)
 		if err != nil {
 			errMsg := strings.TrimPrefix(err.Error(), "type error: ")
-			return nil, fmt.Errorf("type error: (%s).%s has input parameter of type %s; \n%s",
+			return nil, errz.TypeErrorf("type error: (%s).%s has input parameter of type %s; \n%s",
 				typ, m.Name, inputType, errMsg)
 		}
 		method.inputTypes[i] = inputGoType
@@ -195,7 +196,7 @@ func newGoMethod(typ reflect.Type, m reflect.Method) (*GoMethod, error) {
 		outputGoType, err := newGoType(outputType)
 		if err != nil {
 			errMsg := strings.TrimPrefix(err.Error(), "type error: ")
-			return nil, fmt.Errorf("type error: (%s).%s has output parameter of type %s; \n%s",
+			return nil, errz.TypeErrorf("type error: (%s).%s has output parameter of type %s; \n%s",
 				typ, m.Name, outputType, errMsg)
 		}
 		method.outputTypes[i] = outputGoType

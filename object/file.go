@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -101,7 +102,7 @@ func (f *File) GetAttr(name string) (Object, bool) {
 				}
 				return NewByteSlice(buf.Bytes()[:n])
 			default:
-				return Errorf("type error: file.read expects byte_slice or buffer (%s given)", obj.Type())
+				return TypeErrorf("type error: file.read expects byte_slice or buffer (%s given)", obj.Type())
 			}
 		}), true
 	case "write":
@@ -234,7 +235,7 @@ func (f *File) Equals(other Object) Object {
 }
 
 func (f *File) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for file: %v ", opType))
+	return TypeErrorf("type error: unsupported operation for file: %v ", opType)
 }
 
 func (f *File) Cost() int {
@@ -242,7 +243,7 @@ func (f *File) Cost() int {
 }
 
 func (f *File) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal file")
+	return nil, errz.TypeErrorf("type error: unable to marshal file")
 }
 
 func (f *File) Iter() Iterator {

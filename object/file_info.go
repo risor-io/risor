@@ -2,10 +2,10 @@ package object
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 	ros "github.com/risor-io/risor/os"
 )
@@ -61,7 +61,7 @@ func (f *FileInfo) GetAttr(name string) (Object, bool) {
 }
 
 func (f *FileInfo) SetAttr(name string, value Object) error {
-	return errors.New("type error: unable to set attributes on file_info objects")
+	return errz.TypeErrorf("type error: unable to set attributes on file_info objects")
 }
 
 func (f *FileInfo) IsTruthy() bool {
@@ -69,7 +69,7 @@ func (f *FileInfo) IsTruthy() bool {
 }
 
 func (f *FileInfo) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for file_info: %v", opType))
+	return TypeErrorf("type error: unsupported operation for file_info: %v", opType)
 }
 
 func (f *FileInfo) Cost() int {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -44,7 +45,7 @@ func (d *DynamicAttr) IsTruthy() bool {
 }
 
 func (d *DynamicAttr) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for dynamic_attr: %v", opType))
+	return TypeErrorf("type error: unsupported operation for dynamic_attr: %v", opType)
 }
 
 func (d *DynamicAttr) MarshalJSON() ([]byte, error) {
@@ -56,7 +57,7 @@ func (d *DynamicAttr) GetAttr(name string) (Object, bool) {
 }
 
 func (d *DynamicAttr) SetAttr(name string, value Object) error {
-	return errors.New("type error: unable to set attribute on dynamic_attr")
+	return errz.TypeErrorf("type error: unable to set attribute on dynamic_attr")
 }
 
 func (d *DynamicAttr) Cost() int {

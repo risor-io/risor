@@ -5,13 +5,12 @@ package vault
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
-
 	"github.com/risor-io/risor/arg"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -43,11 +42,11 @@ func (v *Vault) Cost() int {
 }
 
 func (v *Vault) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal %s", VAULT)
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", VAULT)
 }
 
 func (v *Vault) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for %s: %v", VAULT, opType)
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", VAULT, opType)
 }
 
 func (v *Vault) Equals(other object.Object) object.Object {
@@ -72,7 +71,7 @@ func (v *Vault) SetAttr(name string, value object.Object) error {
 		}
 		return v.client.SetNamespace(namespace)
 	}
-	return fmt.Errorf("attribute error: %s object has no attribute %q", VAULT, name)
+	return object.TypeErrorf("type error: %s object has no attribute %q", VAULT, name)
 }
 
 func (v *Vault) GetAttr(name string) (object.Object, bool) {

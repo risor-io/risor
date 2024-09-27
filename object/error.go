@@ -1,16 +1,18 @@
 package object
 
 import (
-	"errors"
+	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
 // Error wraps a Go error interface and implements Object.
 type Error struct {
 	*base
-	err error
+	err    error
+	raised bool
 }
 
 func (e *Error) Type() Type {
@@ -22,7 +24,7 @@ func (e *Error) Inspect() string {
 }
 
 func (e *Error) String() string {
-	return fmt.Sprintf("error(%s)", e.err.Error())
+	return e.err.Error()
 }
 
 func (e *Error) Value() error {
@@ -36,23 +38,32 @@ func (e *Error) Interface() interface{} {
 func (e *Error) Compare(other Object) (int, error) {
 	otherErr, ok := other.(*Error)
 	if !ok {
-		return 0, fmt.Errorf("type error: unable to compare error and %s", other.Type())
+		return 0, errz.TypeErrorf("type error: unable to compare error and %s", other.Type())
 	}
 	thisMsg := e.Message().Value()
 	otherMsg := otherErr.Message().Value()
-	if thisMsg == otherMsg {
+	if thisMsg == otherMsg && e.raised == otherErr.raised {
 		return 0, nil
 	}
 	if thisMsg > otherMsg {
 		return 1, nil
 	}
-	return -1, nil
+	if thisMsg < otherMsg {
+		return -1, nil
+	}
+	if e.raised && !otherErr.raised {
+		return 1, nil
+	}
+	if !e.raised && otherErr.raised {
+		return -1, nil
+	}
+	return 0, nil
 }
 
 func (e *Error) Equals(other Object) Object {
 	switch other := other.(type) {
 	case *Error:
-		if e.Message() == other.Message() {
+		if e.Message().Value() == other.Message().Value() && e.raised == other.raised {
 			return True
 		}
 		return False
@@ -61,12 +72,44 @@ func (e *Error) Equals(other Object) Object {
 	}
 }
 
+func (e *Error) GetAttr(name string) (Object, bool) {
+	switch name {
+	case "error":
+		return NewBuiltin("error", func(ctx context.Context, args ...Object) Object {
+			return e.Message()
+		}), true
+	case "message":
+		return NewBuiltin("message", func(ctx context.Context, args ...Object) Object {
+			return e.Message()
+		}), true
+	default:
+		return nil, false
+	}
+}
+
 func (e *Error) Message() *String {
 	return NewString(e.err.Error())
 }
 
+func (e *Error) WithRaised(value bool) *Error {
+	e.raised = value
+	return e
+}
+
+func (e *Error) IsRaised() bool {
+	return e.raised
+}
+
+func (e *Error) Error() string {
+	return e.err.Error()
+}
+
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
 func (e *Error) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for error: %v", opType))
+	return TypeErrorf("type error: unsupported operation for error: %v", opType)
 }
 
 func Errorf(format string, a ...interface{}) *Error {
@@ -78,15 +121,20 @@ func Errorf(format string, a ...interface{}) *Error {
 			args = append(args, arg)
 		}
 	}
-	return &Error{err: fmt.Errorf(format, args...)}
+	return &Error{err: fmt.Errorf(format, args...), raised: true}
 }
 
 func (e *Error) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal error")
+	return nil, errz.TypeErrorf("type error: unable to marshal error")
 }
 
 func NewError(err error) *Error {
-	return &Error{err: err}
+	switch err := err.(type) {
+	case *Error: // unwrap to get the inner error, to avoid unhelpful nesting
+		return &Error{err: err.Unwrap(), raised: true}
+	default:
+		return &Error{err: err, raised: true}
+	}
 }
 
 func IsError(obj Object) bool {

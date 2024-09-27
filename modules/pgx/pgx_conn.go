@@ -2,13 +2,13 @@ package pgx
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/risor-io/risor/arg"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
 )
@@ -67,11 +67,11 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 }
 
 func (c *PgxConn) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("attribute error: pgx.conn object has no attribute %q", name)
+	return object.TypeErrorf("type error: pgx.conn object has no attribute %q", name)
 }
 
 func (c *PgxConn) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("eval error: unsupported operation for pgx.conn: %v", opType)
+	return object.TypeErrorf("type error: unsupported operation for pgx.conn: %v", opType)
 }
 
 func (c *PgxConn) Close() error {
@@ -98,7 +98,7 @@ func (c *PgxConn) Cost() int {
 }
 
 func (c *PgxConn) MarshalJSON() ([]byte, error) {
-	return nil, errors.New("type error: unable to marshal pgx.conn")
+	return nil, errz.TypeErrorf("type error: unable to marshal pgx.conn")
 }
 
 func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
@@ -114,7 +114,7 @@ func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
 func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Object {
 	// The arguments should include a query string and zero or more query args
 	if len(args) < 1 {
-		return object.Errorf("type error: pgx.conn.query() one or more arguments (%d given)", len(args))
+		return object.TypeErrorf("type error: pgx.conn.query() one or more arguments (%d given)", len(args))
 	}
 	query, errObj := object.AsString(args[0])
 	if errObj != nil {
@@ -155,7 +155,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 				val = object.FromGoType(value)
 			}
 			if val == nil {
-				return object.Errorf("type error: pgx.conn.query() encountered unsupported type: %T", value)
+				return object.TypeErrorf("type error: pgx.conn.query() encountered unsupported type: %T", value)
 			}
 			if !object.IsError(val) {
 				row[key] = val
@@ -170,7 +170,7 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 
 func (c *PgxConn) Exec(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.Errorf("type error: pgx.conn.exec() one or more arguments (%d given)", len(args))
+		return object.TypeErrorf("type error: pgx.conn.exec() one or more arguments (%d given)", len(args))
 	}
 	query, errObj := object.AsString(args[0])
 	if errObj != nil {

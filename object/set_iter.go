@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/op"
 )
 
@@ -88,7 +89,7 @@ func (iter *SetIter) IsTruthy() bool {
 }
 
 func (iter *SetIter) RunOperation(opType op.BinaryOpType, right Object) Object {
-	return NewError(fmt.Errorf("eval error: unsupported operation for set_iter: %v", opType))
+	return TypeErrorf("type error: unsupported operation for set_iter: %v", opType)
 }
 
 func (iter *SetIter) Next(ctx context.Context) (Object, bool) {
@@ -116,7 +117,7 @@ func (iter *SetIter) Entry() (IteratorEntry, bool) {
 }
 
 func (iter *SetIter) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("type error: unable to marshal set_iter")
+	return nil, errz.TypeErrorf("type error: unable to marshal set_iter")
 }
 
 func NewSetIter(set *Set) *SetIter {

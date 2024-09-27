@@ -312,7 +312,11 @@ func (l *Lexer) Next() (token.Token, error) {
 		if err != nil {
 			return token.Token{}, err
 		}
-		tok = l.newToken(token.LookupIdentifier(ident), ident)
+		if ident == "as" && l.prevToken.Type == token.PERIOD {
+			tok = l.newToken(token.IDENT, ident)
+		} else {
+			tok = l.newToken(token.LookupIdentifier(ident), ident)
+		}
 		l.readChar()
 		l.prevToken = tok
 		return tok, nil

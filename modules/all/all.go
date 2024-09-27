@@ -5,6 +5,7 @@ import (
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
 	modColor "github.com/risor-io/risor/modules/color"
+	modErrors "github.com/risor-io/risor/modules/errors"
 	modExec "github.com/risor-io/risor/modules/exec"
 	modFilepath "github.com/risor-io/risor/modules/filepath"
 	modFmt "github.com/risor-io/risor/modules/fmt"
@@ -30,6 +31,7 @@ func Builtins() map[string]object.Object {
 		"base64":      modBase64.Module(),
 		"bytes":       modBytes.Module(),
 		"color":       modColor.Module(),
+		"errors":      modErrors.Module(),
 		"exec":        modExec.Module(),
 		"filepath":    modFilepath.Module(),
 		"fmt":         modFmt.Module(),
