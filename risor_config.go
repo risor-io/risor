@@ -10,6 +10,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	modBase64 "github.com/risor-io/risor/modules/base64"
 	modBytes "github.com/risor-io/risor/modules/bytes"
+	modContext "github.com/risor-io/risor/modules/context"
 	modDns "github.com/risor-io/risor/modules/dns"
 	modErrors "github.com/risor-io/risor/modules/errors"
 	modExec "github.com/risor-io/risor/modules/exec"
@@ -129,6 +130,7 @@ func (cfg *Config) applyDefaultGlobals() {
 	modules := map[string]object.Object{
 		"base64":   modBase64.Module(),
 		"bytes":    modBytes.Module(),
+		"context":  modContext.Module(),
 		"errors":   modErrors.Module(),
 		"exec":     modExec.Module(),
 		"filepath": modFilepath.Module(),

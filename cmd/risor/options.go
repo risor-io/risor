@@ -11,6 +11,7 @@ import (
 	"github.com/risor-io/risor/modules/carbon"
 	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/color"
+	"github.com/risor-io/risor/modules/context"
 	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/isatty"
@@ -40,6 +41,7 @@ func getGlobals() risor.Option {
 	globals := map[string]any{
 		"bcrypt":      bcrypt.Module(),
 		"carbon":      carbon.Module(),
+		"context":     context.Module(),
 		"cli":         cli.Module(),
 		"color":       color.Module(),
 		"gha":         gha.Module(),

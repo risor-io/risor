@@ -962,6 +962,21 @@ func IsHashable(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewBool(ok)
 }
 
+func WithContext(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("with_context", 2, args); err != nil {
+		return err
+	}
+	c, ok := args[0].(object.Context)
+	if !ok {
+		return object.TypeErrorf("type error: with_context() expected a context (%s given)", args[0].Type())
+	}
+	fn, ok := args[1].(object.Function)
+	if !ok {
+		return object.TypeErrorf("type error: with_context() expected a function (%s given)", args[1].Type())
+	}
+	return object.WithContext(ctx, key.Value(), args[1])
+}
+
 func Builtins() map[string]object.Object {
 	return map[string]object.Object{
 		"all":         object.NewBuiltin("all", All),

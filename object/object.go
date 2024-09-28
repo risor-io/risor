@@ -41,6 +41,7 @@ const (
 	COLOR         Type = "color"
 	COMPLEX       Type = "complex"
 	COMPLEX_SLICE Type = "complex_slice"
+	CONTEXT       Type = "context"
 	DIR_ENTRY     Type = "dir_entry"
 	DYNAMIC_ATTR  Type = "dynamic_attr"
 	ERROR         Type = "error"
