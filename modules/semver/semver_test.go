@@ -1,80 +1,87 @@
+//go:build semver
+// +build semver
+
 package semver
 
 import (
 	"context"
 	"testing"
 
-	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
+	"github.com/risor-io/risor/object"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestServer_Initialize(t *testing.T) {
-	s := &Server{
-		name:    "Test Server",
-		version: "1.0.0",
-		cache:   newCache(),
-	}
-
+func TestParse(t *testing.T) {
 	ctx := context.Background()
-	params := &protocol.ParamInitialize{}
-
-	result, err := s.Initialize(ctx, params)
-	require.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, s.name, result.ServerInfo.Name)
-	assert.Equal(t, s.version, result.ServerInfo.Version)
-	assert.True(t, result.Capabilities.HoverProvider)
-	assert.True(t, result.Capabilities.DefinitionProvider)
-	assert.True(t, result.Capabilities.DocumentFormattingProvider)
-	assert.True(t, result.Capabilities.DocumentSymbolProvider)
+	result := Parse(ctx, object.NewString("1.2.3-beta.1+build.123"))
+	assert.IsType(t, &object.Map{}, result)
+	m := result.(*object.Map)
+	assert.Equal(t, int64(1), m.Get("major").(*object.Int).Value())
+	assert.Equal(t, int64(2), m.Get("minor").(*object.Int).Value())
+	assert.Equal(t, int64(3), m.Get("patch").(*object.Int).Value())
+	assert.Equal(t, "beta.1", m.Get("pre").(*object.String).Value())
+	assert.Equal(t, "build.123", m.Get("build").(*object.String).Value())
 }
 
-func TestServer_DidOpen(t *testing.T) {
-	s := &Server{
-		cache: newCache(),
-	}
-
+func TestBuild(t *testing.T) {
 	ctx := context.Background()
-	params := &protocol.DidOpenTextDocumentParams{
-		TextDocument: protocol.TextDocumentItem{
-			URI:  protocol.DocumentURI("file:///test.risor"),
-			Text: "x := 1",
-		},
-	}
-
-	err := s.DidOpen(ctx, params)
-	require.NoError(t, err)
-
-	doc, err := s.cache.get(params.TextDocument.URI)
-	require.NoError(t, err)
-	assert.NotNil(t, doc)
-	assert.NotNil(t, doc.ast)
-	assert.NoError(t, doc.err)
+	result := Build(ctx, object.NewString("1.2.3+build.123"))
+	assert.Equal(t, "build.123", result.(*object.String).Value())
 }
 
-func TestServer_DidChange(t *testing.T) {
-	s := &Server{
-		cache: newCache(),
-	}
-
+func TestCanonical(t *testing.T) {
 	ctx := context.Background()
-	params := &protocol.DidChangeTextDocumentParams{
-		TextDocument: protocol.VersionedTextDocumentIdentifier{
-			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
-				URI: protocol.DocumentURI("file:///test.risor"),
-			},
-		},
-	}
-
-	err := s.DidChange(ctx, params)
-	require.NoError(t, err)
-	// Add more assertions if DidChange is implemented to do more
+	result := Canonical(ctx, object.NewString("1.2.3-beta.1+build.123"))
+	assert.Equal(t, "1.2.3-beta.1+build.123", result.(*object.String).Value())
 }
 
-// Helper function to create a new cache for testing
-func newCache() *cache {
-	return &cache{
-		documents: make(map[protocol.DocumentURI]*document),
-	}
+func TestValidate(t *testing.T) {
+	ctx := context.Background()
+	result := Validate(ctx, object.NewString("1.2.3"))
+	assert.Nil(t, result)
+
+	result = Validate(ctx, object.NewString("invalid"))
+	assert.IsType(t, &object.Error{}, result)
+}
+
+func TestMajor(t *testing.T) {
+	ctx := context.Background()
+	result := Major(ctx, object.NewString("1.2.3"))
+	assert.Equal(t, int64(1), result.(*object.Int).Value())
+}
+
+func TestMinor(t *testing.T) {
+	ctx := context.Background()
+	result := Minor(ctx, object.NewString("1.2.3"))
+	assert.Equal(t, int64(2), result.(*object.Int).Value())
+}
+
+func TestPatch(t *testing.T) {
+	ctx := context.Background()
+	result := Patch(ctx, object.NewString("1.2.3"))
+	assert.Equal(t, int64(3), result.(*object.Int).Value())
+}
+
+func TestCompare(t *testing.T) {
+	ctx := context.Background()
+	result := Compare(ctx, object.NewString("1.2.3"), object.NewString("1.2.4"))
+	assert.Equal(t, int64(-1), result.(*object.Int).Value())
+
+	result = Compare(ctx, object.NewString("1.2.3"), object.NewString("1.2.3"))
+	assert.Equal(t, int64(0), result.(*object.Int).Value())
+
+	result = Compare(ctx, object.NewString("1.2.4"), object.NewString("1.2.3"))
+	assert.Equal(t, int64(1), result.(*object.Int).Value())
+}
+
+func TestEquals(t *testing.T) {
+	ctx := context.Background()
+	result := Equals(ctx, object.NewString("1.2.3"), object.NewString("1.2.3"))
+	assert.Equal(t, true, result.(*object.Bool).Value())
+
+	result = Equals(ctx, object.NewString("1.2.3"), object.NewString("1.2.4"))
+	assert.Equal(t, false, result.(*object.Bool).Value())
+
+	result = Equals(ctx, object.NewString("1.2.3-1"), object.NewString("1.2.3"))
+	assert.Equal(t, false, result.(*object.Bool).Value())
 }

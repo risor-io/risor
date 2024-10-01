@@ -93,7 +93,12 @@ func Validate(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(perr)
 	}
 
-	return object.NewError(v.Validate())
+	validated := v.Validate()
+	if validated != nil {
+		return object.NewError(validated)
+	}
+
+	return nil
 }
 
 func Major(ctx context.Context, args ...object.Object) object.Object {
