@@ -39,7 +39,7 @@ require (
 	github.com/risor-io/risor/modules/jmespath v1.6.0
 	github.com/risor-io/risor/modules/kubernetes v1.6.0
 	github.com/risor-io/risor/modules/pgx v1.6.0
-	github.com/risor-io/risor/modules/semver v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/semver v1.6.0
 	github.com/risor-io/risor/modules/sql v1.6.0
 	github.com/risor-io/risor/modules/template v1.6.0
 	github.com/risor-io/risor/modules/uuid v1.6.0
