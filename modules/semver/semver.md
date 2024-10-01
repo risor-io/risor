@@ -12,6 +12,7 @@ import { Callout } from 'nextra/components';
 ### compare
 
 ```go filename="Function signature"
+
 ```
 
 ```go copy filename="Example"

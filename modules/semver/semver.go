@@ -12,6 +12,36 @@ import (
 	"github.com/risor-io/risor/object"
 )
 
+func Parse(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("semver.build", 1, args); err != nil {
+		return err
+	}
+
+	str, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+
+	v, perr := semver.Make(str)
+	if perr != nil {
+		return object.NewError(perr)
+	}
+
+	pre := []string{}
+	for _, p := range v.Pre {
+		pre = append(pre, p.String())
+	}
+	vmap := map[string]object.Object{
+		"major": object.NewInt(int64(v.Major)),
+		"minor": object.NewInt(int64(v.Minor)),
+		"patch": object.NewInt(int64(v.Patch)),
+		"pre":   object.NewString(strings.Join(pre, ".")),
+		"build": object.NewString(strings.Join(v.Build, ".")),
+	}
+
+	return object.NewMap(vmap)
+}
+
 func Build(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("semver.build", 1, args); err != nil {
 		return err
@@ -178,6 +208,8 @@ func Module() *object.Module {
 		"canonical": object.NewBuiltin("canonical", Canonical),
 		"compare":   object.NewBuiltin("compare", Compare),
 		"equals":    object.NewBuiltin("now", Equals),
+		"parse":     object.NewBuiltin("parse", Parse),
+		"make":      object.NewBuiltin("make", Parse),
 		"major":     object.NewBuiltin("major", Major),
 		"minor":     object.NewBuiltin("minor", Minor),
 		"patch":     object.NewBuiltin("patch", Patch),
