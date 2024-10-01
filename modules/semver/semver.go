@@ -60,8 +60,8 @@ func Build(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(strings.Join(v.Build, "."))
 }
 
-func Canonical(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("semver.canonical", 1, args); err != nil {
+func Pre(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("semver.pre", 1, args); err != nil {
 		return err
 	}
 
@@ -75,7 +75,12 @@ func Canonical(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(perr)
 	}
 
-	return object.NewString(v.String())
+	pre := []string{}
+	for _, p := range v.Pre {
+		pre = append(pre, p.String())
+	}
+
+	return object.NewString(strings.Join(pre, "."))
 }
 
 func Validate(ctx context.Context, args ...object.Object) object.Object {
@@ -209,15 +214,13 @@ func Equals(ctx context.Context, args ...object.Object) object.Object {
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule("semver", map[string]object.Object{
-		"build":     object.NewBuiltin("build", Build),
-		"canonical": object.NewBuiltin("canonical", Canonical),
-		"compare":   object.NewBuiltin("compare", Compare),
-		"equals":    object.NewBuiltin("now", Equals),
-		"parse":     object.NewBuiltin("parse", Parse),
-		"make":      object.NewBuiltin("make", Parse),
-		"major":     object.NewBuiltin("major", Major),
-		"minor":     object.NewBuiltin("minor", Minor),
-		"patch":     object.NewBuiltin("patch", Patch),
-		"validate":  object.NewBuiltin("validate", Validate),
+		"build":    object.NewBuiltin("build", Build),
+		"compare":  object.NewBuiltin("compare", Compare),
+		"equals":   object.NewBuiltin("now", Equals),
+		"parse":    object.NewBuiltin("parse", Parse),
+		"major":    object.NewBuiltin("major", Major),
+		"minor":    object.NewBuiltin("minor", Minor),
+		"patch":    object.NewBuiltin("patch", Patch),
+		"validate": object.NewBuiltin("validate", Validate),
 	})
 }

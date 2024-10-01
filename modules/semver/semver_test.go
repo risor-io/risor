@@ -29,12 +29,6 @@ func TestBuild(t *testing.T) {
 	assert.Equal(t, "build.123", result.(*object.String).Value())
 }
 
-func TestCanonical(t *testing.T) {
-	ctx := context.Background()
-	result := Canonical(ctx, object.NewString("1.2.3-beta.1+build.123"))
-	assert.Equal(t, "1.2.3-beta.1+build.123", result.(*object.String).Value())
-}
-
 func TestValidate(t *testing.T) {
 	ctx := context.Background()
 	result := Validate(ctx, object.NewString("1.2.3"))
@@ -84,4 +78,10 @@ func TestEquals(t *testing.T) {
 
 	result = Equals(ctx, object.NewString("1.2.3-1"), object.NewString("1.2.3"))
 	assert.Equal(t, false, result.(*object.Bool).Value())
+}
+
+func TestPre(t *testing.T) {
+	ctx := context.Background()
+	result := Pre(ctx, object.NewString("1.2.3-beta.1"))
+	assert.Equal(t, "beta.1", result.(*object.String).Value())
 }
