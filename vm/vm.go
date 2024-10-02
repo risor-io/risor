@@ -701,7 +701,7 @@ func (vm *VirtualMachine) Call(
 		}
 		vm.stop()
 	}()
-	return vm.callFunction(ctx, fn, args)
+	return vm.callFunction(vm.initContext(ctx), fn, args)
 }
 
 // Calls a compiled function with the given arguments. This is used internally
