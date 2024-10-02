@@ -13,7 +13,7 @@ import (
 )
 
 func Parse(ctx context.Context, args ...object.Object) object.Object {
-	if err := arg.Require("semver.build", 1, args); err != nil {
+	if err := arg.Require("semver.parse", 1, args); err != nil {
 		return err
 	}
 
