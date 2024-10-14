@@ -20,6 +20,7 @@ git tag modules/image/$VERSION
 git tag modules/jmespath/$VERSION
 git tag modules/kubernetes/$VERSION
 git tag modules/pgx/$VERSION
+git tag modules/semver/$VERSION
 git tag modules/sql/$VERSION
 git tag modules/template/$VERSION
 git tag modules/uuid/$VERSION
@@ -37,6 +38,7 @@ git push origin modules/image/$VERSION
 git push origin modules/jmespath/$VERSION
 git push origin modules/kubernetes/$VERSION
 git push origin modules/pgx/$VERSION
+git push origin modules/semver/$VERSION
 git push origin modules/sql/$VERSION
 git push origin modules/template/$VERSION
 git push origin modules/uuid/$VERSION
