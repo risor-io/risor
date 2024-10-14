@@ -1,8 +1,8 @@
 module github.com/risor-io/risor/modules/cli
 
-go 1.22
+go 1.22.0
 
-toolchain go1.22.0
+toolchain go1.23.1
 
 replace github.com/risor-io/risor => ../..
 

@@ -23,28 +23,28 @@ replace (
 
 require (
 	atomicgo.dev/keyboard v0.2.9
-	github.com/aws/aws-sdk-go-v2/config v1.27.31
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.61.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.43
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
 	github.com/fatih/color v1.17.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/risor-io/risor v1.7.0
-	github.com/risor-io/risor/modules/aws v1.6.0
-	github.com/risor-io/risor/modules/bcrypt v1.6.0
-	github.com/risor-io/risor/modules/carbon v1.6.0
-	github.com/risor-io/risor/modules/cli v1.6.0
+	github.com/risor-io/risor/modules/aws v1.7.0
+	github.com/risor-io/risor/modules/bcrypt v1.7.0
+	github.com/risor-io/risor/modules/carbon v1.7.0
+	github.com/risor-io/risor/modules/cli v1.7.0
 	github.com/risor-io/risor/modules/gha v1.6.1-0.20240927135333-245e7b83abf4
-	github.com/risor-io/risor/modules/image v1.6.0
-	github.com/risor-io/risor/modules/jmespath v1.6.0
-	github.com/risor-io/risor/modules/kubernetes v1.6.0
-	github.com/risor-io/risor/modules/pgx v1.6.0
-	github.com/risor-io/risor/modules/semver v1.6.0
-	github.com/risor-io/risor/modules/sql v1.6.0
-	github.com/risor-io/risor/modules/template v1.6.0
-	github.com/risor-io/risor/modules/uuid v1.6.0
-	github.com/risor-io/risor/modules/vault v1.6.0
-	github.com/risor-io/risor/os/s3fs v1.6.0
+	github.com/risor-io/risor/modules/image v1.7.0
+	github.com/risor-io/risor/modules/jmespath v1.7.0
+	github.com/risor-io/risor/modules/kubernetes v1.7.0
+	github.com/risor-io/risor/modules/pgx v1.7.0
+	github.com/risor-io/risor/modules/semver v1.7.0
+	github.com/risor-io/risor/modules/sql v1.7.0
+	github.com/risor-io/risor/modules/template v1.7.0
+	github.com/risor-io/risor/modules/uuid v1.7.0
+	github.com/risor-io/risor/modules/vault v1.7.0
+	github.com/risor-io/risor/os/s3fs v1.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
@@ -57,14 +57,14 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/anthonynsimon/bild v0.14.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.30.4 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.30 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.12 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.16 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.16 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.32.2 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.41 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.21 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.21 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.16 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.22.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/athena v1.44.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/backup v1.36.4 // indirect
@@ -85,11 +85,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/firehose v1.32.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/glue v1.95.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.35.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.18 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.9.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.18 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.16 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.29.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.35.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.58.1 // indirect
@@ -102,12 +102,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.31.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sns v1.31.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.34.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.30.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.32.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.52.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/xray v1.27.5 // indirect
-	github.com/aws/smithy-go v1.20.4 // indirect
+	github.com/aws/smithy-go v1.22.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
