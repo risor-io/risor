@@ -1,14 +1,14 @@
 module github.com/risor-io/risor/modules/image
 
-go 1.22
+go 1.22.0
 
-toolchain go1.22.0
+toolchain go1.23.1
 
 replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/anthonynsimon/bild v0.14.0
-	github.com/risor-io/risor v1.6.0
+	github.com/risor-io/risor v1.7.0
 )
 
 require (

@@ -1,8 +1,8 @@
 module github.com/risor-io/risor/modules/sql
 
-go 1.22
+go 1.22.0
 
-toolchain go1.22.0
+toolchain go1.23.1
 
 replace github.com/risor-io/risor => ../..
 
@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/microsoft/go-mssqldb v1.7.2
-	github.com/risor-io/risor v1.6.0
+	github.com/risor-io/risor v1.7.0
 	github.com/xo/dburl v0.23.2
 )
 
