@@ -1,3 +1,4 @@
+version: 2
 before:
   hooks:
     - go mod tidy
@@ -37,7 +38,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 changelog:
   sort: asc
   filters:
@@ -52,7 +53,7 @@ brews:
     commit_author:
       name: Curtis Myzie
       email: info@cmds.dev
-    folder: Formula
+    directory: Formula
     homepage: "https://github.com/risor-io/risor"
     description: "An embedded scripting language for Go projects"
     license: "Apache-2.0"
