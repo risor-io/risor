@@ -79,6 +79,12 @@ func (r *HttpRequest) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "url":
 		return r.URL(), true
+	case "query":
+		rm := make(map[string]object.Object)
+		for k, v := range r.req.URL.Query() {
+			rm[k] = object.NewString(v[0])
+		}
+		return object.NewMap(rm), true
 	case "content_length":
 		return r.ContentLength(), true
 	case "header":

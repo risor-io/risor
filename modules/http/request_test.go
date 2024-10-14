@@ -21,6 +21,10 @@ func TestRequestPathValueEmpty(t *testing.T) {
 	fn, ok := req.GetAttr("path_value")
 	require.True(t, ok)
 
+	v, ok := req.GetAttr("query")
+	require.True(t, ok)
+	require.Equal(t, object.NewString("bar"), v.(*object.Map).Get("foo"))
+
 	pathValue, ok := fn.(*object.Builtin)
 	require.True(t, ok)
 
