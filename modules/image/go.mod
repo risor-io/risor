@@ -8,7 +8,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/anthonynsimon/bild v0.14.0
-	github.com/risor-io/risor v1.6.0
+	github.com/risor-io/risor v1.7.0
 )
 
 require (

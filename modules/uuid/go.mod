@@ -8,7 +8,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/gofrs/uuid/v5 v5.3.0
-	github.com/risor-io/risor v1.6.0
+	github.com/risor-io/risor v1.7.0
 	github.com/stretchr/testify v1.9.0
 )
 

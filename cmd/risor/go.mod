@@ -29,7 +29,7 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/risor-io/risor v1.6.0
+	github.com/risor-io/risor v1.7.0
 	github.com/risor-io/risor/modules/aws v1.6.0
 	github.com/risor-io/risor/modules/bcrypt v1.6.0
 	github.com/risor-io/risor/modules/carbon v1.6.0
@@ -152,6 +152,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/microsoft/go-mssqldb v1.7.2 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
