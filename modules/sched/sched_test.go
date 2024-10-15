@@ -1,3 +1,6 @@
+//go:build sched
+// +build sched
+
 package sched
 
 import (
@@ -20,9 +23,12 @@ func TestCron(t *testing.T) {
 	ctx = object.WithCloneCallFunc(ctx, callFn)
 	var fn *object.Function
 
-	// Schedule the function using a cron expression
-	cronExpr := object.NewString("*/1 * * * * *") // Every second
+	cronExpr := object.NewString("invalid-cronline") // Every second
 	sched := Cron(ctx, cronExpr, fn)
+	assert.True(t, object.IsError(sched))
+
+	cronExpr = object.NewString("*/1 * * * * *") // Every second
+	sched = Cron(ctx, cronExpr, fn)
 	assert.False(t, object.IsError(sched))
 	assert.NotNil(t, sched)
 	assert.Equal(t, "sched.task", string(sched.Type()))

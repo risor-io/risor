@@ -52,7 +52,7 @@ func Cron(ctx context.Context, args ...object.Object) object.Object {
 		_, _ = cfunc(ctx, fn, nil)
 	}, cronLine)
 	if nerr != nil {
-		return object.NewError(err)
+		return object.NewError(nerr)
 	}
 
 	return &task{t: t}
