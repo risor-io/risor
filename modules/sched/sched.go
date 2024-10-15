@@ -11,6 +11,7 @@ import (
 	"github.com/risor-io/risor/object"
 )
 
+// Module returns the sched module.
 func Module() *object.Module {
 	return object.NewBuiltinsModule(
 		"sched", map[string]object.Object{
@@ -104,8 +105,6 @@ func Every(ctx context.Context, args ...object.Object) object.Object {
 //
 // The first argument is the interval in seconds (float).
 // The second argument is the function to be scheduled.
-// The third (optional) argument is a map object with the following options:
-// - name: the name of the job
 func Once(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
 		return object.Errorf("missing arguments, 2 required")

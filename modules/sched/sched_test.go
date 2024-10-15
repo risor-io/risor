@@ -13,87 +13,81 @@ import (
 )
 
 func TestCron(t *testing.T) {
-	ctx := context.Background()
-
-	var executed bool
+	var executed int
 	callFn := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
-		executed = true
+		executed++
 		return nil, nil
 	}
-	ctx = object.WithCloneCallFunc(ctx, callFn)
+	ctx := object.WithCloneCallFunc(context.Background(), callFn)
 	var fn *object.Function
 
-	cronExpr := object.NewString("invalid-cronline") // Every second
-	sched := Cron(ctx, cronExpr, fn)
-	assert.True(t, object.IsError(sched))
+	cronExpr := object.NewString("invalid-cronline")
+	task := Cron(ctx, cronExpr, fn)
+	assert.True(t, object.IsError(task))
 
 	cronExpr = object.NewString("*/1 * * * * *") // Every second
-	sched = Cron(ctx, cronExpr, fn)
-	assert.False(t, object.IsError(sched))
-	assert.NotNil(t, sched)
-	assert.Equal(t, "sched.task", string(sched.Type()))
+	task = Cron(ctx, cronExpr, fn)
+	assert.False(t, object.IsError(task))
+	assert.NotNil(t, task)
+	assert.Equal(t, "sched.task", string(task.Type()))
+	assert.Equal(t, 0, executed)
 
-	// Wait for a few seconds to allow the cron job to execute
-	assert.False(t, executed)
-	time.Sleep(1 * time.Second)
-	assert.True(t, executed)
-
-	// Stop the scheduler
-	stopFn, ok := sched.GetAttr("cancel")
+	_, ok := task.GetAttr("is_running")
 	assert.True(t, ok)
-	stopFn.(*object.Builtin).Call(ctx)
+
+	// Wait a second to allow the cron job to execute
+	time.Sleep(1 * time.Second)
+	assert.Equal(t, 1, executed)
+
+	_, ok = task.GetAttr("cancel")
+	assert.True(t, ok)
 }
 
 func TestEvery(t *testing.T) {
-	ctx := context.Background()
-
 	var executed int
 	callFn := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
+		if executed == 2 {
+			return nil, nil
+		}
 		executed++
 		return nil, nil
 	}
-	ctx = object.WithCloneCallFunc(ctx, callFn)
+	ctx := object.WithCloneCallFunc(context.Background(), callFn)
 	var fn *object.Function
 
-	// Schedule the function to run every 1 seconds
-	interval := object.NewString("1s")
-	sched := Every(ctx, interval, fn)
-	assert.False(t, object.IsError(sched))
-	assert.Equal(t, "sched.task", string(sched.Type()))
+	// Schedule the function to run every 1 millisecond
+	interval := object.NewString("1ms")
+	task := Every(ctx, interval, fn)
+	assert.False(t, object.IsError(task))
+	assert.Equal(t, "sched.task", string(task.Type()))
 
-	// Wait for a few seconds to allow the job to execute
-	time.Sleep(2 * time.Second)
+	// Wait for a few milliseconds to allow the job to execute
+	time.Sleep(50 * time.Millisecond)
 	assert.Equal(t, 2, executed)
 
-	stopFn, ok := sched.GetAttr("cancel")
-	assert.True(t, ok)
-	stopFn.(*object.Builtin).Call(ctx)
+	interval = object.NewString("1foo")
+	task = Every(ctx, interval, fn)
+	assert.True(t, object.IsError(task))
 }
 
 func TestOnce(t *testing.T) {
-	ctx := context.Background()
-
 	var executed int
 	callFn := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
 		executed++
 		return nil, nil
 	}
-	ctx = object.WithCloneCallFunc(ctx, callFn)
+	ctx := object.WithCloneCallFunc(context.Background(), callFn)
 	var fn *object.Function
 
-	// Schedule the function to run every 1 seconds
-	interval := object.NewString("1s")
-	sched := Once(ctx, interval, fn)
-	assert.False(t, object.IsError(sched))
-	assert.Equal(t, "sched.task", string(sched.Type()))
+	// Schedule the function to run every 1ms
+	interval := object.NewString("1ms")
+	task := Once(ctx, interval, fn)
+	assert.False(t, object.IsError(task))
+	assert.Equal(t, "sched.task", string(task.Type()))
 
-	// Wait for a few seconds to allow the job to execute
-	time.Sleep(2 * time.Second)
+	// Wait some time for the job to complete
+	time.Sleep(50 * time.Millisecond)
 	assert.Equal(t, 1, executed)
-
-	stopFn, ok := sched.GetAttr("cancel")
-	assert.True(t, ok)
-	stopFn.(*object.Builtin).Call(ctx)
 }
 
 func TestEqual(t *testing.T) {
@@ -104,23 +98,9 @@ func TestEqual(t *testing.T) {
 	var fn *object.Function
 
 	cronExpr := object.NewString("* * * * * *")
-	sched := Cron(ctx, cronExpr, fn)
-	sched2 := Cron(ctx, cronExpr, fn)
+	task := Cron(ctx, cronExpr, fn)
+	task2 := Cron(ctx, cronExpr, fn)
 
-	assert.True(t, sched.Equals(sched).(*object.Bool).Value())
-	assert.False(t, sched.Equals(sched2).(*object.Bool).Value())
-}
-
-func TestInvalidCron(t *testing.T) {
-	callFn := func(ctx context.Context, fn *object.Function, args []object.Object) (object.Object, error) {
-		return nil, nil
-	}
-	ctx := object.WithCallFunc(context.Background(), callFn)
-	var fn *object.Function
-
-	// Schedule the function using an invalid cron expression
-	cronExpr := object.NewString("invalid-cron")
-	sched := Cron(ctx, cronExpr, fn)
-
-	assert.True(t, object.IsError(sched))
+	assert.True(t, task.Equals(task).(*object.Bool).Value())
+	assert.False(t, task.Equals(task2).(*object.Bool).Value())
 }

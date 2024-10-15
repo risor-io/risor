@@ -17,14 +17,17 @@ type task struct {
 	t    chrono.ScheduledTask
 }
 
+// IsTruthy returns true if the task is not cancelled.
 func (t *task) IsTruthy() bool {
-	return true
+	return !t.t.IsCancelled()
 }
 
+// Cost returns the cost of the task.
 func (t *task) Cost() int {
 	return 0
 }
 
+// Equals returns true if the task is equal to the other object.
 func (t *task) Equals(other object.Object) object.Object {
 	so, ok := other.(*task)
 	if !ok {
@@ -34,10 +37,12 @@ func (t *task) Equals(other object.Object) object.Object {
 	return object.NewBool(ok)
 }
 
+// Inspect returns the string representation of the task.
 func (t *task) Inspect() string {
 	return "sched.task"
 }
 
+// Type returns the type of the task.
 func (t *task) Type() object.Type {
 	return object.Type("sched.task")
 }
@@ -46,10 +51,12 @@ func (t *task) Interface() any {
 	return t
 }
 
+// RunOperation returns a type error for unsupported operations.
 func (t *task) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
 	return object.TypeErrorf("type error: unsupported operation for job: %v", opType)
 }
 
+// GetAttr returns the attribute of the task.
 func (t *task) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "cancel":
