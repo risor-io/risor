@@ -1,5 +1,5 @@
 
-export GOFLAGS=-tags=aws,k8s,vault,semver
+export GOFLAGS=-tags=aws,k8s,vault,semver,sched
 
 export GIT_REVISION=$(shell git rev-parse --short HEAD)
 

@@ -71,7 +71,7 @@ Build the CLI from source as follows:
 ```bash
 git clone git@github.com:risor-io/risor.git
 cd risor/cmd/risor
-go install -tags aws,k8s,semver,vault .
+go install -tags aws,k8s,semver,vault,sched .
 ```
 
 ### Go Library
@@ -168,6 +168,7 @@ installed with `go get` as separate dependencies:
 | k8s      | [modules/kubernetes](./modules/kubernetes) | `go get github.com/risor-io/risor/modules/kubernetes@v1.7.0` |
 | pgx      | [modules/pgx](./modules/pgx)               | `go get github.com/risor-io/risor/modules/pgx@v1.7.0`        |
 | s3fs     | [os/s3fs](./os/s3fs)                       | `go get github.com/risor-io/risor/os/s3fs@v1.7.0`            |
+| sched    | [modules/sched](./modules/sched)           | `go get github.com/risor-io/risor/modules/sched@v1.7.0`      |
 | semver   | [modules/semver](./modules/semver)         | `go get github.com/risor-io/risor/modules/semver@v1.7.0`     |
 | sql      | [modules/sql](./modules/sql)               | `go get github.com/risor-io/risor/modules/sql@v1.7.0`        |
 | template | [modules/template](./modules/template)     | `go get github.com/risor-io/risor/modules/template@v1.7.0`   |

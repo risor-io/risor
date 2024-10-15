@@ -13,6 +13,7 @@ replace (
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
+	github.com/risor-io/risor/modules/sched => ../../modules/sched
 	github.com/risor-io/risor/modules/semver => ../../modules/semver
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
 	github.com/risor-io/risor/modules/template => ../../modules/template
@@ -39,6 +40,7 @@ require (
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
+	github.com/risor-io/risor/modules/sched v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/semver v1.7.0
 	github.com/risor-io/risor/modules/sql v1.7.0
 	github.com/risor-io/risor/modules/template v1.7.0
@@ -51,6 +53,7 @@ require (
 )
 
 require (
+	codnect.io/chrono v1.1.3 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
