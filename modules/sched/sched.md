@@ -42,12 +42,32 @@ cron(cronline string, fn func)
 
 Creates a new cron job.
 
+The `cronline` string is a space-separated list of 6 fields, representing the time to run the task.
+
+```
+SECOND MINUTE HOUR DAY MONTH DAYOFWEEK
+   *      *     *   *    *      *
+```
+
+Some examples:
+
+- `* * * * * *` every second
+- `*/5 * * * * *` every 5 seconds
+- `0 * * * * *` every minute
+- `0 0 * * * *` every hour
+- `20 45 18 5-20/3 * *` every day at 18:45:20, from the 5th to the 20th of the month, every 3 days
+- `0 0 0 1 SEP *` every year on September 1st at midnight
+- `0 0 0 1 5 SUN` every year on the first Sunday of May at midnight
+
+
 ```go copy filename="Example"
 // Run every second
-s := sched.cron("*/1 * * * * *", func() {
+task := sched.cron("*/1 * * * * *", func() {
 	print("hello world!")
 })
 ```
+
+Functions run in a separate goroutine, and errors are ignored, so the main program can continue to run. Make sure to handle errors in your function.
 
 ### every
 
@@ -56,31 +76,42 @@ every(duration string, fn func)
 ```
 
 Creates a new task that runs regularly, at the specified duration.
+
 The string format is documented in [the standard Go library](https://pkg.go.dev/time#ParseDuration).
 
 ```go copy filename="Example"
 // Run every minute
-s := sched.every("1m"", func() {
+task := sched.every("1m"", func() {
 	print("hello world!")
 })
 ```
 
+### once
+
+```go filename="Function signature"
+once(duration string, fn func)
+```
+
+Creates a new task that runs once, after the specified duration.
+
 ```go copy filename="Example"
-// Run every 500 milliseconds
-s := sched.every(0.5, func() {
+// Run a task in one 1h, once
+task := sched.once("1h", func() {
 	print("hello world!")
 })
 ```
+
+`cron` can be used to run a task once at a specific time, if more control is needed.
 
 ## Types
 
 ### task
 
-A Task object.
+A Task object returned by `cron`, `every` and `once` functions.
 
 #### Attributes
 
 | Name           | Type                           | Description                                  |
 | -------------- | ------------------------------ | -------------------------------------------- |
 | cancel         | func()                         | Cancels the task                             |
-| running        | func()                         | True if the task is running                  |
+| is_running     | func()                         | True if the task is running                  |
