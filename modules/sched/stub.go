@@ -1,7 +1,7 @@
 //go:build !sched
 // +build !sched
 
-package sched 
+package sched
 
 import (
 	"github.com/risor-io/risor/object"
