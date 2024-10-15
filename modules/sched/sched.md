@@ -1,6 +1,6 @@
 import { Callout } from 'nextra/components';
 
-# Sched
+# sched
 
 <Callout type="info" emoji="ℹ️">
 This module is not included with Risor.
