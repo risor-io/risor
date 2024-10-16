@@ -48,7 +48,7 @@ func (t *task) Type() object.Type {
 }
 
 func (t *task) Interface() any {
-	return t
+	return t.t
 }
 
 // RunOperation returns a type error for unsupported operations.
