@@ -12,7 +12,7 @@ COPY . .
 RUN cd cmd/risor && go mod download
 RUN CGO_ENABLED=0 GOOS=linux \
     go build \
-    -tags=aws,k8s,vault,semver,sched \
+    -tags=aws,k8s,vault,semver \
     -ldflags "-X 'main.version=${RISOR_VERSION}' -X 'main.commit=${GIT_REVISION}' -X 'main.date=${BUILD_DATE}'" \
     -o risor \
     ./cmd/risor
