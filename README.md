@@ -234,6 +234,8 @@ See [this guide](https://risor.io/docs/contributing_modules) for details.
 
 - [RSX: Package Risor Scripts into Go Binaries](https://github.com/rubiojr/rsx)
 - [Awesome Risor](https://github.com/rubiojr/awesome-risor)
+- [tree-sitter-risor](https://github.com/applejag/tree-sitter-risor)
+- [bench_go_scripting](https://github.com/mna/bench_go_scripting)
 
 ## Discuss the Project
 
