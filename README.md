@@ -230,6 +230,11 @@ Risor is intended to be a community project. You can lend a hand in various ways
 Adding modules to Risor is a great way to get involved with the project.
 See [this guide](https://risor.io/docs/contributing_modules) for details.
 
+## Community Projects
+
+- [RSX: Package Risor Scripts into Go Binaries](https://github.com/rubiojr/rsx)
+- [Awesome Risor](https://github.com/rubiojr/awesome-risor)
+
 ## Discuss the Project
 
 Please visit the [GitHub discussions](https://github.com/risor-io/risor/discussions)
