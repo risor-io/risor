@@ -1147,6 +1147,9 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		if err != nil {
 			return err
 		}
+		// Duplicate function on the stack, so that we ensure the function
+		// evaluates to a value even when it's named.
+		c.emit(op.Copy, 0)
 		if c.current.parent == nil {
 			c.emit(op.StoreGlobal, funcSymbol.Index())
 		} else {
