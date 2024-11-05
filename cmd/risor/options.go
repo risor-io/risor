@@ -18,6 +18,7 @@ import (
 	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/net"
 	"github.com/risor-io/risor/modules/pgx"
+	"github.com/risor-io/risor/modules/sched"
 	"github.com/risor-io/risor/modules/semver"
 	"github.com/risor-io/risor/modules/sql"
 	"github.com/risor-io/risor/modules/tablewriter"
@@ -78,6 +79,9 @@ func getGlobals() risor.Option {
 	}
 	if mod := vault.Module(); mod != nil {
 		globals["vault"] = mod
+	}
+	if mod := sched.Module(); mod != nil {
+		globals["sched"] = mod
 	}
 	if mod := semver.Module(); mod != nil {
 		globals["semver"] = mod
