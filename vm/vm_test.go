@@ -2212,6 +2212,21 @@ func TestExecOldWayWithDir(t *testing.T) {
 	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
 }
 
+func TestReturnNamedFunction(t *testing.T) {
+	code := `
+	func test() {
+		return func foo() {
+			return "FOO"
+		}
+	}
+	f := test()
+	f()
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("FOO"), result)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
