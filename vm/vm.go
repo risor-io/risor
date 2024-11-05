@@ -895,7 +895,7 @@ func (vm *VirtualMachine) reloadCode(main *compiler.Code) *code {
 	if !ok {
 		panic("main code not loaded")
 	}
-	vm.loadedCode = map[*compiler.Code]*code{}
+	delete(vm.loadedCode, main)
 	newWrappedMain := vm.loadCode(main)
 	copy(newWrappedMain.Globals, oldWrappedMain.Globals)
 	return newWrappedMain
