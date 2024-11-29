@@ -168,6 +168,90 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	return object.NewList(results)
 }
 
+func (c *PgxConn) QueryFunc(ctx context.Context, args ...object.Object) object.Object {
+	// The arguments should include a query string, a callback function and zero or more query args
+	if len(args) < 2 {
+		return object.TypeErrorf("type error: pgx.conn.query() two or more arguments (%d given)", len(args))
+	}
+	/*
+		Args:
+		0: query string
+		1: callback function
+		2+: query args
+	*/
+	query, errObj := object.AsString(args[0])
+	if errObj != nil {
+		return errObj
+	}
+	callbackFx, ok := args[1].(object.Callable)
+	if !ok {
+		return object.TypeErrorf("type error: pgx.conn.queryfunc() expected a callable argument for fx (got %s)", args[0].Type())
+	}
+
+	// Build list of query args as their Go types
+	var queryArgs []interface{}
+	for _, queryArg := range args[2:] {
+		queryArgs = append(queryArgs, queryArg.Interface())
+	}
+	// Start the query
+	rows, err := c.conn.Query(ctx, query, queryArgs...)
+	if err != nil {
+		return object.NewError(err)
+	}
+	defer rows.Close()
+
+	// The field descriptions will tell us how to decode the result values
+	fields := rows.FieldDescriptions()
+	// The number of rows passed to the callback
+	rowsReturned := 0
+	// Transform each result row into a Risor map object
+	for rows.Next() {
+		values, err := rows.Values()
+		if err != nil {
+			return object.NewError(err)
+		}
+		row := map[string]object.Object{}
+		for colIndex, value := range values {
+			key := fields[colIndex].Name
+			var val object.Object
+			if timeVal, ok := value.(pgtype.Time); ok {
+				usec := timeVal.Microseconds
+				val = object.FromGoType(usec)
+			} else {
+				val = object.FromGoType(value)
+			}
+			if val == nil {
+				return object.TypeErrorf("type error: pgx.conn.queryfunc() encountered unsupported type: %T", value)
+			}
+			if !object.IsError(val) {
+				row[key] = val
+			} else {
+				row[key] = object.NewString(fmt.Sprintf("__error__%s", value))
+			}
+		}
+
+		// Call the callback function with the row
+		// callbackResponse should be a bool indicating if we should continue or not
+		// but it could also be an error if the callback handler fails
+		// and if it is anything else, it is also an error
+		callbackResponse := callbackFx.Call(ctx, object.NewMap(row))
+		// return true/false if the return type is a bool
+		isBool, actualBool := object.IsBool(callbackResponse)
+		{
+			if isBool {
+				return object.NewBool(actualBool)
+			}
+		}
+		// otherwise, if an error, return the error thrown from the callback
+		if object.IsError(callbackResponse) {
+			return callbackResponse
+		} else {
+			return object.TypeErrorf("type error: pgx.conn.queryfunc() expected a boolean response from callback fx (got %s)", callbackResponse.Type())
+		}
+	}
+	return object.NewInt(int64(rowsReturned))
+}
+
 func (c *PgxConn) Exec(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
 		return object.TypeErrorf("type error: pgx.conn.exec() one or more arguments (%d given)", len(args))
