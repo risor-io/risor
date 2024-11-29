@@ -16,16 +16,11 @@ import (
 )
 
 const (
-	//DEFAULT_PG_HOST     = "127.0.0.1"
-	//DEFAULT_PG_PORT     = "5432"
-	//DEFAULT_PG_USER     = "risor"
-	//DEFAULT_PG_PASSWORD = "risorpw"
-	//DEFAULT_PG_DB       = "risordb"
-	DEFAULT_PG_HOST            = "192.168.1.244"
-	DEFAULT_PG_PORT            = "5433"
-	DEFAULT_PG_USER            = "uas"
-	DEFAULT_PG_PASSWORD        = "uas"
-	DEFAULT_PG_DB              = "uas"
+	DEFAULT_PG_HOST            = "127.0.0.1"
+	DEFAULT_PG_PORT            = "5432"
+	DEFAULT_PG_USER            = "risor"
+	DEFAULT_PG_PASSWORD        = "risorpw"
+	DEFAULT_PG_DB              = "risordb"
 	DEFAULT_PG_CONNECT_TIMEOUT = "3s"
 )
 
