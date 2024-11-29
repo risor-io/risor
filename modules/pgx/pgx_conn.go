@@ -50,6 +50,9 @@ func (c *PgxConn) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "query":
 		return object.NewBuiltin("pgx.conn.query", c.Query), true
+	case "queryFunc":
+		return object.NewBuiltin("pgx.conn.queryFunc", c.QueryFunc), true
+
 	case "exec", "execute": // "exec" for backwards compatibility
 		return object.NewBuiltin("pgx.conn.execute", c.Exec), true
 	case "close":
@@ -235,12 +238,16 @@ func (c *PgxConn) QueryFunc(ctx context.Context, args ...object.Object) object.O
 		// but it could also be an error if the callback handler fails
 		// and if it is anything else, it is also an error
 		callbackResponse := callbackFx.Call(ctx, object.NewMap(row))
+		rowsReturned++
 		// return true/false if the return type is a bool
 		isBool, actualBool := object.IsBool(callbackResponse)
-		{
-			if isBool {
-				return object.NewBool(actualBool)
+		if isBool {
+			if actualBool {
+				continue
+			} else {
+				break
 			}
+			//return object.NewBool(actualBool)
 		}
 		// otherwise, if an error, return the error thrown from the callback
 		if object.IsError(callbackResponse) {
