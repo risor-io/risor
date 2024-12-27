@@ -91,7 +91,7 @@ func (app *App) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func NewApp(opts *object.Map) (*App, error) {
+func NewApp(ctx context.Context, opts *object.Map) (*App, error) {
 	app := &ucli.App{}
 
 	var err error
@@ -119,6 +119,12 @@ func NewApp(opts *object.Map) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	stdin := os.GetDefaultOS(ctx).Stdin()
+	stdout := os.GetDefaultOS(ctx).Stdout()
+	app.Reader = stdin
+	app.Writer = stdout
+	app.ErrWriter = stdout
 
 	if actionOpt := opts.Get("action"); actionOpt != object.Nil {
 		if action, ok := actionOpt.(*object.Function); ok {

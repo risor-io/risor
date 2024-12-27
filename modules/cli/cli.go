@@ -16,7 +16,7 @@ func AppFunc(ctx context.Context, args ...object.Object) object.Object {
 	if objErr != nil {
 		return objErr
 	}
-	app, err := NewApp(opts)
+	app, err := NewApp(ctx, opts)
 	if err != nil {
 		return object.NewError(err)
 	}
