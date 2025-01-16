@@ -108,6 +108,19 @@ The `time` type represents a moment in time.
 
 #### Methods
 
+##### time.add_date
+
+```go filename="Method signature"
+add_date(years int, months int, days int) bool
+```
+
+Returns the time corresponding to adding the given number of years, months, and days.
+
+```go copy filename="Example"
+>>> time.now().add_date(1,0,0)
+time("2026-01-16T10:50:28+01:00")
+```
+
 ##### time.before
 
 ```go filename="Method signature"
