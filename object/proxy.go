@@ -78,13 +78,16 @@ func (p *Proxy) GetAttr(name string) (Object, bool) {
 		if !ok {
 			return TypeErrorf("type error: no converter for field %s", name), true
 		}
-		var value interface{}
+		var value reflect.Value
 		if p.typ.IsPointerType() {
-			value = reflect.ValueOf(p.obj).Elem().FieldByName(name).Interface()
+			value = reflect.ValueOf(p.obj).Elem().FieldByName(name)
 		} else {
-			value = reflect.ValueOf(p.obj).FieldByName(name).Interface()
+			value = reflect.ValueOf(p.obj).FieldByName(name)
 		}
-		result, err := conv.From(value)
+		if value.Kind() == reflect.Struct && value.CanAddr() {
+			value = value.Addr()
+		}
+		result, err := conv.From(value.Interface())
 		if err != nil {
 			return NewError(err), true
 		}

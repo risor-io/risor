@@ -90,7 +90,12 @@ func (f *GoField) MarshalJSON() ([]byte, error) {
 }
 
 func newGoField(f reflect.StructField) (*GoField, error) {
-	fieldGoType, err := newGoType(f.Type)
+	typ := f.Type
+	if f.Type.Kind() == reflect.Struct {
+		typ = reflect.PointerTo(typ)
+	}
+
+	fieldGoType, err := newGoType(typ)
 	if err != nil {
 		return nil, err
 	}
