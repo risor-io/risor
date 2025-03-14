@@ -119,3 +119,46 @@ for _, v := range [1, 2, 3] {
 	require.NotNil(t, err)
 	require.Equal(t, "compile error: undefined variable \"undefined_var\"\n\nlocation: unknown:4:3 (line 4, column 3)", err.Error())
 }
+
+func TestCompoundAssignmentWithIndex(t *testing.T) {
+	// test[0] *= 3
+	input := "test := [1, 2]; test[0] *= 3"
+	expected := [][]op.Code{
+		{op.LoadConst, 0}, // 1
+		{op.LoadConst, 1}, // 2
+		{op.BuildList, 2},
+		{op.StoreGlobal, 0}, // store into 'test'
+		{op.LoadGlobal, 0},  // load 'test'
+		{op.LoadConst, 2},   // load index 0
+		{op.BinarySubscr},   // get test[0]
+		{op.LoadConst, 3},   // load 3
+		{op.BinaryOp, op.Code(op.Multiply)},
+		{op.LoadGlobal, 0}, // load 'test' again
+		{op.LoadConst, 4},  // load index 0
+		{op.StoreSubscr},   // store result back in test[0]
+		{op.Nil},           // implicit return value
+	}
+
+	c, err := New()
+	require.Nil(t, err)
+
+	ast, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+
+	code, err := c.Compile(ast)
+	require.Nil(t, err)
+
+	// Compare the generated instructions
+	actual := NewInstructionIter(code).All()
+
+	require.Equal(t, len(expected), len(actual),
+		"instruction length mismatch. got=%d, want=%d",
+		len(actual), len(expected))
+
+	for i, want := range expected {
+		got := actual[i]
+		require.Equal(t, want, got,
+			"wrong instruction at pos %d. got=%v, want=%v",
+			i, got, want)
+	}
+}

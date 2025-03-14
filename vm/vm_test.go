@@ -2122,6 +2122,10 @@ func TestMaps(t *testing.T) {
 			"a": object.NewInt(1),
 			"b": object.NewInt(2),
 		})},
+		{`m := {"a": 1, "b": 2}; m["a"] *= 8; m`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(8),
+			"b": object.NewInt(2),
+		})},
 	}
 	runTests(t, tests)
 }
@@ -2150,6 +2154,10 @@ func TestLists(t *testing.T) {
 		]`, object.NewList([]object.Object{
 			object.NewInt(1),
 			object.NewInt(2),
+		})},
+		{`l := [1, 2]; for k := range l { l[k] *= 2 }; l`, object.NewList([]object.Object{
+			object.NewInt(2),
+			object.NewInt(4),
 		})},
 	}
 	runTests(t, tests)
