@@ -1206,17 +1206,45 @@ func (c *Compiler) compileReturn(node *ast.Return) error {
 }
 
 func (c *Compiler) compileSetItem(node *ast.Assign) error {
-	// StoreSubscr / STORE_SUBSCR
-	// Implements TOS1[TOS] = TOS2.
-	//
-	// x[0] = 99
-	// 1. Push node.Value()  (99)
-	// 2. Push index.Left()  (x)
-	// 3. Push index.Index() (0)
 	index := node.Index()
-	if err := c.compile(node.Value()); err != nil {
-		return err
+
+	// Handle compound operators (*=, +=, etc.)
+	if node.Operator() != "=" {
+		// 1. Load the current value: test[0]
+		if err := c.compile(index.Left()); err != nil {
+			return err
+		}
+		if err := c.compile(index.Index()); err != nil {
+			return err
+		}
+		c.emit(op.BinarySubscr)
+
+		// 2. Load the RHS value
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
+
+		// 3. Apply the compound operation
+		switch node.Operator() {
+		case "+=":
+			c.emit(op.BinaryOp, uint16(op.Add))
+		case "-=":
+			c.emit(op.BinaryOp, uint16(op.Subtract))
+		case "*=":
+			c.emit(op.BinaryOp, uint16(op.Multiply))
+		case "/=":
+			c.emit(op.BinaryOp, uint16(op.Divide))
+		default:
+			return fmt.Errorf("compile error: unsupported compound assignment operator: %s", node.Operator())
+		}
+	} else {
+		// Simple assignment
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
 	}
+
+	// 4. Store the result back
 	if err := c.compile(index.Left()); err != nil {
 		return err
 	}
