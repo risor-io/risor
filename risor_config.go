@@ -202,7 +202,7 @@ func (cfg *Config) CompilerOpts() []compiler.Option {
 		opts = append(opts, compiler.WithGlobalNames(globalNames))
 	}
 	if cfg.filename != "" {
-		opts = append(opts, compiler.WithFile(cfg.filename))
+		opts = append(opts, compiler.WithFilename(cfg.filename))
 	}
 	return opts
 }

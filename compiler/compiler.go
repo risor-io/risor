@@ -64,10 +64,10 @@ func WithCode(code *Code) Option {
 	}
 }
 
-// WithFile configures the compiler with the source filename.
-func WithFile(file string) Option {
+// WithFilename configures the compiler with the source filename.
+func WithFilename(filename string) Option {
 	return func(c *Compiler) {
-		c.filename = file
+		c.filename = filename
 	}
 }
 

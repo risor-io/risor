@@ -76,7 +76,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if len(i.globalNames) > 0 {
 		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
 	}
-	opts = append(opts, compiler.WithFile(fullPath))
+	opts = append(opts, compiler.WithFilename(fullPath))
 	code, err := compiler.Compile(ast, opts...)
 	if err != nil {
 		return nil, err

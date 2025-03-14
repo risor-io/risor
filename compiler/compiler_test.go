@@ -92,7 +92,7 @@ func TestCompileErrors(t *testing.T) {
 	}
 	for _, tt := range testCase {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := New(WithFile("t.risor"))
+			c, err := New(WithFilename("t.risor"))
 			require.Nil(t, err)
 			ast, err := parser.Parse(context.Background(), tt.input)
 			require.Nil(t, err)
