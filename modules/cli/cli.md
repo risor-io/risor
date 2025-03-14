@@ -81,12 +81,19 @@ app.run()
 The `app` function supports the following options:
 
 - `action func(ctx)`: The action to run when the app is run.
+- `args bool`: Whether this app supports arguments.
+- `args_usage string`: Description of the program argument format.
 - `commands []cli.command`: A list of commands that the app supports.
+- `default_command string`: Name of a command to run if no command names are passed as CLI arguments.
 - `description string`: A short description of the app.
+- `enable_bash_completion bool`: Enable bash completion commands.
 - `flags []cli.flag`: A list of flags that the app supports.
-- `help_name string` : Override for the name of the app in help output.
+- `help_name string`: Override for the name of the app in help output.
+- `hide_help bool`: Hide built-in help command and help flag.
+- `hide_help_command bool`: Hide built-in help command but keep help flag (ignored if hide_help is true).
+- `hide_version bool`: Hide built-in version flag and VERSION section of help.
 - `name string`: The name of the app.
-- `usage_text string`: The usage text for the app.
+- `usage_text string`: Text to override the USAGE section of help.
 - `usage string`: The usage string for the app.
 - `version string`: The version of the app.
 
