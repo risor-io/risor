@@ -1,4 +1,6 @@
-go 1.22.1
+go 1.23.0
+
+toolchain go1.24.0
 
 use (
 	.
@@ -17,10 +19,10 @@ use (
 	./modules/jmespath
 	./modules/pgx
 	./modules/semver
+	./modules/shlex
 	./modules/sql
 	./modules/template
 	./modules/uuid
 	./modules/vault
-	./modules/shlex
 	./os/s3fs
 )

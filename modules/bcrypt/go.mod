@@ -1,15 +1,15 @@
 module github.com/risor-io/risor/modules/bcrypt
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.23.1
+toolchain go1.24.0
 
 replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/risor-io/risor v1.7.0
-	github.com/stretchr/testify v1.9.0
-	golang.org/x/crypto v0.26.0
+	github.com/stretchr/testify v1.10.0
+	golang.org/x/crypto v0.36.0
 )
 
 require (
