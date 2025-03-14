@@ -19,6 +19,7 @@ import (
 	"github.com/risor-io/risor/modules/net"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/semver"
+	"github.com/risor-io/risor/modules/shlex"
 	"github.com/risor-io/risor/modules/sql"
 	"github.com/risor-io/risor/modules/tablewriter"
 	"github.com/risor-io/risor/modules/template"
@@ -81,6 +82,9 @@ func getGlobals() risor.Option {
 	}
 	if mod := semver.Module(); mod != nil {
 		globals["semver"] = mod
+	}
+	if mod := shlex.Module(); mod != nil {
+		globals["shlex"] = mod
 	}
 
 	return risor.WithGlobals(globals)
