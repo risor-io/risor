@@ -1,8 +1,8 @@
 module github.com/risor-io/risor/os/s3fs
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.23.1
+toolchain go1.24.0
 
 replace github.com/risor-io/risor => ../..
 
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.43
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
 	github.com/risor-io/risor v1.7.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (

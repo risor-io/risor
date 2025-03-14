@@ -1,6 +1,8 @@
 module github.com/risor-io/risor/cmd/risor
 
-go 1.22.1
+go 1.23.0
+
+toolchain go1.24.0
 
 replace (
 	github.com/risor-io/risor => ../..
@@ -14,6 +16,7 @@ replace (
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
 	github.com/risor-io/risor/modules/semver => ../../modules/semver
+	github.com/risor-io/risor/modules/shlex => ../../modules/shlex
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
 	github.com/risor-io/risor/modules/template => ../../modules/template
 	github.com/risor-io/risor/modules/uuid => ../../modules/uuid
@@ -25,7 +28,7 @@ require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/aws/aws-sdk-go-v2/config v1.27.43
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
-	github.com/fatih/color v1.17.0
+	github.com/fatih/color v1.18.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
@@ -40,6 +43,7 @@ require (
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
 	github.com/risor-io/risor/modules/semver v1.7.0
+	github.com/risor-io/risor/modules/shlex v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sql v1.7.0
 	github.com/risor-io/risor/modules/template v1.7.0
 	github.com/risor-io/risor/modules/uuid v1.7.0
@@ -47,7 +51,7 @@ require (
 	github.com/risor-io/risor/os/s3fs v1.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
@@ -121,7 +125,7 @@ require (
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
-	github.com/gofrs/uuid/v5 v5.3.0 // indirect
+	github.com/gofrs/uuid/v5 v5.3.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-module/carbon/v2 v2.3.12 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
@@ -142,7 +146,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.6.0 // indirect
+	github.com/jackc/pgx/v5 v5.7.2 // indirect
 	github.com/jmespath-community/go-jmespath v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -175,19 +179,20 @@ require (
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/u-root/u-root v0.14.0 // indirect
 	github.com/urfave/cli/v2 v2.27.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/dburl v0.23.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/image v0.19.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

@@ -1,8 +1,8 @@
 module github.com/risor-io/risor/cmd/risor-lsp
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.23.1
+toolchain go1.24.0
 
 replace github.com/risor-io/risor => ../..
 
@@ -15,6 +15,6 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 )

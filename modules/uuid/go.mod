@@ -1,15 +1,15 @@
 module github.com/risor-io/risor/modules/uuid
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.23.1
+toolchain go1.24.0
 
 replace github.com/risor-io/risor => ../..
 
 require (
-	github.com/gofrs/uuid/v5 v5.3.0
+	github.com/gofrs/uuid/v5 v5.3.1
 	github.com/risor-io/risor v1.7.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
