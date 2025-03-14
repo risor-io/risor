@@ -64,10 +64,10 @@ func WithCode(code *Code) Option {
 	}
 }
 
-// WithFilename configures the compiler with the source filename.
-func WithFilename(filename string) Option {
+// WithFile configures the compiler with the source filename.
+func WithFile(file string) Option {
 	return func(c *Compiler) {
-		c.filename = filename
+		c.filename = file
 	}
 }
 
@@ -1875,28 +1875,17 @@ func normalizeFunctionBlock(node *ast.Block) []ast.Node {
 
 // formatError creates a detailed error message including file, line and column information
 func (c *Compiler) formatError(msg string, pos token.Position) error {
+	lineCol := fmt.Sprintf("line %d, column %d", pos.LineNumber(), pos.ColumnNumber())
+	filename := c.filename
+	if filename == "" {
+		filename = "unknown"
+	}
 	var b strings.Builder
 	b.WriteString("compile error: ")
 	b.WriteString(msg)
 	b.WriteString("\n\n")
 	b.WriteString("location: ")
-	if c.filename != "" {
-		b.WriteString("file ")
-		b.WriteString(c.filename)
-		b.WriteString(", ")
-	}
-	b.WriteString(fmt.Sprintf("line %d, column %d", pos.LineNumber(), pos.ColumnNumber()))
-	// add clickable link to file and location
-	b.WriteString(fmt.Sprintf("\n\n%s:%d:%d", c.filename, pos.LineNumber(), pos.ColumnNumber()))
-	if c.current.source != "" {
-		lines := strings.Split(c.current.source, "\n")
-		if pos.Line > 0 && pos.Line <= len(lines) {
-			b.WriteString("\n")
-			b.WriteString(lines[pos.Line-1])
-			b.WriteString("\n")
-			b.WriteString(strings.Repeat(" ", pos.Column-1))
-			b.WriteString("^")
-		}
-	}
+	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
+	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
 }

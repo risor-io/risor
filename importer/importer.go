@@ -68,7 +68,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if !found {
 		return nil, fmt.Errorf("import error: module %q not found", name)
 	}
-	ast, err := parser.Parse(ctx, source)
+	ast, err := parser.Parse(ctx, source, parser.WithFile(fullPath))
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if len(i.globalNames) > 0 {
 		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
 	}
-	opts = append(opts, compiler.WithFilename(fullPath))
+	opts = append(opts, compiler.WithFile(fullPath))
 	code, err := compiler.Compile(ast, opts...)
 	if err != nil {
 		return nil, err

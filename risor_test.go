@@ -26,15 +26,15 @@ func TestConfirmNoBuiltins(t *testing.T) {
 	testCases := []testCase{
 		{
 			input:       "keys({foo: 1})",
-			expectedErr: "compile error: undefined variable \"keys\" (line 1)",
+			expectedErr: "compile error: undefined variable \"keys\"\n\nlocation: unknown:1:1 (line 1, column 1)",
 		},
 		{
 			input:       "any([0, 0, 1])",
-			expectedErr: "compile error: undefined variable \"any\" (line 1)",
+			expectedErr: "compile error: undefined variable \"any\"\n\nlocation: unknown:1:1 (line 1, column 1)",
 		},
 		{
 			input:       "string(42)",
-			expectedErr: "compile error: undefined variable \"string\" (line 1)",
+			expectedErr: "compile error: undefined variable \"string\"\n\nlocation: unknown:1:1 (line 1, column 1)",
 		},
 	}
 	for _, tc := range testCases {
@@ -90,11 +90,11 @@ func TestWithDenyList(t *testing.T) {
 		},
 		{
 			input:       "any([0, 0, 1])",
-			expectedErr: errors.New(`compile error: undefined variable "any" (line 1)`),
+			expectedErr: errors.New("compile error: undefined variable \"any\"\n\nlocation: unknown:1:1 (line 1, column 1)"),
 		},
 		{
 			input:       "json.marshal(42)",
-			expectedErr: errors.New(`compile error: undefined variable "json" (line 1)`),
+			expectedErr: errors.New("compile error: undefined variable \"json\"\n\nlocation: unknown:1:1 (line 1, column 1)"),
 		},
 		{
 			input:       `os.getenv("USER")`,
@@ -111,12 +111,12 @@ exit(1)`,
 		},
 		{
 			input:       "cat /etc/issue",
-			expectedErr: errors.New(`compile error: undefined variable "cat" (line 1)`),
+			expectedErr: errors.New("compile error: undefined variable \"cat\"\n\nlocation: unknown:1:1 (line 1, column 1)"),
 		},
 	}
 	for _, tc := range testCases {
 		_, err := Eval(context.Background(), tc.input, WithoutGlobals("any", "os.exit", "json", "cat"))
-		t.Logf("want: %q; got: %v", tc.expectedErr, err)
+		// t.Logf("want: %q; got: %v", tc.expectedErr, err)
 		if tc.expectedErr != nil {
 			require.NotNil(t, err)
 			require.Equal(t, tc.expectedErr.Error(), err.Error())
@@ -129,13 +129,13 @@ exit(1)`,
 func TestWithoutDefaultGlobals(t *testing.T) {
 	_, err := Eval(context.Background(), "json.marshal(42)", WithoutDefaultGlobals())
 	require.NotNil(t, err)
-	require.Equal(t, errors.New("compile error: undefined variable \"json\" (line 1)"), err)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\"\n\nlocation: unknown:1:1 (line 1, column 1)"), err)
 }
 
 func TestWithoutDefaultGlobal(t *testing.T) {
 	_, err := Eval(context.Background(), "json.marshal(42)", WithoutGlobal("json"))
 	require.NotNil(t, err)
-	require.Equal(t, errors.New("compile error: undefined variable \"json\" (line 1)"), err)
+	require.Equal(t, errors.New("compile error: undefined variable \"json\"\n\nlocation: unknown:1:1 (line 1, column 1)"), err)
 }
 
 func TestWithVirtualOSStdinBuffer(t *testing.T) {
