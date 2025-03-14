@@ -29,6 +29,8 @@ func (t *Time) Inspect() string {
 
 func (t *Time) GetAttr(name string) (Object, bool) {
 	switch name {
+	case "add_date":
+		return NewBuiltin("time.add_date", t.AddDate), true
 	case "before":
 		return NewBuiltin("time.before", t.Before), true
 	case "after":
@@ -79,6 +81,27 @@ func (t *Time) RunOperation(opType op.BinaryOpType, right Object) Object {
 
 func NewTime(t time.Time) *Time {
 	return &Time{value: t}
+}
+
+func (t *Time) AddDate(ctx context.Context, args ...Object) Object {
+	if len(args) != 3 {
+		return NewArgsError("time.add_date", 3, len(args))
+	}
+
+	years, err := AsInt(args[0])
+	if err != nil {
+		return err
+	}
+	months, err := AsInt(args[1])
+	if err != nil {
+		return err
+	}
+	days, err := AsInt(args[2])
+	if err != nil {
+		return err
+	}
+
+	return NewTime(t.value.AddDate(int(years), int(months), int(days)))
 }
 
 func (t *Time) After(ctx context.Context, args ...Object) Object {
