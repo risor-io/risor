@@ -1590,15 +1590,20 @@ func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
 			return nil
 		}
 		return ast.NewObjectCall(period, obj, call)
-	} else if p.peekTokenIs(token.ASSIGN) {
-		p.nextToken() // move to the "="
+	} else if p.peekTokenIs(token.ASSIGN) ||
+		p.peekTokenIs(token.PLUS_EQUALS) ||
+		p.peekTokenIs(token.MINUS_EQUALS) ||
+		p.peekTokenIs(token.ASTERISK_EQUALS) ||
+		p.peekTokenIs(token.SLASH_EQUALS) {
+		p.nextToken() // move to the operator
+		operator := p.curToken
 		p.nextToken() // move to the value
 		right := p.parseExpression(LOWEST)
 		if right == nil {
 			p.setTokenError(p.curToken, "invalid assignment statement value")
 			return nil
 		}
-		return ast.NewSetAttr(obj.Token(), obj, name, right)
+		return ast.NewSetAttr(operator, obj, name, right)
 	}
 	return ast.NewGetAttr(period, obj, name)
 }
