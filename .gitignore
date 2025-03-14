@@ -6,6 +6,8 @@ node_modules
 risor*.vsix
 risor-language-server.log
 
+risor-example.db*
+
 /cmd/risor/risor
 /cmd/risor-lsp/risor-lsp
 /cmd/risor-api/risor-api
