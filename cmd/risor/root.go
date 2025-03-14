@@ -182,7 +182,11 @@ var rootCmd = &cobra.Command{
 
 		// Execute the code
 		start := time.Now()
-		result, err := risor.Eval(ctx, code, opts...)
+		evalOpts := getRisorOptions()
+		if len(args) > 0 {
+			evalOpts = append(evalOpts, risor.WithFilename(args[0]))
+		}
+		result, err := risor.Eval(ctx, code, evalOpts...)
 		if err != nil {
 			errMsg := err.Error()
 			if friendlyErr, ok := err.(errz.FriendlyError); ok {

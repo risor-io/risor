@@ -47,9 +47,18 @@ func Parse(ctx context.Context, input string, options ...Option) (*ast.Program, 
 type Option func(*Parser)
 
 // WithFile sets the file name for the Lexer.
+//
+// Deprecated: Use WithFilename instead.
 func WithFile(file string) Option {
 	return func(l *Parser) {
 		l.filename = file
+	}
+}
+
+// WithFilename sets the file name for the Lexer.
+func WithFilename(filename string) Option {
+	return func(l *Parser) {
+		l.filename = filename
 	}
 }
 
