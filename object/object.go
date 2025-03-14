@@ -275,3 +275,28 @@ func ArgsErrorf(format string, args ...interface{}) *Error {
 func TypeErrorf(format string, args ...interface{}) *Error {
 	return NewError(errz.TypeErrorf(format, args...))
 }
+
+// IsBool checks if the given object is a boolean and returns
+// [bool, bool] where the first bool is true if the object is a boolean
+// and the second bool is the actual boolean value.
+// if first bool is false, the second bool is non-deterministic but always false.
+// since we're not truthy here.
+func IsBool(obj Object) (bool, bool) {
+	if obj != nil {
+		if obj.Type() == BOOL {
+			actual := obj.(*Bool)
+			return true, actual.Value()
+		}
+	}
+	return false, false
+}
+
+func IsActualBool(obj Object) bool {
+	if obj != nil {
+		if obj.Type() == BOOL {
+			actual := obj.(*Bool)
+			return actual.Value()
+		}
+	}
+	return false
+}

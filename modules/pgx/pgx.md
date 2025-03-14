@@ -57,12 +57,68 @@ query.
 [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
 ```
 
-##### close
+##### queryFunc
 
 ```go filename="Method signature"
-close()
+queryFunc(sql string, fx func(row) bool, args ...object) int
 ```
 
+Runs a query on the server and handles each row with the provided function `fx`. If `fx` returns `false`, the query is stopped and the number of rows processed is returned,
+otherwise all records are processed and the total number of rows is returned.
+
+Example `queryFunc` script:
+
+```go copy filename="Script"
+// File Name: genSeries.risor
+p := pgx.connect("postgres://user:pass@127.0.0.1:5432/db")
+cnt := 0
+rcnt := p.queryFunc("SELECT * FROM generate_series($1::integer, $2::integer)", func(row) {
+    cnt++
+    return true
+}, 1, 100000)
+printf("rows returned: %d\n", cnt)
+assert(rcnt == cnt, "row count mismatch")
+assert(rcnt == 100000, "row count mismatch to expected")
+p.close()
+```
+Execute the script:
+
+```go copy filename="Example"
+$ risor genSeries.risor
+rows returned: 100000
+$
+```
+
+The `queryFunc` method may be preferable to `query` when:
+ - Processing large datasets, as it allows for processing each row as it is received from the database, rather than waiting for the entire result set to be returned.
+ - When result set processing should be stopped based on a condition.
+
+Example `queryFunc` script that stops processing when a condition is met:
+
+```go copy filename="Script"
+// File Name: genSeriesStop.risor
+p := pgx.connect("postgres://user:pass@127.0.0.1:5432/db")
+cnt := 0
+rcnt := p.queryFunc("SELECT * FROM generate_series($1::integer, $2::integer)", func(row) {
+    cnt++
+    if cnt == 50000 {  // contrived condition to stop processing
+        return false
+    }
+    return true
+}, 1, 100000)
+printf("rows counted: %d, rows returned: %d\n", rcnt, cnt)
+p.close()
+```
+Execute the script:
+
+```go copy filename="Example"
+$ risor genSeriesStop.risor
+rows counted: 50000, rows returned: 50000
+$
+```
+
+
+##### close
 Close the connection.
 
 ```go copy filename="Example"
