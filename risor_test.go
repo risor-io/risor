@@ -364,3 +364,28 @@ func TestWithConcurrency(t *testing.T) {
 	require.NotNil(t, err)
 	require.Equal(t, "eval error: context did not contain a spawn function", err.Error())
 }
+
+func TestStructFieldModification(t *testing.T) {
+	type Object struct {
+		A int
+	}
+
+	testCases := []struct {
+		script   string
+		expected int64
+	}{
+		{"Object.A = 9; Object.A *= 3; Object.A", 27},
+		{"Object.A = 10; Object.A += 5; Object.A", 15},
+		{"Object.A = 10; Object.A -= 3; Object.A", 7},
+		{"Object.A = 20; Object.A /= 4; Object.A", 5},
+	}
+
+	for _, tc := range testCases {
+		result, err := Eval(context.Background(),
+			tc.script,
+			WithGlobal("Object", &Object{}))
+
+		require.Nil(t, err, "script: %s", tc.script)
+		require.Equal(t, object.NewInt(tc.expected), result, "script: %s", tc.script)
+	}
+}

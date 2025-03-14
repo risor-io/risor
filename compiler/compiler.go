@@ -1320,9 +1320,41 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 }
 
 func (c *Compiler) compileSetAttr(node *ast.SetAttr) error {
-	if err := c.compile(node.Value()); err != nil {
-		return err
+	// Handle compound operators (*=, +=, etc.)
+	if node.Token().Type != token.ASSIGN {
+		// 1. Load the current value
+		if err := c.compile(node.Object()); err != nil {
+			return err
+		}
+		idx := c.current.addName(node.Name())
+		c.emit(op.LoadAttr, idx)
+
+		// 2. Load the RHS value
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
+
+		// 3. Apply the compound operation
+		switch node.Token().Type {
+		case token.PLUS_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Add))
+		case token.MINUS_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Subtract))
+		case token.ASTERISK_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Multiply))
+		case token.SLASH_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Divide))
+		default:
+			return fmt.Errorf("compile error: unsupported compound assignment operator: %s", node.Token().Literal)
+		}
+	} else {
+		// Simple assignment
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
 	}
+
+	// 4. Store the result back
 	if err := c.compile(node.Object()); err != nil {
 		return err
 	}
