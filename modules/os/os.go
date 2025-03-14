@@ -33,6 +33,7 @@ func Exit(ctx context.Context, args ...object.Object) object.Object {
 	tos := GetOS(ctx)
 	if nArgs == 0 {
 		tos.Exit(0)
+		return object.Nil
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
