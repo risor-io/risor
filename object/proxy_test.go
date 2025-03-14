@@ -463,3 +463,155 @@ func TestProxyNestedStruct(t *testing.T) {
 	// Verify the value was set correctly
 	require.Equal(t, "hello", config.A.B)
 }
+
+type testNilArg struct{}
+
+func (t *testNilArg) Test(arg any) {
+	// Method implementation doesn't matter for this test
+}
+
+func (t *testNilArg) TestMultiple(a, b any) {
+	// Method implementation doesn't matter for this test
+}
+
+func (t *testNilArg) TestMixed(a string, b any) {
+	// Method implementation doesn't matter for this test
+}
+
+func (t *testNilArg) TestReturnNil() any {
+	return nil
+}
+
+func (t *testNilArg) TestReturnValue() string {
+	return "hello"
+}
+
+func (t *testNilArg) TestReturnMultiple() (string, any) {
+	return "hello", nil
+}
+
+func (t *testNilArg) TestReturnPointer() *string {
+	s := "hello"
+	return &s
+}
+
+func TestProxyNilArg(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("Test")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call Test with nil argument
+	result := b.Call(context.Background(), object.Nil)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestProxyMultipleNilArgs(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestMultiple")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestMultiple with two nil arguments
+	result := b.Call(context.Background(), object.Nil, object.Nil)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestProxyMixedArgs(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestMixed")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestMixed with a string and nil
+	result := b.Call(context.Background(), object.NewString("hello"), object.Nil)
+	require.Equal(t, object.Nil, result)
+}
+
+func TestProxyReturnNil(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestReturnNil")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestReturnNil and verify it returns nil
+	result := b.Call(context.Background())
+	require.Equal(t, object.Nil, result)
+}
+
+func TestProxyReturnValue(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestReturnValue")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestReturnValue and verify it returns the string
+	result := b.Call(context.Background())
+	str, ok := result.(*object.String)
+	require.True(t, ok)
+	require.Equal(t, "hello", str.Value())
+}
+
+func TestProxyReturnMultiple(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestReturnMultiple")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestReturnMultiple and verify it returns both values
+	result := b.Call(context.Background())
+	list, ok := result.(*object.List)
+	require.True(t, ok)
+	require.Equal(t, int64(2), list.Len().Value())
+
+	// Check first value (string)
+	str, err := list.GetItem(object.NewInt(0))
+	require.Nil(t, err)
+	require.Equal(t, "hello", str.(*object.String).Value())
+
+	// Check second value (nil)
+	str, err = list.GetItem(object.NewInt(1))
+	require.Nil(t, err)
+	require.Equal(t, object.Nil, str)
+}
+
+func TestProxyReturnPointer(t *testing.T) {
+	proxy, err := object.NewProxy(&testNilArg{})
+	require.Nil(t, err)
+
+	method, ok := proxy.GetAttr("TestReturnPointer")
+	require.True(t, ok)
+
+	b, ok := method.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call TestReturnPointer and verify it returns the pointer
+	result := b.Call(context.Background())
+	str, ok := result.(*object.String)
+	require.True(t, ok)
+	require.Equal(t, "hello", str.Value())
+}

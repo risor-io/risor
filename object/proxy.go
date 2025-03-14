@@ -158,20 +158,14 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 	var argIndex int
 	numIn := m.NumIn()
 	inputs := make([]reflect.Value, 1, numIn)
-	if p.typ.HasDirectMethod(methodName) {
-		inputs[0] = reflect.ValueOf(p.obj)
-	} else if p.typ.IsPointerType() {
-		inputs[0] = reflect.ValueOf(p.obj).Elem()
-	} else {
-		// TODO: unsure why nested structs aren't addressable in some cases
-		if v := reflect.ValueOf(p.obj); v.CanAddr() {
-			inputs[0] = v.Addr()
-		}
+
+	// Handle method receiver
+	receiver := reflect.ValueOf(p.obj)
+	if !receiver.IsValid() {
+		return TypeErrorf("type error: invalid receiver for method %s", methodName)
 	}
-	if !inputs[0].IsValid() || inputs[0].IsZero() {
-		return TypeErrorf("type error: unable to call method %s on %s (check pointer receiver)",
-			methodName, p.typ.Name())
-	}
+	inputs[0] = receiver
+
 	minArgs := numIn
 	if isVariadic {
 		minArgs--
@@ -188,6 +182,19 @@ func (p *Proxy) call(ctx context.Context, m *GoMethod, args ...Object) Object {
 		}
 		if argIndex >= len(args) {
 			break
+		}
+		// Handle nil values before attempting conversion
+		if args[argIndex] == Nil {
+			paramType := m.method.Type.In(i)
+			// For interface types, we need to create a nil interface value
+			if paramType.Kind() == reflect.Interface {
+				// Create a nil interface value with the correct type
+				inputs = append(inputs, reflect.New(paramType).Elem())
+			} else {
+				inputs = append(inputs, reflect.Zero(paramType))
+			}
+			argIndex++
+			continue
 		}
 		input, err := inConv.To(args[argIndex])
 		if err != nil {
