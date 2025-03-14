@@ -433,3 +433,33 @@ func TestProxyHasher(t *testing.T) {
 
 	require.Equal(t, expected, byte_slice.Value())
 }
+
+type nestedStructA struct {
+	B string
+}
+
+type nestedStructConfig struct {
+	A nestedStructA
+}
+
+func TestProxyNestedStruct(t *testing.T) {
+	config := &nestedStructConfig{}
+	proxy, err := object.NewProxy(config)
+	require.Nil(t, err)
+
+	// Get the A field
+	aField, ok := proxy.GetAttr("A")
+	require.True(t, ok)
+
+	// Verify A is a proxy to nestedStructA
+	aProxy, ok := aField.(*object.Proxy)
+	require.True(t, ok)
+	require.Equal(t, "*object_test.nestedStructA", aProxy.GoType().Name())
+
+	// Set B field directly on the A proxy
+	err = aProxy.SetAttr("B", object.NewString("hello"))
+	require.Nil(t, err)
+
+	// Verify the value was set correctly
+	require.Equal(t, "hello", config.A.B)
+}
