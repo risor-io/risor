@@ -85,6 +85,16 @@ func (r *HttpRequest) GetAttr(name string) (object.Object, bool) {
 			rm[k] = object.NewString(v[0])
 		}
 		return object.NewMap(rm), true
+	case "json":
+		body, err := io.ReadAll(r.req.Body)
+		if err != nil {
+			return object.NewError(err), true
+		}
+		var v interface{}
+		if err := json.Unmarshal(body, &v); err != nil {
+			return object.NewError(err), true
+		}
+		return object.FromGoType(v), true
 	case "content_length":
 		return r.ContentLength(), true
 	case "header":

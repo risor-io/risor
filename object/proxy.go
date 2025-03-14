@@ -129,7 +129,7 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			}
 			return nil
 		} else {
-			return errz.TypeErrorf("type error: cannot set field %s", name)
+			return errz.TypeErrorf("type error: cannot set field %s %T", name, field.Interface())
 		}
 	case *GoMethod:
 		return errz.TypeErrorf("type error: cannot set method %s", name)
