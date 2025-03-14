@@ -30,6 +30,7 @@ type Code struct {
 	names        []string
 	source       string
 	functionID   string
+	filename     string // The source file this code came from
 
 	// Used during compilation only
 	loops      []*loop
@@ -156,4 +157,8 @@ func (c *Code) Flatten() []*Code {
 		codes = append(codes, child.Flatten()...)
 	}
 	return codes
+}
+
+func (c *Code) Filename() string {
+	return c.filename
 }

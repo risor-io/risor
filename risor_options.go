@@ -82,3 +82,10 @@ func WithListenersAllowed() Option {
 		cfg.listenersAllowed = true
 	}
 }
+
+// WithFilename sets the filename for the source code being evaluated.
+func WithFilename(filename string) Option {
+	return func(cfg *Config) {
+		cfg.filename = filename
+	}
+}

@@ -64,7 +64,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if code, ok := i.codeCache[name]; ok {
 		return object.NewModule(name, code), nil
 	}
-	source, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
+	source, fullPath, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
 		return nil, fmt.Errorf("import error: module %q not found", name)
 	}
@@ -76,6 +76,7 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	if len(i.globalNames) > 0 {
 		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
 	}
+	opts = append(opts, compiler.WithFilename(fullPath))
 	code, err := compiler.Compile(ast, opts...)
 	if err != nil {
 		return nil, err
@@ -84,13 +85,13 @@ func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module
 	return object.NewModule(name, code), nil
 }
 
-func readFileWithExtensions(dir, name string, extensions []string) (string, bool) {
+func readFileWithExtensions(dir, name string, extensions []string) (string, string, bool) {
 	for _, ext := range extensions {
 		fullPath := filepath.Join(dir, name+ext)
 		bytes, err := os.ReadFile(fullPath)
 		if err == nil {
-			return string(bytes), true
+			return string(bytes), fullPath, true
 		}
 	}
-	return "", false
+	return "", "", false
 }

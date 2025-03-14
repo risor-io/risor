@@ -16,7 +16,11 @@ import (
 func Eval(ctx context.Context, source string, options ...Option) (object.Object, error) {
 	cfg := NewConfig(options...)
 	// Parse the source code to create the AST
-	ast, err := parser.Parse(ctx, source)
+	var parserOpts []parser.Option
+	if cfg.filename != "" {
+		parserOpts = append(parserOpts, parser.WithFile(cfg.filename))
+	}
+	ast, err := parser.Parse(ctx, source, parserOpts...)
 	if err != nil {
 		return nil, err
 	}
