@@ -37,8 +37,12 @@ func Exit(ctx context.Context, args ...object.Object) object.Object {
 	}
 	switch obj := args[0].(type) {
 	case *object.Int:
-		tos.Exit(int(obj.Value()))
-		return object.EvalErrorf("eval error: exit(%d)", obj.Value())
+		code := int(obj.Value())
+		tos.Exit(code)
+		if code != 0 {
+			return object.EvalErrorf("eval error: exit(%d)", obj.Value())
+		}
+		return object.Nil
 	case *object.Error:
 		tos.Exit(1)
 		return object.EvalErrorf("eval error: exit(%s)", obj.Value().Error())
