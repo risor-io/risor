@@ -37,7 +37,7 @@ require (
 	github.com/risor-io/risor/modules/bcrypt v1.7.0
 	github.com/risor-io/risor/modules/carbon v1.7.0
 	github.com/risor-io/risor/modules/cli v1.7.0
-	github.com/risor-io/risor/modules/gha v1.6.1-0.20240927135333-245e7b83abf4
+	github.com/risor-io/risor/modules/gha v1.7.0
 	github.com/risor-io/risor/modules/image v1.7.0
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
