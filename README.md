@@ -5,6 +5,7 @@
 [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/github.com/risor-io/risor)
 [![Go Report Card](https://goreportcard.com/badge/github.com/risor-io/risor?style=flat-square)](https://goreportcard.com/report/github.com/risor-io/risor)
 [![Releases](https://img.shields.io/github/release/risor-io/risor/all.svg?style=flat-square)](https://github.com/risor-io/risor/releases)
+[![libs.tech recommends](https://libs.tech/project/561389689/badge.svg)](https://libs.tech/project/561389689/risor)
 
 Risor is a fast and flexible scripting language for Go developers and DevOps.
 
