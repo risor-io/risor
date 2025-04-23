@@ -606,12 +606,18 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {
-	name := node.Name().String()
-	c.emit(op.LoadConst, c.constant(name))
+	moduleName := node.Path().Value()
+	c.emit(op.LoadConst, c.constant(moduleName))
 	c.emit(op.Import)
+
+	// Determine the variable name to store the imported module
+	var name string
 	if node.Alias() != nil {
 		name = node.Alias().String()
+	} else {
+		name = node.ModuleName()
 	}
+
 	var sym *Symbol
 	var found bool
 	sym, found = c.current.symbols.Get(name)
@@ -639,7 +645,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	aliases := map[string]string{}
 	for _, im := range node.Imports() {
-		name := im.Name().String()
+		name := im.Path().Value()
 		alias := name
 		if im.Alias() != nil {
 			alias = im.Alias().String()
@@ -649,8 +655,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	c.emit(op.FromImport, uint16(len(node.Parents())), uint16(len(node.Imports())))
 	for _, im := range node.Imports() {
-		name := im.Name().String()
-		alias := aliases[name]
+		alias := aliases[im.Path().Value()]
 		var sym *Symbol
 		var found bool
 		sym, found = c.current.symbols.Get(alias)
