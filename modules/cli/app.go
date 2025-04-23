@@ -266,7 +266,6 @@ func NewApp(ctx context.Context, opts *object.Map) (*App, error) {
 		if !ok {
 			return nil, object.TypeErrorf("type error: commands must be a list")
 		}
-		app.Commands = []*ucli.Command{}
 		for _, cmdOpt := range commands.Value() {
 			cmd, ok := cmdOpt.(*Command)
 			if !ok {
@@ -282,7 +281,6 @@ func NewApp(ctx context.Context, opts *object.Map) (*App, error) {
 		if !ok {
 			return nil, object.TypeErrorf("type error: flags must be a list")
 		}
-		app.Flags = []ucli.Flag{}
 		for _, flagOpt := range flags.Value() {
 			flag, ok := flagOpt.(*Flag)
 			if !ok {
