@@ -162,3 +162,37 @@ func TestCompoundAssignmentWithIndex(t *testing.T) {
 			i, got, want)
 	}
 }
+
+func TestBreakFromRangeLoop(t *testing.T) {
+	input := `
+for range [1, 2] {
+	break
+}
+`
+	c, err := New()
+	require.Nil(t, err)
+
+	ast, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+
+	code, err := c.Compile(ast)
+	require.Nil(t, err)
+
+	// Extract instructions
+	instructions := code.instructions
+
+	// Find the index of the break statement (JumpForward)
+	jumpIndex := -1
+	for i, instr := range instructions {
+		if instr == op.JumpForward {
+			jumpIndex = i - 1 // We're interested in the instruction before the jump
+			break
+		}
+	}
+
+	require.NotEqual(t, -1, jumpIndex, "JumpForward instruction not found")
+
+	// The instruction right before JumpForward should be PopTop for a range loop break
+	require.Equal(t, op.PopTop, instructions[jumpIndex],
+		"Expected PopTop before JumpForward for break in range loop")
+}

@@ -113,12 +113,12 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	if err := vm.start(ctx); err != nil {
 		return err
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-		vm.stop()
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		err = fmt.Errorf("panic: %v", r)
+	// 	}
+	// 	vm.stop()
+	// }()
 
 	// Load the code for main and any functions that are constants. This makes
 	// the set of loaded code constant except for when imports run.

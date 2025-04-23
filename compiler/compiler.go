@@ -1180,6 +1180,10 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 		return c.formatError("invalid continue statement outside of a loop", node.Token().StartPosition)
 	}
 	if literal == "break" {
+		// When breaking from a for-range loop, we need to pop the iterator from the stack
+		if loop.isRangeLoop {
+			c.emit(op.PopTop)
+		}
 		position := c.emit(op.JumpForward, Placeholder)
 		loop.breakPos = append(loop.breakPos, position)
 	} else {
@@ -1373,6 +1377,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	code := c.current
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
+	loop.isRangeLoop = true
 	defer func() {
 		loop.end()
 		code.symbols = code.symbols.parent
