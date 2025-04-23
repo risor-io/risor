@@ -2287,70 +2287,79 @@ func TestNestedRangeLoopBreak(t *testing.T) {
 				items1 := [1]
 				items2 := [1, 2]
 				count := 0
-				print("OK")
 				for range items1 {
 					for range items2 {
 						count += 1
-						print("INCREMENTED", count)
 						break
 					}
 				}
-				print("DONE:", count)
 				count
-				44
 			`,
 			expected: object.NewInt(1),
 		},
-		// {
-		// 	name: "Multiple iterations in outer loop",
-		// 	input: `
-		// 		items1 := [1, 2, 3]
-		// 		items2 := [1, 2]
-		// 		count := 0
-		// 		for range items1 {
-		// 			for range items2 {
-		// 				count += 1
-		// 				break
-		// 			}
-		// 		}
-		// 		count
-		// 	`,
-		// 	expected: object.NewInt(3),
-		// },
-		// {
-		// 	name: "Multiple iterations with indexed loop",
-		// 	input: `
-		// 		items1 := [1, 2, 3]
-		// 		items2 := [1, 2, 3]
-		// 		result := []
-		// 		for i, _ := range items1 {
-		// 			for j, _ := range items2 {
-		// 				result = result + [[i, j]]
-		// 				break
-		// 			}
-		// 		}
-		// 		result
-		// 	`,
-		// 	expected: object.NewList([]object.Object{
-		// 		object.NewList([]object.Object{object.NewInt(0), object.NewInt(0)}),
-		// 		object.NewList([]object.Object{object.NewInt(1), object.NewInt(0)}),
-		// 		object.NewList([]object.Object{object.NewInt(2), object.NewInt(0)}),
-		// 	}),
-		// },
-		// {
-		// 	name: "Many iterations to ensure no stack overflow",
-		// 	input: `
-		// 		count := 0
-		// 		for range 100 {
-		// 			for range 100 {
-		// 				count += 1
-		// 				break
-		// 			}
-		// 		}
-		// 		count
-		// 	`,
-		// 	expected: object.NewInt(100),
-		// },
+		{
+			name: "Multiple iterations in outer loop",
+			input: `
+				items1 := [1, 2, 3]
+				items2 := [1, 2]
+				count := 0
+				for range items1 {
+					for range items2 {
+						count += 1
+						break
+					}
+				}
+				count
+			`,
+			expected: object.NewInt(3),
+		},
+		{
+			name: "Multiple iterations with indexed loop",
+			input: `
+				items1 := [1, 2, 3]
+				items2 := [1, 2, 3]
+				result := []
+				for i, _ := range items1 {
+					for j, _ := range items2 {
+						result = result + [[i, j]]
+						break
+					}
+				}
+				result
+			`,
+			expected: object.NewList([]object.Object{
+				object.NewList([]object.Object{object.NewInt(0), object.NewInt(0)}),
+				object.NewList([]object.Object{object.NewInt(1), object.NewInt(0)}),
+				object.NewList([]object.Object{object.NewInt(2), object.NewInt(0)}),
+			}),
+		},
+		{
+			name: "Many iterations to ensure no stack overflow",
+			input: `
+				count := 0
+				for range 100 {
+					for range 33 {
+						count += 1
+						break
+					}
+				}
+				count
+			`,
+			expected: object.NewInt(100),
+		},
+		{
+			name: "Break from single loop",
+			input: `
+				count := 0
+				for range 100 {
+					count += 77
+					break
+					x := "should not be here"
+				}
+				count
+			`,
+			expected: object.NewInt(77),
+		},
 	}
 
 	ctx := context.Background()
