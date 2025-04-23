@@ -11,6 +11,7 @@ type loop struct {
 	code        *Code
 	continuePos []int
 	breakPos    []int
+	isRangeLoop bool
 }
 
 func (l *loop) end() {
