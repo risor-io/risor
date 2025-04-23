@@ -243,7 +243,7 @@ func NewApp(ctx context.Context, opts *object.Map) (*App, error) {
 		if opt := opts.Get(field); opt != object.Nil {
 			b, ok := opt.(*object.Bool)
 			if !ok {
-				return nil, object.TypeErrorf("type error: %s must be a boolean", field)
+				return nil, object.TypeErrorf("type error: %s must be a bool", field)
 			}
 			switch field {
 			case "args":
