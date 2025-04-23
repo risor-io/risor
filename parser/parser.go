@@ -702,6 +702,10 @@ func (p *Parser) parseSwitch() ast.Node {
 // validateImportPath ensures that a given path string only contains valid identifiers
 // separated by slash characters. Returns error if invalid.
 func validateImportPath(path string) error {
+	// Remove quotes if present - these are added when we convert an
+	// identifier to a string in parseImport
+	path = strings.Trim(path, "\"")
+
 	// Valid path pattern: one or more valid identifiers separated by forward slashes
 	// An identifier must start with a letter or underscore and can contain letters, digits, or underscores
 	validPath := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)(\/[a-zA-Z_][a-zA-Z0-9_]*)*$`)
@@ -738,19 +742,17 @@ func (p *Parser) parseImport() ast.Node {
 	}
 	p.nextToken() // Move to the module name or path
 
-	var importNode *ast.Import
+	var pathStr *ast.String
 
 	if p.curTokenIs(token.IDENT) {
-		name := ast.NewIdent(p.curToken)
-		var alias *ast.Ident
-		if p.peekTokenIs(token.AS) {
-			p.nextToken()
-			if !p.expectPeek("an import statement", token.IDENT) {
-				return nil
-			}
-			alias = ast.NewIdent(p.curToken)
-		}
-		importNode = ast.NewImport(importToken, name, alias)
+		// Create a string from identifier without adding quotes
+		identName := p.curToken.Literal
+		pathStr = ast.NewString(token.Token{
+			Type:          token.STRING,
+			Literal:       identName,
+			StartPosition: p.curToken.StartPosition,
+			EndPosition:   p.curToken.EndPosition,
+		})
 	} else if p.curTokenIs(token.STRING) {
 		// Handle string literal module path (e.g., "mydir/foo")
 		path := p.parseString()
@@ -758,29 +760,31 @@ func (p *Parser) parseImport() ast.Node {
 			p.setTokenError(p.curToken, "invalid module path in import statement")
 			return nil
 		}
-		strPath, ok := path.(*ast.String)
+		var ok bool
+		pathStr, ok = path.(*ast.String)
 		if !ok {
 			p.setTokenError(p.curToken, "expected string literal for module path")
 			return nil
 		}
-		// Validate the path format
-		pathValue := strPath.Value()
-		if err := validateImportPath(pathValue); err != nil {
-			p.setTokenError(p.curToken, "invalid import path: %s", err.Error())
-			return nil
-		}
-		var alias *ast.Ident
-		if p.peekTokenIs(token.AS) {
-			p.nextToken()
-			if !p.expectPeek("an import statement", token.IDENT) {
-				return nil
-			}
-			alias = ast.NewIdent(p.curToken)
-		}
-		importNode = ast.NewImportString(importToken, strPath, alias)
 	}
 
-	return importNode
+	// Validate the path format
+	pathValue := pathStr.Value()
+	if err := validateImportPath(pathValue); err != nil {
+		p.setTokenError(p.curToken, "invalid import path: %s", err.Error())
+		return nil
+	}
+
+	var alias *ast.Ident
+	if p.peekTokenIs(token.AS) {
+		p.nextToken()
+		if !p.expectPeek("an import statement", token.IDENT) {
+			return nil
+		}
+		alias = ast.NewIdent(p.curToken)
+	}
+
+	return ast.NewImport(importToken, pathStr, alias)
 }
 
 func (p *Parser) parseFromImport() ast.Node {
@@ -819,6 +823,7 @@ func (p *Parser) parseFromImport() ast.Node {
 
 		// Convert the path to an identifier for compatibility with existing code
 		pathValue = strPath.Value()
+
 		// Use the whole string as a single parent module
 		pathIdent := ast.NewIdent(token.Token{
 			Type:          token.IDENT,
@@ -828,7 +833,6 @@ func (p *Parser) parseFromImport() ast.Node {
 		})
 		parentModule = append(parentModule, pathIdent)
 
-		// We must advance the token after parsing the string
 		p.nextToken()
 	} else {
 		// Handle the traditional dot-separated format for module paths
@@ -859,6 +863,7 @@ func (p *Parser) parseFromImport() ast.Node {
 	}
 
 	importToken := p.curToken
+
 	// If the imports are surrounded by parentheses, we are in a grouped import
 	// which may span multiple lines
 	isGrouped := false
@@ -879,7 +884,15 @@ func (p *Parser) parseFromImport() ast.Node {
 
 	var imports []*ast.Import
 	for {
-		name := ast.NewIdent(p.curToken)
+		ident := p.curToken
+		// Create a string from identifier without adding quotes
+		pathStr := ast.NewString(token.Token{
+			Type:          token.STRING,
+			Literal:       ident.Literal,
+			StartPosition: ident.StartPosition,
+			EndPosition:   ident.EndPosition,
+		})
+
 		var alias *ast.Ident
 		if p.peekTokenIs(token.AS) {
 			p.nextToken()
@@ -888,7 +901,7 @@ func (p *Parser) parseFromImport() ast.Node {
 			}
 			alias = ast.NewIdent(p.curToken)
 		}
-		thisImport := ast.NewImport(importToken, name, alias)
+		thisImport := ast.NewImport(importToken, pathStr, alias)
 		imports = append(imports, thisImport)
 
 		if p.peekTokenIs(token.COMMA) {

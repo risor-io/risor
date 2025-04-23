@@ -1096,13 +1096,13 @@ func TestFromImport(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"from math import min", "from math import min"},
-		{"from math import min, max", "from math import min, max"},
-		{"from math import min as a, max as b", "from math import min as a, max as b"},
+		{"from math import min", `from "math" import "min"`},
+		{"from math import min, max", `from "math" import "min", "max"`},
+		{"from math import min as a, max as b", `from "math" import "min" as a, "max" as b`},
 		{`from math import (
 			min as a,
 			max as b,
-		  )`, "from math import (min as a, max as b)"},
+		  )`, `from "math" import ("min" as a, "max" as b)`},
 	}
 	for _, tt := range tests {
 		result, err := Parse(context.Background(), tt.input)
@@ -1205,9 +1205,10 @@ func TestStringFromImport(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{`from "mydir/foo" import bar`, `from mydir/foo import bar`},
-		{`from "mydir/foo" import bar as baz`, `from mydir/foo import bar as baz`},
-		{`from "mydir/foo" import (bar, baz)`, `from mydir/foo import (bar, baz)`},
+		{`from mydir.foo import bar`, `from "mydir.foo" import "bar"`},
+		{`from "mydir/foo" import bar`, `from "mydir/foo" import "bar"`},
+		{`from "mydir/foo" import bar as baz`, `from "mydir/foo" import "bar" as baz`},
+		{`from "mydir/foo" import (bar, baz)`, `from "mydir/foo" import ("bar", "baz")`},
 	}
 	for _, tt := range tests {
 		result, err := Parse(context.Background(), tt.input)

@@ -606,15 +606,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {
-	var moduleName string
-	if node.Name() != nil {
-		moduleName = node.Name().String()
-	} else if node.Path() != nil {
-		moduleName = node.Path().Value()
-	} else {
-		return fmt.Errorf("compile error: import statement has neither name nor path")
-	}
-
+	moduleName := node.Path().Value()
 	c.emit(op.LoadConst, c.constant(moduleName))
 	c.emit(op.Import)
 
@@ -622,12 +614,8 @@ func (c *Compiler) compileImport(node *ast.Import) error {
 	var name string
 	if node.Alias() != nil {
 		name = node.Alias().String()
-	} else if node.Name() != nil {
-		name = node.Name().String()
 	} else {
-		// For path-based imports without an alias, use the last part of the path as the name
-		parts := strings.Split(moduleName, "/")
-		name = parts[len(parts)-1]
+		name = node.ModuleName()
 	}
 
 	var sym *Symbol
@@ -657,7 +645,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	aliases := map[string]string{}
 	for _, im := range node.Imports() {
-		name := im.Name().String()
+		name := im.Path().Value()
 		alias := name
 		if im.Alias() != nil {
 			alias = im.Alias().String()
@@ -667,8 +655,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	c.emit(op.FromImport, uint16(len(node.Parents())), uint16(len(node.Imports())))
 	for _, im := range node.Imports() {
-		name := im.Name().String()
-		alias := aliases[name]
+		alias := aliases[im.Path().Value()]
 		var sym *Symbol
 		var found bool
 		sym, found = c.current.symbols.Get(alias)
