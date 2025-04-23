@@ -405,13 +405,19 @@ func (a *Assign) String() string {
 // Import is a statement node that describes a module import statement.
 type Import struct {
 	token token.Token // the "import" token
-	name  *Ident      // name of the module to import
+	name  *Ident      // name of the module to import (when module is an identifier)
+	path  *String     // path of the module to import (when module is a string literal)
 	alias *Ident      // alias for the module
 }
 
-// NewImport creates a new Import node.
+// NewImport creates a new Import node with an identifier module name.
 func NewImport(token token.Token, name *Ident, alias *Ident) *Import {
 	return &Import{token: token, name: name, alias: alias}
+}
+
+// NewImportString creates a new Import node with a string literal module path.
+func NewImportString(token token.Token, path *String, alias *Ident) *Import {
+	return &Import{token: token, path: path, alias: alias}
 }
 
 func (i *Import) StatementNode() {}
@@ -424,12 +430,18 @@ func (i *Import) Literal() string { return i.token.Literal }
 
 func (i *Import) Name() *Ident { return i.name }
 
+func (i *Import) Path() *String { return i.path }
+
 func (i *Import) Alias() *Ident { return i.alias }
 
 func (i *Import) String() string {
 	var out bytes.Buffer
 	out.WriteString(i.Literal() + " ")
-	out.WriteString(i.name.Literal())
+	if i.name != nil {
+		out.WriteString(i.name.Literal())
+	} else if i.path != nil {
+		out.WriteString(i.path.String())
+	}
 	if i.alias != nil {
 		out.WriteString(" as " + i.alias.Literal())
 	}
@@ -488,7 +500,11 @@ func (i *FromImport) String() string {
 		if idx > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(im.name.Literal())
+		if im.name != nil {
+			out.WriteString(im.name.Literal())
+		} else if im.path != nil {
+			out.WriteString(im.path.String())
+		}
 		if im.alias != nil {
 			out.WriteString(" as " + im.alias.Literal())
 		}

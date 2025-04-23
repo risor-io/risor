@@ -606,12 +606,30 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {
-	name := node.Name().String()
-	c.emit(op.LoadConst, c.constant(name))
+	var moduleName string
+	if node.Name() != nil {
+		moduleName = node.Name().String()
+	} else if node.Path() != nil {
+		moduleName = node.Path().Value()
+	} else {
+		return fmt.Errorf("compile error: import statement has neither name nor path")
+	}
+
+	c.emit(op.LoadConst, c.constant(moduleName))
 	c.emit(op.Import)
+
+	// Determine the variable name to store the imported module
+	var name string
 	if node.Alias() != nil {
 		name = node.Alias().String()
+	} else if node.Name() != nil {
+		name = node.Name().String()
+	} else {
+		// For path-based imports without an alias, use the last part of the path as the name
+		parts := strings.Split(moduleName, "/")
+		name = parts[len(parts)-1]
 	}
+
 	var sym *Symbol
 	var found bool
 	sym, found = c.current.symbols.Get(name)

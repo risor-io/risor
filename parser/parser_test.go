@@ -1182,3 +1182,37 @@ func TestInvalidMultipleExpressions2(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, "parse error: unexpected token \"oops\" following statement", err.Error())
 }
+
+func TestStringImport(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`import "foo"`, `import "foo"`},
+		{`import "mydir/foo"`, `import "mydir/foo"`},
+		{`import "mydir/foo" as bar`, `import "mydir/foo" as bar`},
+	}
+	for _, tt := range tests {
+		result, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Equal(t, tt.expected, result.String())
+		require.IsType(t, &ast.Import{}, result.Statements()[0])
+	}
+}
+
+func TestStringFromImport(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`from "mydir/foo" import bar`, `from mydir/foo import bar`},
+		{`from "mydir/foo" import bar as baz`, `from mydir/foo import bar as baz`},
+		{`from "mydir/foo" import (bar, baz)`, `from mydir/foo import (bar, baz)`},
+	}
+	for _, tt := range tests {
+		result, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Equal(t, tt.expected, result.String())
+		require.IsType(t, &ast.FromImport{}, result.Statements()[0])
+	}
+}
