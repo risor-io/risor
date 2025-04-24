@@ -71,7 +71,7 @@ Build the CLI from source as follows:
 ```bash
 git clone git@github.com:risor-io/risor.git
 cd risor/cmd/risor
-go install -tags aws,k8s,semver,vault .
+go install -tags aws,k8s,vault .
 ```
 
 ### Go Library
@@ -116,7 +116,7 @@ there is direct correspondence between `base64`, `bytes`, `filepath`, `json`, `m
 the Go standard library.
 
 Risor modules that are beyond the Go standard library currently include
-`aws`, `pgx`, `uuid`, `vault`, and `k8s`.
+`aws`, `carbon`, `cli`, `jmespath`, `pgx`, `uuid`, `vault`, `k8s`, and more.
 
 ## Go Interface
 
@@ -169,6 +169,7 @@ installed with `go get` as separate dependencies:
 | pgx      | [modules/pgx](./modules/pgx)               | `go get github.com/risor-io/risor/modules/pgx@v1.7.0`        |
 | s3fs     | [os/s3fs](./os/s3fs)                       | `go get github.com/risor-io/risor/os/s3fs@v1.7.0`            |
 | semver   | [modules/semver](./modules/semver)         | `go get github.com/risor-io/risor/modules/semver@v1.7.0`     |
+| shlex    | [modules/shlex](./modules/shlex)           | `go get github.com/risor-io/risor/modules/shlex@v1.7.0`      |
 | sql      | [modules/sql](./modules/sql)               | `go get github.com/risor-io/risor/modules/sql@v1.7.0`        |
 | template | [modules/template](./modules/template)     | `go get github.com/risor-io/risor/modules/template@v1.7.0`   |
 | uuid     | [modules/uuid](./modules/uuid)             | `go get github.com/risor-io/risor/modules/uuid@v1.7.0`       |
