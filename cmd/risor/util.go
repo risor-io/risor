@@ -31,7 +31,7 @@ func fatal(msg interface{}) {
 	default:
 		s = fmt.Sprintf("%v", msg)
 	}
-	fmt.Fprintf(os.Stderr, red(s)+"\n")
+	fmt.Fprintf(os.Stderr, "%s\n", red(s))
 	os.Exit(1)
 }
 
