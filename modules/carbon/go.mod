@@ -7,7 +7,7 @@ replace github.com/risor-io/risor => ../..
 require github.com/risor-io/risor v1.7.0
 
 require (
-	github.com/golang-module/carbon/v2 v2.4.1
+	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/stretchr/testify v1.10.0
 )
 
