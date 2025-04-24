@@ -71,7 +71,7 @@ Build the CLI from source as follows:
 ```bash
 git clone git@github.com:risor-io/risor.git
 cd risor/cmd/risor
-go install -tags aws,k8s,semver,vault,shlex .
+go install -tags aws,k8s,vault .
 ```
 
 ### Go Library
