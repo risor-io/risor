@@ -1,11 +1,8 @@
-import { Callout } from 'nextra/components';
-
 # semver
 
-<Callout type="info" emoji="ℹ️">
-  This module requires that Risor has been compiled with the `semver` Go build tag.
-  When compiling **manually**, [make sure you specify `-tags semver`](https://github.com/risor-io/risor#build-and-install-the-cli-from-source).
-</Callout>
+The `semver` module provides functions for working with semantic versioning.
+
+The core functionality is provided by `github.com/blang/semver/v4`.
 
 ## Functions
 

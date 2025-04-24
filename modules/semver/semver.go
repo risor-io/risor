@@ -1,6 +1,3 @@
-//go:build semver
-// +build semver
-
 package semver
 
 import (

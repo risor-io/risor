@@ -1,6 +1,3 @@
-//go:build shlex
-// +build shlex
-
 package shlex
 
 import (
