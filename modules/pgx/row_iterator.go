@@ -113,6 +113,9 @@ func (ri *RowIterator) Next(ctx context.Context) (object.Object, bool) {
 	// Check if there are more rows
 	if !ri.rows.Next() {
 		ri.current = nil
+		if ri.rows.Err() != nil {
+			return object.NewError(ri.rows.Err()), true
+		}
 		return nil, false
 	}
 
