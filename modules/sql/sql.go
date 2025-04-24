@@ -9,7 +9,7 @@ import (
 func Connect(ctx context.Context, args ...object.Object) object.Object {
 	numArgs := len(args)
 
-	if numArgs < 1 {
+	if numArgs < 1 || numArgs > 2 {
 		return object.NewArgsError("sql.connect", 1, numArgs)
 	}
 
@@ -18,7 +18,27 @@ func Connect(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 
-	db, connErr := New(ctx, connStr)
+	// Default options
+	stream := false
+
+	// Check for options map as second argument
+	if numArgs == 2 {
+		optMap, ok := args[1].(*object.Map)
+		if !ok {
+			return object.TypeErrorf("type error: sql.connect() second argument must be a map (got %s)", args[1].Type())
+		}
+
+		// Process stream option if provided
+		if streamVal, found := optMap.Value()["stream"]; found {
+			streamBool, ok := streamVal.(*object.Bool)
+			if !ok {
+				return object.TypeErrorf("type error: sql.connect() 'stream' option must be a boolean (got %s)", streamVal.Type())
+			}
+			stream = streamBool.Value()
+		}
+	}
+
+	db, connErr := New(ctx, connStr, stream)
 	if connErr != nil {
 		return object.NewError(connErr)
 	}

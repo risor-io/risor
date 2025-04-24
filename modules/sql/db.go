@@ -26,6 +26,7 @@ type DB struct {
 	conn   *sql.DB
 	once   sync.Once
 	closed chan bool
+	stream bool // Whether to use streaming for query results
 }
 
 func (db *DB) Type() object.Type {
@@ -133,6 +134,13 @@ func (db *DB) Query(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil || rows.Err() != nil {
 		return object.Errorf("failed to query db: %w", err)
 	}
+
+	// If streaming is enabled, return a row iterator
+	if db.stream {
+		return NewRowIterator(ctx, rows)
+	}
+
+	// Otherwise, process all rows and return a list (original behavior)
 	defer rows.Close()
 
 	columns, err := rows.Columns()
@@ -187,7 +195,7 @@ func (db *DB) waitToClose(ctx context.Context) {
 	}()
 }
 
-func New(ctx context.Context, connection string) (*DB, error) {
+func New(ctx context.Context, connection string, stream bool) (*DB, error) {
 	db, err := dburl.Open(connection)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to db: %w", err)
@@ -196,6 +204,7 @@ func New(ctx context.Context, connection string) (*DB, error) {
 	obj := &DB{
 		conn:   db,
 		closed: make(chan bool),
+		stream: stream,
 	}
 	obj.waitToClose(ctx)
 	return obj, nil
