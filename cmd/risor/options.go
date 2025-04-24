@@ -49,6 +49,7 @@ func getGlobals() risor.Option {
 		"isatty":      isatty.Module(),
 		"net":         net.Module(),
 		"pgx":         pgx.Module(),
+		"sched":       sched.Module(),
 		"sql":         sql.Module(),
 		"tablewriter": tablewriter.Module(),
 		"template":    template.Module(),
@@ -79,9 +80,6 @@ func getGlobals() risor.Option {
 	}
 	if mod := vault.Module(); mod != nil {
 		globals["vault"] = mod
-	}
-	if mod := sched.Module(); mod != nil {
-		globals["sched"] = mod
 	}
 	if mod := semver.Module(); mod != nil {
 		globals["semver"] = mod
