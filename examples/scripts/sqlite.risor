@@ -1,4 +1,4 @@
-db := sql.connect("sqlite://risor-example.db")
+db := sql.connect("sqlite://risor-example.db", {"stream": true})
 db.exec("PRAGMA foreign_keys=ON")
 db.exec(`PRAGMA journal_mode=WAL`)
 
