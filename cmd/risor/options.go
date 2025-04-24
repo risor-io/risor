@@ -53,6 +53,8 @@ func getGlobals() risor.Option {
 		"tablewriter": tablewriter.Module(),
 		"template":    template.Module(),
 		"uuid":        uuid.Module(),
+		"semver":      semver.Module(),
+		"shlex":       shlex.Module(),
 	}
 
 	//************************************************************************//
@@ -79,12 +81,6 @@ func getGlobals() risor.Option {
 	}
 	if mod := vault.Module(); mod != nil {
 		globals["vault"] = mod
-	}
-	if mod := semver.Module(); mod != nil {
-		globals["semver"] = mod
-	}
-	if mod := shlex.Module(); mod != nil {
-		globals["shlex"] = mod
 	}
 
 	return risor.WithGlobals(globals)
