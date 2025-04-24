@@ -2,11 +2,28 @@ package sched
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"codnect.io/chrono"
 	"github.com/risor-io/risor/object"
 )
+
+var (
+	// Global scheduler instance
+	scheduler     chrono.TaskScheduler
+	schedulerOnce sync.Once
+	schedulerMu   sync.Mutex
+)
+
+// getScheduler returns the singleton task scheduler instance.
+// It lazily initializes the scheduler on first use.
+func getScheduler() chrono.TaskScheduler {
+	schedulerOnce.Do(func() {
+		scheduler = chrono.NewDefaultTaskScheduler()
+	})
+	return scheduler
+}
 
 // Module returns the sched module.
 func Module() *object.Module {
@@ -39,13 +56,15 @@ func Cron(ctx context.Context, args ...object.Object) object.Object {
 	}
 
 	// GetCloneCallFunc returns a function safe to be called from a different goroutine.
-	// NOTE: unsure about the above, but seems to be working
 	cfunc, ok := object.GetCloneCallFunc(ctx)
 	if !ok {
 		return object.EvalErrorf("eval error: context did not contain a call function")
 	}
 
-	taskScheduler := chrono.NewDefaultTaskScheduler()
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	taskScheduler := getScheduler()
 	t, nerr := taskScheduler.ScheduleWithCron(func(context.Context) {
 		_, _ = cfunc(ctx, fn, nil)
 	}, cronLine)
@@ -76,7 +95,6 @@ func Every(ctx context.Context, args ...object.Object) object.Object {
 	}
 
 	// GetCloneCallFunc returns a function safe to be called from a different goroutine.
-	// NOTE: unsure about the above, but seems to be working
 	cfunc, ok := object.GetCloneCallFunc(ctx)
 	if !ok {
 		return object.EvalErrorf("eval error: context did not contain a call function")
@@ -87,7 +105,10 @@ func Every(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(nerr)
 	}
 
-	taskScheduler := chrono.NewDefaultTaskScheduler()
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	taskScheduler := getScheduler()
 	t, nerr := taskScheduler.ScheduleAtFixedRate(func(context.Context) {
 		_, _ = cfunc(ctx, fn, nil)
 	}, duration)
@@ -125,13 +146,15 @@ func Once(ctx context.Context, args ...object.Object) object.Object {
 	}
 
 	// GetCloneCallFunc returns a function safe to be called from a different goroutine.
-	// NOTE: unsure about the above, but seems to be working
 	cfunc, ok := object.GetCloneCallFunc(ctx)
 	if !ok {
 		return object.EvalErrorf("eval error: context did not contain a call function")
 	}
 
-	taskScheduler := chrono.NewDefaultTaskScheduler()
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	taskScheduler := getScheduler()
 	t, nerr := taskScheduler.Schedule(func(ctx context.Context) {
 		_, _ = cfunc(ctx, fn, nil)
 	}, chrono.WithTime(start))
