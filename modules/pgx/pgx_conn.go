@@ -20,6 +20,7 @@ type PgxConn struct {
 	conn   *pgx.Conn
 	once   sync.Once
 	closed chan bool
+	stream bool // Whether to use streaming for query results
 }
 
 func (c *PgxConn) Type() object.Type {
@@ -101,11 +102,12 @@ func (c *PgxConn) MarshalJSON() ([]byte, error) {
 	return nil, errz.TypeErrorf("type error: unable to marshal pgx.conn")
 }
 
-func New(ctx context.Context, conn *pgx.Conn) *PgxConn {
+func New(ctx context.Context, conn *pgx.Conn, stream bool) *PgxConn {
 	obj := &PgxConn{
 		ctx:    ctx,
 		conn:   conn,
 		closed: make(chan bool),
+		stream: stream,
 	}
 	obj.waitToClose()
 	return obj
@@ -132,6 +134,15 @@ func (c *PgxConn) Query(ctx context.Context, args ...object.Object) object.Objec
 	if err != nil {
 		return object.NewError(err)
 	}
+
+	// If streaming is enabled, return a row iterator
+	if c.stream {
+		return NewRowIterator(ctx, rows)
+	}
+
+	// Otherwise, process all rows and return a list (original behavior).
+	// This loads all rows into memory at once, which can be problematic for
+	// large result sets.
 	defer rows.Close()
 
 	// The field descriptions will tell us how to decode the result values
