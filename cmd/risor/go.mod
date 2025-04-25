@@ -9,6 +9,7 @@ replace (
 	github.com/risor-io/risor/modules/carbon => ../../modules/carbon
 	github.com/risor-io/risor/modules/cli => ../../modules/cli
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
+	github.com/risor-io/risor/modules/goquery => ../../modules/goquery
 	github.com/risor-io/risor/modules/htmltomarkdown => ../../modules/htmltomarkdown
 	github.com/risor-io/risor/modules/image => ../../modules/image
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
@@ -38,6 +39,7 @@ require (
 	github.com/risor-io/risor/modules/carbon v1.7.0
 	github.com/risor-io/risor/modules/cli v1.7.0
 	github.com/risor-io/risor/modules/gha v1.7.0
+	github.com/risor-io/risor/modules/goquery v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/htmltomarkdown v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/image v1.7.0
 	github.com/risor-io/risor/modules/jmespath v1.7.0
@@ -65,6 +67,8 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
+	github.com/PuerkitoBio/goquery v1.10.3 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/anthonynsimon/bild v0.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect

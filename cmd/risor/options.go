@@ -12,6 +12,7 @@ import (
 	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/color"
 	"github.com/risor-io/risor/modules/gha"
+	"github.com/risor-io/risor/modules/goquery"
 	"github.com/risor-io/risor/modules/htmltomarkdown"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/isatty"
@@ -47,6 +48,7 @@ func getGlobals() risor.Option {
 		"cli":            cli.Module(),
 		"color":          color.Module(),
 		"gha":            gha.Module(),
+		"goquery":        goquery.Module(),
 		"htmltomarkdown": htmltomarkdown.Module(),
 		"image":          image.Module(),
 		"isatty":         isatty.Module(),
