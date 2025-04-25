@@ -13,6 +13,7 @@ use (
 	./modules/carbon
 	./modules/cli
 	./modules/gha
+	./modules/htmltomarkdown
 	./modules/image
 	./modules/jmespath
 	./modules/pgx
