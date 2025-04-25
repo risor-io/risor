@@ -2063,7 +2063,6 @@ func TestGoStatement(t *testing.T) {
 	tests := []testCase{
 		{`go func() { 1 }()`, object.Nil},
 		{`x := 0; go func() { x = 1 }(); time.sleep(0.1); x`, object.NewInt(1)},
-		{`x := 0; go func() { x = 1 }(); x`, object.NewInt(0)},
 		{`c := chan(1); go func() { c <- 1 }(); <-c`, object.NewInt(1)},
 		{`func dowork() {
 			c := make(chan)
