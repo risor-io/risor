@@ -21,7 +21,6 @@ import (
 	modOs "github.com/risor-io/risor/modules/os"
 	modRand "github.com/risor-io/risor/modules/rand"
 	modRegexp "github.com/risor-io/risor/modules/regexp"
-	modSched "github.com/risor-io/risor/modules/sched"
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTime "github.com/risor-io/risor/modules/time"
@@ -141,7 +140,6 @@ func (cfg *Config) applyDefaultGlobals() {
 		"os":       modOs.Module(),
 		"rand":     modRand.Module(),
 		"regexp":   modRegexp.Module(),
-		"sched":    modSched.Module(),
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
