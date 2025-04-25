@@ -21,6 +21,47 @@ type Mount struct {
 	Type   string
 }
 
+type VirtualUser struct {
+	uid      string
+	gid      string
+	username string
+	name     string
+	homeDir  string
+}
+
+func (u *VirtualUser) Uid() string {
+	return u.uid
+}
+
+func (u *VirtualUser) Gid() string {
+	return u.gid
+}
+
+func (u *VirtualUser) Username() string {
+	return u.username
+}
+
+func (u *VirtualUser) Name() string {
+	return u.name
+}
+
+func (u *VirtualUser) HomeDir() string {
+	return u.homeDir
+}
+
+type VirtualGroup struct {
+	gid  string
+	name string
+}
+
+func (g *VirtualGroup) Gid() string {
+	return g.gid
+}
+
+func (g *VirtualGroup) Name() string {
+	return g.name
+}
+
 type VirtualOS struct {
 	ctx           context.Context
 	userCacheDir  string
@@ -37,6 +78,11 @@ type VirtualOS struct {
 	stdin         File
 	stdout        File
 	args          []string
+	currentUser   *VirtualUser
+	users         map[string]*VirtualUser  // by username
+	usersByUid    map[string]*VirtualUser  // by uid
+	groups        map[string]*VirtualGroup // by name
+	groupsByGid   map[string]*VirtualGroup // by gid
 }
 
 // Option is a configuration function for a Virtual Machine.
@@ -144,15 +190,45 @@ func WithStdout(stdout File) Option {
 	}
 }
 
+// WithCurrentUser sets the current user.
+func WithCurrentUser(user *VirtualUser) Option {
+	return func(vos *VirtualOS) {
+		vos.currentUser = user
+		// Add the user to the user maps
+		vos.users[user.username] = user
+		vos.usersByUid[user.uid] = user
+	}
+}
+
+// WithUser adds a user to the virtual OS.
+func WithUser(user *VirtualUser) Option {
+	return func(vos *VirtualOS) {
+		vos.users[user.username] = user
+		vos.usersByUid[user.uid] = user
+	}
+}
+
+// WithGroup adds a group to the virtual OS.
+func WithGroup(group *VirtualGroup) Option {
+	return func(vos *VirtualOS) {
+		vos.groups[group.name] = group
+		vos.groupsByGid[group.gid] = group
+	}
+}
+
 // NewVirtualOS creates a new VirtualOS configured with the given options.
 func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 	vos := &VirtualOS{
-		ctx:    ctx,
-		env:    map[string]string{},
-		mounts: map[string]*Mount{},
-		cwd:    "/",
-		stdin:  &NilFile{},
-		stdout: &NilFile{},
+		ctx:         ctx,
+		env:         map[string]string{},
+		mounts:      map[string]*Mount{},
+		cwd:         "/",
+		stdin:       &NilFile{},
+		stdout:      &NilFile{},
+		users:       map[string]*VirtualUser{},
+		usersByUid:  map[string]*VirtualUser{},
+		groups:      map[string]*VirtualGroup{},
+		groupsByGid: map[string]*VirtualGroup{},
 	}
 	for _, opt := range opts {
 		opt(vos)
@@ -445,4 +521,43 @@ func (osObj *VirtualOS) PathSeparator() rune {
 
 func (osObj *VirtualOS) PathListSeparator() rune {
 	return os.PathSeparator
+}
+
+func (osObj *VirtualOS) CurrentUser() (User, error) {
+	if osObj.currentUser == nil {
+		return nil, errors.New("no current user configured")
+	}
+	return osObj.currentUser, nil
+}
+
+func (osObj *VirtualOS) LookupUser(name string) (User, error) {
+	user, ok := osObj.users[name]
+	if !ok {
+		return nil, fmt.Errorf("user %s not found", name)
+	}
+	return user, nil
+}
+
+func (osObj *VirtualOS) LookupUid(uid string) (User, error) {
+	user, ok := osObj.usersByUid[uid]
+	if !ok {
+		return nil, fmt.Errorf("user with uid %s not found", uid)
+	}
+	return user, nil
+}
+
+func (osObj *VirtualOS) LookupGroup(name string) (Group, error) {
+	group, ok := osObj.groups[name]
+	if !ok {
+		return nil, fmt.Errorf("group %s not found", name)
+	}
+	return group, nil
+}
+
+func (osObj *VirtualOS) LookupGid(gid string) (Group, error) {
+	group, ok := osObj.groupsByGid[gid]
+	if !ok {
+		return nil, fmt.Errorf("group with gid %s not found", gid)
+	}
+	return group, nil
 }

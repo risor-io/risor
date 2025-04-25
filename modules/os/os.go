@@ -490,11 +490,104 @@ func Cat(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewString(buf.String())
 }
 
+func CurrentUser(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.current_user", 0, args); err != nil {
+		return err
+	}
+	user, err := GetOS(ctx).CurrentUser()
+	if err != nil {
+		return object.NewError(err)
+	}
+	return wrapUser(user)
+}
+
+func LookupUser(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.lookup_user", 1, args); err != nil {
+		return err
+	}
+	name, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	user, lookupErr := GetOS(ctx).LookupUser(name)
+	if lookupErr != nil {
+		return object.NewError(lookupErr)
+	}
+	return wrapUser(user)
+}
+
+func LookupUid(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.lookup_uid", 1, args); err != nil {
+		return err
+	}
+	uid, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	user, lookupErr := GetOS(ctx).LookupUid(uid)
+	if lookupErr != nil {
+		return object.NewError(lookupErr)
+	}
+	return wrapUser(user)
+}
+
+func LookupGroup(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.lookup_group", 1, args); err != nil {
+		return err
+	}
+	name, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	group, lookupErr := GetOS(ctx).LookupGroup(name)
+	if lookupErr != nil {
+		return object.NewError(lookupErr)
+	}
+	return wrapGroup(group)
+}
+
+func LookupGid(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("os.lookup_gid", 1, args); err != nil {
+		return err
+	}
+	gid, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+	group, lookupErr := GetOS(ctx).LookupGid(gid)
+	if lookupErr != nil {
+		return object.NewError(lookupErr)
+	}
+	return wrapGroup(group)
+}
+
+// wrapUser wraps an os.User as a Risor object
+func wrapUser(user os.User) object.Object {
+	items := map[string]object.Object{
+		"uid":      object.NewString(user.Uid()),
+		"gid":      object.NewString(user.Gid()),
+		"username": object.NewString(user.Username()),
+		"name":     object.NewString(user.Name()),
+		"home_dir": object.NewString(user.HomeDir()),
+	}
+	return object.NewMap(items)
+}
+
+// wrapGroup wraps an os.Group as a Risor object
+func wrapGroup(group os.Group) object.Object {
+	items := map[string]object.Object{
+		"gid":  object.NewString(group.Gid()),
+		"name": object.NewString(group.Name()),
+	}
+	return object.NewMap(items)
+}
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("os", map[string]object.Object{
 		"args":            object.NewBuiltin("args", Args),
 		"chdir":           object.NewBuiltin("chdir", Chdir),
 		"create":          object.NewBuiltin("create", Create),
+		"current_user":    object.NewBuiltin("current_user", CurrentUser),
 		"environ":         object.NewBuiltin("environ", Environ),
 		"exit":            object.NewBuiltin("exit", Exit),
 		"getenv":          object.NewBuiltin("getenv", Getenv),
@@ -502,6 +595,10 @@ func Module() *object.Module {
 		"getuid":          object.NewBuiltin("getuid", Getuid),
 		"getwd":           object.NewBuiltin("getwd", Getwd),
 		"hostname":        object.NewBuiltin("hostname", Hostname),
+		"lookup_gid":      object.NewBuiltin("lookup_gid", LookupGid),
+		"lookup_group":    object.NewBuiltin("lookup_group", LookupGroup),
+		"lookup_uid":      object.NewBuiltin("lookup_uid", LookupUid),
+		"lookup_user":     object.NewBuiltin("lookup_user", LookupUser),
 		"mkdir_all":       object.NewBuiltin("mkdir_all", MkdirAll),
 		"mkdir_temp":      object.NewBuiltin("mkdir_temp", MkdirTemp),
 		"mkdir":           object.NewBuiltin("mkdir", Mkdir),

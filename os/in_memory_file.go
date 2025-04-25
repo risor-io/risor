@@ -2,13 +2,13 @@ package os
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
 // InMemoryFile is an in-memory file backed by a slice of bytes
 // with support for seek
 type InMemoryFile struct {
+	name string
 	data []byte
 	pos  int
 }
@@ -59,7 +59,6 @@ func (f *InMemoryFile) Write(p []byte) (int, error) {
 		f.data = append(f.data, p[n:]...)
 	}
 	f.pos += l
-	fmt.Println("file write", f.data)
 	return l, nil
 }
 
@@ -76,9 +75,8 @@ func (f *InMemoryFile) Rewind() {
 	f.Seek(0)
 }
 
-// Close clears all the data out of the file and sets the read position to 0.
+// Close resets the read position to 0 but keeps the data intact.
 func (f *InMemoryFile) Close() error {
-	f.data = nil
 	f.pos = 0
 	return nil
 }

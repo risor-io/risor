@@ -63,6 +63,19 @@ type FS interface {
 	WalkDir(root string, fn WalkDirFunc) error
 }
 
+type User interface {
+	Uid() string
+	Gid() string
+	Username() string
+	Name() string
+	HomeDir() string
+}
+
+type Group interface {
+	Gid() string
+	Name() string
+}
+
 type OS interface {
 	FS
 	Args() []string
@@ -86,6 +99,11 @@ type OS interface {
 	Stdout() File
 	PathSeparator() rune
 	PathListSeparator() rune
+	CurrentUser() (User, error)
+	LookupUser(name string) (User, error)
+	LookupUid(uid string) (User, error)
+	LookupGroup(name string) (Group, error)
+	LookupGid(gid string) (Group, error)
 }
 
 type contextKey string

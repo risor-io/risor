@@ -166,3 +166,23 @@ func (osObj *SimpleOS) PathSeparator() rune {
 func (osObj *SimpleOS) PathListSeparator() rune {
 	return os.PathListSeparator
 }
+
+func (osObj *SimpleOS) CurrentUser() (User, error) {
+	return Current()
+}
+
+func (osObj *SimpleOS) LookupUser(name string) (User, error) {
+	return LookupUser(name)
+}
+
+func (osObj *SimpleOS) LookupUid(uid string) (User, error) {
+	return LookupUid(uid)
+}
+
+func (osObj *SimpleOS) LookupGroup(name string) (Group, error) {
+	return LookupGroup(name)
+}
+
+func (osObj *SimpleOS) LookupGid(gid string) (Group, error) {
+	return LookupGid(gid)
+}
