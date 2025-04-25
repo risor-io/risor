@@ -1,4 +1,4 @@
-# HTML to Markdown Module
+# htmltomarkdown
 
 The `htmltomarkdown` module supports converting HTML to Markdown.
 
