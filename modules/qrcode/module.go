@@ -8,6 +8,7 @@ import (
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/os"
 	qrcode "github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/standard"
 )
 
 // Create creates a new QR code with the given content
@@ -108,6 +109,18 @@ func GetOS(ctx context.Context) os.OS {
 }
 
 // Save saves the QR code to a PNG file using the Risor OS
+//
+// Arguments:
+//   - qrcode: the QR code to save
+//   - path: the file path to save the QR code to
+//   - style_options: (optional) a map of styling options:
+//   - bg_transparent: (bool) make the background transparent
+//   - bg_color_hex: (string) set background color using hex color code (e.g. "#FFFFFF")
+//   - fg_color_hex: (string) set foreground color using hex color code (e.g. "#000000")
+//   - logo_image: (image) a Risor image object to use as a logo in the center
+//   - shape: (string) "circle" or "rectangle" (default: "rectangle")
+//   - border_width: (int) width of the border around the QR code
+//   - format: (string) "png" or "jpeg" (default: "png")
 func Save(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("qrcode.save", 2, 3, args); err != nil {
 		return err
@@ -123,20 +136,25 @@ func Save(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 
-	width := qr.width
-	if len(args) > 2 {
-		w, err := object.AsInt(args[2])
+	// Check for options as third argument
+	var styleOptions []standard.ImageOption
+	if len(args) > 2 && args[2] != object.Nil {
+		optsMap, err := object.AsMap(args[2])
 		if err != nil {
 			return err
 		}
-		if w > 255 {
-			w = 255 // ensure width fits in uint8
+
+		options, convErr := convertStyleOptions(optsMap)
+		if convErr != nil {
+			return object.NewError(convErr)
 		}
-		width = uint8(w)
+		styleOptions = options
 	}
 
+	width := qr.width
+
 	// Generate QR code data
-	qrData, genErr := qr.generateQRCode(width)
+	qrData, genErr := qr.generateQRCode(width, styleOptions...)
 	if genErr != nil {
 		return object.NewError(genErr)
 	}
