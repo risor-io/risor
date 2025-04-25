@@ -3,7 +3,7 @@ package htmltomarkdown
 import (
 	"context"
 
-	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
+	htmltomd "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/risor-io/risor/object"
 )
 
@@ -15,7 +15,7 @@ func Convert(ctx context.Context, args ...object.Object) object.Object {
 	if err != nil {
 		return err
 	}
-	markdown, convErr := htmltomarkdown.ConvertString(html)
+	markdown, convErr := htmltomd.ConvertString(html)
 	if convErr != nil {
 		return object.NewError(convErr)
 	}
