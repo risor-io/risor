@@ -157,7 +157,7 @@ func (f *mockFile) IsTruthy() bool {
 }
 
 func (f *mockFile) Equals(other object.Object) object.Object {
-	if f == other.(object.Object) {
+	if f == other {
 		return object.True
 	}
 	return object.False
@@ -210,7 +210,7 @@ func (r *mockReader) IsTruthy() bool {
 }
 
 func (r *mockReader) Equals(other object.Object) object.Object {
-	if r == other.(object.Object) {
+	if r == other {
 		return object.True
 	}
 	return object.False
