@@ -4,8 +4,10 @@ import (
 	"os/user"
 )
 
-var _ User = (*UserWrapper)(nil)
-var _ Group = (*GroupWrapper)(nil)
+var (
+	_ User  = (*UserWrapper)(nil)
+	_ Group = (*GroupWrapper)(nil)
+)
 
 // UserWrapper wraps the standard library's user.User type to implement the User interface.
 type UserWrapper struct {

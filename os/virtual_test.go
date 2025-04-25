@@ -312,7 +312,7 @@ func TestVirtualOSFileOperations(t *testing.T) {
 	)
 
 	// Test WriteFile and ReadFile
-	err := vos.WriteFile("/test.txt", []byte("hello world"), 0644)
+	err := vos.WriteFile("/test.txt", []byte("hello world"), 0o644)
 	if err != nil {
 		t.Errorf("WriteFile failed: %v", err)
 	}
@@ -358,12 +358,12 @@ func TestVirtualOSFileOperations(t *testing.T) {
 	}
 
 	// Test Mkdir and ReadDir
-	err = vos.Mkdir("/testdir", 0755)
+	err = vos.Mkdir("/testdir", 0o755)
 	if err != nil {
 		t.Errorf("Mkdir failed: %v", err)
 	}
 
-	err = vos.WriteFile("/testdir/file1.txt", []byte("file1"), 0644)
+	err = vos.WriteFile("/testdir/file1.txt", []byte("file1"), 0o644)
 	if err != nil {
 		t.Errorf("WriteFile in directory failed: %v", err)
 	}
@@ -382,7 +382,7 @@ func TestVirtualOSFileOperations(t *testing.T) {
 	}
 
 	// Test MkdirAll
-	err = vos.MkdirAll("/a/b/c", 0755)
+	err = vos.MkdirAll("/a/b/c", 0o755)
 	if err != nil {
 		t.Errorf("MkdirAll failed: %v", err)
 	}

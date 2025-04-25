@@ -55,7 +55,7 @@ func (fs *MockFS) Create(name string) (File, error) {
 	fs.files[name] = file
 	fs.fileInfos[name] = &mockFileInfo{
 		name:    filepath.Base(name),
-		mode:    0644,
+		mode:    0o644,
 		isDir:   false,
 		modTime: time.Now(),
 	}
@@ -195,7 +195,7 @@ func (fs *MockFS) Symlink(oldname, newname string) error {
 
 	fs.fileInfos[newname] = &mockFileInfo{
 		name:    filepath.Base(newname),
-		mode:    0644 | os.ModeSymlink,
+		mode:    0o644 | os.ModeSymlink,
 		isDir:   false,
 		modTime: time.Now(),
 	}
