@@ -13,6 +13,7 @@ replace (
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
+	github.com/risor-io/risor/modules/sched => ../../modules/sched
 	github.com/risor-io/risor/modules/semver => ../../modules/semver
 	github.com/risor-io/risor/modules/shlex => ../../modules/shlex
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
@@ -40,6 +41,7 @@ require (
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
+	github.com/risor-io/risor/modules/sched v1.7.0
 	github.com/risor-io/risor/modules/semver v1.7.0
 	github.com/risor-io/risor/modules/shlex v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sql v1.7.0
@@ -53,6 +55,7 @@ require (
 )
 
 require (
+	codnect.io/chrono v1.1.3 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -114,7 +117,6 @@ require (
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dromara/carbon/v2 v2.6.3 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -127,6 +129,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-module/carbon/v2 v2.3.12 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect

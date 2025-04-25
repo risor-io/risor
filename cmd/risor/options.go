@@ -18,6 +18,7 @@ import (
 	k8s "github.com/risor-io/risor/modules/kubernetes"
 	"github.com/risor-io/risor/modules/net"
 	"github.com/risor-io/risor/modules/pgx"
+	"github.com/risor-io/risor/modules/sched"
 	"github.com/risor-io/risor/modules/semver"
 	"github.com/risor-io/risor/modules/shlex"
 	"github.com/risor-io/risor/modules/sql"
@@ -49,6 +50,7 @@ func getGlobals() risor.Option {
 		"isatty":      isatty.Module(),
 		"net":         net.Module(),
 		"pgx":         pgx.Module(),
+		"sched":       sched.Module(),
 		"sql":         sql.Module(),
 		"tablewriter": tablewriter.Module(),
 		"template":    template.Module(),

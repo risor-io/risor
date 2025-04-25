@@ -16,6 +16,7 @@ use (
 	./modules/image
 	./modules/jmespath
 	./modules/pgx
+	./modules/sched
 	./modules/semver
 	./modules/shlex
 	./modules/sql
