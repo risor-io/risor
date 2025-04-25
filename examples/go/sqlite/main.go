@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-
 	script, err := os.ReadFile("example.risor")
 	if err != nil {
 		log.Fatal(err)

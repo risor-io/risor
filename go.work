@@ -7,8 +7,8 @@ use (
 	./cmd/risor-docs
 	./cmd/risor-lsp
 	./cmd/risor-modgen
-	./examples/go/struct
 	./examples/go/sqlite
+	./examples/go/struct
 	./modules/aws
 	./modules/bcrypt
 	./modules/carbon
