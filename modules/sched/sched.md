@@ -1,32 +1,24 @@
-import { Callout } from 'nextra/components';
-
 # sched
-
-<Callout type="info" emoji="ℹ️">
-This module is not included with Risor.
-</Callout>
 
 The `sched` module exposes a simple interface to schedule tasks, powered by [chrono](https://github.com/codnect/chrono).
 
 ```go
-import sched
-import time
-
 once := sched.once("1s", func(){
-  print("once")
+    print("once")
 })
 
 cron := sched.cron("*/1 * * * * *", func(){
-  print("hola")
+    print("hola")
 })
+
 print(cron.is_running())
 
 every := sched.every("1m", func() {
-  print("every 1 minute")
+    print("every 1 minute")
 })
 
 for {
-  time.sleep(1)
+    time.sleep(1)
 }
 ```
 
@@ -111,7 +103,7 @@ A Task object returned by `cron`, `every` and `once` functions.
 
 #### Attributes
 
-| Name           | Type                           | Description                                  |
-| -------------- | ------------------------------ | -------------------------------------------- |
-| cancel         | func()                         | Cancels the task                             |
-| is_running     | func()                         | True if the task is running                  |
+| Name       | Type   | Description                 |
+| ---------- | ------ | --------------------------- |
+| cancel     | func() | Cancels the task            |
+| is_running | func() | True if the task is running |
