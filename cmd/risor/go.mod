@@ -9,6 +9,7 @@ replace (
 	github.com/risor-io/risor/modules/carbon => ../../modules/carbon
 	github.com/risor-io/risor/modules/cli => ../../modules/cli
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
+	github.com/risor-io/risor/modules/htmltomarkdown => ../../modules/htmltomarkdown
 	github.com/risor-io/risor/modules/image => ../../modules/image
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
@@ -37,13 +38,14 @@ require (
 	github.com/risor-io/risor/modules/carbon v1.7.0
 	github.com/risor-io/risor/modules/cli v1.7.0
 	github.com/risor-io/risor/modules/gha v1.7.0
+	github.com/risor-io/risor/modules/htmltomarkdown v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/image v1.7.0
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
 	github.com/risor-io/risor/modules/sched v1.7.0
 	github.com/risor-io/risor/modules/semver v1.7.0
-	github.com/risor-io/risor/modules/shlex v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/shlex v1.7.0
 	github.com/risor-io/risor/modules/sql v1.7.0
 	github.com/risor-io/risor/modules/template v1.7.0
 	github.com/risor-io/risor/modules/uuid v1.7.0
@@ -58,6 +60,8 @@ require (
 	codnect.io/chrono v1.1.3 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/JohannesKaufmann/dom v0.2.0 // indirect
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.3.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
