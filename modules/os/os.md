@@ -384,3 +384,68 @@ Writes the given byte_slice or string to the named file.
 >>> os.read_file("example.txt")
 byte_slice("hey!")
 ```
+
+### current_user
+
+```go filename="Function signature"
+current_user() map
+```
+
+Returns a map representing the current user.
+
+```go copy filename="Example"
+>>> os.current_user()
+{"gid": "20", "home_dir": "/Users/alice", "name": "Alice", "uid": "501", "username": "alice"}
+```
+
+### lookup_user
+
+```go filename="Function signature"
+lookup_user(name string) map
+```
+
+Looks up a user by name and returns a map representation.
+
+```go copy filename="Example"
+>>> os.lookup_user("bob")
+{"gid": "20", "home_dir": "/Users/bob", "name": "Bob", "uid": "502", "username": "bob"}
+```
+
+### lookup_uid
+
+```go filename="Function signature"
+lookup_uid(uid string) map
+```
+
+Looks up a user by user ID and returns a map representation.
+
+```go copy filename="Example"
+>>> os.lookup_uid("501")
+{"gid": "20", "home_dir": "/Users/alice", "name": "Alice", "uid": "501", "username": "alice"}
+```
+
+### lookup_group
+
+```go filename="Function signature"
+lookup_group(name string) map
+```
+
+Looks up a group by name and returns a map representation.
+
+```go copy filename="Example"
+>>> os.lookup_group("staff")
+{"gid": "20", "name": "staff"}
+```
+
+### lookup_gid
+
+```go filename="Function signature"
+lookup_gid(gid string) map
+```
+
+Looks up a group by group ID and returns a map representation.
+
+```go copy filename="Example"
+>>> os.lookup_gid("20")
+{"gid": "20", "name": "staff"}
+```
