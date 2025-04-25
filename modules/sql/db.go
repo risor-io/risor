@@ -209,3 +209,11 @@ func New(ctx context.Context, connection string, stream bool) (*DB, error) {
 	obj.waitToClose(ctx)
 	return obj, nil
 }
+
+func NewFromDB(ctx context.Context, db *sql.DB) *DB {
+	return &DB{
+		conn:   db,
+		closed: make(chan bool),
+		stream: true,
+	}
+}
