@@ -12,7 +12,6 @@ import (
 	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/color"
 	"github.com/risor-io/risor/modules/gha"
-	"github.com/risor-io/risor/modules/htmltomarkdown"
 	"github.com/risor-io/risor/modules/image"
 	"github.com/risor-io/risor/modules/isatty"
 	"github.com/risor-io/risor/modules/jmespath"
@@ -42,23 +41,23 @@ func getGlobals() risor.Option {
 	//************************************************************************//
 
 	globals := map[string]any{
-		"bcrypt":         bcrypt.Module(),
-		"carbon":         carbon.Module(),
-		"cli":            cli.Module(),
-		"color":          color.Module(),
-		"gha":            gha.Module(),
-		"htmltomarkdown": htmltomarkdown.Module(),
-		"image":          image.Module(),
-		"isatty":         isatty.Module(),
-		"net":            net.Module(),
-		"pgx":            pgx.Module(),
-		"sched":          sched.Module(),
-		"sql":            sql.Module(),
-		"tablewriter":    tablewriter.Module(),
-		"template":       template.Module(),
-		"uuid":           uuid.Module(),
-		"semver":         semver.Module(),
-		"shlex":          shlex.Module(),
+		"bcrypt": bcrypt.Module(),
+		"carbon": carbon.Module(),
+		"cli":    cli.Module(),
+		"color":  color.Module(),
+		"gha":    gha.Module(),
+		// "htmltomarkdown": htmltomarkdown.Module(),
+		"image":       image.Module(),
+		"isatty":      isatty.Module(),
+		"net":         net.Module(),
+		"pgx":         pgx.Module(),
+		"sched":       sched.Module(),
+		"sql":         sql.Module(),
+		"tablewriter": tablewriter.Module(),
+		"template":    template.Module(),
+		"uuid":        uuid.Module(),
+		"semver":      semver.Module(),
+		"shlex":       shlex.Module(),
 	}
 
 	//************************************************************************//

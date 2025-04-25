@@ -38,7 +38,6 @@ require (
 	github.com/risor-io/risor/modules/carbon v1.7.0
 	github.com/risor-io/risor/modules/cli v1.7.0
 	github.com/risor-io/risor/modules/gha v1.7.0
-	github.com/risor-io/risor/modules/htmltomarkdown v1.7.0
 	github.com/risor-io/risor/modules/image v1.7.0
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
@@ -60,8 +59,6 @@ require (
 	codnect.io/chrono v1.1.3 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/JohannesKaufmann/dom v0.2.0 // indirect
-	github.com/JohannesKaufmann/html-to-markdown/v2 v2.3.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
@@ -170,6 +167,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
