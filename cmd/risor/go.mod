@@ -16,6 +16,7 @@ replace (
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
 	github.com/risor-io/risor/modules/playwright => ../../modules/playwright
+	github.com/risor-io/risor/modules/qrcode => ../../modules/qrcode
 	github.com/risor-io/risor/modules/sched => ../../modules/sched
 	github.com/risor-io/risor/modules/semver => ../../modules/semver
 	github.com/risor-io/risor/modules/shlex => ../../modules/shlex
@@ -47,6 +48,7 @@ require (
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
 	github.com/risor-io/risor/modules/playwright v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/qrcode v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sched v1.7.0
 	github.com/risor-io/risor/modules/semver v1.7.0
 	github.com/risor-io/risor/modules/shlex v1.7.0
@@ -130,6 +132,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
+	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
@@ -145,6 +148,7 @@ require (
 	github.com/golang-module/carbon/v2 v2.3.12 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -174,6 +178,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/playwright-community/playwright-go v0.5101.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -191,6 +196,9 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/dburl v0.23.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	github.com/yeqown/go-qrcode/v2 v2.2.5 // indirect
+	github.com/yeqown/go-qrcode/writer/standard v1.2.1 // indirect
+	github.com/yeqown/reedsolomon v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect

@@ -21,6 +21,7 @@ import (
 	"github.com/risor-io/risor/modules/net"
 	"github.com/risor-io/risor/modules/pgx"
 	"github.com/risor-io/risor/modules/playwright"
+	"github.com/risor-io/risor/modules/qrcode"
 	"github.com/risor-io/risor/modules/sched"
 	"github.com/risor-io/risor/modules/semver"
 	"github.com/risor-io/risor/modules/shlex"
@@ -56,6 +57,7 @@ func getGlobals() risor.Option {
 		"net":            net.Module(),
 		"pgx":            pgx.Module(),
 		"playwright":     playwright.Module(),
+		"qrcode":         qrcode.Module(),
 		"sched":          sched.Module(),
 		"sql":            sql.Module(),
 		"tablewriter":    tablewriter.Module(),

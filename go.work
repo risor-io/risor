@@ -20,6 +20,7 @@ use (
 	./modules/jmespath
 	./modules/pgx
 	./modules/playwright
+	./modules/qrcode
 	./modules/sched
 	./modules/semver
 	./modules/shlex
