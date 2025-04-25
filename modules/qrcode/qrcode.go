@@ -224,7 +224,7 @@ func (q *QRCode) Save(ctx context.Context, args ...object.Object) object.Object 
 
 	// Use Risor OS to write the buffer to a file
 	osObj := os.GetDefaultOS(ctx)
-	if writeErr := osObj.WriteFile(path, qrData, 0644); writeErr != nil {
+	if writeErr := osObj.WriteFile(path, qrData, 0o644); writeErr != nil {
 		return object.NewError(writeErr)
 	}
 
