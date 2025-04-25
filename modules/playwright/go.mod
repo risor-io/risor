@@ -2,8 +2,6 @@ module github.com/risor-io/risor/modules/playwright
 
 go 1.23.0
 
-toolchain go1.24.2
-
 replace github.com/risor-io/risor => ../..
 
 require (
