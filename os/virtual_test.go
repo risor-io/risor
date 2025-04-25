@@ -140,7 +140,7 @@ func TestVirtualOSEnvironment(t *testing.T) {
 		t.Errorf("Expected PATH to be /usr/bin:/bin, got %s", value)
 	}
 
-	value, found = vos.LookupEnv("NONEXISTENT")
+	_, found = vos.LookupEnv("NONEXISTENT")
 	if found {
 		t.Errorf("Expected NONEXISTENT to not be found")
 	}
