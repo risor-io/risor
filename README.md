@@ -163,6 +163,7 @@ installed with `go get` as separate dependencies:
 | bcrypt         | [modules/bcrypt](./modules/bcrypt)                 | `go get github.com/risor-io/risor/modules/bcrypt@v1.7.0`         |
 | carbon         | [modules/carbon](./modules/carbon)                 | `go get github.com/risor-io/risor/modules/carbon@v1.7.0`         |
 | cli            | [modules/cli](./modules/cli)                       | `go get github.com/risor-io/risor/modules/cli@v1.7.0`            |
+| goquery        | [modules/goquery](./modules/goquery)               | `go get github.com/risor-io/risor/modules/goquery@v1.7.0`        |
 | htmltomarkdown | [modules/htmltomarkdown](./modules/htmltomarkdown) | `go get github.com/risor-io/risor/modules/htmltomarkdown@v1.7.0` |
 | image          | [modules/image](./modules/image)                   | `go get github.com/risor-io/risor/modules/image@v1.7.0`          |
 | jmespath       | [modules/jmespath](./modules/jmespath)             | `go get github.com/risor-io/risor/modules/jmespath@v1.7.0`       |
