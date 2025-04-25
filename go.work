@@ -19,6 +19,7 @@ use (
 	./modules/image
 	./modules/jmespath
 	./modules/pgx
+	./modules/playwright
 	./modules/sched
 	./modules/semver
 	./modules/shlex

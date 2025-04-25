@@ -15,6 +15,7 @@ replace (
 	github.com/risor-io/risor/modules/jmespath => ../../modules/jmespath
 	github.com/risor-io/risor/modules/kubernetes => ../../modules/kubernetes
 	github.com/risor-io/risor/modules/pgx => ../../modules/pgx
+	github.com/risor-io/risor/modules/playwright => ../../modules/playwright
 	github.com/risor-io/risor/modules/sched => ../../modules/sched
 	github.com/risor-io/risor/modules/semver => ../../modules/semver
 	github.com/risor-io/risor/modules/shlex => ../../modules/shlex
@@ -45,6 +46,7 @@ require (
 	github.com/risor-io/risor/modules/jmespath v1.7.0
 	github.com/risor-io/risor/modules/kubernetes v1.7.0
 	github.com/risor-io/risor/modules/pgx v1.7.0
+	github.com/risor-io/risor/modules/playwright v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sched v1.7.0
 	github.com/risor-io/risor/modules/semver v1.7.0
 	github.com/risor-io/risor/modules/shlex v1.7.0
@@ -125,15 +127,18 @@ require (
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -169,6 +174,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/playwright-community/playwright-go v0.5101.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
