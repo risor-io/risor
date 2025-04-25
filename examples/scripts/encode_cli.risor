@@ -21,6 +21,8 @@ app({
     name: "encode",
     help_name: "encode",
     description: "Encode input text using various codecs",
+    hide_help_command: true,
+    version: "1.2.3",
     // Register three commands, named "base64", "hex", and "list-codecs"
     commands: [
         command({

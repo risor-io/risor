@@ -608,7 +608,7 @@ func TestRecursiveExample2(t *testing.T) {
 func TestConstant(t *testing.T) {
 	_, err := run(context.Background(), `const x = 1; x = 2`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"x\" (line 1)", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"x\"\n\nlocation: unknown:1:16 (line 1, column 16)", err.Error())
 }
 
 func TestConstantFunction(t *testing.T) {
@@ -617,7 +617,7 @@ func TestConstantFunction(t *testing.T) {
 	add = "bloop"
 	`)
 	require.NotNil(t, err)
-	require.Equal(t, "compile error: cannot assign to constant \"add\" (line 3)", err.Error())
+	require.Equal(t, "compile error: cannot assign to constant \"add\"\n\nlocation: unknown:3:6 (line 3, column 6)", err.Error())
 }
 
 func TestStatementsNilValue(t *testing.T) {
@@ -2122,6 +2122,10 @@ func TestMaps(t *testing.T) {
 			"a": object.NewInt(1),
 			"b": object.NewInt(2),
 		})},
+		{`m := {"a": 1, "b": 2}; m["a"] *= 8; m`, object.NewMap(map[string]object.Object{
+			"a": object.NewInt(8),
+			"b": object.NewInt(2),
+		})},
 	}
 	runTests(t, tests)
 }
@@ -2150,6 +2154,10 @@ func TestLists(t *testing.T) {
 		]`, object.NewList([]object.Object{
 			object.NewInt(1),
 			object.NewInt(2),
+		})},
+		{`l := [1, 2]; for k := range l { l[k] *= 2 }; l`, object.NewList([]object.Object{
+			object.NewInt(2),
+			object.NewInt(4),
 		})},
 	}
 	runTests(t, tests)
@@ -2212,6 +2220,21 @@ func TestExecOldWayWithDir(t *testing.T) {
 	require.Equal(t, object.NewString("'Twas brillig, and the slithy toves"), result)
 }
 
+func TestReturnNamedFunction(t *testing.T) {
+	code := `
+	func test() {
+		return func foo() {
+			return "FOO"
+		}
+	}
+	f := test()
+	f()
+	`
+	result, err := run(context.Background(), code)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("FOO"), result)
+}
+
 func TestContextDone(t *testing.T) {
 	// Context with no deadline does not return a Done channel
 	ctx := context.Background()
@@ -2248,4 +2271,135 @@ func runTests(t *testing.T, tests []testCase) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestNestedRangeLoopBreak tests that breaking from an inner for-range loop in a nested loop
+// doesn't cause stack overflow.
+func TestNestedRangeLoopBreak(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected object.Object
+	}{
+		{
+			name: "Basic case with single iteration",
+			input: `
+				items1 := [1]
+				items2 := [1, 2]
+				count := 0
+				for range items1 {
+					for range items2 {
+						count += 1
+						break
+					}
+				}
+				count
+			`,
+			expected: object.NewInt(1),
+		},
+		{
+			name: "Multiple iterations in outer loop",
+			input: `
+				items1 := [1, 2, 3]
+				items2 := [1, 2]
+				count := 0
+				for range items1 {
+					for range items2 {
+						count += 1
+						break
+					}
+				}
+				count
+			`,
+			expected: object.NewInt(3),
+		},
+		{
+			name: "Multiple iterations with indexed loop",
+			input: `
+				items1 := [1, 2, 3]
+				items2 := [1, 2, 3]
+				result := []
+				for i, _ := range items1 {
+					for j, _ := range items2 {
+						result = result + [[i, j]]
+						break
+					}
+				}
+				result
+			`,
+			expected: object.NewList([]object.Object{
+				object.NewList([]object.Object{object.NewInt(0), object.NewInt(0)}),
+				object.NewList([]object.Object{object.NewInt(1), object.NewInt(0)}),
+				object.NewList([]object.Object{object.NewInt(2), object.NewInt(0)}),
+			}),
+		},
+		{
+			name: "Many iterations to ensure no stack overflow",
+			input: `
+				count := 0
+				for range 100 {
+					for range 33 {
+						count += 1
+						break
+					}
+				}
+				count
+			`,
+			expected: object.NewInt(100),
+		},
+		{
+			name: "Break from single loop",
+			input: `
+				count := 0
+				for range 100 {
+					count += 77
+					break
+					x := "should not be here"
+				}
+				count
+			`,
+			expected: object.NewInt(77),
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := run(ctx, tt.input)
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestDeeplyNestedRangeLoopBreak tests deeply nested for-range loops with breaks
+// to ensure stack doesn't overflow
+func TestDeeplyNestedRangeLoopBreak(t *testing.T) {
+	// This test creates a deeply nested set of for-range loops (3 levels)
+	// with break statements at each level
+	input := `
+		count := 0
+		// Create a more complex nesting case with multiple breaks
+		for i := range 5 {
+			for j := range 5 {
+				if j == 3 {
+					break  // Break from j loop
+				}
+				for k := range 5 {
+					count += 1
+					if k == 2 {
+						break  // Break from k loop
+					}
+				}
+			}
+		}
+		count
+	`
+
+	ctx := context.Background()
+	result, err := run(ctx, input)
+	require.Nil(t, err)
+
+	// We should get 5 (outer loops) * 3 (middle loops before break) * 3 (inner loops before break) = 45
+	require.Equal(t, object.NewInt(45), result)
 }

@@ -1,8 +1,6 @@
 module github.com/risor-io/risor/modules/gha
 
-go 1.22.0
-
-toolchain go1.23.1
+go 1.23.0
 
 replace github.com/risor-io/risor => ../..
 

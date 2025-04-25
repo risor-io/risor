@@ -41,6 +41,7 @@ type Config struct {
 	withConcurrency       bool
 	listenersAllowed      bool
 	initialized           bool
+	filename              string
 }
 
 // NewConfig returns a new Risor Config. Use the Risor options functions
@@ -201,6 +202,9 @@ func (cfg *Config) CompilerOpts() []compiler.Option {
 	var opts []compiler.Option
 	if len(globalNames) > 0 {
 		opts = append(opts, compiler.WithGlobalNames(globalNames))
+	}
+	if cfg.filename != "" {
+		opts = append(opts, compiler.WithFilename(cfg.filename))
 	}
 	return opts
 }

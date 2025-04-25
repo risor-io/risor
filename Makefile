@@ -1,5 +1,5 @@
 
-export GOFLAGS=-tags=aws,k8s,vault,semver
+export GOFLAGS=-tags=aws,k8s,vault
 
 export GIT_REVISION=$(shell git rev-parse --short HEAD)
 
@@ -39,6 +39,11 @@ postgres:
 tidy:
 	find . -name go.mod -execdir go mod tidy \;
 	go work sync
+
+.PHONY: update-deps
+update-deps:
+	find . -name go.mod -execdir go get -u ./... \;
+	find . -name go.mod -execdir go mod tidy \;
 
 .PHONY: cover
 cover:

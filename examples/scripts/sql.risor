@@ -1,7 +1,7 @@
 #!/usr/bin/env risor --
 
 func connect(user="root", pass="root", host="localhost", port=3306, db="mysql") {
-    return sql.connect('mysql+tcp://{user}:{pass}@{host}:{port}/{db}')
+    return sql.connect('mysql+tcp://{user}:{pass}@{host}:{port}/{db}', {"stream": true})
 }
 
 db := connect("root", "root")

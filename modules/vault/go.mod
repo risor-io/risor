@@ -1,8 +1,6 @@
 module github.com/risor-io/risor/modules/vault
 
-go 1.22.0
-
-toolchain go1.23.1
+go 1.23.0
 
 replace github.com/risor-io/risor => ../..
 
@@ -18,6 +16,6 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/time v0.11.0 // indirect
 )

@@ -405,13 +405,13 @@ func (a *Assign) String() string {
 // Import is a statement node that describes a module import statement.
 type Import struct {
 	token token.Token // the "import" token
-	name  *Ident      // name of the module to import
+	path  *String     // path of the module to import
 	alias *Ident      // alias for the module
 }
 
 // NewImport creates a new Import node.
-func NewImport(token token.Token, name *Ident, alias *Ident) *Import {
-	return &Import{token: token, name: name, alias: alias}
+func NewImport(token token.Token, path *String, alias *Ident) *Import {
+	return &Import{token: token, path: path, alias: alias}
 }
 
 func (i *Import) StatementNode() {}
@@ -422,14 +422,24 @@ func (i *Import) Token() token.Token { return i.token }
 
 func (i *Import) Literal() string { return i.token.Literal }
 
-func (i *Import) Name() *Ident { return i.name }
+func (i *Import) Path() *String { return i.path }
 
 func (i *Import) Alias() *Ident { return i.alias }
+
+// ModuleName returns the name to use for the imported module
+// (either alias or last part of path)
+func (i *Import) ModuleName() string {
+	if i.alias != nil {
+		return i.alias.String()
+	}
+	parts := strings.Split(i.path.Value(), "/")
+	return parts[len(parts)-1]
+}
 
 func (i *Import) String() string {
 	var out bytes.Buffer
 	out.WriteString(i.Literal() + " ")
-	out.WriteString(i.name.Literal())
+	out.WriteString(i.path.String())
 	if i.alias != nil {
 		out.WriteString(" as " + i.alias.Literal())
 	}
@@ -473,14 +483,14 @@ func (i *FromImport) Imports() []*Import { return i.imports }
 
 func (i *FromImport) String() string {
 	var out bytes.Buffer
-	out.WriteString(i.Literal() + " ")
+	out.WriteString(i.Literal() + " \"")
 	for i, parent := range i.parents {
 		if i > 0 {
 			out.WriteString(".")
 		}
 		out.WriteString(parent.Literal())
 	}
-	out.WriteString(" import ")
+	out.WriteString("\" import ")
 	if i.isGrouped {
 		out.WriteString("(")
 	}
@@ -488,9 +498,9 @@ func (i *FromImport) String() string {
 		if idx > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(im.name.Literal())
-		if im.alias != nil {
-			out.WriteString(" as " + im.alias.Literal())
+		out.WriteString(im.Path().String())
+		if im.Alias() != nil {
+			out.WriteString(" as " + im.Alias().Literal())
 		}
 	}
 	if i.isGrouped {

@@ -25,6 +25,8 @@ const (
 	MB            = 1024 * 1024
 )
 
+var ErrGlobalNotFound = errors.New("global not found")
+
 type VirtualMachine struct {
 	ip           int // instruction pointer
 	sp           int // stack pointer
@@ -150,7 +152,7 @@ func (vm *VirtualMachine) Get(name string) (object.Object, error) {
 			return code.Globals[g.Index()], nil
 		}
 	}
-	return nil, fmt.Errorf("global with name %q not found", name)
+	return nil, fmt.Errorf("%w: %q", ErrGlobalNotFound, name)
 }
 
 // GlobalNames returns the names of all global variables in the active code.
@@ -895,7 +897,7 @@ func (vm *VirtualMachine) reloadCode(main *compiler.Code) *code {
 	if !ok {
 		panic("main code not loaded")
 	}
-	vm.loadedCode = map[*compiler.Code]*code{}
+	delete(vm.loadedCode, main)
 	newWrappedMain := vm.loadCode(main)
 	copy(newWrappedMain.Globals, oldWrappedMain.Globals)
 	return newWrappedMain

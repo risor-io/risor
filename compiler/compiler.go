@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/risor-io/risor/ast"
 	"github.com/risor-io/risor/op"
@@ -40,6 +41,9 @@ type Compiler struct {
 
 	// Increments with each function compiled
 	funcIndex int
+
+	// Source filename
+	filename string
 }
 
 // Option is a configuration function for a Compiler.
@@ -57,6 +61,13 @@ func WithGlobalNames(names []string) Option {
 func WithCode(code *Code) Option {
 	return func(c *Compiler) {
 		c.main = code
+	}
+}
+
+// WithFilename configures the compiler with the source filename.
+func WithFilename(filename string) Option {
+	return func(c *Compiler) {
+		c.filename = filename
 	}
 }
 
@@ -114,6 +125,9 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 		c.main.source = node.String()
 	} else {
 		c.main.source = fmt.Sprintf("%s\n%s", c.main.source, node.String())
+	}
+	if c.filename != "" {
+		c.main.filename = c.filename
 	}
 	if err := c.compile(node); err != nil {
 		return nil, err
@@ -441,8 +455,7 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 	name := node.Literal()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q (line %d)",
-			name, node.Token().StartPosition.LineNumber())
+		return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 	}
 	switch resolution.scope {
 	case Global:
@@ -458,7 +471,7 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 	names, expr := node.Value()
 	if len(names) > math.MaxUint16 {
-		return fmt.Errorf("compile error: too many variables in multi-variable assignment")
+		return c.formatError("too many variables in multi-variable assignment", node.Token().StartPosition)
 	}
 	// Compile the RHS value
 	if err := c.compile(expr); err != nil {
@@ -486,8 +499,7 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 		name := names[i]
 		resolution, found := c.current.symbols.Resolve(name)
 		if !found {
-			return fmt.Errorf("compile error: undefined variable %q (line %d)",
-				name, node.Token().StartPosition.LineNumber())
+			return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 		}
 		symbolIndex := resolution.symbol.Index()
 		switch resolution.scope {
@@ -594,12 +606,18 @@ func (c *Compiler) compileSwitch(node *ast.Switch) error {
 }
 
 func (c *Compiler) compileImport(node *ast.Import) error {
-	name := node.Name().String()
-	c.emit(op.LoadConst, c.constant(name))
+	moduleName := node.Path().Value()
+	c.emit(op.LoadConst, c.constant(moduleName))
 	c.emit(op.Import)
+
+	// Determine the variable name to store the imported module
+	var name string
 	if node.Alias() != nil {
 		name = node.Alias().String()
+	} else {
+		name = node.ModuleName()
 	}
+
 	var sym *Symbol
 	var found bool
 	sym, found = c.current.symbols.Get(name)
@@ -627,7 +645,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	aliases := map[string]string{}
 	for _, im := range node.Imports() {
-		name := im.Name().String()
+		name := im.Path().Value()
 		alias := name
 		if im.Alias() != nil {
 			alias = im.Alias().String()
@@ -637,8 +655,7 @@ func (c *Compiler) compileFromImport(node *ast.FromImport) error {
 	}
 	c.emit(op.FromImport, uint16(len(node.Parents())), uint16(len(node.Imports())))
 	for _, im := range node.Imports() {
-		name := im.Name().String()
-		alias := aliases[name]
+		alias := aliases[im.Path().Value()]
 		var sym *Symbol
 		var found bool
 		sym, found = c.current.symbols.Get(alias)
@@ -803,8 +820,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	name := node.Literal()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q (line %d)",
-			name, node.Token().StartPosition.LineNumber())
+		return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 	}
 	symbolIndex := resolution.symbol.Index()
 	// Push the named variable onto the stack
@@ -823,7 +839,7 @@ func (c *Compiler) compilePostfix(node *ast.Postfix) error {
 	} else if operator == "--" {
 		c.emit(op.LoadConst, c.constant(int64(-1)))
 	} else {
-		return fmt.Errorf("compile error: unknown postfix operator %q", operator)
+		return c.formatError(fmt.Sprintf("unknown postfix operator %q", operator), node.Token().StartPosition)
 	}
 	// Run increment or decrement as an Add BinaryOp
 	c.emit(op.BinaryOp, uint16(op.Add))
@@ -1024,7 +1040,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
 
 	if len(node.Parameters()) > 255 {
-		return fmt.Errorf("compile error: function exceeded parameter limit of 255")
+		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
 	}
 
 	// The function has an optional name. If it is named, the name will be
@@ -1083,13 +1099,13 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 			if defaultsSet[i] {
 				hasDefaults = true
 			} else if hasDefaults {
-				msg := "compile error: invalid argument defaults for"
+				msg := "invalid argument defaults for"
 				if functionName != "" {
 					msg = fmt.Sprintf("%s function %q", msg, functionName)
 				} else {
 					msg = fmt.Sprintf("%s anonymous function", msg)
 				}
-				return fmt.Errorf("%s (line %d)", msg, node.Token().StartPosition.Line+1)
+				return c.formatError(msg, node.Token().StartPosition)
 			}
 		}
 	}
@@ -1147,6 +1163,9 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		if err != nil {
 			return err
 		}
+		// Duplicate function on the stack, so that we ensure the function
+		// evaluates to a value even when it's named.
+		c.emit(op.Copy, 0)
 		if c.current.parent == nil {
 			c.emit(op.StoreGlobal, funcSymbol.Index())
 		} else {
@@ -1161,11 +1180,15 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 	loop := c.currentLoop()
 	if loop == nil {
 		if literal == "break" {
-			return fmt.Errorf("compile error: invalid break statement outside of a loop")
+			return c.formatError("invalid break statement outside of a loop", node.Token().StartPosition)
 		}
-		return fmt.Errorf("compile error: invalid continue statement outside of a loop")
+		return c.formatError("invalid continue statement outside of a loop", node.Token().StartPosition)
 	}
 	if literal == "break" {
+		// When breaking from a for-range loop, we need to pop the iterator from the stack
+		if loop.isRangeLoop {
+			c.emit(op.PopTop)
+		}
 		position := c.emit(op.JumpForward, Placeholder)
 		loop.breakPos = append(loop.breakPos, position)
 	} else {
@@ -1177,7 +1200,7 @@ func (c *Compiler) compileControl(node *ast.Control) error {
 
 func (c *Compiler) compileReturn(node *ast.Return) error {
 	if c.current.IsRoot() {
-		return fmt.Errorf("compile error: invalid return statement outside of a function")
+		return c.formatError("invalid return statement outside of a function", node.Token().StartPosition)
 	}
 	value := node.Value()
 	if value == nil {
@@ -1192,17 +1215,45 @@ func (c *Compiler) compileReturn(node *ast.Return) error {
 }
 
 func (c *Compiler) compileSetItem(node *ast.Assign) error {
-	// StoreSubscr / STORE_SUBSCR
-	// Implements TOS1[TOS] = TOS2.
-	//
-	// x[0] = 99
-	// 1. Push node.Value()  (99)
-	// 2. Push index.Left()  (x)
-	// 3. Push index.Index() (0)
 	index := node.Index()
-	if err := c.compile(node.Value()); err != nil {
-		return err
+
+	// Handle compound operators (*=, +=, etc.)
+	if node.Operator() != "=" {
+		// 1. Load the current value: test[0]
+		if err := c.compile(index.Left()); err != nil {
+			return err
+		}
+		if err := c.compile(index.Index()); err != nil {
+			return err
+		}
+		c.emit(op.BinarySubscr)
+
+		// 2. Load the RHS value
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
+
+		// 3. Apply the compound operation
+		switch node.Operator() {
+		case "+=":
+			c.emit(op.BinaryOp, uint16(op.Add))
+		case "-=":
+			c.emit(op.BinaryOp, uint16(op.Subtract))
+		case "*=":
+			c.emit(op.BinaryOp, uint16(op.Multiply))
+		case "/=":
+			c.emit(op.BinaryOp, uint16(op.Divide))
+		default:
+			return fmt.Errorf("compile error: unsupported compound assignment operator: %s", node.Operator())
+		}
+	} else {
+		// Simple assignment
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
 	}
+
+	// 4. Store the result back
 	if err := c.compile(index.Left()); err != nil {
 		return err
 	}
@@ -1217,15 +1268,14 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 	if node.Index() != nil {
 		return c.compileSetItem(node)
 	}
-	lineNum := node.Token().StartPosition.LineNumber()
 	name := node.Name()
 	resolution, found := c.current.symbols.Resolve(name)
 	if !found {
-		return fmt.Errorf("compile error: undefined variable %q (line %d)", name, lineNum)
+		return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 	}
 	sym := resolution.symbol
 	if sym.IsConstant() {
-		return fmt.Errorf("compile error: cannot assign to constant %q (line %d)", name, lineNum)
+		return c.formatError(fmt.Sprintf("cannot assign to constant %q", name), node.Token().StartPosition)
 	}
 	symbolIndex := sym.Index()
 	if node.Operator() == "=" {
@@ -1279,9 +1329,41 @@ func (c *Compiler) compileAssign(node *ast.Assign) error {
 }
 
 func (c *Compiler) compileSetAttr(node *ast.SetAttr) error {
-	if err := c.compile(node.Value()); err != nil {
-		return err
+	// Handle compound operators (*=, +=, etc.)
+	if node.Token().Type != token.ASSIGN {
+		// 1. Load the current value
+		if err := c.compile(node.Object()); err != nil {
+			return err
+		}
+		idx := c.current.addName(node.Name())
+		c.emit(op.LoadAttr, idx)
+
+		// 2. Load the RHS value
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
+
+		// 3. Apply the compound operation
+		switch node.Token().Type {
+		case token.PLUS_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Add))
+		case token.MINUS_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Subtract))
+		case token.ASTERISK_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Multiply))
+		case token.SLASH_EQUALS:
+			c.emit(op.BinaryOp, uint16(op.Divide))
+		default:
+			return fmt.Errorf("compile error: unsupported compound assignment operator: %s", node.Token().Literal)
+		}
+	} else {
+		// Simple assignment
+		if err := c.compile(node.Value()); err != nil {
+			return err
+		}
 	}
+
+	// 4. Store the result back
 	if err := c.compile(node.Object()); err != nil {
 		return err
 	}
@@ -1300,6 +1382,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	code := c.current
 	code.symbols = code.symbols.NewBlock()
 	loop := c.startLoop()
+	loop.isRangeLoop = true
 	defer func() {
 		loop.end()
 		code.symbols = code.symbols.parent
@@ -1353,7 +1436,7 @@ func (c *Compiler) compileForRange(forNode *ast.For, names []string, container a
 	for _, pos := range loop.continuePos {
 		delta := jumpBackPos - pos
 		if delta > math.MaxUint16 {
-			return fmt.Errorf("compile error: loop code size exceeded limits")
+			return c.formatError("loop code size exceeded limits", forNode.Token().StartPosition)
 		}
 		c.changeOperand(pos, uint16(delta))
 	}
@@ -1411,8 +1494,6 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		return c.compileSimpleFor(node)
 	}
 
-	lineNum := node.Token().StartPosition.LineNumber()
-
 	// For-Range loop e.g. `for i, value := range container { ... }`
 	if node.Init() == nil && node.Post() == nil {
 		cond := node.Condition()
@@ -1427,7 +1508,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		case *ast.MultiVar:
 			names, rhs := cond.Value()
 			if len(names) != 2 {
-				return fmt.Errorf("compile error: invalid for loop (line %d)", lineNum)
+				return c.formatError("invalid for loop", node.Token().StartPosition)
 			}
 			if rangeNode, ok := rhs.(*ast.Range); ok {
 				return c.compileForRange(node, names, rangeNode.Container())
@@ -1439,7 +1520,7 @@ func (c *Compiler) compileFor(node *ast.For) error {
 		case ast.Expression:
 			return c.compileForCondition(node, cond)
 		default:
-			return fmt.Errorf("compile error: invalid for loop (line %d)", lineNum)
+			return c.formatError("invalid for loop", node.Token().StartPosition)
 		}
 	}
 
@@ -1630,7 +1711,6 @@ func (c *Compiler) changeOperand(instructionIndex int, operand uint16) {
 
 func (c *Compiler) compileInfix(node *ast.Infix) error {
 	operator := node.Operator()
-	lineNum := node.Token().StartPosition.LineNumber()
 	// Short-circuit operators
 	if operator == "&&" {
 		return c.compileAnd(node)
@@ -1674,7 +1754,7 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 	case "!=":
 		c.emit(op.CompareOp, uint16(op.NotEqual))
 	default:
-		return fmt.Errorf("compile error: unknown operator %q (line %d)", node.Operator(), lineNum)
+		return c.formatError(fmt.Sprintf("unknown operator %q", node.Operator()), node.Token().StartPosition)
 	}
 	return nil
 }
@@ -1737,8 +1817,7 @@ func (c *Compiler) compileGoStmt(node *ast.Go) error {
 
 func (c *Compiler) compileDeferStmt(node *ast.Defer) error {
 	if c.current.parent == nil {
-		return fmt.Errorf("compile error: defer statement outside of a function (line %d)",
-			node.Token().StartPosition.LineNumber())
+		return c.formatError("defer statement outside of a function", node.Token().StartPosition)
 	}
 	expr := node.Call()
 	switch expr := expr.(type) {
@@ -1862,4 +1941,21 @@ func normalizeFunctionBlock(node *ast.Block) []ast.Node {
 		statements = append(statements, returnNil)
 	}
 	return statements
+}
+
+// formatError creates a detailed error message including file, line and column information
+func (c *Compiler) formatError(msg string, pos token.Position) error {
+	lineCol := fmt.Sprintf("line %d, column %d", pos.LineNumber(), pos.ColumnNumber())
+	filename := c.filename
+	if filename == "" {
+		filename = "unknown"
+	}
+	var b strings.Builder
+	b.WriteString("compile error: ")
+	b.WriteString(msg)
+	b.WriteString("\n\n")
+	b.WriteString("location: ")
+	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
+	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
+	return fmt.Errorf("%s", b.String())
 }

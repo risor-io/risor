@@ -7,6 +7,7 @@ package parser
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -47,9 +48,18 @@ func Parse(ctx context.Context, input string, options ...Option) (*ast.Program, 
 type Option func(*Parser)
 
 // WithFile sets the file name for the Lexer.
+//
+// Deprecated: Use WithFilename instead.
 func WithFile(file string) Option {
 	return func(l *Parser) {
 		l.filename = file
+	}
+}
+
+// WithFilename sets the file name for the Lexer.
+func WithFilename(filename string) Option {
+	return func(l *Parser) {
+		l.filename = filename
 	}
 }
 
@@ -689,12 +699,82 @@ func (p *Parser) parseSwitch() ast.Node {
 	return ast.NewSwitch(switchToken, switchValue, cases)
 }
 
+// validateImportPath ensures that a given path string only contains valid identifiers
+// separated by slash characters. Returns error if invalid.
+func validateImportPath(path string) error {
+	// Remove quotes if present - these are added when we convert an
+	// identifier to a string in parseImport
+	path = strings.Trim(path, "\"")
+
+	// Valid path pattern: one or more valid identifiers separated by forward slashes
+	// An identifier must start with a letter or underscore and can contain letters, digits, or underscores
+	validPath := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)(\/[a-zA-Z_][a-zA-Z0-9_]*)*$`)
+
+	if !validPath.MatchString(path) {
+		// If path doesn't match pattern, provide a more specific error
+		if strings.HasPrefix(path, "/") || strings.HasSuffix(path, "/") {
+			return fmt.Errorf("path cannot begin or end with a slash")
+		}
+		if strings.Contains(path, "//") {
+			return fmt.Errorf("path cannot contain empty components")
+		}
+		// Check individual components to provide better error messages
+		for _, part := range strings.Split(path, "/") {
+			if part == "" {
+				return fmt.Errorf("empty path component")
+			}
+			if len(part) > 0 && !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`).MatchString(part) {
+				return fmt.Errorf("invalid identifier '%s' in path", part)
+			}
+		}
+		return fmt.Errorf("invalid import path format")
+	}
+	return nil
+}
+
 func (p *Parser) parseImport() ast.Node {
 	importToken := p.curToken
-	if !p.expectPeek("an import statement", token.IDENT) {
+
+	// Support both identifier and string formats for module names
+	if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.STRING) {
+		p.peekError("an import statement", token.IDENT, p.peekToken)
 		return nil
 	}
-	name := ast.NewIdent(p.curToken)
+	p.nextToken() // Move to the module name or path
+
+	var pathStr *ast.String
+
+	if p.curTokenIs(token.IDENT) {
+		// Create a string from identifier without adding quotes
+		identName := p.curToken.Literal
+		pathStr = ast.NewString(token.Token{
+			Type:          token.STRING,
+			Literal:       identName,
+			StartPosition: p.curToken.StartPosition,
+			EndPosition:   p.curToken.EndPosition,
+		})
+	} else if p.curTokenIs(token.STRING) {
+		// Handle string literal module path (e.g., "mydir/foo")
+		path := p.parseString()
+		if path == nil {
+			p.setTokenError(p.curToken, "invalid module path in import statement")
+			return nil
+		}
+		var ok bool
+		pathStr, ok = path.(*ast.String)
+		if !ok {
+			p.setTokenError(p.curToken, "expected string literal for module path")
+			return nil
+		}
+	}
+
+	// Validate the path format
+	pathValue := pathStr.Value()
+	if err := validateImportPath(pathValue); err != nil {
+		p.setTokenError(p.curToken, "invalid import path: %s", err.Error())
+		return nil
+	}
+
 	var alias *ast.Ident
 	if p.peekTokenIs(token.AS) {
 		p.nextToken()
@@ -703,27 +783,73 @@ func (p *Parser) parseImport() ast.Node {
 		}
 		alias = ast.NewIdent(p.curToken)
 	}
-	return ast.NewImport(importToken, name, alias)
+
+	return ast.NewImport(importToken, pathStr, alias)
 }
 
 func (p *Parser) parseFromImport() ast.Node {
 	fromToken := p.curToken
-	if !p.expectPeek("a from-import statement", token.IDENT) {
+
+	// Support both identifier and string formats for module names
+	if !p.peekTokenIs(token.IDENT) && !p.peekTokenIs(token.STRING) {
+		p.peekError("a from-import statement", token.IDENT, p.peekToken)
 		return nil
 	}
+
+	p.nextToken() // Move to the first module part (identifier or string)
+
 	parentModule := make([]*ast.Ident, 0)
-	for p.curTokenIs(token.IDENT) {
-		parentModule = append(parentModule, ast.NewIdent(p.curToken))
-		if err := p.nextToken(); err != nil {
+
+	if p.curTokenIs(token.STRING) {
+		// Handle string literal module path (e.g., "mydir/foo")
+		path := p.parseString()
+		if path == nil {
+			p.setTokenError(p.curToken, "invalid module path in from-import statement")
 			return nil
 		}
-		if !p.curTokenIs(token.PERIOD) {
-			break
-		}
-		if err := p.nextToken(); err != nil {
+
+		strPath, ok := path.(*ast.String)
+		if !ok {
+			p.setTokenError(p.curToken, "expected string literal for module path")
 			return nil
+		}
+
+		// Validate the path format
+		pathValue := strPath.Value()
+		if err := validateImportPath(pathValue); err != nil {
+			p.setTokenError(p.curToken, "invalid import path: %s", err.Error())
+			return nil
+		}
+
+		// Convert the path to an identifier for compatibility with existing code
+		pathValue = strPath.Value()
+
+		// Use the whole string as a single parent module
+		pathIdent := ast.NewIdent(token.Token{
+			Type:          token.IDENT,
+			Literal:       pathValue,
+			StartPosition: p.curToken.StartPosition,
+			EndPosition:   p.curToken.EndPosition,
+		})
+		parentModule = append(parentModule, pathIdent)
+
+		p.nextToken()
+	} else {
+		// Handle the traditional dot-separated format for module paths
+		for p.curTokenIs(token.IDENT) {
+			parentModule = append(parentModule, ast.NewIdent(p.curToken))
+			if err := p.nextToken(); err != nil {
+				return nil
+			}
+			if !p.curTokenIs(token.PERIOD) {
+				break
+			}
+			if err := p.nextToken(); err != nil {
+				return nil
+			}
 		}
 	}
+
 	if !p.curTokenIs(token.IMPORT) {
 		p.setError(NewParserError(ErrorOpts{
 			ErrType:       "parse error",
@@ -735,7 +861,9 @@ func (p *Parser) parseFromImport() ast.Node {
 		}))
 		return nil
 	}
+
 	importToken := p.curToken
+
 	// If the imports are surrounded by parentheses, we are in a grouped import
 	// which may span multiple lines
 	isGrouped := false
@@ -748,13 +876,23 @@ func (p *Parser) parseFromImport() ast.Node {
 			}
 		}
 	}
+
 	// Move to the first identifier
 	if !p.expectPeek("a from-import statement", token.IDENT) {
 		return nil
 	}
+
 	var imports []*ast.Import
 	for {
-		name := ast.NewIdent(p.curToken)
+		ident := p.curToken
+		// Create a string from identifier without adding quotes
+		pathStr := ast.NewString(token.Token{
+			Type:          token.STRING,
+			Literal:       ident.Literal,
+			StartPosition: ident.StartPosition,
+			EndPosition:   ident.EndPosition,
+		})
+
 		var alias *ast.Ident
 		if p.peekTokenIs(token.AS) {
 			p.nextToken()
@@ -763,8 +901,9 @@ func (p *Parser) parseFromImport() ast.Node {
 			}
 			alias = ast.NewIdent(p.curToken)
 		}
-		thisImport := ast.NewImport(importToken, name, alias)
+		thisImport := ast.NewImport(importToken, pathStr, alias)
 		imports = append(imports, thisImport)
+
 		if p.peekTokenIs(token.COMMA) {
 			p.nextToken()
 			if isGrouped {
@@ -785,11 +924,13 @@ func (p *Parser) parseFromImport() ast.Node {
 			break
 		}
 	}
+
 	if isGrouped {
 		if !p.expectPeek("a from-import statement", token.RPAREN) {
 			return nil
 		}
 	}
+
 	return ast.NewFromImport(fromToken, parentModule, imports, isGrouped)
 }
 
@@ -1581,15 +1722,20 @@ func (p *Parser) parseGetAttr(objNode ast.Node) ast.Node {
 			return nil
 		}
 		return ast.NewObjectCall(period, obj, call)
-	} else if p.peekTokenIs(token.ASSIGN) {
-		p.nextToken() // move to the "="
+	} else if p.peekTokenIs(token.ASSIGN) ||
+		p.peekTokenIs(token.PLUS_EQUALS) ||
+		p.peekTokenIs(token.MINUS_EQUALS) ||
+		p.peekTokenIs(token.ASTERISK_EQUALS) ||
+		p.peekTokenIs(token.SLASH_EQUALS) {
+		p.nextToken() // move to the operator
+		operator := p.curToken
 		p.nextToken() // move to the value
 		right := p.parseExpression(LOWEST)
 		if right == nil {
 			p.setTokenError(p.curToken, "invalid assignment statement value")
 			return nil
 		}
-		return ast.NewSetAttr(obj.Token(), obj, name, right)
+		return ast.NewSetAttr(operator, obj, name, right)
 	}
 	return ast.NewGetAttr(period, obj, name)
 }
