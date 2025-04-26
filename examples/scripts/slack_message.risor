@@ -1,0 +1,22 @@
+client := slack.client(getenv("RISOR_SLACK_TOKEN"))
+
+// Get user info for a specific user
+// client.get_user_info("U12345678")
+
+for _, user := range client.get_users() {
+    print("User:", user.id, user.name)
+}
+
+client.get_user_info("U049017GX8F")
+
+client.get_user_groups()
+
+// // Send a simple message
+// client.post_message("C05N7H6SLA3", {text: "Hello, world!"})
+
+// // Upload a file
+// client.upload_file("C05N7H6SLA3", {
+//     content: "This is the file content",
+//     filename: "example.txt",
+//     title: "Example File"
+// })

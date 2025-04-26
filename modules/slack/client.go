@@ -41,8 +41,8 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("get_user_groups", c.GetUserGroups), true
 	case "get_user_info":
 		return object.NewBuiltin("get_user_info", c.GetUserInfo), true
-	case "get_billable_info":
-		return object.NewBuiltin("get_billable_info", c.GetBillableInfo), true
+	case "get_users":
+		return object.NewBuiltin("get_users", c.GetUsers), true
 	case "post_message":
 		return object.NewBuiltin("post_message", c.PostMessage), true
 	case "post_ephemeral_message":
@@ -137,7 +137,7 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 	}
 	result := make([]object.Object, len(groups))
 	for i, group := range groups {
-		var groupUsers []object.Object
+		groupUsers := []object.Object{}
 		if len(group.Users) > 0 {
 			for _, user := range group.Users {
 				groupUsers = append(groupUsers, object.NewString(user))
@@ -151,9 +151,9 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 			"description":  object.NewString(group.Description),
 			"handle":       object.NewString(group.Handle),
 			"is_external":  object.NewBool(group.IsExternal),
-			"date_create":  object.NewString(group.DateCreate.String()),
-			"date_update":  object.NewString(group.DateUpdate.String()),
-			"date_delete":  object.NewString(group.DateDelete.String()),
+			"date_create":  getTime(group.DateCreate),
+			"date_update":  getTime(group.DateUpdate),
+			"date_delete":  getTime(group.DateDelete),
 			"auto_type":    object.NewString(group.AutoType),
 			"created_by":   object.NewString(group.CreatedBy),
 			"updated_by":   object.NewString(group.UpdatedBy),
@@ -233,45 +233,119 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 	return object.NewMap(userMap)
 }
 
-// GetBillableInfo gets the billable info for the team
-func (c *Client) GetBillableInfo(ctx context.Context, args ...object.Object) object.Object {
-	params := slack.GetBillableInfoParams{}
+// Helper function to convert a slack.User to a Risor map
+func convertUserToMap(user slack.User) *object.Map {
+	profileMap := map[string]object.Object{
+		"real_name":               object.NewString(user.Profile.RealName),
+		"real_name_normalized":    object.NewString(user.Profile.RealNameNormalized),
+		"display_name":            object.NewString(user.Profile.DisplayName),
+		"display_name_normalized": object.NewString(user.Profile.DisplayNameNormalized),
+		"email":                   object.NewString(user.Profile.Email),
+		"first_name":              object.NewString(user.Profile.FirstName),
+		"last_name":               object.NewString(user.Profile.LastName),
+		"phone":                   object.NewString(user.Profile.Phone),
+		"skype":                   object.NewString(user.Profile.Skype),
+		"title":                   object.NewString(user.Profile.Title),
+		"team":                    object.NewString(user.Profile.Team),
+		"status_text":             object.NewString(user.Profile.StatusText),
+		"status_emoji":            object.NewString(user.Profile.StatusEmoji),
+		"bot_id":                  object.NewString(user.Profile.BotID),
+		"image_24":                object.NewString(user.Profile.Image24),
+		"image_32":                object.NewString(user.Profile.Image32),
+		"image_48":                object.NewString(user.Profile.Image48),
+		"image_72":                object.NewString(user.Profile.Image72),
+		"image_192":               object.NewString(user.Profile.Image192),
+		"image_512":               object.NewString(user.Profile.Image512),
+		"image_original":          object.NewString(user.Profile.ImageOriginal),
+	}
+
+	userMap := map[string]object.Object{
+		"id":                  object.NewString(user.ID),
+		"team_id":             object.NewString(user.TeamID),
+		"name":                object.NewString(user.Name),
+		"real_name":           object.NewString(user.RealName),
+		"deleted":             object.NewBool(user.Deleted),
+		"color":               object.NewString(user.Color),
+		"tz":                  object.NewString(user.TZ),
+		"tz_label":            object.NewString(user.TZLabel),
+		"tz_offset":           object.NewInt(int64(user.TZOffset)),
+		"is_bot":              object.NewBool(user.IsBot),
+		"is_admin":            object.NewBool(user.IsAdmin),
+		"is_owner":            object.NewBool(user.IsOwner),
+		"is_primary_owner":    object.NewBool(user.IsPrimaryOwner),
+		"is_restricted":       object.NewBool(user.IsRestricted),
+		"is_ultra_restricted": object.NewBool(user.IsUltraRestricted),
+		"is_app_user":         object.NewBool(user.IsAppUser),
+		"is_stranger":         object.NewBool(user.IsStranger),
+		"is_invited_user":     object.NewBool(user.IsInvitedUser),
+		"has_2fa":             object.NewBool(user.Has2FA),
+		"has_files":           object.NewBool(user.HasFiles),
+		"locale":              object.NewString(user.Locale),
+		"presence":            object.NewString(user.Presence),
+		"profile":             object.NewMap(profileMap),
+	}
+
+	if user.TwoFactorType != nil {
+		userMap["two_factor_type"] = object.NewString(*user.TwoFactorType)
+	}
+
+	return object.NewMap(userMap)
+}
+
+func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Object {
+	options := []slack.GetUsersOption{}
+	limit := 0
+	includePresence := false
+	teamID := ""
 
 	if len(args) > 0 {
 		optsMap, ok := args[0].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		userID := optsMap.Get("user")
-		if userID != object.Nil {
-			userIDStr, err := object.AsString(userID)
+		limitObj := optsMap.Get("limit")
+		if limitObj != object.Nil {
+			limitInt, err := object.AsInt(limitObj)
 			if err != nil {
 				return err
 			}
-			params.User = userIDStr
+			limit = int(limitInt)
+			options = append(options, slack.GetUsersOptionLimit(int(limitInt)))
 		}
-		teamID := optsMap.Get("team_id")
-		if teamID != object.Nil {
-			teamIDStr, err := object.AsString(teamID)
+		presenceObj := optsMap.Get("presence")
+		if presenceObj != object.Nil {
+			presenceBool, err := object.AsBool(presenceObj)
 			if err != nil {
 				return err
 			}
-			params.TeamID = teamIDStr
+			includePresence = bool(presenceBool)
+			options = append(options, slack.GetUsersOptionPresence(bool(presenceBool)))
+		}
+		teamIDObj := optsMap.Get("team_id")
+		if teamIDObj != object.Nil {
+			teamIDStr, err := object.AsString(teamIDObj)
+			if err != nil {
+				return err
+			}
+			teamID = teamIDStr
+			options = append(options, slack.GetUsersOptionTeamID(teamIDStr))
 		}
 	}
-
-	billableInfo, err := c.value.GetBillableInfo(params)
+	users, err := c.value.GetUsersContext(ctx, options...)
 	if err != nil {
 		return object.NewError(err)
 	}
-
-	result := map[string]object.Object{}
-	for userId, info := range billableInfo {
-		result[userId] = object.NewMap(map[string]object.Object{
-			"billing_active": object.NewBool(info.BillingActive),
-		})
+	return &UserIterator{
+		client:          c.value,
+		ctx:             ctx,
+		users:           users,
+		currentIndex:    0,
+		cursor:          "",    // No cursor in this API
+		hasMore:         false, // We get all users at once
+		limit:           limit,
+		includePresence: includePresence,
+		teamID:          teamID,
 	}
-	return object.NewMap(result)
 }
 
 // PostMessage sends a message to a channel
@@ -492,52 +566,119 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 
 // UploadFile uploads a file to Slack
 func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
+	if len(args) != 2 {
+		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=2", len(args)))
 	}
-	content, err := object.AsString(args[0])
+
+	channelID, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-	channel, err := object.AsString(args[1])
-	if err != nil {
-		return err
+
+	paramsMap, ok := args[1].(*object.Map)
+	if !ok {
+		return object.NewError(fmt.Errorf("second argument must be a map"))
 	}
-	params := slack.UploadFileV2Parameters{
-		Content: content,
-		Channel: channel,
+	params := slack.UploadFileV2Parameters{}
+	params.Channel = channelID
+
+	content := paramsMap.Get("content")
+	if content != object.Nil {
+		contentStr, err := object.AsString(content)
+		if err != nil {
+			return err
+		}
+		params.Content = contentStr
 	}
 
-	if len(args) > 2 {
-		optsMap, ok := args[2].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+	file := paramsMap.Get("file")
+	if file != object.Nil {
+		fileStr, err := object.AsString(file)
+		if err != nil {
+			return err
 		}
-		filename := optsMap.Get("filename")
-		if filename != object.Nil {
-			filenameStr, err := object.AsString(filename)
-			if err != nil {
-				return err
-			}
-			params.Filename = filenameStr
-		}
-		title := optsMap.Get("title")
-		if title != object.Nil {
-			titleStr, err := object.AsString(title)
-			if err != nil {
-				return err
-			}
-			params.Title = titleStr
-		}
+		params.File = fileStr
 	}
 
-	file, uploadErr := c.value.UploadFileV2(params)
+	fileSize := paramsMap.Get("file_size")
+	if fileSize != object.Nil {
+		fileSizeInt, err := object.AsInt(fileSize)
+		if err != nil {
+			return err
+		}
+		params.FileSize = int(fileSizeInt)
+	}
+
+	filename := paramsMap.Get("filename")
+	if filename != object.Nil {
+		filenameStr, err := object.AsString(filename)
+		if err != nil {
+			return err
+		}
+		params.Filename = filenameStr
+	}
+
+	title := paramsMap.Get("title")
+	if title != object.Nil {
+		titleStr, err := object.AsString(title)
+		if err != nil {
+			return err
+		}
+		params.Title = titleStr
+	}
+
+	initialComment := paramsMap.Get("initial_comment")
+	if initialComment != object.Nil {
+		initialCommentStr, err := object.AsString(initialComment)
+		if err != nil {
+			return err
+		}
+		params.InitialComment = initialCommentStr
+	}
+
+	threadTs := paramsMap.Get("thread_ts")
+	if threadTs != object.Nil {
+		threadTsStr, err := object.AsString(threadTs)
+		if err != nil {
+			return err
+		}
+		params.ThreadTimestamp = threadTsStr
+	}
+
+	altTxt := paramsMap.Get("alt_txt")
+	if altTxt != object.Nil {
+		altTxtStr, err := object.AsString(altTxt)
+		if err != nil {
+			return err
+		}
+		params.AltTxt = altTxtStr
+	}
+
+	snippetText := paramsMap.Get("snippet_text")
+	if snippetText != object.Nil {
+		snippetTextStr, err := object.AsString(snippetText)
+		if err != nil {
+			return err
+		}
+		params.SnippetText = snippetTextStr
+	}
+
+	if len(params.Content) > 0 && params.FileSize == 0 {
+		params.FileSize = len(params.Content)
+	}
+
+	// Validate that we have the minimum required parameters
+	if params.Content == "" && params.File == "" {
+		return object.NewError(fmt.Errorf("either content or file must be provided"))
+	}
+
+	fileSummary, uploadErr := c.value.UploadFileV2(params)
 	if uploadErr != nil {
 		return object.NewError(uploadErr)
 	}
 	return object.NewMap(map[string]object.Object{
-		"id":    object.NewString(file.ID),
-		"title": object.NewString(file.Title),
+		"id":    object.NewString(fileSummary.ID),
+		"title": object.NewString(fileSummary.Title),
 	})
 }
 
@@ -934,4 +1075,11 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 
 func New(client *slack.Client) *Client {
 	return &Client{value: client}
+}
+
+func getTime(t slack.JSONTime) object.Object {
+	if t == 0 {
+		return object.Nil
+	}
+	return object.NewTime(t.Time())
 }
