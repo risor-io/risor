@@ -61,6 +61,8 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("get_conversations", c.GetConversations), true
 	case "create_conversation":
 		return object.NewBuiltin("create_conversation", c.CreateConversation), true
+	case "get_conversation_history":
+		return object.NewBuiltin("get_conversation_history", c.GetConversationHistory), true
 	case "get_conversation_members":
 		return object.NewBuiltin("get_conversation_members", c.GetConversationMembers), true
 	case "message_builder":
@@ -183,62 +185,10 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 	if err != nil {
 		return object.NewError(err)
 	}
-	profileMap := map[string]object.Object{
-		"real_name":               object.NewString(user.Profile.RealName),
-		"real_name_normalized":    object.NewString(user.Profile.RealNameNormalized),
-		"display_name":            object.NewString(user.Profile.DisplayName),
-		"display_name_normalized": object.NewString(user.Profile.DisplayNameNormalized),
-		"email":                   object.NewString(user.Profile.Email),
-		"first_name":              object.NewString(user.Profile.FirstName),
-		"last_name":               object.NewString(user.Profile.LastName),
-		"phone":                   object.NewString(user.Profile.Phone),
-		"skype":                   object.NewString(user.Profile.Skype),
-		"title":                   object.NewString(user.Profile.Title),
-		"team":                    object.NewString(user.Profile.Team),
-		"status_text":             object.NewString(user.Profile.StatusText),
-		"status_emoji":            object.NewString(user.Profile.StatusEmoji),
-		"bot_id":                  object.NewString(user.Profile.BotID),
-		"image_24":                object.NewString(user.Profile.Image24),
-		"image_32":                object.NewString(user.Profile.Image32),
-		"image_48":                object.NewString(user.Profile.Image48),
-		"image_72":                object.NewString(user.Profile.Image72),
-		"image_192":               object.NewString(user.Profile.Image192),
-		"image_512":               object.NewString(user.Profile.Image512),
-		"image_original":          object.NewString(user.Profile.ImageOriginal),
-	}
-	userMap := map[string]object.Object{
-		"id":                  object.NewString(user.ID),
-		"team_id":             object.NewString(user.TeamID),
-		"name":                object.NewString(user.Name),
-		"real_name":           object.NewString(user.RealName),
-		"deleted":             object.NewBool(user.Deleted),
-		"color":               object.NewString(user.Color),
-		"tz":                  object.NewString(user.TZ),
-		"tz_label":            object.NewString(user.TZLabel),
-		"tz_offset":           object.NewInt(int64(user.TZOffset)),
-		"is_bot":              object.NewBool(user.IsBot),
-		"is_admin":            object.NewBool(user.IsAdmin),
-		"is_owner":            object.NewBool(user.IsOwner),
-		"is_primary_owner":    object.NewBool(user.IsPrimaryOwner),
-		"is_restricted":       object.NewBool(user.IsRestricted),
-		"is_ultra_restricted": object.NewBool(user.IsUltraRestricted),
-		"is_app_user":         object.NewBool(user.IsAppUser),
-		"is_stranger":         object.NewBool(user.IsStranger),
-		"is_invited_user":     object.NewBool(user.IsInvitedUser),
-		"has_2fa":             object.NewBool(user.Has2FA),
-		"has_files":           object.NewBool(user.HasFiles),
-		"locale":              object.NewString(user.Locale),
-		"presence":            object.NewString(user.Presence),
-		"profile":             object.NewMap(profileMap),
-	}
-	if user.TwoFactorType != nil {
-		userMap["two_factor_type"] = object.NewString(*user.TwoFactorType)
-	}
-	return object.NewMap(userMap)
+	return convertUserToMap(user)
 }
 
-// Helper function to convert a slack.User to a Risor map
-func convertUserToMap(user slack.User) *object.Map {
+func convertUserToMap(user *slack.User) *object.Map {
 	profileMap := map[string]object.Object{
 		"real_name":               object.NewString(user.Profile.RealName),
 		"real_name_normalized":    object.NewString(user.Profile.RealNameNormalized),
@@ -262,7 +212,6 @@ func convertUserToMap(user slack.User) *object.Map {
 		"image_512":               object.NewString(user.Profile.Image512),
 		"image_original":          object.NewString(user.Profile.ImageOriginal),
 	}
-
 	userMap := map[string]object.Object{
 		"id":                  object.NewString(user.ID),
 		"team_id":             object.NewString(user.TeamID),
@@ -288,20 +237,14 @@ func convertUserToMap(user slack.User) *object.Map {
 		"presence":            object.NewString(user.Presence),
 		"profile":             object.NewMap(profileMap),
 	}
-
 	if user.TwoFactorType != nil {
 		userMap["two_factor_type"] = object.NewString(*user.TwoFactorType)
 	}
-
 	return object.NewMap(userMap)
 }
 
 func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Object {
 	options := []slack.GetUsersOption{}
-	limit := 0
-	includePresence := false
-	teamID := ""
-
 	if len(args) > 0 {
 		optsMap, ok := args[0].(*object.Map)
 		if !ok {
@@ -313,7 +256,6 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 			if err != nil {
 				return err
 			}
-			limit = int(limitInt)
 			options = append(options, slack.GetUsersOptionLimit(int(limitInt)))
 		}
 		presenceObj := optsMap.Get("presence")
@@ -322,7 +264,6 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 			if err != nil {
 				return err
 			}
-			includePresence = bool(presenceBool)
 			options = append(options, slack.GetUsersOptionPresence(bool(presenceBool)))
 		}
 		teamIDObj := optsMap.Get("team_id")
@@ -331,7 +272,6 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 			if err != nil {
 				return err
 			}
-			teamID = teamIDStr
 			options = append(options, slack.GetUsersOptionTeamID(teamIDStr))
 		}
 	}
@@ -339,17 +279,11 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 	if err != nil {
 		return object.NewError(err)
 	}
-	return &UserIterator{
-		client:          c.value,
-		ctx:             ctx,
-		users:           users,
-		currentIndex:    0,
-		cursor:          "",    // No cursor in this API
-		hasMore:         false, // We get all users at once
-		limit:           limit,
-		includePresence: includePresence,
-		teamID:          teamID,
+	results := make([]object.Object, len(users))
+	for i, user := range users {
+		results[i] = convertUserToMap(&user)
 	}
+	return object.NewList(results)
 }
 
 // PostMessage sends a message to a channel
@@ -690,8 +624,6 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		ExcludeArchived: true, // Default to excluding archived
 		Limit:           100,  // Default limit to 100
 	}
-
-	// Process options if provided
 	if len(args) > 0 {
 		optsMap, ok := args[0].(*object.Map)
 		if !ok {
@@ -727,32 +659,16 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 			}
 			params.Limit = int(limitInt)
 		}
-		cursor := optsMap.Get("cursor")
-		if cursor != object.Nil {
-			cursorStr, err := object.AsString(cursor)
+		teamID := optsMap.Get("team_id")
+		if teamID != object.Nil {
+			teamIDStr, err := object.AsString(teamID)
 			if err != nil {
 				return err
 			}
-			params.Cursor = cursorStr
+			params.TeamID = teamIDStr
 		}
 	}
-
-	channels, nextCursor, err := c.value.GetConversations(params)
-	if err != nil {
-		return object.NewError(err)
-	}
-
-	return &ConversationIterator{
-		client:          c.value,
-		ctx:             ctx,
-		conversations:   channels,
-		currentIndex:    0,
-		cursor:          nextCursor,
-		hasMore:         nextCursor != "",
-		excludeArchived: params.ExcludeArchived,
-		limit:           params.Limit,
-		types:           params.Types,
-	}
+	return NewConversationIterator(ctx, c.value, params)
 }
 
 // PostEphemeralMessage sends a message to a channel that is only visible to a single user
@@ -1116,6 +1032,76 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 	})
 }
 
+// GetConversationHistory gets the history of a conversation
+func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+	}
+	channelID, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
+	}
+	params := &slack.GetConversationHistoryParameters{
+		ChannelID: channelID,
+		Limit:     100,
+	}
+	if len(args) > 1 {
+		optsMap, ok := args[1].(*object.Map)
+		if !ok {
+			return object.NewError(fmt.Errorf("options must be a map"))
+		}
+		oldestObj := optsMap.Get("oldest")
+		if oldestObj != object.Nil {
+			oldest, err := object.AsString(oldestObj)
+			if err != nil {
+				return err
+			}
+			params.Oldest = oldest
+		}
+		latestObj := optsMap.Get("latest")
+		if latestObj != object.Nil {
+			latest, err := object.AsString(latestObj)
+			if err != nil {
+				return err
+			}
+			params.Latest = latest
+		}
+		limitObj := optsMap.Get("limit")
+		if limitObj != object.Nil {
+			limitInt, err := object.AsInt(limitObj)
+			if err != nil {
+				return err
+			}
+			params.Limit = int(limitInt)
+		}
+		cursorObj := optsMap.Get("cursor")
+		if cursorObj != object.Nil {
+			cursor, err := object.AsString(cursorObj)
+			if err != nil {
+				return err
+			}
+			params.Cursor = cursor
+		}
+		inclusiveObj := optsMap.Get("inclusive")
+		if inclusiveObj != object.Nil {
+			inclusive, err := object.AsBool(inclusiveObj)
+			if err != nil {
+				return err
+			}
+			params.Inclusive = bool(inclusive)
+		}
+		metadataObj := optsMap.Get("include_all_metadata")
+		if metadataObj != object.Nil {
+			metadata, err := object.AsBool(metadataObj)
+			if err != nil {
+				return err
+			}
+			params.IncludeAllMetadata = bool(metadata)
+		}
+	}
+	return NewMessageIterator(ctx, c.value, params)
+}
+
 // GetConversationMembers gets members of a conversation
 func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
@@ -1176,4 +1162,42 @@ func getTime(t slack.JSONTime) object.Object {
 		return object.Nil
 	}
 	return object.NewTime(t.Time())
+}
+
+// Convert a slack.Message to a Risor map
+func convertMessageToMap(message slack.Message) *object.Map {
+	// Extract basic message data
+	messageMap := map[string]object.Object{
+		"type":       object.NewString(message.Type),
+		"user":       object.NewString(message.User),
+		"text":       object.NewString(message.Text),
+		"timestamp":  object.NewString(message.Timestamp),
+		"thread_ts":  object.NewString(message.ThreadTimestamp),
+		"is_starred": object.NewBool(message.IsStarred),
+	}
+
+	// Add reactions if any
+	if len(message.Reactions) > 0 {
+		reactions := object.NewList([]object.Object{})
+		for _, reaction := range message.Reactions {
+			reactionMap := object.NewMap(map[string]object.Object{
+				"name":  object.NewString(reaction.Name),
+				"count": object.NewInt(int64(reaction.Count)),
+				"users": object.NewList(mapStringSliceToObjectArray(reaction.Users)),
+			})
+			reactions.Append(reactionMap)
+		}
+		messageMap["reactions"] = reactions
+	}
+
+	return object.NewMap(messageMap)
+}
+
+// Helper to convert string slices to Risor arrays
+func mapStringSliceToObjectArray(slice []string) []object.Object {
+	result := make([]object.Object, len(slice))
+	for i, str := range slice {
+		result[i] = object.NewString(str)
+	}
+	return result
 }

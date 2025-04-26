@@ -19,6 +19,13 @@ for _, channel := range client.get_conversations() {
 members := client.get_conversation_members("C05N7H6SLA3")
 print("Members:", members)
 
+messages := client.get_conversation_history("C043WC3AG8K")
+print("Messages:", messages)
+
+for _, message := range messages {
+    print("Message:", message)
+}
+
 // // Send a simple message
 // client.post_message("C05N7H6SLA3", {text: "Hello, world!"})
 
