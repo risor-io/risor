@@ -25,6 +25,7 @@ import (
 	"github.com/risor-io/risor/modules/sched"
 	"github.com/risor-io/risor/modules/semver"
 	"github.com/risor-io/risor/modules/shlex"
+	"github.com/risor-io/risor/modules/slack"
 	"github.com/risor-io/risor/modules/sql"
 	"github.com/risor-io/risor/modules/tablewriter"
 	"github.com/risor-io/risor/modules/template"
@@ -60,6 +61,7 @@ func getGlobals() risor.Option {
 		"qrcode":         qrcode.Module(),
 		"sched":          sched.Module(),
 		"sql":            sql.Module(),
+		"slack":          slack.Module(),
 		"tablewriter":    tablewriter.Module(),
 		"template":       template.Module(),
 		"uuid":           uuid.Module(),

@@ -24,6 +24,7 @@ use (
 	./modules/sched
 	./modules/semver
 	./modules/shlex
+	./modules/slack
 	./modules/sql
 	./modules/template
 	./modules/uuid
