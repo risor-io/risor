@@ -57,8 +57,12 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("remove_reaction", c.RemoveReaction), true
 	case "upload_file":
 		return object.NewBuiltin("upload_file", c.UploadFile), true
-	case "get_channels":
+	case "get_conversations":
 		return object.NewBuiltin("get_conversations", c.GetConversations), true
+	case "create_conversation":
+		return object.NewBuiltin("create_conversation", c.CreateConversation), true
+	case "get_conversation_members":
+		return object.NewBuiltin("get_conversation_members", c.GetConversationMembers), true
 	case "message_builder":
 		return object.NewBuiltin("message_builder", c.MessageBuilder), true
 	}
@@ -666,12 +670,10 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 	if len(params.Content) > 0 && params.FileSize == 0 {
 		params.FileSize = len(params.Content)
 	}
-
 	// Validate that we have the minimum required parameters
 	if params.Content == "" && params.File == "" {
 		return object.NewError(fmt.Errorf("either content or file must be provided"))
 	}
-
 	fileSummary, uploadErr := c.value.UploadFileV2(params)
 	if uploadErr != nil {
 		return object.NewError(uploadErr)
@@ -695,14 +697,12 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-
 		types := optsMap.Get("types")
 		if types != object.Nil {
 			typesArray, ok := types.(*object.List)
 			if !ok {
 				return object.NewError(fmt.Errorf("types must be an array"))
 			}
-
 			for _, typeObj := range typesArray.Value() {
 				typeStr, err := object.AsString(typeObj)
 				if err != nil {
@@ -711,7 +711,6 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 				params.Types = append(params.Types, typeStr)
 			}
 		}
-
 		excludeArchived := optsMap.Get("exclude_archived")
 		if excludeArchived != object.Nil {
 			excludeArchivedBool, err := object.AsBool(excludeArchived)
@@ -720,7 +719,6 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 			}
 			params.ExcludeArchived = bool(excludeArchivedBool)
 		}
-
 		limit := optsMap.Get("limit")
 		if limit != object.Nil {
 			limitInt, err := object.AsInt(limit)
@@ -729,7 +727,6 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 			}
 			params.Limit = int(limitInt)
 		}
-
 		cursor := optsMap.Get("cursor")
 		if cursor != object.Nil {
 			cursorStr, err := object.AsString(cursor)
@@ -745,29 +742,17 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		return object.NewError(err)
 	}
 
-	channelsArray := []object.Object{}
-	for _, channel := range channels {
-		channelMap := map[string]object.Object{
-			"id":              object.NewString(channel.ID),
-			"name":            object.NewString(channel.Name),
-			"is_archived":     object.NewBool(channel.IsArchived),
-			"is_channel":      object.NewBool(channel.IsChannel),
-			"is_private":      object.NewBool(channel.IsPrivate),
-			"is_group":        object.NewBool(channel.IsGroup),
-			"is_im":           object.NewBool(channel.IsIM),
-			"is_mpim":         object.NewBool(channel.IsMpIM),
-			"is_general":      object.NewBool(channel.IsGeneral),
-			"num_members":     object.NewInt(int64(channel.NumMembers)),
-			"creator":         object.NewString(channel.Creator),
-			"name_normalized": object.NewString(channel.NameNormalized),
-		}
-
-		channelsArray = append(channelsArray, object.NewMap(channelMap))
+	return &ConversationIterator{
+		client:          c.value,
+		ctx:             ctx,
+		conversations:   channels,
+		currentIndex:    0,
+		cursor:          nextCursor,
+		hasMore:         nextCursor != "",
+		excludeArchived: params.ExcludeArchived,
+		limit:           params.Limit,
+		types:           params.Types,
 	}
-	return object.NewMap(map[string]object.Object{
-		"channels":    object.NewList(channelsArray),
-		"next_cursor": object.NewString(nextCursor),
-	})
 }
 
 // PostEphemeralMessage sends a message to a channel that is only visible to a single user
@@ -1071,6 +1056,115 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 		return object.NewError(removeErr)
 	}
 	return object.Nil
+}
+
+// CreateConversation creates a new channel, either public or private
+func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+	}
+	name, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
+	}
+
+	isPrivate := false
+	if len(args) > 1 {
+		optsMap, ok := args[1].(*object.Map)
+		if !ok {
+			return object.NewError(fmt.Errorf("options must be a map"))
+		}
+		isPrivateObj := optsMap.Get("is_private")
+		if isPrivateObj != object.Nil {
+			isPrivateBool, err := object.AsBool(isPrivateObj)
+			if err != nil {
+				return err
+			}
+			isPrivate = bool(isPrivateBool)
+		}
+	}
+
+	channel, err := c.value.CreateConversationContext(ctx,
+		slack.CreateConversationParams{
+			ChannelName: name,
+			IsPrivate:   isPrivate,
+		})
+	if err != nil {
+		return object.NewError(err)
+	}
+	return object.NewMap(map[string]object.Object{
+		"id":                    object.NewString(channel.ID),
+		"name":                  object.NewString(channel.Name),
+		"is_channel":            object.NewBool(channel.IsChannel),
+		"is_group":              object.NewBool(channel.IsGroup),
+		"is_im":                 object.NewBool(channel.IsIM),
+		"is_mpim":               object.NewBool(channel.IsMpIM),
+		"is_private":            object.NewBool(channel.IsPrivate),
+		"created":               getTime(channel.Created),
+		"creator":               object.NewString(channel.Creator),
+		"is_archived":           object.NewBool(channel.IsArchived),
+		"is_general":            object.NewBool(channel.IsGeneral),
+		"unlinked":              object.NewInt(int64(channel.Unlinked)),
+		"name_normalized":       object.NewString(channel.NameNormalized),
+		"is_shared":             object.NewBool(channel.IsShared),
+		"is_ext_shared":         object.NewBool(channel.IsExtShared),
+		"is_org_shared":         object.NewBool(channel.IsOrgShared),
+		"pending_shared":        object.NewList([]object.Object{}), // Empty list as default
+		"is_pending_ext_shared": object.NewBool(channel.IsPendingExtShared),
+		"is_member":             object.NewBool(channel.IsMember),
+		"num_members":           object.NewInt(int64(channel.NumMembers)),
+	})
+}
+
+// GetConversationMembers gets members of a conversation
+func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+	}
+	channelID, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
+	}
+	options := slack.GetUsersInConversationParameters{
+		ChannelID: channelID,
+	}
+
+	// Process options if provided
+	if len(args) > 1 {
+		optsMap, ok := args[1].(*object.Map)
+		if !ok {
+			return object.NewError(fmt.Errorf("options must be a map"))
+		}
+		cursor := optsMap.Get("cursor")
+		if cursor != object.Nil {
+			cursorStr, err := object.AsString(cursor)
+			if err != nil {
+				return err
+			}
+			options.Cursor = cursorStr
+		}
+		limit := optsMap.Get("limit")
+		if limit != object.Nil {
+			limitInt, err := object.AsInt(limit)
+			if err != nil {
+				return err
+			}
+			options.Limit = int(limitInt)
+		}
+	}
+
+	members, cursor, err := c.value.GetUsersInConversationContext(ctx, &options)
+	if err != nil {
+		return object.NewError(err)
+	}
+	memberObjs := make([]object.Object, len(members))
+	for i, member := range members {
+		memberObjs[i] = object.NewString(member)
+	}
+	return object.NewMap(map[string]object.Object{
+		"members": object.NewList(memberObjs),
+		"cursor":  object.NewString(cursor),
+	})
 }
 
 func New(client *slack.Client) *Client {
