@@ -145,8 +145,9 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 	for i, group := range groups {
 		groupUsers := []object.Object{}
 		if len(group.Users) > 0 {
-			for _, user := range group.Users {
-				groupUsers = append(groupUsers, object.NewString(user))
+			for _, userID := range group.Users {
+				// Just use string IDs for now, users can fetch details separately if needed
+				groupUsers = append(groupUsers, object.NewString(userID))
 			}
 		}
 		groupMap := map[string]object.Object{
@@ -185,9 +186,10 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 	if err != nil {
 		return object.NewError(err)
 	}
-	return convertUserToMap(user)
+	return NewUser(c.value, user)
 }
 
+// We'll keep this function for backward compatibility and internal use
 func convertUserToMap(user *slack.User) *object.Map {
 	profileMap := map[string]object.Object{
 		"real_name":               object.NewString(user.Profile.RealName),
@@ -281,7 +283,7 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 	}
 	results := make([]object.Object, len(users))
 	for i, user := range users {
-		results[i] = convertUserToMap(&user)
+		results[i] = NewUser(c.value, &user)
 	}
 	return object.NewList(results)
 }
@@ -847,7 +849,6 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 			}
 			itemRef.Channel = channelStr
 		}
-
 		timestamp := itemMap.Get("timestamp")
 		if timestamp != object.Nil {
 			timestampStr, err := object.AsString(timestamp)
@@ -856,7 +857,6 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 			}
 			itemRef.Timestamp = timestampStr
 		}
-
 		file := itemMap.Get("file")
 		if file != object.Nil {
 			fileStr, err := object.AsString(file)
@@ -865,7 +865,6 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 			}
 			itemRef.File = fileStr
 		}
-
 		comment := itemMap.Get("file_comment")
 		if comment != object.Nil {
 			commentStr, err := object.AsString(comment)
@@ -931,7 +930,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 			}
 			itemRef.Channel = channelStr
 		}
-
 		timestamp := itemMap.Get("timestamp")
 		if timestamp != object.Nil {
 			timestampStr, err := object.AsString(timestamp)
@@ -940,7 +938,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 			}
 			itemRef.Timestamp = timestampStr
 		}
-
 		file := itemMap.Get("file")
 		if file != object.Nil {
 			fileStr, err := object.AsString(file)
@@ -949,7 +946,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 			}
 			itemRef.File = fileStr
 		}
-
 		comment := itemMap.Get("file_comment")
 		if comment != object.Nil {
 			commentStr, err := object.AsString(comment)
@@ -966,7 +962,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 	if itemRef.Channel == "" && itemRef.File == "" {
 		return object.NewError(fmt.Errorf("item reference must include either channel or file"))
 	}
-
 	removeErr := c.value.RemoveReactionContext(ctx, emojiName, itemRef)
 	if removeErr != nil {
 		return object.NewError(removeErr)
@@ -983,7 +978,6 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 	if argErr != nil {
 		return argErr
 	}
-
 	isPrivate := false
 	if len(args) > 1 {
 		optsMap, ok := args[1].(*object.Map)
@@ -999,7 +993,6 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 			isPrivate = bool(isPrivateBool)
 		}
 	}
-
 	channel, err := c.value.CreateConversationContext(ctx,
 		slack.CreateConversationParams{
 			ChannelName: name,
@@ -1008,28 +1001,7 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 	if err != nil {
 		return object.NewError(err)
 	}
-	return object.NewMap(map[string]object.Object{
-		"id":                    object.NewString(channel.ID),
-		"name":                  object.NewString(channel.Name),
-		"is_channel":            object.NewBool(channel.IsChannel),
-		"is_group":              object.NewBool(channel.IsGroup),
-		"is_im":                 object.NewBool(channel.IsIM),
-		"is_mpim":               object.NewBool(channel.IsMpIM),
-		"is_private":            object.NewBool(channel.IsPrivate),
-		"created":               getTime(channel.Created),
-		"creator":               object.NewString(channel.Creator),
-		"is_archived":           object.NewBool(channel.IsArchived),
-		"is_general":            object.NewBool(channel.IsGeneral),
-		"unlinked":              object.NewInt(int64(channel.Unlinked)),
-		"name_normalized":       object.NewString(channel.NameNormalized),
-		"is_shared":             object.NewBool(channel.IsShared),
-		"is_ext_shared":         object.NewBool(channel.IsExtShared),
-		"is_org_shared":         object.NewBool(channel.IsOrgShared),
-		"pending_shared":        object.NewList([]object.Object{}), // Empty list as default
-		"is_pending_ext_shared": object.NewBool(channel.IsPendingExtShared),
-		"is_member":             object.NewBool(channel.IsMember),
-		"num_members":           object.NewInt(int64(channel.NumMembers)),
-	})
+	return NewChannel(c.value, channel)
 }
 
 // GetConversationHistory gets the history of a conversation
@@ -1114,8 +1086,6 @@ func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Obje
 	options := slack.GetUsersInConversationParameters{
 		ChannelID: channelID,
 	}
-
-	// Process options if provided
 	if len(args) > 1 {
 		optsMap, ok := args[1].(*object.Map)
 		if !ok {
@@ -1138,19 +1108,7 @@ func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Obje
 			options.Limit = int(limitInt)
 		}
 	}
-
-	members, cursor, err := c.value.GetUsersInConversationContext(ctx, &options)
-	if err != nil {
-		return object.NewError(err)
-	}
-	memberObjs := make([]object.Object, len(members))
-	for i, member := range members {
-		memberObjs[i] = object.NewString(member)
-	}
-	return object.NewMap(map[string]object.Object{
-		"members": object.NewList(memberObjs),
-		"cursor":  object.NewString(cursor),
-	})
+	return NewConversationMembersIterator(ctx, c.value, &options)
 }
 
 func New(client *slack.Client) *Client {
@@ -1162,42 +1120,4 @@ func getTime(t slack.JSONTime) object.Object {
 		return object.Nil
 	}
 	return object.NewTime(t.Time())
-}
-
-// Convert a slack.Message to a Risor map
-func convertMessageToMap(message slack.Message) *object.Map {
-	// Extract basic message data
-	messageMap := map[string]object.Object{
-		"type":       object.NewString(message.Type),
-		"user":       object.NewString(message.User),
-		"text":       object.NewString(message.Text),
-		"timestamp":  object.NewString(message.Timestamp),
-		"thread_ts":  object.NewString(message.ThreadTimestamp),
-		"is_starred": object.NewBool(message.IsStarred),
-	}
-
-	// Add reactions if any
-	if len(message.Reactions) > 0 {
-		reactions := object.NewList([]object.Object{})
-		for _, reaction := range message.Reactions {
-			reactionMap := object.NewMap(map[string]object.Object{
-				"name":  object.NewString(reaction.Name),
-				"count": object.NewInt(int64(reaction.Count)),
-				"users": object.NewList(mapStringSliceToObjectArray(reaction.Users)),
-			})
-			reactions.Append(reactionMap)
-		}
-		messageMap["reactions"] = reactions
-	}
-
-	return object.NewMap(messageMap)
-}
-
-// Helper to convert string slices to Risor arrays
-func mapStringSliceToObjectArray(slice []string) []object.Object {
-	result := make([]object.Object, len(slice))
-	for i, str := range slice {
-		result[i] = object.NewString(str)
-	}
-	return result
 }

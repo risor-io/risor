@@ -1,9 +1,10 @@
+
 client := slack.client(getenv("RISOR_SLACK_TOKEN"))
 
 // Iterating through users
 print("Users:")
 for _, user := range client.get_users() {
-    print("User:", user.id, user.name)
+    print("User:", user)
 }
 
 // Get user groups
@@ -13,11 +14,14 @@ print("Number of user groups:", len(groups))
 // Iterating through conversations (channels)
 print("\nChannels:")
 for _, channel := range client.get_conversations() {
-    print("Channel:", channel.id, channel.name)
+    print("Channel:", channel)
 }
 
-members := client.get_conversation_members("C05N7H6SLA3")
-print("Members:", members)
+// Iterating through members of a conversation
+print("\nMembers of C05N7H6SLA3:")
+for _, member := range client.get_conversation_members("C05N7H6SLA3") {
+    print("Member:", member)
+}
 
 messages := client.get_conversation_history("C043WC3AG8K")
 print("Messages:", messages)

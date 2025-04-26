@@ -67,13 +67,15 @@ func NewMessageIterator(ctx context.Context, client *slack.Client, params *slack
 			}
 		}
 
-		// Get the current message and convert to a map
-		message := messages[currentIndex]
-		messageMap := convertMessageToMap(message)
+		// Get the current message
+		msg := messages[currentIndex]
+
+		// Create the Message object
+		messageObj := NewMessage(&msg, client)
 		currentIndex++
 		totalReturned++
 
-		return messageMap, true, nil
+		return messageObj, true, nil
 	}
 
 	// Create and return the generic iterator
