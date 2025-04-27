@@ -75,41 +75,39 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 	var options []slack.GetUserGroupsOption
 
 	if len(args) > 0 {
-		optsMap, ok := args[0].(*object.Map)
+		opts, ok := args[0].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		includeUsers := optsMap.Get("include_users")
-		if includeUsers != object.Nil {
-			includeBool, err := object.AsBool(includeUsers)
-			if err != nil {
-				return err
+		for key, value := range opts.Value() {
+			switch key {
+			case "include_users":
+				includeBool, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUserGroupsOptionIncludeUsers(bool(includeBool)))
+			case "include_count":
+				countBool, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUserGroupsOptionIncludeCount(bool(countBool)))
+			case "include_disabled":
+				disabledBool, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUserGroupsOptionIncludeDisabled(bool(disabledBool)))
+			case "team_id":
+				teamIDStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUserGroupsOptionWithTeamID(teamIDStr))
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			options = append(options, slack.GetUserGroupsOptionIncludeUsers(bool(includeBool)))
-		}
-		includeCount := optsMap.Get("include_count")
-		if includeCount != object.Nil {
-			countBool, err := object.AsBool(includeCount)
-			if err != nil {
-				return err
-			}
-			options = append(options, slack.GetUserGroupsOptionIncludeCount(bool(countBool)))
-		}
-		includeDisabled := optsMap.Get("include_disabled")
-		if includeDisabled != object.Nil {
-			disabledBool, err := object.AsBool(includeDisabled)
-			if err != nil {
-				return err
-			}
-			options = append(options, slack.GetUserGroupsOptionIncludeDisabled(bool(disabledBool)))
-		}
-		teamID := optsMap.Get("team_id")
-		if teamID != object.Nil {
-			teamIDStr, err := object.AsString(teamID)
-			if err != nil {
-				return err
-			}
-			options = append(options, slack.GetUserGroupsOptionWithTeamID(teamIDStr))
 		}
 	}
 
@@ -168,33 +166,33 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Object {
 	options := []slack.GetUsersOption{}
 	if len(args) > 0 {
-		optsMap, ok := args[0].(*object.Map)
+		opts, ok := args[0].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		limitObj := optsMap.Get("limit")
-		if limitObj != object.Nil {
-			limitInt, err := object.AsInt(limitObj)
-			if err != nil {
-				return err
+		for key, value := range opts.Value() {
+			switch key {
+			case "limit":
+				limitInt, err := object.AsInt(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUsersOptionLimit(int(limitInt)))
+			case "presence":
+				presenceBool, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUsersOptionPresence(bool(presenceBool)))
+			case "team_id":
+				teamIDStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				options = append(options, slack.GetUsersOptionTeamID(teamIDStr))
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			options = append(options, slack.GetUsersOptionLimit(int(limitInt)))
-		}
-		presenceObj := optsMap.Get("presence")
-		if presenceObj != object.Nil {
-			presenceBool, err := object.AsBool(presenceObj)
-			if err != nil {
-				return err
-			}
-			options = append(options, slack.GetUsersOptionPresence(bool(presenceBool)))
-		}
-		teamIDObj := optsMap.Get("team_id")
-		if teamIDObj != object.Nil {
-			teamIDStr, err := object.AsString(teamIDObj)
-			if err != nil {
-				return err
-			}
-			options = append(options, slack.GetUsersOptionTeamID(teamIDStr))
 		}
 	}
 	users, err := c.value.GetUsersContext(ctx, options...)
@@ -225,16 +223,12 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 	if len(args) > 1 {
 		switch arg := args[1].(type) {
 		case *object.String:
-			// Traditional usage with text as second parameter
 			text, err := object.AsString(arg)
 			if err != nil {
 				return err
 			}
 			options = append(options, slack.MsgOptionText(text, false))
-
 		case *object.Map:
-			// New usage with map as second parameter
-			// Extract text from map if provided
 			textObj := arg.Get("text")
 			if textObj != object.Nil {
 				text, err := object.AsString(textObj)
@@ -243,21 +237,18 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 				}
 				options = append(options, slack.MsgOptionText(text, false))
 			}
-
-			// Process other options from the map
 			c.processMessageOptions(arg, &options)
-
 		default:
 			return object.NewError(fmt.Errorf("second argument must be a string or a map"))
 		}
 	}
 
 	if len(args) > 2 {
-		optsMap, ok := args[2].(*object.Map)
+		opts, ok := args[2].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		c.processMessageOptions(optsMap, &options)
+		c.processMessageOptions(opts, &options)
 	}
 
 	channelID, timestamp, _, sendErr := c.value.SendMessage(channelID, options...)
@@ -271,9 +262,9 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 }
 
 // processMessageOptions handles common message options processing
-func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.MsgOption) {
+func (c *Client) processMessageOptions(opts *object.Map, options *[]slack.MsgOption) {
 	// Check for thread_ts
-	threadTs := optsMap.Get("thread_ts")
+	threadTs := opts.Get("thread_ts")
 	if threadTs != object.Nil {
 		threadTsStr, err := object.AsString(threadTs)
 		if err == nil {
@@ -282,7 +273,7 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 	}
 
 	// Check for reply_broadcast
-	replyBroadcast := optsMap.Get("reply_broadcast")
+	replyBroadcast := opts.Get("reply_broadcast")
 	if replyBroadcast != object.Nil {
 		broadcast, err := object.AsBool(replyBroadcast)
 		if err == nil && bool(broadcast) {
@@ -291,7 +282,7 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 	}
 
 	// Check for attachments
-	attachments := optsMap.Get("attachments")
+	attachments := opts.Get("attachments")
 	if attachments != object.Nil {
 		attachmentsArray, ok := attachments.(*object.List)
 		if ok {
@@ -330,7 +321,7 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 	}
 
 	// Check for blocks
-	blocks := optsMap.Get("blocks")
+	blocks := opts.Get("blocks")
 	if blocks != object.Nil {
 		blocksArray, ok := blocks.(*object.List)
 		if ok {
@@ -410,6 +401,10 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 							}
 						}
 					}
+				default:
+					// Skip unsupported block types instead of raising an error
+					// This is more forgiving for block types that may be added in future Slack API updates
+					continue
 				}
 			}
 
@@ -532,47 +527,47 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		Limit:           100,  // Default limit to 100
 	}
 	if len(args) > 0 {
-		optsMap, ok := args[0].(*object.Map)
+		opts, ok := args[0].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		types := optsMap.Get("types")
-		if types != object.Nil {
-			typesArray, ok := types.(*object.List)
-			if !ok {
-				return object.NewError(fmt.Errorf("types must be an array"))
-			}
-			for _, typeObj := range typesArray.Value() {
-				typeStr, err := object.AsString(typeObj)
+
+		// Process options with switch statement
+		for key, value := range opts.Value() {
+			switch key {
+			case "types":
+				typesArray, ok := value.(*object.List)
+				if !ok {
+					return object.NewError(fmt.Errorf("types must be an array"))
+				}
+				for _, typeObj := range typesArray.Value() {
+					typeStr, err := object.AsString(typeObj)
+					if err != nil {
+						return err
+					}
+					params.Types = append(params.Types, typeStr)
+				}
+			case "exclude_archived":
+				excludeArchivedBool, err := object.AsBool(value)
 				if err != nil {
 					return err
 				}
-				params.Types = append(params.Types, typeStr)
+				params.ExcludeArchived = bool(excludeArchivedBool)
+			case "limit":
+				limitInt, err := object.AsInt(value)
+				if err != nil {
+					return err
+				}
+				params.Limit = int(limitInt)
+			case "team_id":
+				teamIDStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				params.TeamID = teamIDStr
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-		}
-		excludeArchived := optsMap.Get("exclude_archived")
-		if excludeArchived != object.Nil {
-			excludeArchivedBool, err := object.AsBool(excludeArchived)
-			if err != nil {
-				return err
-			}
-			params.ExcludeArchived = bool(excludeArchivedBool)
-		}
-		limit := optsMap.Get("limit")
-		if limit != object.Nil {
-			limitInt, err := object.AsInt(limit)
-			if err != nil {
-				return err
-			}
-			params.Limit = int(limitInt)
-		}
-		teamID := optsMap.Get("team_id")
-		if teamID != object.Nil {
-			teamIDStr, err := object.AsString(teamID)
-			if err != nil {
-				return err
-			}
-			params.TeamID = teamIDStr
 		}
 	}
 	return NewConversationIterator(ctx, c.value, params)
@@ -620,11 +615,11 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 	}
 
 	if len(args) > 3 {
-		optsMap, ok := args[3].(*object.Map)
+		opts, ok := args[3].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		c.processMessageOptions(optsMap, &options)
+		c.processMessageOptions(opts, &options)
 	}
 
 	ts, sendErr := c.value.PostEphemeralContext(ctx, channelID, userID, options...)
@@ -653,10 +648,8 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 	}
 	options := []slack.MsgOption{}
 
-	// Handle third argument - can be either text string or options map
 	switch arg := args[2].(type) {
 	case *object.String:
-		// Text as third parameter
 		text, err := object.AsString(arg)
 		if err != nil {
 			return err
@@ -674,13 +667,6 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 		c.processMessageOptions(arg, &options)
 	default:
 		return object.NewError(fmt.Errorf("third argument must be a string or a map"))
-	}
-	if len(args) > 3 {
-		optsMap, ok := args[3].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
-		}
-		c.processMessageOptions(optsMap, &options)
 	}
 	channelID, newTimestamp, _, updateErr := c.value.UpdateMessageContext(ctx, channelID, timestamp, options...)
 	if updateErr != nil {
@@ -726,38 +712,35 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 	var itemRef slack.ItemRef
 
 	if itemMap, ok := args[1].(*object.Map); ok {
-		// Process map to extract ItemRef fields
-		channel := itemMap.Get("channel")
-		if channel != object.Nil {
-			channelStr, err := object.AsString(channel)
-			if err != nil {
-				return err
+		for key, value := range itemMap.Value() {
+			switch key {
+			case "channel":
+				channelStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Channel = channelStr
+			case "timestamp":
+				timestampStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Timestamp = timestampStr
+			case "file":
+				fileStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.File = fileStr
+			case "file_comment":
+				commentStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Comment = commentStr
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			itemRef.Channel = channelStr
-		}
-		timestamp := itemMap.Get("timestamp")
-		if timestamp != object.Nil {
-			timestampStr, err := object.AsString(timestamp)
-			if err != nil {
-				return err
-			}
-			itemRef.Timestamp = timestampStr
-		}
-		file := itemMap.Get("file")
-		if file != object.Nil {
-			fileStr, err := object.AsString(file)
-			if err != nil {
-				return err
-			}
-			itemRef.File = fileStr
-		}
-		comment := itemMap.Get("file_comment")
-		if comment != object.Nil {
-			commentStr, err := object.AsString(comment)
-			if err != nil {
-				return err
-			}
-			itemRef.Comment = commentStr
 		}
 	} else {
 		return object.NewError(fmt.Errorf("second argument must be an item reference map"))
@@ -807,37 +790,35 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 
 	if itemMap, ok := args[1].(*object.Map); ok {
 		// Process map to extract ItemRef fields
-		channel := itemMap.Get("channel")
-		if channel != object.Nil {
-			channelStr, err := object.AsString(channel)
-			if err != nil {
-				return err
+		for key, value := range itemMap.Value() {
+			switch key {
+			case "channel":
+				channelStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Channel = channelStr
+			case "timestamp":
+				timestampStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Timestamp = timestampStr
+			case "file":
+				fileStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.File = fileStr
+			case "file_comment":
+				commentStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				itemRef.Comment = commentStr
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			itemRef.Channel = channelStr
-		}
-		timestamp := itemMap.Get("timestamp")
-		if timestamp != object.Nil {
-			timestampStr, err := object.AsString(timestamp)
-			if err != nil {
-				return err
-			}
-			itemRef.Timestamp = timestampStr
-		}
-		file := itemMap.Get("file")
-		if file != object.Nil {
-			fileStr, err := object.AsString(file)
-			if err != nil {
-				return err
-			}
-			itemRef.File = fileStr
-		}
-		comment := itemMap.Get("file_comment")
-		if comment != object.Nil {
-			commentStr, err := object.AsString(comment)
-			if err != nil {
-				return err
-			}
-			itemRef.Comment = commentStr
 		}
 	} else {
 		return object.NewError(fmt.Errorf("second argument must be an item reference map"))
@@ -865,17 +846,21 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 	}
 	isPrivate := false
 	if len(args) > 1 {
-		optsMap, ok := args[1].(*object.Map)
+		opts, ok := args[1].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		isPrivateObj := optsMap.Get("is_private")
-		if isPrivateObj != object.Nil {
-			isPrivateBool, err := object.AsBool(isPrivateObj)
-			if err != nil {
-				return err
+		for key, value := range opts.Value() {
+			switch key {
+			case "is_private":
+				isPrivateBool, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				isPrivate = bool(isPrivateBool)
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			isPrivate = bool(isPrivateBool)
 		}
 	}
 	channel, err := c.value.CreateConversationContext(ctx,
@@ -903,57 +888,51 @@ func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Obje
 		Limit:     100,
 	}
 	if len(args) > 1 {
-		optsMap, ok := args[1].(*object.Map)
+		opts, ok := args[1].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		oldestObj := optsMap.Get("oldest")
-		if oldestObj != object.Nil {
-			oldest, err := object.AsString(oldestObj)
-			if err != nil {
-				return err
+		for key, value := range opts.Value() {
+			switch key {
+			case "oldest":
+				oldest, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				params.Oldest = oldest
+			case "latest":
+				latest, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				params.Latest = latest
+			case "limit":
+				limitInt, err := object.AsInt(value)
+				if err != nil {
+					return err
+				}
+				params.Limit = int(limitInt)
+			case "cursor":
+				cursor, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				params.Cursor = cursor
+			case "inclusive":
+				inclusive, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				params.Inclusive = bool(inclusive)
+			case "include_all_metadata":
+				metadata, err := object.AsBool(value)
+				if err != nil {
+					return err
+				}
+				params.IncludeAllMetadata = bool(metadata)
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			params.Oldest = oldest
-		}
-		latestObj := optsMap.Get("latest")
-		if latestObj != object.Nil {
-			latest, err := object.AsString(latestObj)
-			if err != nil {
-				return err
-			}
-			params.Latest = latest
-		}
-		limitObj := optsMap.Get("limit")
-		if limitObj != object.Nil {
-			limitInt, err := object.AsInt(limitObj)
-			if err != nil {
-				return err
-			}
-			params.Limit = int(limitInt)
-		}
-		cursorObj := optsMap.Get("cursor")
-		if cursorObj != object.Nil {
-			cursor, err := object.AsString(cursorObj)
-			if err != nil {
-				return err
-			}
-			params.Cursor = cursor
-		}
-		inclusiveObj := optsMap.Get("inclusive")
-		if inclusiveObj != object.Nil {
-			inclusive, err := object.AsBool(inclusiveObj)
-			if err != nil {
-				return err
-			}
-			params.Inclusive = bool(inclusive)
-		}
-		metadataObj := optsMap.Get("include_all_metadata")
-		if metadataObj != object.Nil {
-			metadata, err := object.AsBool(metadataObj)
-			if err != nil {
-				return err
-			}
-			params.IncludeAllMetadata = bool(metadata)
 		}
 	}
 	return NewMessageIterator(ctx, c.value, params)
@@ -970,27 +949,30 @@ func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Obje
 	}
 	options := slack.GetUsersInConversationParameters{
 		ChannelID: channelID,
+		Limit:     100,
 	}
 	if len(args) > 1 {
-		optsMap, ok := args[1].(*object.Map)
+		opts, ok := args[1].(*object.Map)
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		cursor := optsMap.Get("cursor")
-		if cursor != object.Nil {
-			cursorStr, err := object.AsString(cursor)
-			if err != nil {
-				return err
+		for key, value := range opts.Value() {
+			switch key {
+			case "cursor":
+				cursorStr, err := object.AsString(value)
+				if err != nil {
+					return err
+				}
+				options.Cursor = cursorStr
+			case "limit":
+				limitInt, err := object.AsInt(value)
+				if err != nil {
+					return err
+				}
+				options.Limit = int(limitInt)
+			default:
+				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
-			options.Cursor = cursorStr
-		}
-		limit := optsMap.Get("limit")
-		if limit != object.Nil {
-			limitInt, err := object.AsInt(limit)
-			if err != nil {
-				return err
-			}
-			options.Limit = int(limitInt)
 		}
 	}
 	return NewConversationMembersIterator(ctx, c.value, &options)
