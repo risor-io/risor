@@ -30,6 +30,22 @@ func Abs(ctx context.Context, args ...object.Object) object.Object {
 	}
 }
 
+func Atan2(ctx context.Context, args ...object.Object) object.Object {
+	if err := arg.Require("math.atan2", 2, args); err != nil {
+		return err
+	}
+	x, err := object.AsFloat(args[0])
+	if err != nil {
+		return err
+	}
+	y, err := object.AsFloat(args[1])
+	if err != nil {
+		return err
+	}
+
+	return object.NewFloat(math.Atan2(x, y))
+}
+
 func Sqrt(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("math.sqrt", 1, args); err != nil {
 		return err
@@ -288,6 +304,7 @@ func Inf(ctx context.Context, args ...object.Object) object.Object {
 func Module() *object.Module {
 	return object.NewBuiltinsModule("math", map[string]object.Object{
 		"abs":    object.NewBuiltin("abs", Abs),
+		"atan2":  object.NewBuiltin("atan2", Atan2),
 		"ceil":   object.NewBuiltin("ceil", Ceil),
 		"cos":    object.NewBuiltin("cos", Cos),
 		"E":      object.NewFloat(math.E),
