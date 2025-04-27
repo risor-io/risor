@@ -34,16 +34,16 @@ func Atan2(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.Require("math.atan2", 2, args); err != nil {
 		return err
 	}
-	x, err := object.AsFloat(args[0])
+	y, err := object.AsFloat(args[0])
 	if err != nil {
 		return err
 	}
-	y, err := object.AsFloat(args[1])
+	x, err := object.AsFloat(args[1])
 	if err != nil {
 		return err
 	}
 
-	return object.NewFloat(math.Atan2(x, y))
+	return object.NewFloat(math.Atan2(y, x))
 }
 
 func Sqrt(ctx context.Context, args ...object.Object) object.Object {
