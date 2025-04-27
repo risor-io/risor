@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
@@ -17,6 +18,10 @@ type UserProfile struct {
 func (p *UserProfile) Inspect() string {
 	return fmt.Sprintf("slack.user_profile({real_name: %q, display_name: %q})",
 		p.value.RealName, p.value.DisplayName)
+}
+
+func (p *UserProfile) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.value)
 }
 
 func (p *UserProfile) Equals(other object.Object) object.Object {

@@ -1,7 +1,7 @@
 package slack
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
@@ -18,6 +18,10 @@ type Channel struct {
 
 func (c *Channel) Inspect() string {
 	return fmt.Sprintf("slack.channel({id: %q, name: %q})", c.value.ID, c.value.Name)
+}
+
+func (c *Channel) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.value)
 }
 
 func (c *Channel) Equals(other object.Object) object.Object {
@@ -143,28 +147,8 @@ func (c *Channel) GetAttr(name string) (object.Object, bool) {
 		return object.NewString(c.value.ContextTeamID), true
 	case "conversation_host_id":
 		return object.NewString(c.value.ConversationHostID), true
-	case "send":
-		return object.NewBuiltin("send", c.Send), true
 	}
 	return nil, false
-}
-
-func (c *Channel) Send(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=1", len(args)))
-	}
-	text, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	channelID, timestamp, _, sendErr := c.client.SendMessage(c.value.ID, slack.MsgOptionText(text, false))
-	if sendErr != nil {
-		return object.NewError(sendErr)
-	}
-	return object.NewMap(map[string]object.Object{
-		"channel":   object.NewString(channelID),
-		"timestamp": object.NewString(timestamp),
-	})
 }
 
 func NewChannel(client *slack.Client, channel *slack.Channel) *Channel {

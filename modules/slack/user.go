@@ -1,7 +1,7 @@
 package slack
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/risor-io/risor/object"
@@ -18,6 +18,10 @@ type User struct {
 
 func (u *User) Inspect() string {
 	return fmt.Sprintf("slack.user({id: %q, name: %q})", u.value.ID, u.value.Name)
+}
+
+func (u *User) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.value)
 }
 
 func (u *User) Equals(other object.Object) object.Object {
@@ -85,30 +89,8 @@ func (u *User) GetAttr(name string) (object.Object, bool) {
 		return object.NewBool(u.value.IsStranger), true
 	case "is_invited_user":
 		return object.NewBool(u.value.IsInvitedUser), true
-	case "dm":
-		return object.NewBuiltin("dm", u.dm), true
 	}
 	return nil, false
-}
-
-// dm sends a direct message to the user
-func (u *User) dm(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) != 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=1", len(args)))
-	}
-	text, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-	_, _, msgErr := u.client.PostMessageContext(
-		ctx,
-		u.value.ID,
-		slack.MsgOptionText(text, false),
-	)
-	if msgErr != nil {
-		return object.NewError(msgErr)
-	}
-	return object.Nil
 }
 
 // NewUser creates a new User object

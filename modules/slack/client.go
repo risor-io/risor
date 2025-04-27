@@ -75,9 +75,9 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 	var options []slack.GetUserGroupsOption
 
 	if len(args) > 0 {
-		opts, ok := args[0].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[0])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {
@@ -166,9 +166,9 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Object {
 	options := []slack.GetUsersOption{}
 	if len(args) > 0 {
-		opts, ok := args[0].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[0])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {
@@ -208,51 +208,36 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 
 // PostMessage sends a message to a channel
 func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 1 {
-		return object.NewArgsRangeError("slack.client.post_message", 1, 3, len(args))
+	if len(args) < 2 {
+		return object.NewArgsRangeError("slack.client.post_message", 2, 2, len(args))
 	}
-
 	channelID, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-
 	options := []slack.MsgOption{}
 
-	// Handle second argument - can be either text string or options map
-	if len(args) > 1 {
-		switch arg := args[1].(type) {
-		case *object.String:
-			text, err := object.AsString(arg)
+	switch arg := args[1].(type) {
+	case *object.String:
+		text, err := object.AsString(arg)
+		if err != nil {
+			return err
+		}
+		options = append(options, slack.MsgOptionText(text, false))
+	case *object.Map:
+		textObj := arg.Get("text")
+		if textObj != object.Nil {
+			text, err := object.AsString(textObj)
 			if err != nil {
 				return err
 			}
 			options = append(options, slack.MsgOptionText(text, false))
-		case *object.Map:
-			textObj := arg.Get("text")
-			if textObj != object.Nil {
-				text, err := object.AsString(textObj)
-				if err != nil {
-					return err
-				}
-				options = append(options, slack.MsgOptionText(text, false))
-			}
-			if err := c.processMessageOptions(arg, &options); err != nil {
-				return err
-			}
-		default:
-			return object.NewError(fmt.Errorf("second argument must be a string or a map"))
 		}
-	}
-
-	if len(args) > 2 {
-		opts, ok := args[2].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
-		}
-		if err := c.processMessageOptions(opts, &options); err != nil {
+		if err := c.processMessageOptions(arg, &options); err != nil {
 			return err
 		}
+	default:
+		return object.NewError(fmt.Errorf("second argument must be a string or a map"))
 	}
 
 	channelID, timestamp, _, sendErr := c.value.SendMessage(channelID, options...)
@@ -521,9 +506,9 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		Limit:           100,  // Default limit to 100
 	}
 	if len(args) > 0 {
-		opts, ok := args[0].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[0])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {
@@ -567,8 +552,8 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 
 // PostEphemeralMessage sends a message to a channel that is only visible to a single user
 func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.NewArgsRangeError("slack.client.post_ephemeral_message", 2, 4, len(args))
+	if len(args) < 3 {
+		return object.NewArgsRangeError("slack.client.post_ephemeral_message", 3, 3, len(args))
 	}
 	channelID, err := object.AsString(args[0])
 	if err != nil {
@@ -580,42 +565,27 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 	}
 	options := []slack.MsgOption{}
 
-	// Handle third argument - can be either text string or options map
-	if len(args) > 2 {
-		switch arg := args[2].(type) {
-		case *object.String:
-			text, err := object.AsString(arg)
+	switch arg := args[2].(type) {
+	case *object.String:
+		text, err := object.AsString(arg)
+		if err != nil {
+			return err
+		}
+		options = append(options, slack.MsgOptionText(text, false))
+	case *object.Map:
+		textObj := arg.Get("text")
+		if textObj != object.Nil {
+			text, err := object.AsString(textObj)
 			if err != nil {
 				return err
 			}
 			options = append(options, slack.MsgOptionText(text, false))
-		case *object.Map:
-			textObj := arg.Get("text")
-			if textObj != object.Nil {
-				text, err := object.AsString(textObj)
-				if err != nil {
-					return err
-				}
-				options = append(options, slack.MsgOptionText(text, false))
-			}
-			if err := c.processMessageOptions(arg, &options); err != nil {
-				return err
-			}
-		default:
-			return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 		}
-	} else {
-		return object.NewError(fmt.Errorf("message text or options are required"))
-	}
-
-	if len(args) > 3 {
-		opts, ok := args[3].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
-		}
-		if err := c.processMessageOptions(opts, &options); err != nil {
+		if err := c.processMessageOptions(arg, &options); err != nil {
 			return err
 		}
+	default:
+		return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 	}
 
 	ts, sendErr := c.value.PostEphemeralContext(ctx, channelID, userID, options...)
@@ -666,6 +636,7 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 	default:
 		return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 	}
+
 	channelID, newTimestamp, _, updateErr := c.value.UpdateMessageContext(ctx, channelID, timestamp, options...)
 	if updateErr != nil {
 		return object.NewError(updateErr)
