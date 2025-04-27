@@ -429,14 +429,14 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 	if err != nil {
 		return err
 	}
-	paramsMap, ok := args[1].(*object.Map)
-	if !ok {
-		return object.NewError(fmt.Errorf("second argument must be a map"))
+	opts, err := object.AsMap(args[1])
+	if err != nil {
+		return err
 	}
 	params := slack.UploadFileV2Parameters{}
 	params.Channel = channelID
 
-	for key, value := range paramsMap.Value() {
+	for key, value := range opts.Value() {
 		switch key {
 		case "content":
 			contentStr, err := object.AsString(value)
@@ -709,8 +709,8 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 
 	var itemRef slack.ItemRef
 
-	if itemMap, ok := args[1].(*object.Map); ok {
-		for key, value := range itemMap.Value() {
+	if opts, ok := args[1].(*object.Map); ok {
+		for key, value := range opts.Value() {
 			switch key {
 			case "channel":
 				channelStr, err := object.AsString(value)
@@ -741,7 +741,7 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 			}
 		}
 	} else {
-		return object.NewError(fmt.Errorf("second argument must be an item reference map"))
+		return object.NewError(fmt.Errorf("second argument must be an options map"))
 	}
 
 	// Validate we have enough information to identify an item
@@ -786,8 +786,8 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 
 	var itemRef slack.ItemRef
 
-	if itemMap, ok := args[1].(*object.Map); ok {
-		for key, value := range itemMap.Value() {
+	if opts, ok := args[1].(*object.Map); ok {
+		for key, value := range opts.Value() {
 			switch key {
 			case "channel":
 				channelStr, err := object.AsString(value)
@@ -818,7 +818,7 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 			}
 		}
 	} else {
-		return object.NewError(fmt.Errorf("second argument must be an item reference map"))
+		return object.NewError(fmt.Errorf("second argument must be an options map"))
 	}
 
 	// Validate we have enough information to identify an item
