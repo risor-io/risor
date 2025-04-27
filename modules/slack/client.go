@@ -65,7 +65,7 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 
 func (c *Client) MessageBuilder(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 0 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=0", len(args)))
+		return object.NewArgsError("message_builder", 0, len(args))
 	}
 	return NewMessageBuilder(c)
 }
@@ -150,7 +150,7 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 // GetUserInfo gets information about a user
 func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=1", len(args)))
+		return object.NewArgsError("get_user_info", 1, len(args))
 	}
 	userID, objErr := object.AsString(args[0])
 	if objErr != nil {
@@ -209,7 +209,7 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 // PostMessage sends a message to a channel
 func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+		return object.NewArgsRangeError("slack.client.post_message", 1, 3, len(args))
 	}
 
 	channelID, err := object.AsString(args[0])
@@ -237,7 +237,9 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 				}
 				options = append(options, slack.MsgOptionText(text, false))
 			}
-			c.processMessageOptions(arg, &options)
+			if err := c.processMessageOptions(arg, &options); err != nil {
+				return err
+			}
 		default:
 			return object.NewError(fmt.Errorf("second argument must be a string or a map"))
 		}
@@ -248,7 +250,9 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		c.processMessageOptions(opts, &options)
+		if err := c.processMessageOptions(opts, &options); err != nil {
+			return err
+		}
 	}
 
 	channelID, timestamp, _, sendErr := c.value.SendMessage(channelID, options...)
@@ -262,168 +266,169 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 }
 
 // processMessageOptions handles common message options processing
-func (c *Client) processMessageOptions(opts *object.Map, options *[]slack.MsgOption) {
-	// Check for thread_ts
-	threadTs := opts.Get("thread_ts")
-	if threadTs != object.Nil {
-		threadTsStr, err := object.AsString(threadTs)
-		if err == nil {
-			*options = append(*options, slack.MsgOptionTS(threadTsStr))
-		}
-	}
-
-	// Check for reply_broadcast
-	replyBroadcast := opts.Get("reply_broadcast")
-	if replyBroadcast != object.Nil {
-		broadcast, err := object.AsBool(replyBroadcast)
-		if err == nil && bool(broadcast) {
-			*options = append(*options, slack.MsgOptionBroadcast())
-		}
-	}
-
-	// Check for attachments
-	attachments := opts.Get("attachments")
-	if attachments != object.Nil {
-		attachmentsArray, ok := attachments.(*object.List)
-		if ok {
-			slackAttachments := []slack.Attachment{}
-			for _, attachObj := range attachmentsArray.Value() {
-				attachMap, ok := attachObj.(*object.Map)
-				if !ok {
-					continue
-				}
-				attachment := slack.Attachment{}
-				title := attachMap.Get("title")
-				if title != object.Nil {
-					titleStr, err := object.AsString(title)
-					if err == nil {
-						attachment.Title = titleStr
-					}
-				}
-				text := attachMap.Get("text")
-				if text != object.Nil {
-					textStr, err := object.AsString(text)
-					if err == nil {
-						attachment.Text = textStr
-					}
-				}
-				color := attachMap.Get("color")
-				if color != object.Nil {
-					colorStr, err := object.AsString(color)
-					if err == nil {
-						attachment.Color = colorStr
-					}
-				}
-				slackAttachments = append(slackAttachments, attachment)
+func (c *Client) processMessageOptions(opts *object.Map, options *[]slack.MsgOption) object.Object {
+	for key, value := range opts.Value() {
+		switch key {
+		case "text":
+			// Handled by caller, so just skip it
+			continue
+		case "thread_ts":
+			threadTsStr, err := object.AsString(value)
+			if err == nil {
+				*options = append(*options, slack.MsgOptionTS(threadTsStr))
 			}
-			*options = append(*options, slack.MsgOptionAttachments(slackAttachments...))
-		}
-	}
-
-	// Check for blocks
-	blocks := opts.Get("blocks")
-	if blocks != object.Nil {
-		blocksArray, ok := blocks.(*object.List)
-		if ok {
-			slackBlocks := []slack.Block{}
-			for _, blockObj := range blocksArray.Value() {
-				blockMap, ok := blockObj.(*object.Map)
-				if !ok {
-					continue
-				}
-
-				blockType := blockMap.Get("type")
-				if blockType == object.Nil {
-					continue
-				}
-
-				blockTypeStr, err := object.AsString(blockType)
-				if err != nil {
-					continue
-				}
-
-				// Handle different block types
-				switch blockTypeStr {
-				case "section":
-					// Handle text in section
-					textObj := blockMap.Get("text")
-					if textObj != object.Nil {
-						textMap, ok := textObj.(*object.Map)
-						if !ok {
+		case "reply_broadcast":
+			broadcast, err := object.AsBool(value)
+			if err == nil && bool(broadcast) {
+				*options = append(*options, slack.MsgOptionBroadcast())
+			}
+		case "attachments":
+			attachmentsArray, ok := value.(*object.List)
+			if ok {
+				slackAttachments := []slack.Attachment{}
+				for _, attachObj := range attachmentsArray.Value() {
+					attachMap, ok := attachObj.(*object.Map)
+					if !ok {
+						continue
+					}
+					attachment := slack.Attachment{}
+					for attKey, attVal := range attachMap.Value() {
+						switch attKey {
+						case "title":
+							titleStr, err := object.AsString(attVal)
+							if err == nil {
+								attachment.Title = titleStr
+							}
+						case "text":
+							textStr, err := object.AsString(attVal)
+							if err == nil {
+								attachment.Text = textStr
+							}
+						case "color":
+							colorStr, err := object.AsString(attVal)
+							if err == nil {
+								attachment.Color = colorStr
+							}
+						// Add more attachment fields as needed
+						default:
+							// Skip unknown attachment fields to keep backward compatibility
 							continue
 						}
-
-						textType := textMap.Get("type")
-						textValue := textMap.Get("text")
-
-						if textType != object.Nil && textValue != object.Nil {
-							typeStr, err := object.AsString(textType)
-							if err != nil {
-								continue
-							}
-
-							valueStr, err := object.AsString(textValue)
-							if err != nil {
-								continue
-							}
-
-							var textBlock *slack.TextBlockObject
-							if typeStr == "mrkdwn" {
-								textBlock = slack.NewTextBlockObject("mrkdwn", valueStr, false, false)
-							} else if typeStr == "plain_text" {
-								textBlock = slack.NewTextBlockObject("plain_text", valueStr, false, false)
-							}
-
-							section := slack.NewSectionBlock(textBlock, nil, nil)
-							slackBlocks = append(slackBlocks, section)
-						}
-					} else {
-						section := slack.NewSectionBlock(nil, nil, nil)
-						slackBlocks = append(slackBlocks, section)
+					}
+					slackAttachments = append(slackAttachments, attachment)
+				}
+				*options = append(*options, slack.MsgOptionAttachments(slackAttachments...))
+			}
+		case "blocks":
+			blocksArray, ok := value.(*object.List)
+			if ok {
+				slackBlocks := []slack.Block{}
+				for _, blockObj := range blocksArray.Value() {
+					blockMap, ok := blockObj.(*object.Map)
+					if !ok {
+						continue
 					}
 
-				case "divider":
-					slackBlocks = append(slackBlocks, slack.NewDividerBlock())
+					blockTypeObj := blockMap.Get("type")
+					if blockTypeObj == object.Nil {
+						continue
+					}
 
-				case "header":
-					textObj := blockMap.Get("text")
-					if textObj != object.Nil {
-						textMap, ok := textObj.(*object.Map)
-						if ok {
+					blockTypeStr, err := object.AsString(blockTypeObj)
+					if err != nil {
+						continue
+					}
+
+					// Handle different block types
+					switch blockTypeStr {
+					case "section":
+						// Handle text in section
+						textObj := blockMap.Get("text")
+						if textObj != object.Nil {
+							textMap, ok := textObj.(*object.Map)
+							if !ok {
+								continue
+							}
+
+							// Process text object with switch
+							typeObj := textMap.Get("type")
 							textValue := textMap.Get("text")
-							if textValue != object.Nil {
+
+							if typeObj != object.Nil && textValue != object.Nil {
+								typeStr, err := object.AsString(typeObj)
+								if err != nil {
+									continue
+								}
+
 								valueStr, err := object.AsString(textValue)
-								if err == nil {
-									headerText := slack.NewTextBlockObject("plain_text", valueStr, false, false)
-									header := slack.NewHeaderBlock(headerText)
-									slackBlocks = append(slackBlocks, header)
+								if err != nil {
+									continue
+								}
+
+								var textBlock *slack.TextBlockObject
+								if typeStr == "mrkdwn" {
+									textBlock = slack.NewTextBlockObject("mrkdwn", valueStr, false, false)
+								} else if typeStr == "plain_text" {
+									textBlock = slack.NewTextBlockObject("plain_text", valueStr, false, false)
+								}
+
+								section := slack.NewSectionBlock(textBlock, nil, nil)
+								slackBlocks = append(slackBlocks, section)
+							}
+						} else {
+							section := slack.NewSectionBlock(nil, nil, nil)
+							slackBlocks = append(slackBlocks, section)
+						}
+
+					case "divider":
+						slackBlocks = append(slackBlocks, slack.NewDividerBlock())
+
+					case "header":
+						textObj := blockMap.Get("text")
+						if textObj != object.Nil {
+							textMap, ok := textObj.(*object.Map)
+							if ok {
+								for textKey, textVal := range textMap.Value() {
+									switch textKey {
+									case "text":
+										valueStr, err := object.AsString(textVal)
+										if err == nil {
+											headerText := slack.NewTextBlockObject("plain_text", valueStr, false, false)
+											header := slack.NewHeaderBlock(headerText)
+											slackBlocks = append(slackBlocks, header)
+										}
+									default:
+										// Skip unknown text attributes
+										continue
+									}
 								}
 							}
 						}
+					default:
+						// Skip unsupported block types instead of raising an error
+						// This is more forgiving for block types that may be added in future Slack API updates
+						continue
 					}
-				default:
-					// Skip unsupported block types instead of raising an error
-					// This is more forgiving for block types that may be added in future Slack API updates
-					continue
 				}
-			}
 
-			*options = append(*options, slack.MsgOptionBlocks(slackBlocks...))
+				*options = append(*options, slack.MsgOptionBlocks(slackBlocks...))
+			}
+		default:
+			return object.NewError(fmt.Errorf("unknown option: %s", key))
 		}
 	}
+	return nil
 }
 
 // UploadFile uploads a file to Slack
 func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=2", len(args)))
+		return object.NewArgsError("upload_file", 2, len(args))
 	}
-
 	channelID, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-
 	paramsMap, ok := args[1].(*object.Map)
 	if !ok {
 		return object.NewError(fmt.Errorf("second argument must be a map"))
@@ -431,78 +436,67 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 	params := slack.UploadFileV2Parameters{}
 	params.Channel = channelID
 
-	content := paramsMap.Get("content")
-	if content != object.Nil {
-		contentStr, err := object.AsString(content)
-		if err != nil {
-			return err
+	for key, value := range paramsMap.Value() {
+		switch key {
+		case "content":
+			contentStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.Content = contentStr
+		case "file":
+			fileStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.File = fileStr
+		case "file_size":
+			fileSizeInt, err := object.AsInt(value)
+			if err != nil {
+				return err
+			}
+			params.FileSize = int(fileSizeInt)
+		case "filename":
+			filenameStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.Filename = filenameStr
+		case "title":
+			titleStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.Title = titleStr
+		case "initial_comment":
+			initialCommentStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.InitialComment = initialCommentStr
+		case "thread_ts":
+			threadTsStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.ThreadTimestamp = threadTsStr
+		case "alt_txt":
+			altTxtStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.AltTxt = altTxtStr
+		case "snippet_text":
+			snippetTextStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			params.SnippetText = snippetTextStr
+		default:
+			return object.NewError(fmt.Errorf("unknown option: %s", key))
 		}
-		params.Content = contentStr
 	}
-	file := paramsMap.Get("file")
-	if file != object.Nil {
-		fileStr, err := object.AsString(file)
-		if err != nil {
-			return err
-		}
-		params.File = fileStr
-	}
-	fileSize := paramsMap.Get("file_size")
-	if fileSize != object.Nil {
-		fileSizeInt, err := object.AsInt(fileSize)
-		if err != nil {
-			return err
-		}
-		params.FileSize = int(fileSizeInt)
-	}
-	filename := paramsMap.Get("filename")
-	if filename != object.Nil {
-		filenameStr, err := object.AsString(filename)
-		if err != nil {
-			return err
-		}
-		params.Filename = filenameStr
-	}
-	title := paramsMap.Get("title")
-	if title != object.Nil {
-		titleStr, err := object.AsString(title)
-		if err != nil {
-			return err
-		}
-		params.Title = titleStr
-	}
-	initialComment := paramsMap.Get("initial_comment")
-	if initialComment != object.Nil {
-		initialCommentStr, err := object.AsString(initialComment)
-		if err != nil {
-			return err
-		}
-		params.InitialComment = initialCommentStr
-	}
-	threadTs := paramsMap.Get("thread_ts")
-	if threadTs != object.Nil {
-		threadTsStr, err := object.AsString(threadTs)
-		if err != nil {
-			return err
-		}
-		params.ThreadTimestamp = threadTsStr
-	}
-	altTxt := paramsMap.Get("alt_txt")
-	if altTxt != object.Nil {
-		altTxtStr, err := object.AsString(altTxt)
-		if err != nil {
-			return err
-		}
-		params.AltTxt = altTxtStr
-	}
-	snippetText := paramsMap.Get("snippet_text")
-	if snippetText != object.Nil {
-		snippetTextStr, err := object.AsString(snippetText)
-		if err != nil {
-			return err
-		}
-		params.SnippetText = snippetTextStr
-	}
+
 	if len(params.Content) > 0 && params.FileSize == 0 {
 		params.FileSize = len(params.Content)
 	}
@@ -531,8 +525,6 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-
-		// Process options with switch statement
 		for key, value := range opts.Value() {
 			switch key {
 			case "types":
@@ -576,7 +568,7 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 // PostEphemeralMessage sends a message to a channel that is only visible to a single user
 func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
+		return object.NewArgsRangeError("slack.client.post_ephemeral_message", 2, 4, len(args))
 	}
 	channelID, err := object.AsString(args[0])
 	if err != nil {
@@ -606,7 +598,9 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 				}
 				options = append(options, slack.MsgOptionText(text, false))
 			}
-			c.processMessageOptions(arg, &options)
+			if err := c.processMessageOptions(arg, &options); err != nil {
+				return err
+			}
 		default:
 			return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 		}
@@ -619,7 +613,9 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 		if !ok {
 			return object.NewError(fmt.Errorf("options must be a map"))
 		}
-		c.processMessageOptions(opts, &options)
+		if err := c.processMessageOptions(opts, &options); err != nil {
+			return err
+		}
 	}
 
 	ts, sendErr := c.value.PostEphemeralContext(ctx, channelID, userID, options...)
@@ -636,7 +632,7 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 // UpdateMessage updates a message in a channel
 func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 3 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 3", len(args)))
+		return object.NewArgsRangeError("slack.client.update_message", 3, 3, len(args))
 	}
 	channelID, err := object.AsString(args[0])
 	if err != nil {
@@ -664,7 +660,9 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 			}
 			options = append(options, slack.MsgOptionText(text, false))
 		}
-		c.processMessageOptions(arg, &options)
+		if err := c.processMessageOptions(arg, &options); err != nil {
+			return err
+		}
 	default:
 		return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 	}
@@ -681,7 +679,7 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 // DeleteMessage deletes a message from a channel
 func (c *Client) DeleteMessage(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=2", len(args)))
+		return object.NewArgsError("delete_message", 2, len(args))
 	}
 	channelID, err := object.AsString(args[0])
 	if err != nil {
@@ -701,7 +699,7 @@ func (c *Client) DeleteMessage(ctx context.Context, args ...object.Object) objec
 // AddReaction adds an emoji reaction to a message
 func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
+		return object.NewArgsRangeError("slack.client.add_reaction", 2, 2, len(args))
 	}
 	emojiName, err := object.AsString(args[0])
 	if err != nil {
@@ -778,7 +776,7 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 // RemoveReaction removes an emoji reaction from a message
 func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 2 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
+		return object.NewArgsRangeError("slack.client.remove_reaction", 2, 2, len(args))
 	}
 	emojiName, err := object.AsString(args[0])
 	if err != nil {
@@ -789,7 +787,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 	var itemRef slack.ItemRef
 
 	if itemMap, ok := args[1].(*object.Map); ok {
-		// Process map to extract ItemRef fields
 		for key, value := range itemMap.Value() {
 			switch key {
 			case "channel":
@@ -838,7 +835,7 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 // CreateConversation creates a new channel, either public or private
 func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+		return object.NewArgsRangeError("slack.client.create_conversation", 1, 2, len(args))
 	}
 	name, argErr := object.AsString(args[0])
 	if argErr != nil {
@@ -877,7 +874,7 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 // GetConversationHistory gets the history of a conversation
 func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+		return object.NewArgsRangeError("slack.client.get_conversation_history", 1, 2, len(args))
 	}
 	channelID, argErr := object.AsString(args[0])
 	if argErr != nil {
@@ -941,7 +938,7 @@ func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Obje
 // GetConversationMembers gets members of a conversation
 func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) < 1 {
-		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 1", len(args)))
+		return object.NewArgsRangeError("slack.client.get_conversation_members", 1, 2, len(args))
 	}
 	channelID, argErr := object.AsString(args[0])
 	if argErr != nil {
