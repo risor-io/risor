@@ -86,19 +86,19 @@ func (c *Client) GetUserGroups(ctx context.Context, args ...object.Object) objec
 				if err != nil {
 					return err
 				}
-				options = append(options, slack.GetUserGroupsOptionIncludeUsers(bool(includeBool)))
+				options = append(options, slack.GetUserGroupsOptionIncludeUsers(includeBool))
 			case "include_count":
 				countBool, err := object.AsBool(value)
 				if err != nil {
 					return err
 				}
-				options = append(options, slack.GetUserGroupsOptionIncludeCount(bool(countBool)))
+				options = append(options, slack.GetUserGroupsOptionIncludeCount(countBool))
 			case "include_disabled":
 				disabledBool, err := object.AsBool(value)
 				if err != nil {
 					return err
 				}
-				options = append(options, slack.GetUserGroupsOptionIncludeDisabled(bool(disabledBool)))
+				options = append(options, slack.GetUserGroupsOptionIncludeDisabled(disabledBool))
 			case "team_id":
 				teamIDStr, err := object.AsString(value)
 				if err != nil {
@@ -183,7 +183,7 @@ func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Obj
 				if err != nil {
 					return err
 				}
-				options = append(options, slack.GetUsersOptionPresence(bool(presenceBool)))
+				options = append(options, slack.GetUsersOptionPresence(presenceBool))
 			case "team_id":
 				teamIDStr, err := object.AsString(value)
 				if err != nil {
@@ -264,7 +264,7 @@ func (c *Client) processMessageOptions(opts *object.Map, options *[]slack.MsgOpt
 			}
 		case "reply_broadcast":
 			broadcast, err := object.AsBool(value)
-			if err == nil && bool(broadcast) {
+			if err == nil && broadcast {
 				*options = append(*options, slack.MsgOptionBroadcast())
 			}
 		case "attachments":
@@ -529,7 +529,7 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 				if err != nil {
 					return err
 				}
-				params.ExcludeArchived = bool(excludeArchivedBool)
+				params.ExcludeArchived = excludeArchivedBool
 			case "limit":
 				limitInt, err := object.AsInt(value)
 				if err != nil {
@@ -552,7 +552,7 @@ func (c *Client) GetConversations(ctx context.Context, args ...object.Object) ob
 
 // PostEphemeralMessage sends a message to a channel that is only visible to a single user
 func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 3 {
+	if len(args) != 3 {
 		return object.NewArgsRangeError("slack.client.post_ephemeral_message", 3, 3, len(args))
 	}
 	channelID, err := object.AsString(args[0])
@@ -601,7 +601,7 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 
 // UpdateMessage updates a message in a channel
 func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 3 {
+	if len(args) != 3 {
 		return object.NewArgsRangeError("slack.client.update_message", 3, 3, len(args))
 	}
 	channelID, err := object.AsString(args[0])
@@ -649,7 +649,7 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 
 // DeleteMessage deletes a message from a channel
 func (c *Client) DeleteMessage(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
+	if len(args) != 2 {
 		return object.NewArgsError("delete_message", 2, len(args))
 	}
 	channelID, err := object.AsString(args[0])
@@ -669,7 +669,7 @@ func (c *Client) DeleteMessage(ctx context.Context, args ...object.Object) objec
 
 // AddReaction adds an emoji reaction to a message
 func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
+	if len(args) != 2 {
 		return object.NewArgsRangeError("slack.client.add_reaction", 2, 2, len(args))
 	}
 	emojiName, err := object.AsString(args[0])
@@ -746,7 +746,7 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 
 // RemoveReaction removes an emoji reaction from a message
 func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
+	if len(args) != 2 {
 		return object.NewArgsRangeError("slack.client.remove_reaction", 2, 2, len(args))
 	}
 	emojiName, err := object.AsString(args[0])
@@ -755,41 +755,40 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 	}
 	emojiName = strings.Trim(emojiName, ":")
 
+	opts, err := object.AsMap(args[1])
+	if err != nil {
+		return err
+	}
 	var itemRef slack.ItemRef
-
-	if opts, ok := args[1].(*object.Map); ok {
-		for key, value := range opts.Value() {
-			switch key {
-			case "channel":
-				channelStr, err := object.AsString(value)
-				if err != nil {
-					return err
-				}
-				itemRef.Channel = channelStr
-			case "timestamp":
-				timestampStr, err := object.AsString(value)
-				if err != nil {
-					return err
-				}
-				itemRef.Timestamp = timestampStr
-			case "file":
-				fileStr, err := object.AsString(value)
-				if err != nil {
-					return err
-				}
-				itemRef.File = fileStr
-			case "file_comment":
-				commentStr, err := object.AsString(value)
-				if err != nil {
-					return err
-				}
-				itemRef.Comment = commentStr
-			default:
-				return object.NewError(fmt.Errorf("unknown option: %s", key))
+	for key, value := range opts.Value() {
+		switch key {
+		case "channel":
+			channelStr, err := object.AsString(value)
+			if err != nil {
+				return err
 			}
+			itemRef.Channel = channelStr
+		case "timestamp":
+			timestampStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			itemRef.Timestamp = timestampStr
+		case "file":
+			fileStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			itemRef.File = fileStr
+		case "file_comment":
+			commentStr, err := object.AsString(value)
+			if err != nil {
+				return err
+			}
+			itemRef.Comment = commentStr
+		default:
+			return object.NewError(fmt.Errorf("unknown option: %s", key))
 		}
-	} else {
-		return object.NewError(fmt.Errorf("second argument must be an options map"))
 	}
 
 	// Validate we have enough information to identify an item
@@ -805,7 +804,7 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 
 // CreateConversation creates a new channel, either public or private
 func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 1 {
+	if len(args) < 1 || len(args) > 2 {
 		return object.NewArgsRangeError("slack.client.create_conversation", 1, 2, len(args))
 	}
 	name, argErr := object.AsString(args[0])
@@ -814,9 +813,9 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 	}
 	isPrivate := false
 	if len(args) > 1 {
-		opts, ok := args[1].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[1])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {
@@ -825,7 +824,7 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 				if err != nil {
 					return err
 				}
-				isPrivate = bool(isPrivateBool)
+				isPrivate = isPrivateBool
 			default:
 				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
@@ -844,7 +843,7 @@ func (c *Client) CreateConversation(ctx context.Context, args ...object.Object) 
 
 // GetConversationHistory gets the history of a conversation
 func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 1 {
+	if len(args) < 1 || len(args) > 2 {
 		return object.NewArgsRangeError("slack.client.get_conversation_history", 1, 2, len(args))
 	}
 	channelID, argErr := object.AsString(args[0])
@@ -856,9 +855,9 @@ func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Obje
 		Limit:     100,
 	}
 	if len(args) > 1 {
-		opts, ok := args[1].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[1])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {
@@ -891,13 +890,13 @@ func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Obje
 				if err != nil {
 					return err
 				}
-				params.Inclusive = bool(inclusive)
+				params.Inclusive = inclusive
 			case "include_all_metadata":
 				metadata, err := object.AsBool(value)
 				if err != nil {
 					return err
 				}
-				params.IncludeAllMetadata = bool(metadata)
+				params.IncludeAllMetadata = metadata
 			default:
 				return object.NewError(fmt.Errorf("unknown option: %s", key))
 			}
@@ -908,7 +907,7 @@ func (c *Client) GetConversationHistory(ctx context.Context, args ...object.Obje
 
 // GetConversationMembers gets members of a conversation
 func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 1 {
+	if len(args) < 1 || len(args) > 2 {
 		return object.NewArgsRangeError("slack.client.get_conversation_members", 1, 2, len(args))
 	}
 	channelID, argErr := object.AsString(args[0])
@@ -920,9 +919,9 @@ func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Obje
 		Limit:     100,
 	}
 	if len(args) > 1 {
-		opts, ok := args[1].(*object.Map)
-		if !ok {
-			return object.NewError(fmt.Errorf("options must be a map"))
+		opts, err := object.AsMap(args[1])
+		if err != nil {
+			return err
 		}
 		for key, value := range opts.Value() {
 			switch key {

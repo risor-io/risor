@@ -72,6 +72,10 @@ func NewMessageIterator(ctx context.Context, client *slack.Client, params *slack
 
 		// Create the Message object
 		messageObj := NewMessage(client, &msg)
+		if messageObj.value.Channel == "" {
+			// The Slack API doesn't fill this in for this call
+			messageObj.value.Channel = params.ChannelID
+		}
 		currentIndex++
 		totalReturned++
 

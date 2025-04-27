@@ -23,10 +23,8 @@ for _, member := range client.get_conversation_members("C05N7H6SLA3") {
     print("Member:", member)
 }
 
-messages := client.get_conversation_history("C043WC3AG8K")
-print("Messages:", messages)
-
-for _, message := range messages {
+print("\nMessages:")
+for _, message := range client.get_conversation_history("C043WC3AG8K") {
     print("Message:", message)
 }
 
