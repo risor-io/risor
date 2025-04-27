@@ -6,31 +6,25 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/slack-go/slack"
 )
 
 // Ensure Message implements the Object interface
 var _ object.Object = (*Message)(nil)
 
+const MESSAGE object.Type = "slack.message"
+
 // Message represents a Slack message
 type Message struct {
+	base
 	value        *slack.Message
 	client       *slack.Client
 	isBotMessage bool
 }
 
-func (m *Message) Type() object.Type {
-	return "slack.message"
-}
-
 func (m *Message) Inspect() string {
 	return fmt.Sprintf("slack.message({channel: %q, timestamp: %q, text: %q})",
 		m.value.Msg.Channel, m.value.Msg.Timestamp, m.value.Msg.Text)
-}
-
-func (m *Message) Interface() interface{} {
-	return m.value
 }
 
 func (m *Message) Value() *slack.Message {
@@ -59,10 +53,6 @@ func (m *Message) Equals(other object.Object) object.Object {
 	default:
 		return object.False
 	}
-}
-
-func (m *Message) IsTruthy() bool {
-	return true
 }
 
 func (m *Message) GetAttr(name string) (object.Object, bool) {
@@ -124,18 +114,6 @@ func (m *Message) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func (m *Message) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("type error: cannot set %q on slack.message object", name)
-}
-
-func (m *Message) Cost() int {
-	return 0
-}
-
-func (m *Message) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("type error: unsupported operation for slack.message")
-}
-
 func (m *Message) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.value)
 }
@@ -149,7 +127,6 @@ func (m *Message) Reply(ctx context.Context, args ...object.Object) object.Objec
 	if err != nil {
 		return err
 	}
-
 	// Determine thread timestamp - use thread_ts if available, otherwise use ts
 	var ts string
 	if m.value.Msg.ThreadTimestamp != "" {
@@ -162,13 +139,10 @@ func (m *Message) Reply(ctx context.Context, args ...object.Object) object.Objec
 		slack.MsgOptionText(text, false),
 		slack.MsgOptionTS(ts),
 	}
-
 	channelID, timestamp, _, sendErr := m.client.SendMessage(m.value.Msg.Channel, options...)
 	if sendErr != nil {
 		return object.NewError(sendErr)
 	}
-
-	// Create a new message object for the reply
 	replyMsg := &slack.Message{
 		Msg: slack.Msg{
 			Channel:         channelID,
@@ -177,7 +151,7 @@ func (m *Message) Reply(ctx context.Context, args ...object.Object) object.Objec
 			ThreadTimestamp: ts,
 		},
 	}
-	return NewMessage(replyMsg, m.client)
+	return NewMessage(m.client, replyMsg)
 }
 
 // GetConversation retrieves the conversation thread for this message
@@ -185,16 +159,12 @@ func (m *Message) GetConversation(ctx context.Context, args ...object.Object) ob
 	if len(args) != 0 {
 		return object.NewArgsError("slack.message.conversation", 0, len(args))
 	}
-
-	// Determine which timestamp to use
 	var ts string
 	if m.value.Msg.ThreadTimestamp != "" {
 		ts = m.value.Msg.ThreadTimestamp
 	} else {
 		ts = m.value.Msg.Timestamp
 	}
-
-	// Get conversation replies
 	replies, _, _, err := m.client.GetConversationRepliesContext(ctx,
 		&slack.GetConversationRepliesParameters{
 			ChannelID: m.value.Msg.Channel,
@@ -204,33 +174,31 @@ func (m *Message) GetConversation(ctx context.Context, args ...object.Object) ob
 	if err != nil {
 		return object.NewError(err)
 	}
-
-	// Convert replies to a list of Message objects
 	messages := make([]object.Object, len(replies))
 	for i, reply := range replies {
-		// Channel may not be set in the replies
 		if reply.Channel == "" {
 			reply.Channel = m.value.Msg.Channel
 		}
-
-		// Pass the reply directly to NewMessage as a pointer
-		messages[i] = NewMessage(&reply, m.client)
+		messages[i] = NewMessage(m.client, &reply)
 	}
-
 	return object.NewList(messages)
 }
 
-func NewMessage(msg *slack.Message, client *slack.Client) *Message {
+func NewMessage(client *slack.Client, msg *slack.Message) *Message {
 	return &Message{
 		client: client,
 		value:  msg,
+		base: base{
+			typeName:       MESSAGE,
+			interfaceValue: msg,
+		},
 	}
 }
 
-func NewMessages(msgs []slack.Msg, client *Client) *object.List {
+func NewMessages(client *slack.Client, msgs []slack.Msg) *object.List {
 	items := make([]object.Object, len(msgs))
 	for i, msg := range msgs {
-		items[i] = NewMessage(&slack.Message{Msg: msg}, client.value)
+		items[i] = NewMessage(client, &slack.Message{Msg: msg})
 	}
 	return object.NewList(items)
 }

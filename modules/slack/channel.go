@@ -5,27 +5,19 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/slack-go/slack"
 )
 
 const CHANNEL object.Type = "slack.channel"
 
 type Channel struct {
+	base
 	client *slack.Client
 	value  *slack.Channel
 }
 
-func (c *Channel) Type() object.Type {
-	return CHANNEL
-}
-
 func (c *Channel) Inspect() string {
 	return fmt.Sprintf("slack.channel({id: %q, name: %q})", c.value.ID, c.value.Name)
-}
-
-func (c *Channel) Interface() interface{} {
-	return c.value
 }
 
 func (c *Channel) Equals(other object.Object) object.Object {
@@ -157,23 +149,6 @@ func (c *Channel) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func (c *Channel) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("type error: cannot set %q on slack.channel object", name)
-}
-
-func (c *Channel) IsTruthy() bool {
-	return true
-}
-
-func (c *Channel) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("type error: unsupported operation for slack.channel")
-}
-
-func (c *Channel) Cost() int {
-	return 0
-}
-
-// Send sends a message to the channel
 func (c *Channel) Send(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=1", len(args)))
@@ -196,5 +171,9 @@ func NewChannel(client *slack.Client, channel *slack.Channel) *Channel {
 	return &Channel{
 		client: client,
 		value:  channel,
+		base: base{
+			typeName:       CHANNEL,
+			interfaceValue: channel,
+		},
 	}
 }

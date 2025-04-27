@@ -5,18 +5,16 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/slack-go/slack"
 )
 
+const MESSAGE_BUILDER object.Type = "slack.message_builder"
+
 // MessageBuilder helps build rich Slack messages
 type MessageBuilder struct {
+	base
 	client *Client
 	blocks []slack.Block
-}
-
-func (b *MessageBuilder) Type() object.Type {
-	return "slack.message_builder"
 }
 
 func (b *MessageBuilder) Inspect() string {
@@ -34,10 +32,6 @@ func (b *MessageBuilder) Equals(other object.Object) object.Object {
 	return object.False
 }
 
-func (b *MessageBuilder) IsTruthy() bool {
-	return true
-}
-
 func (b *MessageBuilder) GetAttr(name string) (object.Object, bool) {
 	switch name {
 	case "add_section":
@@ -52,18 +46,6 @@ func (b *MessageBuilder) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("send", b.Send), true
 	}
 	return nil, false
-}
-
-func (b *MessageBuilder) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("type error: cannot set %q on slack.message_builder object", name)
-}
-
-func (b *MessageBuilder) Cost() int {
-	return 0
-}
-
-func (b *MessageBuilder) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("type error: unsupported operation for slack.message_builder")
 }
 
 // AddSection adds a section block to the message
@@ -182,5 +164,9 @@ func NewMessageBuilder(client *Client) *MessageBuilder {
 	return &MessageBuilder{
 		client: client,
 		blocks: []slack.Block{},
+		base: base{
+			typeName:       MESSAGE_BUILDER,
+			interfaceValue: client,
+		},
 	}
 }

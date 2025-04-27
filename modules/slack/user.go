@@ -5,29 +5,19 @@ import (
 	"fmt"
 
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/slack-go/slack"
 )
 
-// USER type constant
 const USER object.Type = "slack.user"
 
-// User wraps a slack.User and implements the object.Object interface
 type User struct {
+	base
 	value  *slack.User
 	client *slack.Client
 }
 
-func (u *User) Type() object.Type {
-	return USER
-}
-
 func (u *User) Inspect() string {
 	return fmt.Sprintf("slack.user({id: %q, name: %q})", u.value.ID, u.value.Name)
-}
-
-func (u *User) Interface() interface{} {
-	return u.value
 }
 
 func (u *User) Equals(other object.Object) object.Object {
@@ -58,7 +48,7 @@ func (u *User) GetAttr(name string) (object.Object, bool) {
 	case "tz_offset":
 		return object.NewInt(int64(u.value.TZOffset)), true
 	case "profile":
-		return convertProfileToMap(&u.value.Profile), true
+		return NewUserProfile(&u.value.Profile), true
 	case "is_admin":
 		return object.NewBool(u.value.IsAdmin), true
 	case "is_owner":
@@ -101,43 +91,23 @@ func (u *User) GetAttr(name string) (object.Object, bool) {
 	return nil, false
 }
 
-func (u *User) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("type error: cannot set %q on slack.user object", name)
-}
-
-func (u *User) IsTruthy() bool {
-	return true
-}
-
-func (u *User) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("type error: unsupported operation for slack.user")
-}
-
-func (u *User) Cost() int {
-	return 0
-}
-
 // dm sends a direct message to the user
 func (u *User) dm(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) != 1 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want=1", len(args)))
 	}
-
 	text, err := object.AsString(args[0])
 	if err != nil {
 		return err
 	}
-
 	_, _, msgErr := u.client.PostMessageContext(
 		ctx,
 		u.value.ID,
 		slack.MsgOptionText(text, false),
 	)
-
 	if msgErr != nil {
 		return object.NewError(msgErr)
 	}
-
 	return object.Nil
 }
 
@@ -146,34 +116,9 @@ func NewUser(client *slack.Client, user *slack.User) *User {
 	return &User{
 		client: client,
 		value:  user,
+		base: base{
+			typeName:       USER,
+			interfaceValue: user,
+		},
 	}
-}
-
-// Helper to convert UserProfile to a map
-func convertProfileToMap(profile *slack.UserProfile) *object.Map {
-	profileMap := map[string]object.Object{
-		"real_name":               object.NewString(profile.RealName),
-		"real_name_normalized":    object.NewString(profile.RealNameNormalized),
-		"display_name":            object.NewString(profile.DisplayName),
-		"display_name_normalized": object.NewString(profile.DisplayNameNormalized),
-		"email":                   object.NewString(profile.Email),
-		"first_name":              object.NewString(profile.FirstName),
-		"last_name":               object.NewString(profile.LastName),
-		"phone":                   object.NewString(profile.Phone),
-		"skype":                   object.NewString(profile.Skype),
-		"title":                   object.NewString(profile.Title),
-		"team":                    object.NewString(profile.Team),
-		"status_text":             object.NewString(profile.StatusText),
-		"status_emoji":            object.NewString(profile.StatusEmoji),
-		"bot_id":                  object.NewString(profile.BotID),
-		"image_24":                object.NewString(profile.Image24),
-		"image_32":                object.NewString(profile.Image32),
-		"image_48":                object.NewString(profile.Image48),
-		"image_72":                object.NewString(profile.Image72),
-		"image_192":               object.NewString(profile.Image192),
-		"image_512":               object.NewString(profile.Image512),
-		"image_original":          object.NewString(profile.ImageOriginal),
-	}
-
-	return object.NewMap(profileMap)
 }

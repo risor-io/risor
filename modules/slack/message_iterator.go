@@ -71,7 +71,7 @@ func NewMessageIterator(ctx context.Context, client *slack.Client, params *slack
 		msg := messages[currentIndex]
 
 		// Create the Message object
-		messageObj := NewMessage(&msg, client)
+		messageObj := NewMessage(client, &msg)
 		currentIndex++
 		totalReturned++
 

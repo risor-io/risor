@@ -6,26 +6,18 @@ import (
 	"strings"
 
 	"github.com/risor-io/risor/object"
-	"github.com/risor-io/risor/op"
 	"github.com/slack-go/slack"
 )
 
 const CLIENT object.Type = "slack.client"
 
 type Client struct {
+	base
 	value *slack.Client
-}
-
-func (c *Client) Type() object.Type {
-	return CLIENT
 }
 
 func (c *Client) Inspect() string {
 	return "slack.client()"
-}
-
-func (c *Client) Interface() interface{} {
-	return c.value
 }
 
 func (c *Client) Equals(other object.Object) object.Object {
@@ -69,22 +61,6 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("message_builder", c.MessageBuilder), true
 	}
 	return nil, false
-}
-
-func (c *Client) SetAttr(name string, value object.Object) error {
-	return fmt.Errorf("type error: cannot set %q on slack.client object", name)
-}
-
-func (c *Client) IsTruthy() bool {
-	return true
-}
-
-func (c *Client) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
-	return object.Errorf("type error: unsupported operation for slack.client")
-}
-
-func (c *Client) Cost() int {
-	return 0
 }
 
 func (c *Client) MessageBuilder(ctx context.Context, args ...object.Object) object.Object {
@@ -187,62 +163,6 @@ func (c *Client) GetUserInfo(ctx context.Context, args ...object.Object) object.
 		return object.NewError(err)
 	}
 	return NewUser(c.value, user)
-}
-
-// We'll keep this function for backward compatibility and internal use
-func convertUserToMap(user *slack.User) *object.Map {
-	profileMap := map[string]object.Object{
-		"real_name":               object.NewString(user.Profile.RealName),
-		"real_name_normalized":    object.NewString(user.Profile.RealNameNormalized),
-		"display_name":            object.NewString(user.Profile.DisplayName),
-		"display_name_normalized": object.NewString(user.Profile.DisplayNameNormalized),
-		"email":                   object.NewString(user.Profile.Email),
-		"first_name":              object.NewString(user.Profile.FirstName),
-		"last_name":               object.NewString(user.Profile.LastName),
-		"phone":                   object.NewString(user.Profile.Phone),
-		"skype":                   object.NewString(user.Profile.Skype),
-		"title":                   object.NewString(user.Profile.Title),
-		"team":                    object.NewString(user.Profile.Team),
-		"status_text":             object.NewString(user.Profile.StatusText),
-		"status_emoji":            object.NewString(user.Profile.StatusEmoji),
-		"bot_id":                  object.NewString(user.Profile.BotID),
-		"image_24":                object.NewString(user.Profile.Image24),
-		"image_32":                object.NewString(user.Profile.Image32),
-		"image_48":                object.NewString(user.Profile.Image48),
-		"image_72":                object.NewString(user.Profile.Image72),
-		"image_192":               object.NewString(user.Profile.Image192),
-		"image_512":               object.NewString(user.Profile.Image512),
-		"image_original":          object.NewString(user.Profile.ImageOriginal),
-	}
-	userMap := map[string]object.Object{
-		"id":                  object.NewString(user.ID),
-		"team_id":             object.NewString(user.TeamID),
-		"name":                object.NewString(user.Name),
-		"real_name":           object.NewString(user.RealName),
-		"deleted":             object.NewBool(user.Deleted),
-		"color":               object.NewString(user.Color),
-		"tz":                  object.NewString(user.TZ),
-		"tz_label":            object.NewString(user.TZLabel),
-		"tz_offset":           object.NewInt(int64(user.TZOffset)),
-		"is_bot":              object.NewBool(user.IsBot),
-		"is_admin":            object.NewBool(user.IsAdmin),
-		"is_owner":            object.NewBool(user.IsOwner),
-		"is_primary_owner":    object.NewBool(user.IsPrimaryOwner),
-		"is_restricted":       object.NewBool(user.IsRestricted),
-		"is_ultra_restricted": object.NewBool(user.IsUltraRestricted),
-		"is_app_user":         object.NewBool(user.IsAppUser),
-		"is_stranger":         object.NewBool(user.IsStranger),
-		"is_invited_user":     object.NewBool(user.IsInvitedUser),
-		"has_2fa":             object.NewBool(user.Has2FA),
-		"has_files":           object.NewBool(user.HasFiles),
-		"locale":              object.NewString(user.Locale),
-		"presence":            object.NewString(user.Presence),
-		"profile":             object.NewMap(profileMap),
-	}
-	if user.TwoFactorType != nil {
-		userMap["two_factor_type"] = object.NewString(*user.TwoFactorType)
-	}
-	return object.NewMap(userMap)
 }
 
 func (c *Client) GetUsers(ctx context.Context, args ...object.Object) object.Object {
@@ -381,9 +301,7 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 				if !ok {
 					continue
 				}
-
 				attachment := slack.Attachment{}
-
 				title := attachMap.Get("title")
 				if title != object.Nil {
 					titleStr, err := object.AsString(title)
@@ -391,7 +309,6 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 						attachment.Title = titleStr
 					}
 				}
-
 				text := attachMap.Get("text")
 				if text != object.Nil {
 					textStr, err := object.AsString(text)
@@ -399,7 +316,6 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 						attachment.Text = textStr
 					}
 				}
-
 				color := attachMap.Get("color")
 				if color != object.Nil {
 					colorStr, err := object.AsString(color)
@@ -407,10 +323,8 @@ func (c *Client) processMessageOptions(optsMap *object.Map, options *[]slack.Msg
 						attachment.Color = colorStr
 					}
 				}
-
 				slackAttachments = append(slackAttachments, attachment)
 			}
-
 			*options = append(*options, slack.MsgOptionAttachments(slackAttachments...))
 		}
 	}
@@ -530,7 +444,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.Content = contentStr
 	}
-
 	file := paramsMap.Get("file")
 	if file != object.Nil {
 		fileStr, err := object.AsString(file)
@@ -539,7 +452,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.File = fileStr
 	}
-
 	fileSize := paramsMap.Get("file_size")
 	if fileSize != object.Nil {
 		fileSizeInt, err := object.AsInt(fileSize)
@@ -548,7 +460,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.FileSize = int(fileSizeInt)
 	}
-
 	filename := paramsMap.Get("filename")
 	if filename != object.Nil {
 		filenameStr, err := object.AsString(filename)
@@ -557,7 +468,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.Filename = filenameStr
 	}
-
 	title := paramsMap.Get("title")
 	if title != object.Nil {
 		titleStr, err := object.AsString(title)
@@ -566,7 +476,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.Title = titleStr
 	}
-
 	initialComment := paramsMap.Get("initial_comment")
 	if initialComment != object.Nil {
 		initialCommentStr, err := object.AsString(initialComment)
@@ -575,7 +484,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.InitialComment = initialCommentStr
 	}
-
 	threadTs := paramsMap.Get("thread_ts")
 	if threadTs != object.Nil {
 		threadTsStr, err := object.AsString(threadTs)
@@ -584,7 +492,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.ThreadTimestamp = threadTsStr
 	}
-
 	altTxt := paramsMap.Get("alt_txt")
 	if altTxt != object.Nil {
 		altTxtStr, err := object.AsString(altTxt)
@@ -593,7 +500,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.AltTxt = altTxtStr
 	}
-
 	snippetText := paramsMap.Get("snippet_text")
 	if snippetText != object.Nil {
 		snippetTextStr, err := object.AsString(snippetText)
@@ -602,7 +508,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		}
 		params.SnippetText = snippetTextStr
 	}
-
 	if len(params.Content) > 0 && params.FileSize == 0 {
 		params.FileSize = len(params.Content)
 	}
@@ -678,7 +583,6 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 	if len(args) < 2 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
 	}
-
 	channelID, err := object.AsString(args[0])
 	if err != nil {
 		return err
@@ -687,23 +591,18 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 	if err != nil {
 		return err
 	}
-
 	options := []slack.MsgOption{}
 
 	// Handle third argument - can be either text string or options map
 	if len(args) > 2 {
 		switch arg := args[2].(type) {
 		case *object.String:
-			// Text as third parameter
 			text, err := object.AsString(arg)
 			if err != nil {
 				return err
 			}
 			options = append(options, slack.MsgOptionText(text, false))
-
 		case *object.Map:
-			// Map as third parameter
-			// Extract text from map if provided
 			textObj := arg.Get("text")
 			if textObj != object.Nil {
 				text, err := object.AsString(textObj)
@@ -712,15 +611,11 @@ func (c *Client) PostEphemeralMessage(ctx context.Context, args ...object.Object
 				}
 				options = append(options, slack.MsgOptionText(text, false))
 			}
-
-			// Process other options from the map
 			c.processMessageOptions(arg, &options)
-
 		default:
 			return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 		}
 	} else {
-		// If no message content is provided
 		return object.NewError(fmt.Errorf("message text or options are required"))
 	}
 
@@ -748,7 +643,6 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 	if len(args) < 3 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 3", len(args)))
 	}
-
 	channelID, err := object.AsString(args[0])
 	if err != nil {
 		return err
@@ -768,10 +662,7 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 			return err
 		}
 		options = append(options, slack.MsgOptionText(text, false))
-
 	case *object.Map:
-		// Map as third parameter
-		// Extract text from map if provided
 		textObj := arg.Get("text")
 		if textObj != object.Nil {
 			text, err := object.AsString(textObj)
@@ -780,14 +671,10 @@ func (c *Client) UpdateMessage(ctx context.Context, args ...object.Object) objec
 			}
 			options = append(options, slack.MsgOptionText(text, false))
 		}
-
-		// Process other options from the map
 		c.processMessageOptions(arg, &options)
-
 	default:
 		return object.NewError(fmt.Errorf("third argument must be a string or a map"))
 	}
-
 	if len(args) > 3 {
 		optsMap, ok := args[3].(*object.Map)
 		if !ok {
@@ -830,7 +717,6 @@ func (c *Client) AddReaction(ctx context.Context, args ...object.Object) object.
 	if len(args) < 2 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
 	}
-
 	emojiName, err := object.AsString(args[0])
 	if err != nil {
 		return err
@@ -911,7 +797,6 @@ func (c *Client) RemoveReaction(ctx context.Context, args ...object.Object) obje
 	if len(args) < 2 {
 		return object.NewError(fmt.Errorf("wrong number of arguments: got=%d, want at least 2", len(args)))
 	}
-
 	emojiName, err := object.AsString(args[0])
 	if err != nil {
 		return err
@@ -1112,7 +997,13 @@ func (c *Client) GetConversationMembers(ctx context.Context, args ...object.Obje
 }
 
 func New(client *slack.Client) *Client {
-	return &Client{value: client}
+	return &Client{
+		value: client,
+		base: base{
+			typeName:       CLIENT,
+			interfaceValue: client,
+		},
+	}
 }
 
 func getTime(t slack.JSONTime) object.Object {
