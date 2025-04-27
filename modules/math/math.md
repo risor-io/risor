@@ -48,6 +48,19 @@ Returns the absolute value of x.
 3.3
 ```
 
+### atan2
+
+```go filename="Function signature"
+atan2(y, x number) number
+```
+
+Returns the arc tangent value of y/x.
+
+```go copy filename="Example"
+>>> math.atan2(1, 2)
+0.4636476090008061
+```
+
 ### sqrt
 
 ```go filename="Function signature"
