@@ -130,8 +130,8 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 		c.main.filename = c.filename
 	}
 
-	// First pass: register all symbols in the symbol table
-	if err := c.registerSymbols(node); err != nil {
+	// First pass: register named global functions in the symbol table
+	if err := c.registerGlobalFunctions(node); err != nil {
 		return nil, err
 	}
 
@@ -139,6 +139,7 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
+
 	// Check for failures that happened that aren't propagated up the call
 	// stack. Some errors are difficult to propagate without bloating the code.
 	if c.failure != nil {
@@ -147,16 +148,37 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	return c.main, nil
 }
 
-// registerSymbols walks the AST and registers global function declarations
-// in the symbol table, without compiling their bodies yet. This allows
-// referencing functions in any order throughout the code.
-func (c *Compiler) registerSymbols(node ast.Node) error {
+// registerGlobalFunctions walks the AST and registers global function
+// declarations in the symbol table, without compiling their bodies yet.
+// This allows referencing functions in any order throughout the code.
+func (c *Compiler) registerGlobalFunctions(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
 		for _, stmt := range node.Statements() {
-			// Only register named functions in the first pass
-			if fn, ok := stmt.(*ast.Func); ok && fn.Name() != nil {
-				name := fn.Name().Literal()
+			switch stmt := stmt.(type) {
+			case *ast.Func:
+				if stmt.Name() != nil {
+					name := stmt.Name().Literal()
+					if _, err := c.current.symbols.InsertConstant(name); err != nil {
+						return err
+					}
+				}
+			case *ast.Var:
+				name, _ := stmt.Value()
+				if _, err := c.current.symbols.InsertVariable(name); err != nil {
+					return err
+				}
+			case *ast.MultiVar:
+				if stmt.IsWalrus() {
+					names, _ := stmt.Value()
+					for _, name := range names {
+						if _, err := c.current.symbols.InsertVariable(name); err != nil {
+							return err
+						}
+					}
+				}
+			case *ast.Const:
+				name, _ := stmt.Value()
 				if _, err := c.current.symbols.InsertConstant(name); err != nil {
 					return err
 				}
@@ -383,29 +405,52 @@ func (c *Compiler) compileBool(node *ast.Bool) error {
 }
 
 func (c *Compiler) compileProgram(node *ast.Program) error {
-	statements := node.Statements()
-	count := len(statements)
-	if count == 0 {
-		// Guarantee that the program evaluates to a value
-		c.emit(op.Nil)
-	} else {
-		for i, stmt := range statements {
-			if err := c.compile(stmt); err != nil {
-				return err
-			}
-			if i < count-1 {
-				if stmt.IsExpression() {
-					c.emit(op.PopTop)
-				}
-			}
-		}
-		// Guarantee that the program evaluates to a value
-		lastStatement := statements[count-1]
-		if !lastStatement.IsExpression() {
-			c.emit(op.Nil)
+	// We want to hoist function declarations to the top of the program
+	var hoisted, others []ast.Node
+	for _, stmt := range node.Statements() {
+		if c.shouldHoist(stmt) {
+			hoisted = append(hoisted, stmt)
+		} else {
+			others = append(others, stmt)
 		}
 	}
+
+	// 1. Emit all hoisted declarations
+	for _, stmt := range hoisted {
+		if err := c.compile(stmt); err != nil {
+			return err
+		}
+		if stmt.IsExpression() {
+			c.emit(op.PopTop)
+		}
+	}
+
+	// 2. Emit all other statements
+	otherCount := len(others)
+	for i, stmt := range others {
+		if err := c.compile(stmt); err != nil {
+			return err
+		}
+		if i < otherCount-1 && stmt.IsExpression() {
+			c.emit(op.PopTop)
+		}
+	}
+
+	// Guarantee that the program evaluates to a value
+	if otherCount == 0 || !others[otherCount-1].IsExpression() {
+		c.emit(op.Nil)
+	}
 	return nil
+}
+
+func (c *Compiler) shouldHoist(stmt ast.Node) bool {
+	switch stmt := stmt.(type) {
+	case *ast.Func:
+		if stmt.Name() != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Compiler) compileBlock(node *ast.Block) error {
@@ -465,13 +510,23 @@ func (c *Compiler) compileVar(node *ast.Var) error {
 	if err := c.compile(expr); err != nil {
 		return err
 	}
-	sym, err := c.current.symbols.InsertVariable(name)
-	if err != nil {
-		return err
-	}
 	if c.current.parent == nil {
+		var sym *Symbol
+		var found bool
+		sym, found = c.current.symbols.Get(name)
+		if !found {
+			var err error
+			sym, err = c.current.symbols.InsertVariable(name)
+			if err != nil {
+				return err
+			}
+		}
 		c.emit(op.StoreGlobal, sym.Index())
 	} else {
+		sym, err := c.current.symbols.InsertVariable(name)
+		if err != nil {
+			return err
+		}
 		c.emit(op.StoreFast, sym.Index())
 	}
 	return nil
@@ -483,8 +538,6 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 	if !found {
 		return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 	}
-	identVal := resolution.symbol.Value()
-	fmt.Println("identVal", name, identVal)
 	switch resolution.scope {
 	case Global:
 		c.emit(op.LoadGlobal, resolution.symbol.Index())
@@ -511,13 +564,23 @@ func (c *Compiler) compileMultiVar(node *ast.MultiVar) error {
 	if node.IsWalrus() {
 		for i := len(names) - 1; i >= 0; i-- {
 			name := names[i]
-			sym, err := c.current.symbols.InsertVariable(name)
-			if err != nil {
-				return err
-			}
 			if c.current.parent == nil {
+				var found bool
+				var sym *Symbol
+				sym, found = c.current.symbols.Get(name)
+				if !found {
+					var err error
+					sym, err = c.current.symbols.InsertVariable(name)
+					if err != nil {
+						return err
+					}
+				}
 				c.emit(op.StoreGlobal, sym.Index())
 			} else {
+				sym, err := c.current.symbols.InsertVariable(name)
+				if err != nil {
+					return err
+				}
 				c.emit(op.StoreFast, sym.Index())
 			}
 		}
@@ -888,13 +951,23 @@ func (c *Compiler) compileConst(node *ast.Const) error {
 	if err := c.compile(expr); err != nil {
 		return err
 	}
-	sym, err := c.current.symbols.InsertConstant(name)
-	if err != nil {
-		return err
-	}
 	if c.current.parent == nil {
+		var sym *Symbol
+		var found bool
+		sym, found = c.current.symbols.Get(name)
+		if !found {
+			var err error
+			sym, err = c.current.symbols.InsertConstant(name)
+			if err != nil {
+				return err
+			}
+		}
 		c.emit(op.StoreGlobal, sym.Index())
 	} else {
+		sym, err := c.current.symbols.InsertConstant(name)
+		if err != nil {
+			return err
+		}
 		c.emit(op.StoreFast, sym.Index())
 	}
 	return nil
