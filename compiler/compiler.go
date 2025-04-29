@@ -44,6 +44,9 @@ type Compiler struct {
 
 	// Source filename
 	filename string
+
+	// Global functions
+	globalFunctions map[string]*ast.Func
 }
 
 // Option is a configuration function for a Compiler.
@@ -108,6 +111,9 @@ func New(options ...Option) (*Compiler, error) {
 			return nil, err
 		}
 	}
+	if c.globalFunctions == nil {
+		c.globalFunctions = make(map[string]*ast.Func)
+	}
 	// Start compiling into the main code object
 	c.current = c.main
 	return c, nil
@@ -129,9 +135,22 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if c.filename != "" {
 		c.main.filename = c.filename
 	}
+
+	// First phase: collect all the function declarations
+	if err := c.registerGlobalFunctions(node); err != nil {
+		return nil, err
+	}
+
+	// Second phase: compile the rest of the code
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
+
+	// Third phase: compile function bodies
+	if err := c.compileFunctionBodies(); err != nil {
+		return nil, err
+	}
+
 	// Check for failures that happened that aren't propagated up the call
 	// stack. Some errors are difficult to propagate without bloating the code.
 	if c.failure != nil {
@@ -140,196 +159,358 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	return c.main, nil
 }
 
-// compile the given AST node and all its children.
-func (c *Compiler) compile(node ast.Node) error {
-	switch node := node.(type) {
-	case *ast.Nil:
-		if err := c.compileNil(); err != nil {
+// Add a new method to compile all function bodies
+func (c *Compiler) compileFunctionBodies() error {
+	for _, fn := range c.globalFunctions {
+		if err := c.compileFunctionBody(fn); err != nil {
 			return err
 		}
-	case *ast.Int:
-		if err := c.compileInt(node); err != nil {
-			return err
-		}
-	case *ast.Float:
-		if err := c.compileFloat(node); err != nil {
-			return err
-		}
-	case *ast.String:
-		if err := c.compileString(node); err != nil {
-			return err
-		}
-	case *ast.Bool:
-		if err := c.compileBool(node); err != nil {
-			return err
-		}
-	case *ast.If:
-		if err := c.compileIf(node); err != nil {
-			return err
-		}
-	case *ast.Infix:
-		if err := c.compileInfix(node); err != nil {
-			return err
-		}
-	case *ast.Program:
-		if err := c.compileProgram(node); err != nil {
-			return err
-		}
-	case *ast.Block:
-		if err := c.compileBlock(node); err != nil {
-			return err
-		}
-	case *ast.Var:
-		if err := c.compileVar(node); err != nil {
-			return err
-		}
-	case *ast.Assign:
-		if err := c.compileAssign(node); err != nil {
-			return err
-		}
-	case *ast.Ident:
-		if err := c.compileIdent(node); err != nil {
-			return err
-		}
-	case *ast.For:
-		if err := c.compileFor(node); err != nil {
-			return err
-		}
-	case *ast.Control:
-		if err := c.compileControl(node); err != nil {
-			return err
-		}
-	case *ast.Return:
-		if err := c.compileReturn(node); err != nil {
-			return err
-		}
-	case *ast.Call:
-		if err := c.compileCall(node); err != nil {
-			return err
-		}
-	case *ast.Func:
-		if err := c.compileFunc(node); err != nil {
-			return err
-		}
-	case *ast.List:
-		if err := c.compileList(node); err != nil {
-			return err
-		}
-	case *ast.Map:
-		if err := c.compileMap(node); err != nil {
-			return err
-		}
-	case *ast.Set:
-		if err := c.compileSet(node); err != nil {
-			return err
-		}
-	case *ast.Index:
-		if err := c.compileIndex(node); err != nil {
-			return err
-		}
-	case *ast.GetAttr:
-		if err := c.compileGetAttr(node); err != nil {
-			return err
-		}
-	case *ast.ObjectCall:
-		if err := c.compileObjectCall(node); err != nil {
-			return err
-		}
-	case *ast.Prefix:
-		if err := c.compilePrefix(node); err != nil {
-			return err
-		}
-	case *ast.In:
-		if err := c.compileIn(node); err != nil {
-			return err
-		}
-	case *ast.Const:
-		if err := c.compileConst(node); err != nil {
-			return err
-		}
-	case *ast.Postfix:
-		if err := c.compilePostfix(node); err != nil {
-			return err
-		}
-	case *ast.Pipe:
-		if err := c.compilePipe(node); err != nil {
-			return err
-		}
-	case *ast.Ternary:
-		if err := c.compileTernary(node); err != nil {
-			return err
-		}
-	case *ast.Range:
-		if err := c.compileRange(node); err != nil {
-			return err
-		}
-	case *ast.Slice:
-		if err := c.compileSlice(node); err != nil {
-			return err
-		}
-	case *ast.Import:
-		if err := c.compileImport(node); err != nil {
-			return err
-		}
-	case *ast.FromImport:
-		if err := c.compileFromImport(node); err != nil {
-			return err
-		}
-	case *ast.Switch:
-		if err := c.compileSwitch(node); err != nil {
-			return err
-		}
-	case *ast.MultiVar:
-		if err := c.compileMultiVar(node); err != nil {
-			return err
-		}
-	case *ast.SetAttr:
-		if err := c.compileSetAttr(node); err != nil {
-			return err
-		}
-	case *ast.Go:
-		if err := c.compileGoStmt(node); err != nil {
-			return err
-		}
-	case *ast.Defer:
-		if err := c.compileDeferStmt(node); err != nil {
-			return err
-		}
-	case *ast.Send:
-		if err := c.compileSend(node); err != nil {
-			return err
-		}
-	case *ast.Receive:
-		if err := c.compileReceive(node); err != nil {
-			return err
-		}
-	default:
-		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
 	}
 	return nil
 }
 
-// startLoop should be called when starting to compile a new loop. This is used
-// to understand which loop that "break" and "continue" statements should target.
-func (c *Compiler) startLoop() *loop {
-	currentCode := c.current
-	loop := &loop{code: currentCode}
-	currentCode.loops = append(currentCode.loops, loop)
-	return loop
-}
-
-// currentLoop returns the loop that is currently being compiled, which is the
-// loop that "break" and "continue" statements should target.
-func (c *Compiler) currentLoop() *loop {
-	loops := c.current.loops
-	if len(loops) == 0 {
-		return nil
+// Modify registerGlobalFunctions to register function declarations
+func (c *Compiler) registerGlobalFunctions(node ast.Node) error {
+	functionsByName := make(map[string]*ast.Func)
+	switch node := node.(type) {
+	case *ast.Program:
+		for _, stmt := range node.Statements() {
+			switch stmt := stmt.(type) {
+			case *ast.Func:
+				functionsByName[stmt.Name().Literal()] = stmt
+			}
+		}
 	}
-	return loops[len(loops)-1]
+
+	// Register each function declaration
+	for name, fn := range functionsByName {
+		c.globalFunctions[name] = fn
+		if err := c.registerFunctionDeclaration(fn); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (c *Compiler) currentPosition() int {
-	return len(c.current.instructions)
+// Split compileFunc into registerFunctionDeclaration and compileFunctionBody
+func (c *Compiler) registerFunctionDeclaration(node *ast.Func) error {
+	if len(node.Parameters()) > 255 {
+		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
+	}
+
+	// The function has an optional name. If it is named, the name will be
+	// stored in the function's own symbol table to support recursive calls.
+	var functionName string
+	if ident := node.Name(); ident != nil {
+		functionName = ident.Literal()
+	}
+
+	// Create the function ID but don't compile the body yet
+	c.funcIndex++
+	functionID := fmt.Sprintf("%d", c.funcIndex)
+	code := c.current.newChild(functionName, node.Body().String(), functionID)
+
+	// Make it quick to look up the index of a parameter
+	paramsIdx := map[string]int{}
+	params := node.ParameterNames()
+	for i, name := range params {
+		paramsIdx[name] = i
+	}
+
+	// Build an array of default values for parameters
+	defaults := make([]any, len(params))
+	defaultsSet := map[int]bool{}
+	for name, expr := range node.Defaults() {
+		var value any
+		switch expr := expr.(type) {
+		case *ast.Int:
+			value = expr.Value()
+		case *ast.String:
+			value = expr.Value()
+		case *ast.Bool:
+			value = expr.Value()
+		case *ast.Float:
+			value = expr.Value()
+		case *ast.Nil:
+			value = nil
+		default:
+			line := node.Token().StartPosition.Line + 1
+			return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
+		}
+		index := paramsIdx[name]
+		defaults[index] = value
+		defaultsSet[index] = true
+	}
+
+	// Confirm only trailing parameters have defaults
+	if len(node.Defaults()) > 0 {
+		hasDefaults := false
+		for i := 0; i < len(params); i++ {
+			if defaultsSet[i] {
+				hasDefaults = true
+			} else if hasDefaults {
+				msg := "invalid argument defaults for"
+				if functionName != "" {
+					msg = fmt.Sprintf("%s function %q", msg, functionName)
+				} else {
+					msg = fmt.Sprintf("%s anonymous function", msg)
+				}
+				return c.formatError(msg, node.Token().StartPosition)
+			}
+		}
+	}
+
+	// Create the function that contains the compiled code (without body for now)
+	fn := NewFunction(FunctionOpts{
+		ID:         functionID,
+		Name:       functionName,
+		Parameters: params,
+		Defaults:   defaults,
+		Code:       code,
+	})
+
+	// Emit the code to load the function object onto the stack
+	c.emit(op.LoadConst, c.constant(fn))
+
+	// If the function was named, we store it as a named variable in the current code
+	if code.isNamed {
+		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
+		if err != nil {
+			return err
+		}
+		// Duplicate function on the stack, so that we ensure the function
+		// evaluates to a value even when it's named.
+		c.emit(op.Copy, 0)
+		if c.current.parent == nil {
+			c.emit(op.StoreGlobal, funcSymbol.Index())
+		} else {
+			c.emit(op.StoreFast, funcSymbol.Index())
+		}
+	}
+	return nil
+}
+
+func (c *Compiler) compileFunctionBody(node *ast.Func) error {
+	// The function has an optional name. If it is named, the name will be
+	// stored in the function's own symbol table to support recursive calls.
+	var functionName string
+	if ident := node.Name(); ident != nil {
+		functionName = ident.Literal()
+	}
+
+	// Find the corresponding code object for this function
+	var code *Code
+	for _, child := range c.main.children {
+		if child.name == functionName {
+			code = child
+			break
+		}
+	}
+
+	if code == nil {
+		return fmt.Errorf("compile error: function code not found for %s", functionName)
+	}
+
+	// Set current to compile into this function's code
+	previousCurrent := c.current
+	c.current = code
+
+	// Add the parameter names to the symbol table
+	for _, arg := range node.Parameters() {
+		if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
+			return err
+		}
+	}
+
+	// Add the function's own name to its symbol table
+	if code.isNamed {
+		if _, err := code.symbols.InsertConstant(functionName); err != nil {
+			return err
+		}
+	}
+
+	// Compile the function body
+	if err := c.compileFunctionBlock(node.Body()); err != nil {
+		return err
+	}
+
+	// We're done compiling the function, so switch back to compiling the parent
+	c.current = previousCurrent
+
+	// Update the function's free variables if needed
+	freeCount := code.symbols.FreeCount()
+	if freeCount > 0 {
+		// We need to update the function object to include closure information
+		// For each function that uses free variables, we need to find it in the constants
+		// and update it with the closure information
+		for i, constant := range c.main.constants {
+			if fn, ok := constant.(*Function); ok && fn.Code() == code {
+				// Create a new function with updated free variables
+				updatedFn := NewFunction(FunctionOpts{
+					ID:         fn.ID(),
+					Name:       fn.Name(),
+					Parameters: fn.parameters,
+					Defaults:   fn.defaults,
+					Code:       code,
+				})
+				// Replace the old function with the updated one
+				c.main.constants[i] = updatedFn
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// Replace compileFunc to decide which phase to handle
+func (c *Compiler) compileFunc(node *ast.Func) error {
+	// During normal compilation, only handle anonymous functions
+	// Global named functions are already registered and their bodies compiled separately
+	if node.Name() != nil {
+		// Skip named functions during regular compilation since they're handled in the phases
+		name := node.Name().Literal()
+		if _, exists := c.globalFunctions[name]; exists {
+			return nil
+		}
+	}
+
+	// For anonymous functions or functions not in the globalFunctions map,
+	// compile them immediately as before
+	if len(node.Parameters()) > 255 {
+		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
+	}
+
+	// The function has an optional name. If it is named, the name will be
+	// stored in the function's own symbol table to support recursive calls.
+	var functionName string
+	if ident := node.Name(); ident != nil {
+		functionName = ident.Literal()
+	}
+
+	// This new code object will store the compiled code for this function.
+	c.funcIndex++
+	functionID := fmt.Sprintf("%d", c.funcIndex)
+	code := c.current.newChild(functionName, node.Body().String(), functionID)
+
+	// Setting current here means subsequent calls to compile will add to this
+	// code object instead of the parent.
+	c.current = code
+
+	// Make it quick to look up the index of a parameter
+	paramsIdx := map[string]int{}
+	params := node.ParameterNames()
+	for i, name := range params {
+		paramsIdx[name] = i
+	}
+
+	// Build an array of default values for parameters, supporting only
+	// the basic types of int, string, bool, float, and nil.
+	defaults := make([]any, len(params))
+	defaultsSet := map[int]bool{}
+	for name, expr := range node.Defaults() {
+		var value any
+		switch expr := expr.(type) {
+		case *ast.Int:
+			value = expr.Value()
+		case *ast.String:
+			value = expr.Value()
+		case *ast.Bool:
+			value = expr.Value()
+		case *ast.Float:
+			value = expr.Value()
+		case *ast.Nil:
+			value = nil
+		default:
+			line := node.Token().StartPosition.Line + 1
+			return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
+		}
+		index := paramsIdx[name]
+		defaults[index] = value
+		defaultsSet[index] = true
+	}
+
+	// Confirm only trailing parameters have defaults
+	if len(node.Defaults()) > 0 {
+		hasDefaults := false
+		for i := 0; i < len(params); i++ {
+			if defaultsSet[i] {
+				hasDefaults = true
+			} else if hasDefaults {
+				msg := "invalid argument defaults for"
+				if functionName != "" {
+					msg = fmt.Sprintf("%s function %q", msg, functionName)
+				} else {
+					msg = fmt.Sprintf("%s anonymous function", msg)
+				}
+				return c.formatError(msg, node.Token().StartPosition)
+			}
+		}
+	}
+
+	// Add the parameter names to the symbol table
+	for _, arg := range node.Parameters() {
+		if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
+			return err
+		}
+	}
+
+	// Add the function's own name to its symbol table. This supports recursive
+	// calls to the function. Later when we create the function object, we'll
+	// add the object value to the table.
+	if code.isNamed {
+		if _, err := code.symbols.InsertConstant(functionName); err != nil {
+			return err
+		}
+	}
+
+	// Compile the function body
+	if err := c.compileFunctionBlock(node.Body()); err != nil {
+		return err
+	}
+
+	// We're done compiling the function, so switch back to compiling the parent
+	c.current = c.current.parent
+
+	// Create the function that contains the compiled code
+	fn := NewFunction(FunctionOpts{
+		ID:         functionID,
+		Name:       functionName,
+		Parameters: params,
+		Defaults:   defaults,
+		Code:       code,
+	})
+
+	// Emit the code to load the function object onto the stack. If there are
+	// free variables, we use LoadClosure, otherwise we use LoadConst.
+	freeCount := code.symbols.FreeCount()
+	if freeCount > 0 {
+		for i := uint16(0); i < freeCount; i++ {
+			resolution := code.symbols.Free(i)
+			c.emit(op.MakeCell, resolution.symbol.Index(), uint16(resolution.depth-1))
+		}
+		c.emit(op.LoadClosure, c.constant(fn), freeCount)
+	} else {
+		c.emit(op.LoadConst, c.constant(fn))
+	}
+
+	// If the function was named, we store it as a named variable in the current
+	// code. Otherwise, we just leave it on the stack.
+	if code.isNamed {
+		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
+		if err != nil {
+			return err
+		}
+		// Duplicate function on the stack, so that we ensure the function
+		// evaluates to a value even when it's named.
+		c.emit(op.Copy, 0)
+		if c.current.parent == nil {
+			c.emit(op.StoreGlobal, funcSymbol.Index())
+		} else {
+			c.emit(op.StoreFast, funcSymbol.Index())
+		}
+	}
+	return nil
 }
 
 func (c *Compiler) compileNil() error {
@@ -362,23 +543,26 @@ func (c *Compiler) compileProgram(node *ast.Program) error {
 	if count == 0 {
 		// Guarantee that the program evaluates to a value
 		c.emit(op.Nil)
-	} else {
-		for i, stmt := range statements {
-			if err := c.compile(stmt); err != nil {
-				return err
-			}
-			if i < count-1 {
-				if stmt.IsExpression() {
-					c.emit(op.PopTop)
-				}
-			}
+		return nil
+	}
+
+	for i, stmt := range statements {
+		if err := c.compile(stmt); err != nil {
+			return err
 		}
-		// Guarantee that the program evaluates to a value
-		lastStatement := statements[count-1]
-		if !lastStatement.IsExpression() {
-			c.emit(op.Nil)
+		if i < count-1 {
+			if stmt.IsExpression() {
+				c.emit(op.PopTop)
+			}
 		}
 	}
+
+	// Guarantee that the program evaluates to a value
+	lastStatement := statements[count-1]
+	if !lastStatement.IsExpression() {
+		c.emit(op.Nil)
+	}
+
 	return nil
 }
 
@@ -1032,146 +1216,6 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 		}
 	}
 	c.emit(op.BuildSet, uint16(count))
-	return nil
-}
-
-func (c *Compiler) compileFunc(node *ast.Func) error {
-	// Python cell variables:
-	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
-
-	if len(node.Parameters()) > 255 {
-		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
-	}
-
-	// The function has an optional name. If it is named, the name will be
-	// stored in the function's own symbol table to support recursive calls.
-	var functionName string
-	if ident := node.Name(); ident != nil {
-		functionName = ident.Literal()
-	}
-
-	// This new code object will store the compiled code for this function.
-	c.funcIndex++
-	functionID := fmt.Sprintf("%d", c.funcIndex)
-	code := c.current.newChild(functionName, node.Body().String(), functionID)
-
-	// Setting current here means subsequent calls to compile will add to this
-	// code object instead of the parent.
-	c.current = code
-
-	// Make it quick to look up the index of a parameter
-	paramsIdx := map[string]int{}
-	params := node.ParameterNames()
-	for i, name := range params {
-		paramsIdx[name] = i
-	}
-
-	// Build an array of default values for parameters, supporting only
-	// the basic types of int, string, bool, float, and nil.
-	defaults := make([]any, len(params))
-	defaultsSet := map[int]bool{}
-	for name, expr := range node.Defaults() {
-		var value any
-		switch expr := expr.(type) {
-		case *ast.Int:
-			value = expr.Value()
-		case *ast.String:
-			value = expr.Value()
-		case *ast.Bool:
-			value = expr.Value()
-		case *ast.Float:
-			value = expr.Value()
-		case *ast.Nil:
-			value = nil
-		default:
-			line := node.Token().StartPosition.Line + 1
-			return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
-		}
-		index := paramsIdx[name]
-		defaults[index] = value
-		defaultsSet[index] = true
-	}
-
-	// Confirm only trailing parameters have defaults
-	if len(node.Defaults()) > 0 {
-		hasDefaults := false
-		for i := 0; i < len(params); i++ {
-			if defaultsSet[i] {
-				hasDefaults = true
-			} else if hasDefaults {
-				msg := "invalid argument defaults for"
-				if functionName != "" {
-					msg = fmt.Sprintf("%s function %q", msg, functionName)
-				} else {
-					msg = fmt.Sprintf("%s anonymous function", msg)
-				}
-				return c.formatError(msg, node.Token().StartPosition)
-			}
-		}
-	}
-
-	// Add the parameter names to the symbol table
-	for _, arg := range node.Parameters() {
-		if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
-			return err
-		}
-	}
-
-	// Add the function's own name to its symbol table. This supports recursive
-	// calls to the function. Later when we create the function object, we'll
-	// add the object value to the table.
-	if code.isNamed {
-		if _, err := code.symbols.InsertConstant(functionName); err != nil {
-			return err
-		}
-	}
-
-	// Compile the function body
-	if err := c.compileFunctionBlock(node.Body()); err != nil {
-		return err
-	}
-
-	// We're done compiling the function, so switch back to compiling the parent
-	c.current = c.current.parent
-
-	// Create the function that contains the compiled code
-	fn := NewFunction(FunctionOpts{
-		ID:         functionID,
-		Name:       functionName,
-		Parameters: params,
-		Defaults:   defaults,
-		Code:       code,
-	})
-
-	// Emit the code to load the function object onto the stack. If there are
-	// free variables, we use LoadClosure, otherwise we use LoadConst.
-	freeCount := code.symbols.FreeCount()
-	if freeCount > 0 {
-		for i := uint16(0); i < freeCount; i++ {
-			resolution := code.symbols.Free(i)
-			c.emit(op.MakeCell, resolution.symbol.Index(), uint16(resolution.depth-1))
-		}
-		c.emit(op.LoadClosure, c.constant(fn), freeCount)
-	} else {
-		c.emit(op.LoadConst, c.constant(fn))
-	}
-
-	// If the function was named, we store it as a named variable in the current
-	// code. Otherwise, we just leave it on the stack.
-	if code.isNamed {
-		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
-		if err != nil {
-			return err
-		}
-		// Duplicate function on the stack, so that we ensure the function
-		// evaluates to a value even when it's named.
-		c.emit(op.Copy, 0)
-		if c.current.parent == nil {
-			c.emit(op.StoreGlobal, funcSymbol.Index())
-		} else {
-			c.emit(op.StoreFast, funcSymbol.Index())
-		}
-	}
 	return nil
 }
 
@@ -1958,4 +2002,196 @@ func (c *Compiler) formatError(msg string, pos token.Position) error {
 	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
 	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
+}
+
+// Restore the compile method that was accidentally removed
+func (c *Compiler) compile(node ast.Node) error {
+	switch node := node.(type) {
+	case *ast.Nil:
+		if err := c.compileNil(); err != nil {
+			return err
+		}
+	case *ast.Int:
+		if err := c.compileInt(node); err != nil {
+			return err
+		}
+	case *ast.Float:
+		if err := c.compileFloat(node); err != nil {
+			return err
+		}
+	case *ast.String:
+		if err := c.compileString(node); err != nil {
+			return err
+		}
+	case *ast.Bool:
+		if err := c.compileBool(node); err != nil {
+			return err
+		}
+	case *ast.If:
+		if err := c.compileIf(node); err != nil {
+			return err
+		}
+	case *ast.Infix:
+		if err := c.compileInfix(node); err != nil {
+			return err
+		}
+	case *ast.Program:
+		if err := c.compileProgram(node); err != nil {
+			return err
+		}
+	case *ast.Block:
+		if err := c.compileBlock(node); err != nil {
+			return err
+		}
+	case *ast.Var:
+		if err := c.compileVar(node); err != nil {
+			return err
+		}
+	case *ast.Assign:
+		if err := c.compileAssign(node); err != nil {
+			return err
+		}
+	case *ast.Ident:
+		if err := c.compileIdent(node); err != nil {
+			return err
+		}
+	case *ast.For:
+		if err := c.compileFor(node); err != nil {
+			return err
+		}
+	case *ast.Control:
+		if err := c.compileControl(node); err != nil {
+			return err
+		}
+	case *ast.Return:
+		if err := c.compileReturn(node); err != nil {
+			return err
+		}
+	case *ast.Call:
+		if err := c.compileCall(node); err != nil {
+			return err
+		}
+	case *ast.Func:
+		if err := c.compileFunc(node); err != nil {
+			return err
+		}
+	case *ast.List:
+		if err := c.compileList(node); err != nil {
+			return err
+		}
+	case *ast.Map:
+		if err := c.compileMap(node); err != nil {
+			return err
+		}
+	case *ast.Set:
+		if err := c.compileSet(node); err != nil {
+			return err
+		}
+	case *ast.Index:
+		if err := c.compileIndex(node); err != nil {
+			return err
+		}
+	case *ast.GetAttr:
+		if err := c.compileGetAttr(node); err != nil {
+			return err
+		}
+	case *ast.ObjectCall:
+		if err := c.compileObjectCall(node); err != nil {
+			return err
+		}
+	case *ast.Prefix:
+		if err := c.compilePrefix(node); err != nil {
+			return err
+		}
+	case *ast.In:
+		if err := c.compileIn(node); err != nil {
+			return err
+		}
+	case *ast.Const:
+		if err := c.compileConst(node); err != nil {
+			return err
+		}
+	case *ast.Postfix:
+		if err := c.compilePostfix(node); err != nil {
+			return err
+		}
+	case *ast.Pipe:
+		if err := c.compilePipe(node); err != nil {
+			return err
+		}
+	case *ast.Ternary:
+		if err := c.compileTernary(node); err != nil {
+			return err
+		}
+	case *ast.Range:
+		if err := c.compileRange(node); err != nil {
+			return err
+		}
+	case *ast.Slice:
+		if err := c.compileSlice(node); err != nil {
+			return err
+		}
+	case *ast.Import:
+		if err := c.compileImport(node); err != nil {
+			return err
+		}
+	case *ast.FromImport:
+		if err := c.compileFromImport(node); err != nil {
+			return err
+		}
+	case *ast.Switch:
+		if err := c.compileSwitch(node); err != nil {
+			return err
+		}
+	case *ast.MultiVar:
+		if err := c.compileMultiVar(node); err != nil {
+			return err
+		}
+	case *ast.SetAttr:
+		if err := c.compileSetAttr(node); err != nil {
+			return err
+		}
+	case *ast.Go:
+		if err := c.compileGoStmt(node); err != nil {
+			return err
+		}
+	case *ast.Defer:
+		if err := c.compileDeferStmt(node); err != nil {
+			return err
+		}
+	case *ast.Send:
+		if err := c.compileSend(node); err != nil {
+			return err
+		}
+	case *ast.Receive:
+		if err := c.compileReceive(node); err != nil {
+			return err
+		}
+	default:
+		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
+	}
+	return nil
+}
+
+// startLoop should be called when starting to compile a new loop. This is used
+// to understand which loop that "break" and "continue" statements should target.
+func (c *Compiler) startLoop() *loop {
+	currentCode := c.current
+	loop := &loop{code: currentCode}
+	currentCode.loops = append(currentCode.loops, loop)
+	return loop
+}
+
+// currentLoop returns the loop that is currently being compiled, which is the
+// loop that "break" and "continue" statements should target.
+func (c *Compiler) currentLoop() *loop {
+	loops := c.current.loops
+	if len(loops) == 0 {
+		return nil
+	}
+	return loops[len(loops)-1]
+}
+
+func (c *Compiler) currentPosition() int {
+	return len(c.current.instructions)
 }
