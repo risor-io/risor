@@ -159,6 +159,175 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	return c.main, nil
 }
 
+// Restore the compile method that was accidentally removed
+func (c *Compiler) compile(node ast.Node) error {
+	switch node := node.(type) {
+	case *ast.Nil:
+		if err := c.compileNil(); err != nil {
+			return err
+		}
+	case *ast.Int:
+		if err := c.compileInt(node); err != nil {
+			return err
+		}
+	case *ast.Float:
+		if err := c.compileFloat(node); err != nil {
+			return err
+		}
+	case *ast.String:
+		if err := c.compileString(node); err != nil {
+			return err
+		}
+	case *ast.Bool:
+		if err := c.compileBool(node); err != nil {
+			return err
+		}
+	case *ast.If:
+		if err := c.compileIf(node); err != nil {
+			return err
+		}
+	case *ast.Infix:
+		if err := c.compileInfix(node); err != nil {
+			return err
+		}
+	case *ast.Program:
+		if err := c.compileProgram(node); err != nil {
+			return err
+		}
+	case *ast.Block:
+		if err := c.compileBlock(node); err != nil {
+			return err
+		}
+	case *ast.Var:
+		if err := c.compileVar(node); err != nil {
+			return err
+		}
+	case *ast.Assign:
+		if err := c.compileAssign(node); err != nil {
+			return err
+		}
+	case *ast.Ident:
+		if err := c.compileIdent(node); err != nil {
+			return err
+		}
+	case *ast.For:
+		if err := c.compileFor(node); err != nil {
+			return err
+		}
+	case *ast.Control:
+		if err := c.compileControl(node); err != nil {
+			return err
+		}
+	case *ast.Return:
+		if err := c.compileReturn(node); err != nil {
+			return err
+		}
+	case *ast.Call:
+		if err := c.compileCall(node); err != nil {
+			return err
+		}
+	case *ast.Func:
+		if err := c.compileFunc(node); err != nil {
+			return err
+		}
+	case *ast.List:
+		if err := c.compileList(node); err != nil {
+			return err
+		}
+	case *ast.Map:
+		if err := c.compileMap(node); err != nil {
+			return err
+		}
+	case *ast.Set:
+		if err := c.compileSet(node); err != nil {
+			return err
+		}
+	case *ast.Index:
+		if err := c.compileIndex(node); err != nil {
+			return err
+		}
+	case *ast.GetAttr:
+		if err := c.compileGetAttr(node); err != nil {
+			return err
+		}
+	case *ast.ObjectCall:
+		if err := c.compileObjectCall(node); err != nil {
+			return err
+		}
+	case *ast.Prefix:
+		if err := c.compilePrefix(node); err != nil {
+			return err
+		}
+	case *ast.In:
+		if err := c.compileIn(node); err != nil {
+			return err
+		}
+	case *ast.Const:
+		if err := c.compileConst(node); err != nil {
+			return err
+		}
+	case *ast.Postfix:
+		if err := c.compilePostfix(node); err != nil {
+			return err
+		}
+	case *ast.Pipe:
+		if err := c.compilePipe(node); err != nil {
+			return err
+		}
+	case *ast.Ternary:
+		if err := c.compileTernary(node); err != nil {
+			return err
+		}
+	case *ast.Range:
+		if err := c.compileRange(node); err != nil {
+			return err
+		}
+	case *ast.Slice:
+		if err := c.compileSlice(node); err != nil {
+			return err
+		}
+	case *ast.Import:
+		if err := c.compileImport(node); err != nil {
+			return err
+		}
+	case *ast.FromImport:
+		if err := c.compileFromImport(node); err != nil {
+			return err
+		}
+	case *ast.Switch:
+		if err := c.compileSwitch(node); err != nil {
+			return err
+		}
+	case *ast.MultiVar:
+		if err := c.compileMultiVar(node); err != nil {
+			return err
+		}
+	case *ast.SetAttr:
+		if err := c.compileSetAttr(node); err != nil {
+			return err
+		}
+	case *ast.Go:
+		if err := c.compileGoStmt(node); err != nil {
+			return err
+		}
+	case *ast.Defer:
+		if err := c.compileDeferStmt(node); err != nil {
+			return err
+		}
+	case *ast.Send:
+		if err := c.compileSend(node); err != nil {
+			return err
+		}
+	case *ast.Receive:
+		if err := c.compileReceive(node); err != nil {
+			return err
+		}
+	default:
+		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
+	}
+	return nil
+}
+
 // Add a new method to compile all function bodies
 func (c *Compiler) compileFunctionBodies() error {
 	for _, fn := range c.globalFunctions {
@@ -2002,175 +2171,6 @@ func (c *Compiler) formatError(msg string, pos token.Position) error {
 	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
 	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
-}
-
-// Restore the compile method that was accidentally removed
-func (c *Compiler) compile(node ast.Node) error {
-	switch node := node.(type) {
-	case *ast.Nil:
-		if err := c.compileNil(); err != nil {
-			return err
-		}
-	case *ast.Int:
-		if err := c.compileInt(node); err != nil {
-			return err
-		}
-	case *ast.Float:
-		if err := c.compileFloat(node); err != nil {
-			return err
-		}
-	case *ast.String:
-		if err := c.compileString(node); err != nil {
-			return err
-		}
-	case *ast.Bool:
-		if err := c.compileBool(node); err != nil {
-			return err
-		}
-	case *ast.If:
-		if err := c.compileIf(node); err != nil {
-			return err
-		}
-	case *ast.Infix:
-		if err := c.compileInfix(node); err != nil {
-			return err
-		}
-	case *ast.Program:
-		if err := c.compileProgram(node); err != nil {
-			return err
-		}
-	case *ast.Block:
-		if err := c.compileBlock(node); err != nil {
-			return err
-		}
-	case *ast.Var:
-		if err := c.compileVar(node); err != nil {
-			return err
-		}
-	case *ast.Assign:
-		if err := c.compileAssign(node); err != nil {
-			return err
-		}
-	case *ast.Ident:
-		if err := c.compileIdent(node); err != nil {
-			return err
-		}
-	case *ast.For:
-		if err := c.compileFor(node); err != nil {
-			return err
-		}
-	case *ast.Control:
-		if err := c.compileControl(node); err != nil {
-			return err
-		}
-	case *ast.Return:
-		if err := c.compileReturn(node); err != nil {
-			return err
-		}
-	case *ast.Call:
-		if err := c.compileCall(node); err != nil {
-			return err
-		}
-	case *ast.Func:
-		if err := c.compileFunc(node); err != nil {
-			return err
-		}
-	case *ast.List:
-		if err := c.compileList(node); err != nil {
-			return err
-		}
-	case *ast.Map:
-		if err := c.compileMap(node); err != nil {
-			return err
-		}
-	case *ast.Set:
-		if err := c.compileSet(node); err != nil {
-			return err
-		}
-	case *ast.Index:
-		if err := c.compileIndex(node); err != nil {
-			return err
-		}
-	case *ast.GetAttr:
-		if err := c.compileGetAttr(node); err != nil {
-			return err
-		}
-	case *ast.ObjectCall:
-		if err := c.compileObjectCall(node); err != nil {
-			return err
-		}
-	case *ast.Prefix:
-		if err := c.compilePrefix(node); err != nil {
-			return err
-		}
-	case *ast.In:
-		if err := c.compileIn(node); err != nil {
-			return err
-		}
-	case *ast.Const:
-		if err := c.compileConst(node); err != nil {
-			return err
-		}
-	case *ast.Postfix:
-		if err := c.compilePostfix(node); err != nil {
-			return err
-		}
-	case *ast.Pipe:
-		if err := c.compilePipe(node); err != nil {
-			return err
-		}
-	case *ast.Ternary:
-		if err := c.compileTernary(node); err != nil {
-			return err
-		}
-	case *ast.Range:
-		if err := c.compileRange(node); err != nil {
-			return err
-		}
-	case *ast.Slice:
-		if err := c.compileSlice(node); err != nil {
-			return err
-		}
-	case *ast.Import:
-		if err := c.compileImport(node); err != nil {
-			return err
-		}
-	case *ast.FromImport:
-		if err := c.compileFromImport(node); err != nil {
-			return err
-		}
-	case *ast.Switch:
-		if err := c.compileSwitch(node); err != nil {
-			return err
-		}
-	case *ast.MultiVar:
-		if err := c.compileMultiVar(node); err != nil {
-			return err
-		}
-	case *ast.SetAttr:
-		if err := c.compileSetAttr(node); err != nil {
-			return err
-		}
-	case *ast.Go:
-		if err := c.compileGoStmt(node); err != nil {
-			return err
-		}
-	case *ast.Defer:
-		if err := c.compileDeferStmt(node); err != nil {
-			return err
-		}
-	case *ast.Send:
-		if err := c.compileSend(node); err != nil {
-			return err
-		}
-	case *ast.Receive:
-		if err := c.compileReceive(node); err != nil {
-			return err
-		}
-	default:
-		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
-	}
-	return nil
 }
 
 // startLoop should be called when starting to compile a new loop. This is used
