@@ -581,9 +581,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Then compile its body
 	// Get the code object that was just created
 	if len(c.current.children) <= currentChildCount {
-		// This is likely an anonymous function in a special context
-		// Just return nil as the function is already on the stack
-		return nil
+		return fmt.Errorf("compile error: function code object not created")
 	}
 
 	// The code object should be the last one added to children
@@ -619,24 +617,19 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Update the function's free variables if needed
 	freeCount := code.symbols.FreeCount()
 	if freeCount > 0 {
-		// Find the function in the constants
-		// Look for the function with the matching code object
-		var fnIndex int = -1
-		for i, constant := range c.current.constants {
-			if fn, ok := constant.(*Function); ok && fn.Code() == code {
-				fnIndex = i
-				break
-			}
+		// Find the function in the constants and update it with closure information
+		// The function should be the last one added to constants
+		constantsLen := len(c.current.constants)
+		if constantsLen == 0 {
+			return fmt.Errorf("compile error: no constants found for function")
 		}
 
-		if fnIndex == -1 {
-			// Function not found in constants, this shouldn't happen
-			// But just return, don't error out, as the function is already on the stack
-			return nil
+		// Get the last constant, which should be our function
+		lastConstant := c.current.constants[constantsLen-1]
+		fn, ok := lastConstant.(*Function)
+		if !ok {
+			return fmt.Errorf("compile error: expected function constant, got %T", lastConstant)
 		}
-
-		// Get the function from constants
-		fn := c.current.constants[fnIndex].(*Function)
 
 		// We need to create a function with updated free variables
 		for j := uint16(0); j < freeCount; j++ {
@@ -654,7 +647,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		})
 
 		// Replace the old function with the updated one
-		c.current.constants[fnIndex] = updatedFn
+		c.current.constants[constantsLen-1] = updatedFn
 
 		// Emit LoadClosure instead of LoadConst for functions with free variables
 		c.emit(op.LoadClosure, c.constant(updatedFn), freeCount)
@@ -2031,66 +2024,17 @@ func (c *Compiler) compileDeferStmt(node *ast.Defer) error {
 	if c.current.parent == nil {
 		return c.formatError("defer statement outside of a function", node.Token().StartPosition)
 	}
-
 	expr := node.Call()
 	switch expr := expr.(type) {
 	case *ast.Call:
-		// Compile the function first to ensure it's available
-		if err := c.compile(expr.Function()); err != nil {
+		if err := c.compilePartial(expr); err != nil {
 			return err
 		}
-
-		// Then compile the arguments
-		args := expr.Arguments()
-		argc := len(args)
-		if argc > MaxArgs {
-			return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
-		}
-
-		for _, arg := range args {
-			if err := c.compile(arg); err != nil {
-				return err
-			}
-		}
-
-		// Create a partial with the arguments
-		c.emit(op.Partial, uint16(argc))
-
 	case *ast.ObjectCall:
-		// Compile the object first
-		if err := c.compile(expr.Object()); err != nil {
+		if err := c.compilePartialObjectCall(expr); err != nil {
 			return err
 		}
-
-		// Get the method name and load it
-		method, ok := expr.Call().(*ast.Call)
-		if !ok {
-			return fmt.Errorf("compile error: invalid call expression")
-		}
-		name := method.Function().String()
-		c.emit(op.LoadAttr, c.current.addName(name))
-
-		// Then compile the arguments
-		args := method.Arguments()
-		argc := len(args)
-		if argc > MaxArgs {
-			return fmt.Errorf("compile error: max args limit of %d exceeded (got %d)", MaxArgs, argc)
-		}
-
-		for _, arg := range args {
-			if err := c.compile(arg); err != nil {
-				return err
-			}
-		}
-
-		// Create a partial with the arguments
-		c.emit(op.Partial, uint16(argc))
-
-	default:
-		return fmt.Errorf("compile error: defer requires a function call")
 	}
-
-	// Add to the defer stack
 	c.emit(op.Defer)
 	return nil
 }
