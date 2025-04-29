@@ -129,6 +129,13 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if c.filename != "" {
 		c.main.filename = c.filename
 	}
+
+	// First pass: register all symbols in the symbol table
+	if err := c.registerSymbols(node); err != nil {
+		return nil, err
+	}
+
+	// Second pass: compile the actual code
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -138,6 +145,25 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 		return nil, c.failure
 	}
 	return c.main, nil
+}
+
+// registerSymbols walks the AST and registers global function declarations
+// in the symbol table, without compiling their bodies yet. This allows
+// referencing functions in any order throughout the code.
+func (c *Compiler) registerSymbols(node ast.Node) error {
+	switch node := node.(type) {
+	case *ast.Program:
+		for _, stmt := range node.Statements() {
+			// Only register named functions in the first pass
+			if fn, ok := stmt.(*ast.Func); ok && fn.Name() != nil {
+				name := fn.Name().Literal()
+				if _, err := c.current.symbols.InsertConstant(name); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // compile the given AST node and all its children.
@@ -457,6 +483,8 @@ func (c *Compiler) compileIdent(node *ast.Ident) error {
 	if !found {
 		return c.formatError(fmt.Sprintf("undefined variable %q", name), node.Token().StartPosition)
 	}
+	identVal := resolution.symbol.Value()
+	fmt.Println("identVal", name, identVal)
 	switch resolution.scope {
 	case Global:
 		c.emit(op.LoadGlobal, resolution.symbol.Index())
@@ -1159,9 +1187,15 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// If the function was named, we store it as a named variable in the current
 	// code. Otherwise, we just leave it on the stack.
 	if code.isNamed {
-		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
-		if err != nil {
-			return err
+		// Get the function symbol if it was predefined
+		funcSymbol, found := c.current.symbols.Get(functionName)
+		if !found {
+			// For non-global functions or functions that weren't predefined
+			var err error
+			funcSymbol, err = c.current.symbols.InsertConstant(functionName)
+			if err != nil {
+				return err
+			}
 		}
 		// Duplicate function on the stack, so that we ensure the function
 		// evaluates to a value even when it's named.

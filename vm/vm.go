@@ -114,9 +114,9 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 		return err
 	}
 	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
+		// if r := recover(); r != nil {
+		// 	err = fmt.Errorf("panic: %v", r)
+		// }
 		vm.stop()
 	}()
 
