@@ -159,7 +159,7 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	return c.main, nil
 }
 
-// Restore the compile method that was accidentally removed
+// compile the given AST node and all its children.
 func (c *Compiler) compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Nil:
@@ -326,6 +326,29 @@ func (c *Compiler) compile(node ast.Node) error {
 		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
 	}
 	return nil
+}
+
+// startLoop should be called when starting to compile a new loop. This is used
+// to understand which loop that "break" and "continue" statements should target.
+func (c *Compiler) startLoop() *loop {
+	currentCode := c.current
+	loop := &loop{code: currentCode}
+	currentCode.loops = append(currentCode.loops, loop)
+	return loop
+}
+
+// currentLoop returns the loop that is currently being compiled, which is the
+// loop that "break" and "continue" statements should target.
+func (c *Compiler) currentLoop() *loop {
+	loops := c.current.loops
+	if len(loops) == 0 {
+		return nil
+	}
+	return loops[len(loops)-1]
+}
+
+func (c *Compiler) currentPosition() int {
+	return len(c.current.instructions)
 }
 
 // Add a new method to compile all function bodies
@@ -2171,27 +2194,4 @@ func (c *Compiler) formatError(msg string, pos token.Position) error {
 	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
 	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
-}
-
-// startLoop should be called when starting to compile a new loop. This is used
-// to understand which loop that "break" and "continue" statements should target.
-func (c *Compiler) startLoop() *loop {
-	currentCode := c.current
-	loop := &loop{code: currentCode}
-	currentCode.loops = append(currentCode.loops, loop)
-	return loop
-}
-
-// currentLoop returns the loop that is currently being compiled, which is the
-// loop that "break" and "continue" statements should target.
-func (c *Compiler) currentLoop() *loop {
-	loops := c.current.loops
-	if len(loops) == 0 {
-		return nil
-	}
-	return loops[len(loops)-1]
-}
-
-func (c *Compiler) currentPosition() int {
-	return len(c.current.instructions)
 }
