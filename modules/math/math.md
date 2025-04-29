@@ -275,6 +275,19 @@ Returns 10 raised to the power of x.
 100
 ```
 
+### inf
+
+```go filename="Function signature"
+inf(x number) float 
+```
+
+Inf returns positive infinity if sign >= 0, negative infinity if sign < 0. 
+
+```go copy filename="Example"
+>>> math.inf()
++Inf
+```
+
 ### is_inf
 
 ```go filename="Function signature"
