@@ -1043,20 +1043,46 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
 	}
 
-	// The function has an optional name. If it is named, the name will be
-	// stored in the function's own symbol table to support recursive calls.
+	// Extract function name if available
 	var functionName string
 	if ident := node.Name(); ident != nil {
 		functionName = ident.Literal()
 	}
 
-	// This new code object will store the compiled code for this function.
+	// Compile the function body and get the code object
+	code, err := c.compileFunctionBody(node, functionName)
+	if err != nil {
+		return err
+	}
+
+	// Create the function that contains the compiled code
+	fn := NewFunction(FunctionOpts{
+		ID:         code.functionID,
+		Name:       functionName,
+		Parameters: node.ParameterNames(),
+		Defaults:   code.defaults,
+		Code:       code,
+	})
+
+	// Emit the code to load the function object onto the stack
+	if err := c.emitFunctionLoad(fn, code, functionName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// compileFunctionBody compiles the body of a function and returns the resulting code object
+func (c *Compiler) compileFunctionBody(node *ast.Func, functionName string) (*Code, error) {
+	// This new code object will store the compiled code for this function
 	c.funcIndex++
 	functionID := fmt.Sprintf("%d", c.funcIndex)
 	code := c.current.newChild(functionName, node.Body().String(), functionID)
 
-	// Setting current here means subsequent calls to compile will add to this
-	// code object instead of the parent.
+	// Save current compiler state
+	parentCode := c.current
+
+	// Set current to the function code object
 	c.current = code
 
 	// Make it quick to look up the index of a parameter
@@ -1066,46 +1092,53 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		paramsIdx[name] = i
 	}
 
-	// Build an array of default values for parameters, supporting only
-	// the basic types of int, string, bool, float, and nil.
-	defaults := make([]any, len(params))
-	defaultsSet := map[int]bool{}
-	for name, expr := range node.Defaults() {
-		var value any
-		switch expr := expr.(type) {
-		case *ast.Int:
-			value = expr.Value()
-		case *ast.String:
-			value = expr.Value()
-		case *ast.Bool:
-			value = expr.Value()
-		case *ast.Float:
-			value = expr.Value()
-		case *ast.Nil:
-			value = nil
-		default:
-			line := node.Token().StartPosition.Line + 1
-			return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
-		}
-		index := paramsIdx[name]
-		defaults[index] = value
-		defaultsSet[index] = true
-	}
+	// Only initialize defaults if there are parameters
+	if len(params) > 0 {
+		// Initialize defaults with same length as params (nil for params without defaults)
+		defaults := make([]any, len(params))
+		defaultsSet := map[int]bool{}
 
-	// Confirm only trailing parameters have defaults
-	if len(node.Defaults()) > 0 {
-		hasDefaults := false
-		for i := 0; i < len(params); i++ {
-			if defaultsSet[i] {
-				hasDefaults = true
-			} else if hasDefaults {
-				msg := "invalid argument defaults for"
-				if functionName != "" {
-					msg = fmt.Sprintf("%s function %q", msg, functionName)
-				} else {
-					msg = fmt.Sprintf("%s anonymous function", msg)
+		// Set explicit defaults
+		for name, expr := range node.Defaults() {
+			var value any
+			switch expr := expr.(type) {
+			case *ast.Int:
+				value = expr.Value()
+			case *ast.String:
+				value = expr.Value()
+			case *ast.Bool:
+				value = expr.Value()
+			case *ast.Float:
+				value = expr.Value()
+			case *ast.Nil:
+				value = nil
+			default:
+				line := node.Token().StartPosition.Line + 1
+				return nil, fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
+			}
+			index := paramsIdx[name]
+			defaults[index] = value
+			defaultsSet[index] = true
+		}
+
+		// Store defaults on code object so they're accessible when creating the function
+		code.defaults = defaults
+
+		// Confirm only trailing parameters have defaults
+		if len(node.Defaults()) > 0 {
+			hasDefaults := false
+			for i := 0; i < len(params); i++ {
+				if defaultsSet[i] {
+					hasDefaults = true
+				} else if hasDefaults {
+					msg := "invalid argument defaults for"
+					if functionName != "" {
+						msg = fmt.Sprintf("%s function %q", msg, functionName)
+					} else {
+						msg = fmt.Sprintf("%s anonymous function", msg)
+					}
+					return nil, c.formatError(msg, node.Token().StartPosition)
 				}
-				return c.formatError(msg, node.Token().StartPosition)
 			}
 		}
 	}
@@ -1113,36 +1146,30 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// Add the parameter names to the symbol table
 	for _, arg := range node.Parameters() {
 		if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	// Add the function's own name to its symbol table. This supports recursive
-	// calls to the function. Later when we create the function object, we'll
-	// add the object value to the table.
+	// Add the function's own name to its symbol table for recursive calls
 	if code.isNamed {
 		if _, err := code.symbols.InsertConstant(functionName); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Compile the function body
 	if err := c.compileFunctionBlock(node.Body()); err != nil {
-		return err
+		return nil, err
 	}
 
-	// We're done compiling the function, so switch back to compiling the parent
-	c.current = c.current.parent
+	// Restore the parent code object
+	c.current = parentCode
 
-	// Create the function that contains the compiled code
-	fn := NewFunction(FunctionOpts{
-		ID:         functionID,
-		Name:       functionName,
-		Parameters: params,
-		Defaults:   defaults,
-		Code:       code,
-	})
+	return code, nil
+}
 
+// emitFunctionLoad emits bytecode to load a function onto the stack
+func (c *Compiler) emitFunctionLoad(fn *Function, code *Code, functionName string) error {
 	// Emit the code to load the function object onto the stack. If there are
 	// free variables, we use LoadClosure, otherwise we use LoadConst.
 	freeCount := code.symbols.FreeCount()
@@ -1156,8 +1183,7 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 		c.emit(op.LoadConst, c.constant(fn))
 	}
 
-	// If the function was named, we store it as a named variable in the current
-	// code. Otherwise, we just leave it on the stack.
+	// If the function was named, we store it as a named variable in the current code
 	if code.isNamed {
 		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
 		if err != nil {

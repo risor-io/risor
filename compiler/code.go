@@ -32,6 +32,7 @@ type Code struct {
 	source       string
 	functionID   string
 	filename     string // The source file this code came from
+	defaults     []any  // Parameter default values for functions
 
 	// Used during compilation only
 	loops      []*loop

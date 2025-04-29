@@ -99,6 +99,7 @@ type codeDef struct {
 	Constants     []json.RawMessage `json:"constants,omitempty"`
 	Names         []string          `json:"names,omitempty"`
 	Source        string            `json:"source,omitempty"`
+	Defaults      []json.RawMessage `json:"defaults,omitempty"`
 }
 
 // A representation of a Code object that can be marshalled more easily.
@@ -129,6 +130,10 @@ func codeFromState(state *state) (*Code, error) {
 		if err != nil {
 			return nil, err
 		}
+		defaults, err := unmarshalConstants(c.Defaults)
+		if err != nil {
+			return nil, err
+		}
 		code := &Code{
 			id:           c.ID,
 			parent:       parent,
@@ -140,6 +145,7 @@ func codeFromState(state *state) (*Code, error) {
 			constants:    constants,
 			names:        copyStrings(c.Names),
 			source:       c.Source,
+			defaults:     defaults,
 		}
 		codesByID[code.id] = code
 		codes = append(codes, code)
@@ -335,9 +341,14 @@ func stateFromCode(code *Code) (*state, error) {
 		if err != nil {
 			return nil, err
 		}
+		defaults, err := marshalConstants(code.defaults)
+		if err != nil {
+			return nil, err
+		}
 		cdef := &codeDef{
 			ID:            code.id,
 			Constants:     constants,
+			Defaults:      defaults,
 			FunctionID:    code.functionID,
 			SymbolTableID: code.symbols.ID(),
 			Instructions:  CopyInstructions(code.instructions),
