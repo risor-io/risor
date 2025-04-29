@@ -89,6 +89,8 @@ func (u *User) GetAttr(name string) (object.Object, bool) {
 		return object.NewBool(u.value.IsStranger), true
 	case "is_invited_user":
 		return object.NewBool(u.value.IsInvitedUser), true
+	case "json":
+		return asMap(u.value), true
 	}
 	return nil, false
 }

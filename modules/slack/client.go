@@ -49,6 +49,8 @@ func (c *Client) GetAttr(name string) (object.Object, bool) {
 		return object.NewBuiltin("remove_reaction", c.RemoveReaction), true
 	case "upload_file":
 		return object.NewBuiltin("upload_file", c.UploadFile), true
+	case "get_conversation_info":
+		return object.NewBuiltin("get_conversation_info", c.GetConversationInfo), true
 	case "get_conversations":
 		return object.NewBuiltin("get_conversations", c.GetConversations), true
 	case "create_conversation":
@@ -240,7 +242,7 @@ func (c *Client) PostMessage(ctx context.Context, args ...object.Object) object.
 		return object.NewError(fmt.Errorf("second argument must be a string or a map"))
 	}
 
-	channelID, timestamp, _, sendErr := c.value.SendMessage(channelID, options...)
+	channelID, timestamp, _, sendErr := c.value.SendMessageContext(ctx, channelID, options...)
 	if sendErr != nil {
 		return object.NewError(sendErr)
 	}
@@ -485,7 +487,6 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 	if len(params.Content) > 0 && params.FileSize == 0 {
 		params.FileSize = len(params.Content)
 	}
-	// Validate that we have the minimum required parameters
 	if params.Content == "" && params.File == "" {
 		return object.NewError(fmt.Errorf("either content or file must be provided"))
 	}
@@ -497,6 +498,24 @@ func (c *Client) UploadFile(ctx context.Context, args ...object.Object) object.O
 		"id":    object.NewString(fileSummary.ID),
 		"title": object.NewString(fileSummary.Title),
 	})
+}
+
+// GetConversationInfo gets information about a conversation
+func (c *Client) GetConversationInfo(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return object.NewArgsError("get_conversation_info", 1, len(args))
+	}
+	channelID, argErr := object.AsString(args[0])
+	if argErr != nil {
+		return argErr
+	}
+	conversation, err := c.value.GetConversationInfoContext(ctx, &slack.GetConversationInfoInput{
+		ChannelID: channelID,
+	})
+	if err != nil {
+		return object.NewError(err)
+	}
+	return NewChannel(c.value, conversation)
 }
 
 // GetConversations gets all conversations for a user

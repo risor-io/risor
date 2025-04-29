@@ -147,6 +147,8 @@ func (c *Channel) GetAttr(name string) (object.Object, bool) {
 		return object.NewString(c.value.ContextTeamID), true
 	case "conversation_host_id":
 		return object.NewString(c.value.ConversationHostID), true
+	case "json":
+		return asMap(c.value), true
 	}
 	return nil, false
 }

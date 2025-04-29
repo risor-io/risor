@@ -78,6 +78,8 @@ func (p *UserProfile) GetAttr(name string) (object.Object, bool) {
 		return object.NewString(p.value.Image512), true
 	case "image_original":
 		return object.NewString(p.value.ImageOriginal), true
+	case "json":
+		return asMap(p.value), true
 	}
 	return nil, false
 }

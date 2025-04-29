@@ -112,6 +112,8 @@ func (m *Message) GetAttr(name string) (object.Object, bool) {
 			return object.NewList(reactions), true
 		}
 		return object.NewList([]object.Object{}), true
+	case "json":
+		return asMap(m.value), true
 	}
 	return nil, false
 }
