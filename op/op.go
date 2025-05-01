@@ -81,6 +81,9 @@ const (
 	LoadClosure Code = 120
 	MakeCell    Code = 121
 
+	// New opcode for unified function loading
+	MakeFunction Code = 122
+
 	// Partials
 	Partial Code = 130
 )
@@ -218,6 +221,7 @@ func init() {
 		{LoadFree, "LOAD_FREE", 1},
 		{LoadGlobal, "LOAD_GLOBAL", 1},
 		{MakeCell, "MAKE_CELL", 2},
+		{MakeFunction, "MAKE_FUNCTION", 2},
 		{Nil, "NIL", 0},
 		{Nop, "NOP", 0},
 		{Partial, "PARTIAL", 1},

@@ -92,6 +92,7 @@ type symbolTableDef struct {
 type codeDef struct {
 	ID            string            `json:"id,omitempty"`
 	Name          string            `json:"name"`
+	IsNamed       bool              `json:"is_named,omitempty"`
 	ParentID      string            `json:"parent_id,omitempty"`
 	SymbolTableID string            `json:"symbol_table_id"`
 	FunctionID    string            `json:"function_id,omitempty"`
@@ -138,7 +139,7 @@ func codeFromState(state *state) (*Code, error) {
 			id:           c.ID,
 			parent:       parent,
 			name:         c.Name,
-			isNamed:      c.Name != "" && c.Name != "__main__",
+			isNamed:      c.IsNamed,
 			functionID:   c.FunctionID,
 			symbols:      codeSymbols,
 			instructions: CopyInstructions(c.Instructions),
@@ -353,6 +354,7 @@ func stateFromCode(code *Code) (*state, error) {
 			SymbolTableID: code.symbols.ID(),
 			Instructions:  CopyInstructions(code.instructions),
 			Name:          code.name,
+			IsNamed:       code.isNamed,
 			Names:         copyStrings(code.names),
 			Source:        code.source,
 		}

@@ -22,6 +22,14 @@ const (
 	Placeholder = uint16(math.MaxUint16)
 )
 
+// FunctionRegistration holds information about a function that needs to be compiled.
+type FunctionRegistration struct {
+	Node         *ast.Func
+	FunctionName string
+	Code         *Code
+	Function     *Function
+}
+
 // Compiler is used to compile Risor AST into its corresponding bytecode.
 // This implements the ICompiler interface.
 type Compiler struct {
@@ -44,6 +52,9 @@ type Compiler struct {
 
 	// Source filename
 	filename string
+
+	// Registered functions waiting to be compiled
+	registeredFunctions []*FunctionRegistration
 }
 
 // Option is a configuration function for a Compiler.
@@ -98,16 +109,9 @@ func New(options ...Option) (*Compiler, error) {
 			symbols: NewSymbolTable(),
 		}
 	}
-	// Insert any supplied names for globals into the symbol table
+	// Sort global names but don't insert them yet - we'll add them right before compilation
 	sort.Strings(c.globalNames)
-	for _, name := range c.globalNames {
-		if c.main.symbols.IsDefined(name) {
-			continue
-		}
-		if _, err := c.main.symbols.InsertVariable(name); err != nil {
-			return nil, err
-		}
-	}
+
 	// Start compiling into the main code object
 	c.current = c.main
 	return c, nil
@@ -129,9 +133,22 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if c.filename != "" {
 		c.main.filename = c.filename
 	}
+
+	// Insert supplied global names first
+	if err := c.prepareSymbolTable(); err != nil {
+		return nil, err
+	}
+
+	// Compile the program, registering functions (but not their bodies)
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
+
+	// Compile all the function bodies
+	if err := c.CompileFunctionBodies(); err != nil {
+		return nil, err
+	}
+
 	// Check for failures that happened that aren't propagated up the call
 	// stack. Some errors are difficult to propagate without bloating the code.
 	if c.failure != nil {
@@ -1036,37 +1053,38 @@ func (c *Compiler) compileSet(node *ast.Set) error {
 }
 
 func (c *Compiler) compileFunc(node *ast.Func) error {
-	// Python cell variables:
-	// https://stackoverflow.com/questions/23757143/what-is-a-cell-in-the-context-of-an-interpreter-or-compiler
-
-	if len(node.Parameters()) > 255 {
-		return c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
-	}
-
-	// Extract function name if available
-	var functionName string
-	if ident := node.Name(); ident != nil {
-		functionName = ident.Literal()
-	}
-
-	// Compile the function body and get the code object
-	code, err := c.compileFunctionBody(node, functionName)
+	// Register the function for later compilation
+	fn, err := c.RegisterFunction(node)
 	if err != nil {
 		return err
 	}
 
-	// Create the function that contains the compiled code
-	fn := NewFunction(FunctionOpts{
-		ID:         code.functionID,
-		Name:       functionName,
-		Parameters: node.ParameterNames(),
-		Defaults:   code.defaults,
-		Code:       code,
-	})
+	// Add the function constant to the current code
+	constIndex := c.constant(fn)
 
-	// Emit the code to load the function object onto the stack
-	if err := c.emitFunctionLoad(fn, code, functionName); err != nil {
-		return err
+	// Emit the code to load the function onto the stack
+	// We use MakeFunction with freeCount=0 now, will be updated during actual compilation
+	c.emit(op.MakeFunction, constIndex, 0)
+
+	// If the function is named, store it as a variable
+	if fn.Name() != "" {
+		code := fn.Code()
+		if code.parent != nil {
+			code.parent.isNamed = true
+		}
+		code.isNamed = true
+
+		// Store the function in a variable with its name
+		funcSymbol, err := c.current.symbols.InsertConstant(fn.Name())
+		if err != nil {
+			return err
+		}
+		c.emit(op.Copy, 0)
+		if c.current.parent == nil {
+			c.emit(op.StoreGlobal, funcSymbol.Index())
+		} else {
+			c.emit(op.StoreFast, funcSymbol.Index())
+		}
 	}
 
 	return nil
@@ -1170,35 +1188,9 @@ func (c *Compiler) compileFunctionBody(node *ast.Func, functionName string) (*Co
 
 // emitFunctionLoad emits bytecode to load a function onto the stack
 func (c *Compiler) emitFunctionLoad(fn *Function, code *Code, functionName string) error {
-	// Emit the code to load the function object onto the stack. If there are
-	// free variables, we use LoadClosure, otherwise we use LoadConst.
-	freeCount := code.symbols.FreeCount()
-	if freeCount > 0 {
-		for i := uint16(0); i < freeCount; i++ {
-			resolution := code.symbols.Free(i)
-			c.emit(op.MakeCell, resolution.symbol.Index(), uint16(resolution.depth-1))
-		}
-		c.emit(op.LoadClosure, c.constant(fn), freeCount)
-	} else {
-		c.emit(op.LoadConst, c.constant(fn))
-	}
-
-	// If the function was named, we store it as a named variable in the current code
-	if code.isNamed {
-		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
-		if err != nil {
-			return err
-		}
-		// Duplicate function on the stack, so that we ensure the function
-		// evaluates to a value even when it's named.
-		c.emit(op.Copy, 0)
-		if c.current.parent == nil {
-			c.emit(op.StoreGlobal, funcSymbol.Index())
-		} else {
-			c.emit(op.StoreFast, funcSymbol.Index())
-		}
-	}
-	return nil
+	// This method is deprecated and should not be used.
+	// The functionality is now handled by compileFunc and CompileFunctionBodies.
+	return fmt.Errorf("emitFunctionLoad is deprecated, use compileFunc instead")
 }
 
 func (c *Compiler) compileControl(node *ast.Control) error {
@@ -1984,4 +1976,207 @@ func (c *Compiler) formatError(msg string, pos token.Position) error {
 	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
 	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
+}
+
+// RegisterFunction creates a function skeleton without compiling its body.
+// It adds the function to the list of functions to be compiled later.
+func (c *Compiler) RegisterFunction(node *ast.Func) (*Function, error) {
+	if len(node.Parameters()) > 255 {
+		return nil, c.formatError("function exceeded parameter limit of 255", node.Token().StartPosition)
+	}
+
+	// Extract function name if available
+	var functionName string
+	if ident := node.Name(); ident != nil {
+		functionName = ident.Literal()
+	}
+
+	// Create a new code object for this function
+	c.funcIndex++
+	functionID := fmt.Sprintf("%d", c.funcIndex)
+	code := c.current.newChild(functionName, node.Body().String(), functionID)
+
+	// Create the function that will use this code object
+	fn := NewFunction(FunctionOpts{
+		ID:         code.functionID,
+		Name:       functionName,
+		Parameters: node.ParameterNames(),
+		Defaults:   nil, // Will be populated during actual compilation
+		Code:       code,
+	})
+
+	// Register the function to be compiled later
+	registration := &FunctionRegistration{
+		Node:         node,
+		FunctionName: functionName,
+		Code:         code,
+		Function:     fn,
+	}
+	c.registeredFunctions = append(c.registeredFunctions, registration)
+
+	return fn, nil
+}
+
+// CompileFunctionBodies compiles the bodies of all registered functions.
+// This should be called after all functions have been registered.
+func (c *Compiler) CompileFunctionBodies() error {
+	for _, registration := range c.registeredFunctions {
+		// Save the current compiler state
+		parentCode := c.current
+
+		// Switch to the function's code object
+		c.current = registration.Code
+
+		// Set up parameters and compile the body
+		node := registration.Node
+		code := registration.Code
+		functionName := registration.FunctionName
+
+		// Make it quick to look up the index of a parameter
+		paramsIdx := map[string]int{}
+		params := node.ParameterNames()
+		for i, name := range params {
+			paramsIdx[name] = i
+		}
+
+		// Only initialize defaults if there are parameters
+		if len(params) > 0 {
+			// Initialize defaults with same length as params (nil for params without defaults)
+			defaults := make([]any, len(params))
+			defaultsSet := map[int]bool{}
+
+			// Set explicit defaults
+			for name, expr := range node.Defaults() {
+				var value any
+				switch expr := expr.(type) {
+				case *ast.Int:
+					value = expr.Value()
+				case *ast.String:
+					value = expr.Value()
+				case *ast.Bool:
+					value = expr.Value()
+				case *ast.Float:
+					value = expr.Value()
+				case *ast.Nil:
+					value = nil
+				default:
+					line := node.Token().StartPosition.Line + 1
+					return fmt.Errorf("compile error: unsupported default value (got %s, line %d)", expr, line)
+				}
+				index := paramsIdx[name]
+				defaults[index] = value
+				defaultsSet[index] = true
+			}
+
+			// Store defaults on code object so they're accessible when creating the function
+			code.defaults = defaults
+			registration.Function.defaults = defaults
+
+			// Confirm only trailing parameters have defaults
+			if len(node.Defaults()) > 0 {
+				hasDefaults := false
+				for i := 0; i < len(params); i++ {
+					if defaultsSet[i] {
+						hasDefaults = true
+					} else if hasDefaults {
+						msg := "invalid argument defaults for"
+						if functionName != "" {
+							msg = fmt.Sprintf("%s function %q", msg, functionName)
+						} else {
+							msg = fmt.Sprintf("%s anonymous function", msg)
+						}
+						return c.formatError(msg, node.Token().StartPosition)
+					}
+				}
+			}
+		}
+
+		// Add the parameter names to the symbol table
+		for _, arg := range node.Parameters() {
+			if _, err := code.symbols.InsertVariable(arg.Literal()); err != nil {
+				return err
+			}
+		}
+
+		// Add the function's own name to its symbol table for recursive calls
+		if code.isNamed {
+			if _, err := code.symbols.InsertConstant(functionName); err != nil {
+				return err
+			}
+		}
+
+		// Compile the function body
+		if err := c.compileFunctionBlock(node.Body()); err != nil {
+			return err
+		}
+
+		// Update the function's free variable information in the parent code
+		freeCount := code.symbols.FreeCount()
+		if freeCount > 0 {
+			// Find all instances where this function is referenced in the parent code's instructions
+			for i := 0; i < len(parentCode.instructions); i++ {
+				if parentCode.instructions[i] == op.MakeFunction {
+					// Next instruction is the constant index
+					constIndex := parentCode.instructions[i+1]
+					// Check if this index refers to our function
+					if int(constIndex) < len(parentCode.constants) &&
+						parentCode.constants[constIndex] == registration.Function {
+						// The instruction after the constant index is the free count
+						parentCode.instructions[i+2] = op.Code(freeCount)
+
+						// Insert MakeCell instructions before this instruction
+						cellOps := make([]op.Code, 0, freeCount*3) // Each MakeCell needs 3 codes
+						for j := uint16(0); j < freeCount; j++ {
+							resolution := code.symbols.Free(j)
+							cellInst := makeInstruction(op.MakeCell,
+								resolution.symbol.Index(),
+								uint16(resolution.depth-1))
+							cellOps = append(cellOps, cellInst...)
+						}
+
+						// Insert cell operations before MakeFunction
+						newInstructions := make([]op.Code, 0,
+							len(parentCode.instructions)+len(cellOps))
+						newInstructions = append(newInstructions,
+							parentCode.instructions[:i]...)
+						newInstructions = append(newInstructions, cellOps...)
+						newInstructions = append(newInstructions,
+							parentCode.instructions[i:]...)
+						parentCode.instructions = newInstructions
+
+						// Skip past the newly inserted instructions
+						i += len(cellOps)
+					}
+				}
+			}
+		}
+
+		// Restore the parent code object
+		c.current = parentCode
+	}
+
+	// Clear the registered functions now that they're all compiled
+	c.registeredFunctions = nil
+
+	return nil
+}
+
+// prepareSymbolTable inserts all supplied global names into the symbol table.
+// This should be called before compilation starts.
+func (c *Compiler) prepareSymbolTable() error {
+	// Sort global names for consistent insertion order
+	sort.Strings(c.globalNames)
+
+	// Insert all pre-defined global names into the symbol table
+	for _, name := range c.globalNames {
+		if c.main.symbols.IsDefined(name) {
+			continue
+		}
+
+		// Insert as variables by default
+		if _, err := c.main.symbols.InsertVariable(name); err != nil {
+			return err
+		}
+	}
+	return nil
 }

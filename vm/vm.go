@@ -128,17 +128,26 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	} else {
 		main = vm.loadCode(vm.main)
 	}
-	for i := 0; i < vm.main.ConstantsCount(); i++ {
-		if fn, ok := vm.main.Constant(i).(*compiler.Function); ok {
-			vm.loadCode(fn.Code())
-		}
-	}
+
+	// Preload all function code by doing a recursive traversal of all constants
+	vm.preloadAllFunctionCode(vm.main)
 
 	// Activate the entrypoint code in frame zero
 	vm.activateCode(0, vm.ip, main)
 
 	// Run the entrypoint until completion
 	return vm.eval(vm.initContext(ctx))
+}
+
+// preloadAllFunctionCode ensures all function code is loaded before execution
+func (vm *VirtualMachine) preloadAllFunctionCode(code *compiler.Code) {
+	for i := 0; i < code.ConstantsCount(); i++ {
+		if fn, ok := code.Constant(i).(*compiler.Function); ok {
+			vm.loadCode(fn.Code())
+			// Recursively preload any nested functions
+			vm.preloadAllFunctionCode(fn.Code())
+		}
+	}
 }
 
 // Get a global variable by name as a Risor Object.
@@ -262,6 +271,31 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			}
 			fn := vm.activeCode.Constants[constIndex].(*object.Function)
 			vm.push(object.NewClosure(fn, free))
+		case op.MakeFunction:
+			// MakeFunction is a unified opcode that handles both normal functions and closures
+			constIndex := vm.fetch()
+			freeCount := vm.fetch()
+
+			// Get the function constant
+			fn := vm.activeCode.Constants[constIndex].(*object.Function)
+
+			if freeCount > 0 {
+				// If it has free variables, make a closure
+				free := make([]*object.Cell, freeCount)
+				for i := uint16(0); i < freeCount; i++ {
+					obj := vm.pop()
+					switch obj := obj.(type) {
+					case *object.Cell:
+						free[freeCount-i-1] = obj
+					default:
+						return errz.EvalErrorf("eval error: expected cell")
+					}
+				}
+				vm.push(object.NewClosure(fn, free))
+			} else {
+				// Otherwise just push the function
+				vm.push(fn)
+			}
 		case op.MakeCell:
 			symbolIndex := vm.fetch()
 			framesBack := int(vm.fetch())
