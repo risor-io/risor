@@ -72,7 +72,6 @@ func (i *GenericIterator) Cost() int {
 func (i *GenericIterator) Next(ctx context.Context) (object.Object, bool) {
 	// Call the next function to get the next value
 	value, hasNext, err := i.nextFn(ctx)
-
 	// If there was an error, return it
 	if err != nil {
 		return object.NewError(err), false

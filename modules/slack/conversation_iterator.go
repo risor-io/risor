@@ -27,7 +27,6 @@ func NewConversationIterator(ctx context.Context, client *slack.Client, params *
 
 	// Create the next function
 	nextFn := func(ctx context.Context) (object.Object, bool, error) {
-
 		// If we've reached the limit, we're done
 		if limit > 0 && totalReturned >= limit {
 			return nil, false, nil
