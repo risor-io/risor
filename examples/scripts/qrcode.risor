@@ -50,21 +50,4 @@ print("\nGetting raw bytes...")
 raw_bytes := base64_qr.bytes()
 print("QR code bytes length:", len(raw_bytes))
 
-// QR code with logo (commented out as it requires an image file)
-/*
-print("\nCreating QR code with logo...")
-try {
-    logo := image.decode(open("logo.png"))
-    logo_qr := qrcode.create("https://risor.io")
-    logo_qr.save("logo_qr.png", {
-        "logo_image": logo,
-        "bg_color_hex": "#FFFFFF",
-        "fg_color_hex": "#000000"
-    })
-    print("Created logo_qr.png")
-} catch err {
-    print("Couldn't create QR with logo:", err)
-}
-*/
-
 print("\nQR code generation complete!")
