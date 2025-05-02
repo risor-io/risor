@@ -15,6 +15,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/os"
 )
 
 const (
@@ -36,6 +37,7 @@ type VirtualMachine struct {
 	activeCode   *code
 	main         *compiler.Code
 	importer     importer.Importer
+	os           os.OS
 	modules      map[string]*object.Module
 	inputGlobals map[string]any
 	globals      map[string]object.Object
@@ -110,6 +112,7 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	// 1. It is an error to call Run on a VM that is already running
 	// 2. The running flag will always be set to false when Run returns
 	// 3. Any panics are translated to errors and the VM is stopped
+	ctx = os.WithOS(ctx, vm.os)
 	if err := vm.start(ctx); err != nil {
 		return err
 	}
@@ -694,6 +697,7 @@ func (vm *VirtualMachine) Call(
 	fn *object.Function,
 	args []object.Object,
 ) (result object.Object, err error) {
+	ctx = os.WithOS(ctx, vm.os)
 	if err := vm.start(ctx); err != nil {
 		return nil, err
 	}
