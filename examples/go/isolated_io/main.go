@@ -28,9 +28,7 @@ func main() {
 		ros.WithStdin(stdin),
 		ros.WithStdout(stdout))
 
-	scriptCtx := ros.WithOS(ctx, virtualOS)
-
-	result, err := risor.Eval(scriptCtx, script)
+	result, err := risor.Eval(ctx, script, risor.WithOS(virtualOS))
 	if err != nil {
 		log.Fatal(err)
 	}
