@@ -3,11 +3,13 @@ package errors
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
-	"github.com/stretchr/testify/require"
 )
 
 func TestErrors(t *testing.T) {
@@ -63,4 +65,14 @@ func TestErrorsAs(t *testing.T) {
 	require.Equal(t, object.True, As(context.Background(), e1, evalErr))
 	require.Equal(t, object.False, As(context.Background(), e1, typeErr))
 	require.Equal(t, object.True, As(context.Background(), e1, genericErr))
+}
+
+func TestErrorsIs(t *testing.T) {
+	err1 := object.NewError(os.ErrNotExist)
+	err2 := object.NewError(os.ErrExist)
+	err3 := New(context.Background(), object.NewString("test"))
+	require.Equal(t, object.True, Is(context.Background(), err1, object.NewError(os.ErrNotExist)))
+	require.Equal(t, object.True, Is(context.Background(), err2, object.NewError(os.ErrExist)))
+	require.Equal(t, object.False, Is(context.Background(), err2, object.NewError(os.ErrNotExist)))
+	require.Equal(t, object.True, Is(context.Background(), err3, err3))
 }

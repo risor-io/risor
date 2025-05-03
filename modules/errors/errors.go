@@ -74,6 +74,21 @@ func As(ctx context.Context, args ...object.Object) object.Object {
 	return object.NewBool(errors.As(err.Value(), otherInst))
 }
 
+func Is(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return object.ArgsErrorf("args error: errors.is() takes exactly 2 arguments (%d given)", len(args))
+	}
+	err, typErr := object.AsError(args[0])
+	if typErr != nil {
+		return typErr
+	}
+	target, typErr := object.AsError(args[1])
+	if typErr != nil {
+		return typErr
+	}
+	return object.NewBool(errors.Is(err.Value(), target.Value()))
+}
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("errors", map[string]object.Object{
 		"new":        object.NewBuiltin("new", New),
@@ -81,5 +96,6 @@ func Module() *object.Module {
 		"eval_error": object.NewBuiltin("eval_error", EvalError),
 		"args_error": object.NewBuiltin("args_error", ArgsError),
 		"as":         object.NewBuiltin("as", As),
+		"is":         object.NewBuiltin("is", Is),
 	})
 }
