@@ -4,6 +4,8 @@ package importer
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -92,6 +94,91 @@ func readFileWithExtensions(dir, name string, extensions []string) (string, stri
 		if err == nil {
 			return string(bytes), fullPath, true
 		}
+	}
+	return "", "", false
+}
+
+type FSImporterOptions struct {
+	// Global names that should be available when the module is compiled.
+	GlobalNames []string
+
+	// The filesystem to search for Risor modules.
+	SourceFS fs.FS
+
+	// Optional list of file extensions to try when locating a Risor module.
+	Extensions []string
+}
+
+type FSImporter struct {
+	globalNames []string
+	codeCache   map[string]*compiler.Code
+	sourceFS    fs.FS
+	extensions  []string
+	mutex       sync.Mutex
+}
+
+func NewFSImporter(opts FSImporterOptions) *FSImporter {
+	if opts.Extensions == nil {
+		opts.Extensions = []string{".risor", ".rsr"}
+	}
+	return &FSImporter{
+		globalNames: opts.GlobalNames,
+		codeCache:   map[string]*compiler.Code{},
+		sourceFS:    opts.SourceFS,
+		extensions:  opts.Extensions,
+	}
+}
+
+func (i *FSImporter) Import(ctx context.Context, name string) (*object.Module, error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
+	if code, ok := i.codeCache[name]; ok {
+		return object.NewModule(name, code), nil
+	}
+
+	source, fullPath, found := i.readFileWithExtensions(name, i.extensions)
+	if !found {
+		return nil, fmt.Errorf("import error: module %q not found", name)
+	}
+
+	ast, err := parser.Parse(ctx, source, parser.WithFile(fullPath))
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []compiler.Option
+	if len(i.globalNames) > 0 {
+		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
+	}
+	opts = append(opts, compiler.WithFilename(fullPath))
+
+	code, err := compiler.Compile(ast, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	i.codeCache[name] = code
+
+	return object.NewModule(name, code), nil
+}
+
+func (i *FSImporter) readFileWithExtensions(name string, extensions []string) (string, string, bool) {
+	for _, ext := range extensions {
+		fullName := name + ext
+		f, err := i.sourceFS.Open(fullName)
+		if err != nil {
+			continue
+		}
+
+		b, err := io.ReadAll(f)
+		if err != nil {
+			_ = f.Close()
+			continue
+		}
+
+		_ = f.Close()
+		return string(b), fullName, true
 	}
 	return "", "", false
 }
