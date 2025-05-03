@@ -3,7 +3,6 @@ package errors
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -68,11 +67,15 @@ func TestErrorsAs(t *testing.T) {
 }
 
 func TestErrorsIs(t *testing.T) {
-	err1 := object.NewError(os.ErrNotExist)
-	err2 := object.NewError(os.ErrExist)
+	var (
+		ErrNotExist = errors.New("file does not exist")
+		ErrExist    = errors.New("file already exists")
+	)
+	err1 := object.NewError(ErrNotExist)
+	err2 := object.NewError(ErrExist)
 	err3 := New(context.Background(), object.NewString("test"))
-	require.Equal(t, object.True, Is(context.Background(), err1, object.NewError(os.ErrNotExist)))
-	require.Equal(t, object.True, Is(context.Background(), err2, object.NewError(os.ErrExist)))
-	require.Equal(t, object.False, Is(context.Background(), err2, object.NewError(os.ErrNotExist)))
+	require.Equal(t, object.True, Is(context.Background(), err1, object.NewError(ErrNotExist)))
+	require.Equal(t, object.True, Is(context.Background(), err2, object.NewError(ErrExist)))
+	require.Equal(t, object.False, Is(context.Background(), err2, object.NewError(ErrNotExist)))
 	require.Equal(t, object.True, Is(context.Background(), err3, err3))
 }
