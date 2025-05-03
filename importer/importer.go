@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/risor-io/risor/compiler"
@@ -22,11 +21,7 @@ type Importer interface {
 }
 
 type LocalImporter struct {
-	globalNames []string
-	codeCache   map[string]*compiler.Code
-	sourceDir   string
-	extensions  []string
-	mutex       sync.Mutex
+	fsImporter Importer
 }
 
 // LocalImporterOptions configure an Importer that can read from the local
@@ -49,53 +44,18 @@ type LocalImporterOptions struct {
 // same local importer across multiple VMs and evaluations, because the cached
 // code is immutable.
 func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
-	if opts.Extensions == nil {
-		opts.Extensions = []string{".risor", ".rsr"}
-	}
 	return &LocalImporter{
-		globalNames: opts.GlobalNames,
-		codeCache:   map[string]*compiler.Code{},
-		sourceDir:   opts.SourceDir,
-		extensions:  opts.Extensions,
+		fsImporter: NewFSImporter(FSImporterOptions{
+			GlobalNames: opts.GlobalNames,
+			// TODO: consider using os.Root if chroot-style isolation is required.
+			SourceFS:   os.DirFS(opts.SourceDir),
+			Extensions: opts.Extensions,
+		}),
 	}
 }
 
 func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
-	i.mutex.Lock()
-	defer i.mutex.Unlock()
-	if code, ok := i.codeCache[name]; ok {
-		return object.NewModule(name, code), nil
-	}
-	source, fullPath, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
-	if !found {
-		return nil, fmt.Errorf("import error: module %q not found", name)
-	}
-	ast, err := parser.Parse(ctx, source, parser.WithFile(fullPath))
-	if err != nil {
-		return nil, err
-	}
-	var opts []compiler.Option
-	if len(i.globalNames) > 0 {
-		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
-	}
-	opts = append(opts, compiler.WithFilename(fullPath))
-	code, err := compiler.Compile(ast, opts...)
-	if err != nil {
-		return nil, err
-	}
-	i.codeCache[name] = code
-	return object.NewModule(name, code), nil
-}
-
-func readFileWithExtensions(dir, name string, extensions []string) (string, string, bool) {
-	for _, ext := range extensions {
-		fullPath := filepath.Join(dir, name+ext)
-		bytes, err := os.ReadFile(fullPath)
-		if err == nil {
-			return string(bytes), fullPath, true
-		}
-	}
-	return "", "", false
+	return i.fsImporter.Import(ctx, name)
 }
 
 type FSImporterOptions struct {
