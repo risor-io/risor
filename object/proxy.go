@@ -134,27 +134,6 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			}
 			return nil
 		} else {
-			// If we can't set the field directly (e.g., non-pointer value type),
-			// get a pointer to the original value
-			objVal := reflect.ValueOf(p.obj)
-			if objVal.Kind() == reflect.Struct {
-				// Create a new pointer to a new struct
-				ptrToObj := reflect.New(objVal.Type())
-				// Set the pointed-to value to our original struct
-				ptrToObj.Elem().Set(objVal)
-				// Get the field through the pointer (which is settable)
-				ptrField := ptrToObj.Elem().FieldByName(name)
-				if ptrField.IsValid() && ptrField.CanSet() {
-					if result == nil {
-						ptrField.SetZero()
-					} else {
-						ptrField.Set(reflect.ValueOf(result))
-					}
-					// Update the proxy with the modified value
-					p.obj = ptrToObj.Elem().Interface()
-					return nil
-				}
-			}
 			return errz.TypeErrorf("type error: cannot set field %s", name)
 		}
 	case *GoMethod:
@@ -291,6 +270,16 @@ func NewProxy(obj interface{}) (*Proxy, error) {
 	// Is this type proxyable?
 	if !IsProxyableType(typ) {
 		return nil, errz.TypeErrorf("type error: unable to proxy type (%T given)", obj)
+	}
+
+	// If it's a struct value, convert to a pointer to make it mutable
+	if typ.Kind() == reflect.Struct {
+		// Create a pointer to a copy of the struct
+		ptrValue := reflect.New(typ)
+		ptrValue.Elem().Set(reflect.ValueOf(obj))
+		// Use the pointer instead
+		obj = ptrValue.Interface()
+		typ = reflect.TypeOf(obj)
 	}
 
 	goType, err := NewGoType(typ)

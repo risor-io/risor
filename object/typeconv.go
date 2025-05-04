@@ -912,14 +912,18 @@ func newMapConverter(valueType reflect.Type) (*MapConverter, error) {
 // StructConverter converts between a Go struct and a Risor Proxy.
 // Works with structs as values or pointers.
 type StructConverter struct {
-	typ    reflect.Type
-	goType *GoType
+	typ         reflect.Type
+	goType      *GoType
+	isValueType bool
 }
 
 func (c *StructConverter) To(obj Object) (interface{}, error) {
 	switch obj := obj.(type) {
 	case *Proxy:
 		// Return the object wrapped by the proxy
+		if c.isValueType {
+			return reflect.ValueOf(obj.obj).Elem().Interface(), nil
+		}
 		return obj.obj, nil
 	case *Map:
 		// Create a new struct. The "value" here is a pointer to the new struct.
@@ -965,7 +969,11 @@ func newStructConverter(typ reflect.Type) (*StructConverter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StructConverter{typ: typ, goType: goType}, nil
+	return &StructConverter{
+		typ:         typ,
+		goType:      goType,
+		isValueType: !goType.IsPointerType(),
+	}, nil
 }
 
 // PointerConverter converts between *T and the Risor equivalent of T.

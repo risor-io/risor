@@ -335,7 +335,7 @@ func TestProxySetGetAttrNil(t *testing.T) {
 func TestProxyOnStructValue(t *testing.T) {
 	p, err := object.NewProxy(proxyTestType2{A: 99})
 	require.NoError(t, err)
-	require.Equal(t, "proxyTestType2", p.GoType().Name())
+	require.Equal(t, "*object_test.proxyTestType2", p.GoType().Name())
 	attr, ok := p.GetAttr("A")
 	require.True(t, ok)
 	require.Equal(t, object.NewInt(99), attr)
@@ -614,4 +614,184 @@ func TestProxyReturnPointer(t *testing.T) {
 	str, ok := result.(*object.String)
 	require.True(t, ok)
 	require.Equal(t, "hello", str.Value())
+}
+
+// Vector3D is a simple 3D vector type for testing struct field setting
+type Vector3D struct {
+	X, Y, Z float64
+}
+
+func (v Vector3D) Add(other Vector3D) Vector3D {
+	return Vector3D{
+		X: v.X + other.X,
+		Y: v.Y + other.Y,
+		Z: v.Z + other.Z,
+	}
+}
+
+func (v Vector3D) String() string {
+	return fmt.Sprintf("Vector3D{X:%v, Y:%v, Z:%v}", v.X, v.Y, v.Z)
+}
+
+type VectorFactory struct{}
+
+func (f *VectorFactory) NewVector(x, y, z float64) Vector3D {
+	return Vector3D{X: x, Y: y, Z: z}
+}
+
+// TestProxyMethodReturnStructValue tests that struct values returned from methods
+// can have their fields modified
+func TestProxyMethodReturnStructValue(t *testing.T) {
+	// Create a proxy for the vector factory
+	factory, err := object.NewProxy(&VectorFactory{})
+	require.Nil(t, err)
+
+	// Get the NewVector method
+	newVectorMethod, ok := factory.GetAttr("NewVector")
+	require.True(t, ok)
+	newVector, ok := newVectorMethod.(*object.Builtin)
+	require.True(t, ok)
+
+	// Create a vector using the factory method
+	ctx := context.Background()
+	vector1 := newVector.Call(ctx, object.NewFloat(1), object.NewFloat(2), object.NewFloat(3))
+
+	// Verify it's a proxy
+	vectorProxy1, ok := vector1.(*object.Proxy)
+	require.True(t, ok)
+
+	// Verify the proxy is to a *Vector3D, not a Vector3D
+	require.Equal(t, "*object_test.Vector3D", vectorProxy1.GoType().Name())
+
+	// Get the Add method from the vector
+	addMethod, ok := vectorProxy1.GetAttr("Add")
+	require.True(t, ok)
+	add, ok := addMethod.(*object.Builtin)
+	require.True(t, ok)
+
+	// Create another vector and add them
+	vector2 := newVector.Call(ctx, object.NewFloat(4), object.NewFloat(5), object.NewFloat(6))
+	result := add.Call(ctx, vector2)
+
+	// Verify result is a proxy
+	resultProxy, ok := result.(*object.Proxy)
+	require.True(t, ok)
+
+	// Verify the result proxy is to a *Vector3D, not a Vector3D. Struct values
+	// should be converted to pointers automatically
+	require.Equal(t, "*object_test.Vector3D", resultProxy.GoType().Name())
+
+	// Now test that we can modify fields on the result
+	err = resultProxy.SetAttr("X", object.NewFloat(15))
+	require.Nil(t, err, "Should be able to set field X on the result")
+
+	// Verify the field was updated
+	x, ok := resultProxy.GetAttr("X")
+	require.True(t, ok)
+	require.Equal(t, object.NewFloat(15), x)
+
+	// Test other fields too
+	err = resultProxy.SetAttr("Y", object.NewFloat(25))
+	require.Nil(t, err)
+	y, ok := resultProxy.GetAttr("Y")
+	require.True(t, ok)
+	require.Equal(t, object.NewFloat(25), y)
+
+	err = resultProxy.SetAttr("Z", object.NewFloat(35))
+	require.Nil(t, err)
+	z, ok := resultProxy.GetAttr("Z")
+	require.True(t, ok)
+	require.Equal(t, object.NewFloat(35), z)
+}
+
+// TestProxyStructConverterRoundTrip tests that struct values are properly converted
+// when going from Go to Risor and back to Go
+func TestProxyStructConverterRoundTrip(t *testing.T) {
+	// Create a Vector3D struct
+	original := Vector3D{X: 1, Y: 2, Z: 3}
+
+	// Create a proxy for the struct
+	proxy, err := object.NewProxy(original)
+	require.Nil(t, err)
+
+	// Verify it's a pointer type in the proxy
+	require.Equal(t, "*object_test.Vector3D", proxy.GoType().Name())
+
+	// Modify a field
+	err = proxy.SetAttr("X", object.NewFloat(10))
+	require.Nil(t, err)
+
+	// Convert back to Go type
+	// This should extract the value, not the pointer
+	converter, err := object.NewTypeConverter(reflect.TypeOf(original))
+	require.Nil(t, err)
+
+	result, err := converter.To(proxy)
+	require.Nil(t, err)
+
+	// Verify the result is a Vector3D, not a *Vector3D
+	resultVector, ok := result.(Vector3D)
+	require.True(t, ok)
+
+	// Verify the field was modified
+	require.Equal(t, 10.0, resultVector.X)
+	require.Equal(t, 2.0, resultVector.Y)
+	require.Equal(t, 3.0, resultVector.Z)
+}
+
+// TestProxyVectorModificationTracking tests that when a struct value is returned
+// from a method call, modifications to the struct value are reflected when later
+// accessed from Go code
+func TestProxyVectorModificationTracking(t *testing.T) {
+	// Create a vector factory
+	factory := &VectorFactory{}
+
+	// Create a proxy for the factory
+	factoryProxy, err := object.NewProxy(factory)
+	require.Nil(t, err)
+
+	// Get the NewVector method
+	newVectorMethod, ok := factoryProxy.GetAttr("NewVector")
+	require.True(t, ok)
+	newVector, ok := newVectorMethod.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call the NewVector method to create a vector
+	ctx := context.Background()
+	vector := newVector.Call(ctx, object.NewFloat(1), object.NewFloat(2), object.NewFloat(3))
+
+	// Get the Add method
+	vectorProxy, ok := vector.(*object.Proxy)
+	require.True(t, ok)
+	addMethod, ok := vectorProxy.GetAttr("Add")
+	require.True(t, ok)
+	add, ok := addMethod.(*object.Builtin)
+	require.True(t, ok)
+
+	// Call Add to create a result vector
+	otherVector, err := object.NewProxy(Vector3D{X: 4, Y: 5, Z: 6})
+	require.Nil(t, err)
+	resultVector := add.Call(ctx, otherVector)
+	resultProxy, ok := resultVector.(*object.Proxy)
+	require.True(t, ok)
+
+	// Extract the actual Go value from the proxy
+	// We should be able to get the underlying Go object
+	underlyingObj := resultProxy.Interface()
+
+	// Modify the vector through the proxy
+	err = resultProxy.SetAttr("X", object.NewFloat(99))
+	require.Nil(t, err)
+	err = resultProxy.SetAttr("Y", object.NewFloat(88))
+	require.Nil(t, err)
+	err = resultProxy.SetAttr("Z", object.NewFloat(77))
+	require.Nil(t, err)
+
+	// Check that the modifications are reflected in the underlying Go value
+	// This is important - the changes should be visible to Go code
+	underlyingVector, ok := underlyingObj.(*Vector3D)
+	require.True(t, ok)
+	require.Equal(t, 99.0, underlyingVector.X)
+	require.Equal(t, 88.0, underlyingVector.Y)
+	require.Equal(t, 77.0, underlyingVector.Z)
 }

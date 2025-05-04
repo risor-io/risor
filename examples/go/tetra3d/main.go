@@ -21,6 +21,7 @@ func main() {
 	c := a.Add(b) // This works now, which is great!
 	c.X = 15 // However, this fails with "type error: cannot set field X"
 	print("c.X =", c.X) // Print the value to verify it was set correctly
+	print(c)
 	`
 	_, err := risor.Eval(context.Background(), src, risor.WithGlobal("Engine", &Engine{}))
 	if err != nil {
