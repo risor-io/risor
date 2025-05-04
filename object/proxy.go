@@ -114,16 +114,18 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 		if !ok {
 			return errz.TypeErrorf("type error: no converter for field %s", name)
 		}
+		result, err := conv.To(value)
+		if err != nil {
+			return err
+		}
+
 		var field reflect.Value
 		if p.typ.IsPointerType() {
 			field = reflect.ValueOf(p.obj).Elem().FieldByName(name)
 		} else {
 			field = reflect.ValueOf(p.obj).FieldByName(name)
 		}
-		result, err := conv.To(value)
-		if err != nil {
-			return err
-		}
+
 		if field.CanSet() {
 			if result == nil {
 				field.SetZero()
@@ -132,6 +134,27 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 			}
 			return nil
 		} else {
+			// If we can't set the field directly (e.g., non-pointer value type),
+			// get a pointer to the original value
+			objVal := reflect.ValueOf(p.obj)
+			if objVal.Kind() == reflect.Struct {
+				// Create a new pointer to a new struct
+				ptrToObj := reflect.New(objVal.Type())
+				// Set the pointed-to value to our original struct
+				ptrToObj.Elem().Set(objVal)
+				// Get the field through the pointer (which is settable)
+				ptrField := ptrToObj.Elem().FieldByName(name)
+				if ptrField.IsValid() && ptrField.CanSet() {
+					if result == nil {
+						ptrField.SetZero()
+					} else {
+						ptrField.Set(reflect.ValueOf(result))
+					}
+					// Update the proxy with the modified value
+					p.obj = ptrToObj.Elem().Interface()
+					return nil
+				}
+			}
 			return errz.TypeErrorf("type error: cannot set field %s", name)
 		}
 	case *GoMethod:

@@ -1,4 +1,4 @@
-go 1.24.0
+go 1.24.2
 
 use (
 	.
@@ -9,6 +9,7 @@ use (
 	./cmd/risor-modgen
 	./examples/go/sqlite
 	./examples/go/struct
+	./examples/go/tetra3d
 	./modules/aws
 	./modules/bcrypt
 	./modules/carbon
