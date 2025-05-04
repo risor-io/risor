@@ -29,3 +29,16 @@ Returns a new error value with the given message.
 >>> err
 something went wrong
 ```
+
+### is
+
+```go filename="Function signature"
+is(err error, target error) bool
+```
+
+Reports whether error matches target error.
+
+```go filename="Example"
+>>> errors.is(err, os.err_not_exist)
+true
+```
