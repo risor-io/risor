@@ -28,6 +28,62 @@ byte_slice("hello world")
 11
 ```
 
+### err_not_exist
+
+`err_not_exist` is an error indicating that a file or directory does not exist.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_not_exist) { print("file does not exist") }
+```
+
+### err_exist
+
+`err_exist` is an error indicating that a file or directory already exists.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_exist) { print("file already exists") }
+```
+
+### err_permission
+
+`err_permission` is an error indicating that permission is denied.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_permission) { print("permission denied") }
+```
+
+### err_closed
+
+`err_closed` is an error indicating that the file is already closed.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_closed) { print("file already closed") }
+```
+
+### err_invalid
+
+`err_invalid` is an error indicating that the operation is invalid.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_invalid) { print("invalid operation") }
+```
+
+### err_no_deadline
+
+`err_no_deadline` is an error indicating that no deadline is set.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_no_deadline) { print("no deadline set") }
+```
+
+### err_deadline_exceeded
+
+`err_deadline_exceeded` is an error indicating that the deadline has been exceeded.
+
+```go copy filename="Example"
+>>> if errors.is(err, os.err_deadline_exceeded) { print("deadline exceeded") }
+```
+
 ## Functions
 
 ### chdir

@@ -3,6 +3,7 @@ package os
 import (
 	"bytes"
 	"context"
+	goos "os"
 
 	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
@@ -625,6 +626,13 @@ func Module() *object.Module {
 			f := GetOS(ctx).Stdout()
 			return object.NewFile(ctx, f, "/dev/stdout"), nil
 		}),
+		"err_not_exist":         object.NewError(goos.ErrNotExist).WithRaised(false),
+		"err_exist":             object.NewError(goos.ErrExist).WithRaised(false),
+		"err_permission":        object.NewError(goos.ErrPermission).WithRaised(false),
+		"err_closed":            object.NewError(goos.ErrClosed).WithRaised(false),
+		"err_invalid":           object.NewError(goos.ErrInvalid).WithRaised(false),
+		"err_no_deadline":       object.NewError(goos.ErrNoDeadline).WithRaised(false),
+		"err_deadline_exceeded": object.NewError(goos.ErrDeadlineExceeded).WithRaised(false),
 	})
 }
 
