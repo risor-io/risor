@@ -26,6 +26,7 @@ import (
 	modTime "github.com/risor-io/risor/modules/time"
 	modYAML "github.com/risor-io/risor/modules/yaml"
 	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/vm"
 )
 
@@ -35,6 +36,7 @@ type Config struct {
 	overrides             map[string]any
 	denylist              map[string]bool
 	importer              importer.Importer
+	os                    os.OS
 	localImportPath       string
 	withoutDefaultGlobals bool
 	withConcurrency       bool
@@ -225,6 +227,9 @@ func (cfg *Config) VMOpts() []vm.Option {
 	}
 	if importer != nil {
 		opts = append(opts, vm.WithImporter(importer))
+	}
+	if cfg.os != nil {
+		opts = append(opts, vm.WithOS(cfg.os))
 	}
 	if cfg.withConcurrency {
 		opts = append(opts, vm.WithConcurrency())

@@ -15,6 +15,7 @@ import (
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/os"
 )
 
 const (
@@ -36,6 +37,7 @@ type VirtualMachine struct {
 	activeCode   *code
 	main         *compiler.Code
 	importer     importer.Importer
+	os           os.OS
 	modules      map[string]*object.Module
 	inputGlobals map[string]any
 	globals      map[string]object.Object
@@ -1014,6 +1016,9 @@ func (vm *VirtualMachine) cloneCallSync(
 }
 
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
+	if vm.os != nil {
+		ctx = os.WithOS(ctx, vm.os)
+	}
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	if vm.concAllowed {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)

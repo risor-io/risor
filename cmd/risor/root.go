@@ -11,12 +11,13 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/risor-io/risor"
 	"github.com/risor-io/risor/cmd/risor/repl"
 	"github.com/risor-io/risor/errz"
 	ros "github.com/risor-io/risor/os"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -149,6 +150,8 @@ var rootCmd = &cobra.Command{
 		args, scriptArgs = getScriptArgs(args)
 		ros.SetScriptArgs(scriptArgs)
 
+		opts := getRisorOptions()
+
 		// Optional virtual operating system with filesystem mounts.
 		if viper.GetBool("virtual-os") {
 			mounts := map[string]*ros.Mount{}
@@ -161,10 +164,8 @@ var rootCmd = &cobra.Command{
 				mounts[dst] = &ros.Mount{Source: fs, Target: dst}
 			}
 			vos := ros.NewVirtualOS(ctx, ros.WithMounts(mounts), ros.WithArgs(scriptArgs))
-			ctx = ros.WithOS(ctx, vos)
+			opts = append(opts, risor.WithOS(vos))
 		}
-
-		opts := getRisorOptions()
 
 		// Run the REPL if no code was provided
 		if shouldRunRepl(cmd, args) {
