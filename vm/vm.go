@@ -112,7 +112,6 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	// 1. It is an error to call Run on a VM that is already running
 	// 2. The running flag will always be set to false when Run returns
 	// 3. Any panics are translated to errors and the VM is stopped
-	ctx = os.WithOS(ctx, vm.os)
 	if err := vm.start(ctx); err != nil {
 		return err
 	}
@@ -697,7 +696,6 @@ func (vm *VirtualMachine) Call(
 	fn *object.Function,
 	args []object.Object,
 ) (result object.Object, err error) {
-	ctx = os.WithOS(ctx, vm.os)
 	if err := vm.start(ctx); err != nil {
 		return nil, err
 	}
@@ -1018,6 +1016,9 @@ func (vm *VirtualMachine) cloneCallSync(
 }
 
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
+	if vm.os != nil {
+		ctx = os.WithOS(ctx, vm.os)
+	}
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	if vm.concAllowed {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
