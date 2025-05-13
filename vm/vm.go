@@ -979,6 +979,7 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 		fp:           0,
 		running:      false,
 		importer:     vm.importer,
+		os:           vm.os,
 		main:         vm.main,
 		inputGlobals: vm.inputGlobals,
 		globals:      vm.globals,
