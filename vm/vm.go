@@ -29,14 +29,17 @@ const (
 var ErrGlobalNotFound = errors.New("global not found")
 
 type VirtualMachine struct {
-	ip           int // instruction pointer
-	sp           int // stack pointer
-	fp           int // frame pointer
-	halt         int32
-	activeFrame  *frame
-	activeCode   *code
-	main         *compiler.Code
-	importer     importer.Importer
+	ip          int // instruction pointer
+	sp          int // stack pointer
+	fp          int // frame pointer
+	halt        int32
+	activeFrame *frame
+	activeCode  *code
+	main        *compiler.Code
+	importer    importer.Importer
+	// os holds reference to OS specified with WithOS option.
+	// The field may be nil as older Risor versions did not have this option available.
+	// To safely obtain current OS reference always use vm.getOS method.
 	os           os.OS
 	modules      map[string]*object.Module
 	inputGlobals map[string]any
@@ -1016,13 +1019,29 @@ func (vm *VirtualMachine) cloneCallSync(
 }
 
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
-	if vm.os != nil {
-		ctx = os.WithOS(ctx, vm.os)
-	}
+	oss := vm.getOS(ctx)
+	ctx = os.WithOS(ctx, oss)
 	ctx = object.WithCallFunc(ctx, vm.callFunction)
 	if vm.concAllowed {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
 		ctx = object.WithCloneCallFunc(ctx, vm.cloneCallSync)
 	}
 	return ctx
+}
+
+// getOS retrieves the OS reference for a VM. Before v1.8.0, the OS was passed solely via a context value.
+// Starting with v1.8.0, the WithOS option allows setting a user-provided OS in vm.os.
+// This method bridges the old and new approaches to safely obtain the OS reference.
+// If the OS is not provided via context or WithOS, NewSimpleOS is used as a default.
+func (vm *VirtualMachine) getOS(ctx context.Context) os.OS {
+	v, ok := os.GetOS(ctx)
+	if ok {
+		return v
+	}
+
+	if vm.os != nil {
+		return vm.os
+	}
+
+	return os.NewSimpleOS(ctx)
 }
