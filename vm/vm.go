@@ -974,12 +974,14 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 	}
 
 	clone := &VirtualMachine{
-		sp:           -1,
-		ip:           0,
-		fp:           0,
-		running:      false,
-		importer:     vm.importer,
-		os:           vm.os, // FIXME: OS will not be copied if it was specified via a context value!
+		sp:       -1,
+		ip:       0,
+		fp:       0,
+		running:  false,
+		importer: vm.importer,
+		// If the OS is specified via a context value, it is not cloned here.
+		// The OS is expected to be provided similarly to the cloned VM.
+		os:           vm.getOS(context.Background()),
 		main:         vm.main,
 		inputGlobals: vm.inputGlobals,
 		globals:      vm.globals,
