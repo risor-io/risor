@@ -37,7 +37,7 @@ type VirtualMachine struct {
 	activeCode  *code
 	main        *compiler.Code
 	importer    importer.Importer
-	// os holds reference to OS specified with WithOS option.
+	// os holds reference to OS as wspecified with WithOS option.
 	// The field may be nil as older Risor versions did not have this option available.
 	// To safely obtain current OS reference always use vm.getOS method.
 	os           os.OS
@@ -979,7 +979,7 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 		fp:           0,
 		running:      false,
 		importer:     vm.importer,
-		os:           vm.os,
+		os:           vm.os, // FIXME: OS will not be copied if it was specified via a context value!
 		main:         vm.main,
 		inputGlobals: vm.inputGlobals,
 		globals:      vm.globals,
