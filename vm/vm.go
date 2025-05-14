@@ -29,17 +29,14 @@ const (
 var ErrGlobalNotFound = errors.New("global not found")
 
 type VirtualMachine struct {
-	ip          int // instruction pointer
-	sp          int // stack pointer
-	fp          int // frame pointer
-	halt        int32
-	activeFrame *frame
-	activeCode  *code
-	main        *compiler.Code
-	importer    importer.Importer
-	// os holds reference to OS as wspecified with WithOS option.
-	// The field may be nil as older Risor versions did not have this option available.
-	// To safely obtain current OS reference always use vm.getOS method.
+	ip           int // instruction pointer
+	sp           int // stack pointer
+	fp           int // frame pointer
+	halt         int32
+	activeFrame  *frame
+	activeCode   *code
+	main         *compiler.Code
+	importer     importer.Importer
 	os           os.OS
 	modules      map[string]*object.Module
 	inputGlobals map[string]any
@@ -955,6 +952,10 @@ func (vm *VirtualMachine) importModule(ctx context.Context, name string) (*objec
 // beginning of the main entrypoint.
 //
 // Do not use Clone if you want a strict guarantee of isolation between VMs.
+//
+// If an OS was provided to the original VM via the WithOS option, it will be
+// copied into the clone. Otherwise, the clone will use the standard OS fallback
+// behavior of using any OS present in the context or NewSimpleOS as a default.
 func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 	// Locking cloneMutex is done to prevent clones while code is being loaded
 	// or modules are being imported
@@ -974,14 +975,12 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 	}
 
 	clone := &VirtualMachine{
-		sp:       -1,
-		ip:       0,
-		fp:       0,
-		running:  false,
-		importer: vm.importer,
-		// If the OS is specified via a context value, it is not cloned here.
-		// The OS is expected to be provided similarly to the cloned VM.
-		os:           vm.getOS(context.Background()),
+		sp:           -1,
+		ip:           0,
+		fp:           0,
+		running:      false,
+		importer:     vm.importer,
+		os:           vm.os,
 		main:         vm.main,
 		inputGlobals: vm.inputGlobals,
 		globals:      vm.globals,
@@ -1032,19 +1031,18 @@ func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-// getOS retrieves the OS reference for a VM. Before v1.8.0, the OS was passed solely via a context value.
-// Starting with v1.8.0, the WithOS option allows setting a user-provided OS in vm.os.
-// This method bridges the old and new approaches to safely obtain the OS reference.
-// If the OS is not provided via context or WithOS, NewSimpleOS is used as a default.
+// getOS retrieves the OS reference for a VM. Before v1.8.0, the OS was passed
+// solely via a context value. Starting with v1.8.0, the WithOS option is the
+// preferred way to set the VM's OS. This getOS method bridges the old and new
+// approaches. If the OS is not provided via context or WithOS, NewSimpleOS is
+// used as a default.
 func (vm *VirtualMachine) getOS(ctx context.Context) os.OS {
 	v, ok := os.GetOS(ctx)
 	if ok {
 		return v
 	}
-
 	if vm.os != nil {
 		return vm.os
 	}
-
 	return os.NewSimpleOS(ctx)
 }

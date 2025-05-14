@@ -148,6 +148,17 @@ func TestWithVirtualOSStdinBuffer(t *testing.T) {
 	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
 }
 
+func TestWithVirtualOSStdinBufferViaContext(t *testing.T) {
+	ctx := context.Background()
+	stdinBuf := ros.NewBufferFile([]byte("hello"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+	ctx = ros.WithOS(ctx, vos)
+
+	result, err := Eval(ctx, "os.stdin.read()")
+	require.Nil(t, err)
+	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
+}
+
 func TestWithVirtualOSStdoutBuffer(t *testing.T) {
 	ctx := context.Background()
 	stdoutBuf := ros.NewBufferFile(nil)
