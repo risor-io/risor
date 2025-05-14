@@ -8,7 +8,6 @@ import (
 )
 
 func TestLocalImporter_Import(t *testing.T) {
-
 	t.Run("successfully imports existing module", func(t *testing.T) {
 		importer := NewLocalImporter(LocalImporterOptions{
 			SourceDir: "fixtures",
