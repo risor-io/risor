@@ -4,9 +4,8 @@ package importer
 import (
 	"context"
 	"fmt"
-	"io"
-	"io/fs"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/risor-io/risor/compiler"
@@ -14,14 +13,22 @@ import (
 	"github.com/risor-io/risor/parser"
 )
 
+var defaultExtensions = []string{".risor", ".rsr"}
+
 // Importer is an interface used to import Risor code modules
 type Importer interface {
 	// Import a module by name
 	Import(ctx context.Context, name string) (*object.Module, error)
 }
 
+// LocalImporter is an Importer that can read Risor code modules from the local
+// filesystem.
 type LocalImporter struct {
-	fsImporter Importer
+	globalNames []string
+	codeCache   map[string]*compiler.Code
+	sourceDir   string
+	extensions  []string
+	mutex       sync.Mutex
 }
 
 // LocalImporterOptions configure an Importer that can read from the local
@@ -44,52 +51,19 @@ type LocalImporterOptions struct {
 // same local importer across multiple VMs and evaluations, because the cached
 // code is immutable.
 func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
-	return &LocalImporter{
-		fsImporter: NewFSImporter(FSImporterOptions{
-			GlobalNames: opts.GlobalNames,
-			// TODO: consider using os.Root if chroot-style isolation is required.
-			SourceFS:   os.DirFS(opts.SourceDir),
-			Extensions: opts.Extensions,
-		}),
-	}
-}
-
-func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
-	return i.fsImporter.Import(ctx, name)
-}
-
-type FSImporterOptions struct {
-	// Global names that should be available when the module is compiled.
-	GlobalNames []string
-
-	// The filesystem to search for Risor modules.
-	SourceFS fs.FS
-
-	// Optional list of file extensions to try when locating a Risor module.
-	Extensions []string
-}
-
-type FSImporter struct {
-	globalNames []string
-	codeCache   map[string]*compiler.Code
-	sourceFS    fs.FS
-	extensions  []string
-	mutex       sync.Mutex
-}
-
-func NewFSImporter(opts FSImporterOptions) *FSImporter {
 	if opts.Extensions == nil {
-		opts.Extensions = []string{".risor", ".rsr"}
+		opts.Extensions = defaultExtensions
 	}
-	return &FSImporter{
+	return &LocalImporter{
 		globalNames: opts.GlobalNames,
 		codeCache:   map[string]*compiler.Code{},
-		sourceFS:    opts.SourceFS,
+		sourceDir:   opts.SourceDir,
 		extensions:  opts.Extensions,
 	}
 }
 
-func (i *FSImporter) Import(ctx context.Context, name string) (*object.Module, error) {
+// Import a module by name.
+func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
@@ -97,23 +71,12 @@ func (i *FSImporter) Import(ctx context.Context, name string) (*object.Module, e
 		return object.NewModule(name, code), nil
 	}
 
-	source, fullPath, found := i.readFileWithExtensions(name, i.extensions)
+	source, fullPath, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
 		return nil, fmt.Errorf("import error: module %q not found", name)
 	}
 
-	ast, err := parser.Parse(ctx, source, parser.WithFile(fullPath))
-	if err != nil {
-		return nil, err
-	}
-
-	var opts []compiler.Option
-	if len(i.globalNames) > 0 {
-		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
-	}
-	opts = append(opts, compiler.WithFilename(fullPath))
-
-	code, err := compiler.Compile(ast, opts...)
+	code, err := parseAndCompile(ctx, source, fullPath, i.globalNames)
 	if err != nil {
 		return nil, err
 	}
@@ -123,22 +86,26 @@ func (i *FSImporter) Import(ctx context.Context, name string) (*object.Module, e
 	return object.NewModule(name, code), nil
 }
 
-func (i *FSImporter) readFileWithExtensions(name string, extensions []string) (string, string, bool) {
+func readFileWithExtensions(dir, name string, extensions []string) (string, string, bool) {
 	for _, ext := range extensions {
-		fullName := name + ext
-		f, err := i.sourceFS.Open(fullName)
-		if err != nil {
-			continue
+		fullPath := filepath.Join(dir, name+ext)
+		bytes, err := os.ReadFile(fullPath)
+		if err == nil {
+			return string(bytes), fullPath, true
 		}
-
-		b, err := io.ReadAll(f)
-		if err != nil {
-			_ = f.Close()
-			continue
-		}
-
-		_ = f.Close()
-		return string(b), fullName, true
 	}
 	return "", "", false
+}
+
+func parseAndCompile(ctx context.Context, source, filepath string, globalNames []string) (*compiler.Code, error) {
+	ast, err := parser.Parse(ctx, source, parser.WithFilename(filepath))
+	if err != nil {
+		return nil, err
+	}
+	var opts []compiler.Option
+	if len(globalNames) > 0 {
+		opts = append(opts, compiler.WithGlobalNames(globalNames))
+	}
+	opts = append(opts, compiler.WithFilename(filepath))
+	return compiler.Compile(ast, opts...)
 }
