@@ -142,6 +142,16 @@ func TestWithVirtualOSStdinBuffer(t *testing.T) {
 	ctx := context.Background()
 	stdinBuf := ros.NewBufferFile([]byte("hello"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
+
+	result, err := Eval(ctx, "os.stdin.read()", WithOS(vos))
+	require.Nil(t, err)
+	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
+}
+
+func TestWithVirtualOSStdinBufferViaContext(t *testing.T) {
+	ctx := context.Background()
+	stdinBuf := ros.NewBufferFile([]byte("hello"))
+	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
 	ctx = ros.WithOS(ctx, vos)
 
 	result, err := Eval(ctx, "os.stdin.read()")
@@ -153,9 +163,8 @@ func TestWithVirtualOSStdoutBuffer(t *testing.T) {
 	ctx := context.Background()
 	stdoutBuf := ros.NewBufferFile(nil)
 	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
-	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "os.stdout.write('foo')")
+	result, err := Eval(ctx, "os.stdout.write('foo')", WithOS(vos))
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(int64(len("foo"))), result)
 
@@ -166,9 +175,8 @@ func TestStdinListBuffer(t *testing.T) {
 	ctx := context.Background()
 	stdinBuf := ros.NewBufferFile([]byte("foo\nbar!"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
-	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "list(os.stdin)")
+	result, err := Eval(ctx, "list(os.stdin)", WithOS(vos))
 	require.Nil(t, err)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewString("foo"),
@@ -180,9 +188,8 @@ func TestWithVirtualOSStdin(t *testing.T) {
 	ctx := context.Background()
 	stdinBuf := ros.NewInMemoryFile([]byte("hello"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
-	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "os.stdin.read()")
+	result, err := Eval(ctx, "os.stdin.read()", WithOS(vos))
 	require.Nil(t, err)
 	require.Equal(t, object.NewByteSlice([]byte("hello")), result)
 }
@@ -191,9 +198,8 @@ func TestWithVirtualOSStdout(t *testing.T) {
 	ctx := context.Background()
 	stdoutBuf := ros.NewInMemoryFile(nil)
 	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdoutBuf))
-	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "os.stdout.write('foo')")
+	result, err := Eval(ctx, "os.stdout.write('foo')", WithOS(vos))
 	require.Nil(t, err)
 	require.Equal(t, object.NewInt(int64(len("foo"))), result)
 
@@ -205,9 +211,8 @@ func TestStdinList(t *testing.T) {
 	ctx := context.Background()
 	stdinBuf := ros.NewInMemoryFile([]byte("foo\nbar!"))
 	vos := ros.NewVirtualOS(ctx, ros.WithStdin(stdinBuf))
-	ctx = ros.WithOS(ctx, vos)
 
-	result, err := Eval(ctx, "list(os.stdin)")
+	result, err := Eval(ctx, "list(os.stdin)", WithOS(vos))
 	require.Nil(t, err)
 	require.Equal(t, object.NewList([]object.Object{
 		object.NewString("foo"),

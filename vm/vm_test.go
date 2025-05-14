@@ -9,6 +9,7 @@ import (
 	"github.com/risor-io/risor/compiler"
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
+	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/parser"
 	"github.com/stretchr/testify/require"
 )
@@ -2401,4 +2402,32 @@ func TestDeeplyNestedRangeLoopBreak(t *testing.T) {
 
 	// We should get 5 (outer loops) * 3 (middle loops before break) * 3 (inner loops before break) = 45
 	require.Equal(t, object.NewInt(45), result)
+}
+
+func TestClonedVMOS(t *testing.T) {
+	code := `os.stdout.write("hello\n")`
+	ctx := context.Background()
+	ast, err := parser.Parse(ctx, code)
+	require.Nil(t, err)
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	main, err := compiler.Compile(ast, compiler.WithGlobalNames(globalNames))
+	require.Nil(t, err)
+
+	stdout := ros.NewBufferFile([]byte{})
+	vos := ros.NewVirtualOS(ctx, ros.WithStdout(stdout))
+
+	vm1 := New(main, WithOS(vos), WithGlobals(globals))
+	require.Nil(t, vm1.Run(ctx))
+	require.Equal(t, "hello\n", string(stdout.Bytes()))
+
+	vm2, err := vm1.Clone()
+	require.Nil(t, err)
+	require.Nil(t, vm2.Run(ctx))
+	require.Equal(t, "hello\nhello\n", string(stdout.Bytes()))
 }
