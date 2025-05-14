@@ -1,0 +1,4 @@
+
+func bar() {
+    return 987
+}

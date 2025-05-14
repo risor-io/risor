@@ -13,12 +13,16 @@ import (
 	"github.com/risor-io/risor/parser"
 )
 
+var defaultExtensions = []string{".risor", ".rsr"}
+
 // Importer is an interface used to import Risor code modules
 type Importer interface {
 	// Import a module by name
 	Import(ctx context.Context, name string) (*object.Module, error)
 }
 
+// LocalImporter is an Importer that can read Risor code modules from the local
+// filesystem.
 type LocalImporter struct {
 	globalNames []string
 	codeCache   map[string]*compiler.Code
@@ -48,7 +52,7 @@ type LocalImporterOptions struct {
 // code is immutable.
 func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
 	if opts.Extensions == nil {
-		opts.Extensions = []string{".risor", ".rsr"}
+		opts.Extensions = defaultExtensions
 	}
 	return &LocalImporter{
 		globalNames: opts.GlobalNames,
@@ -58,30 +62,27 @@ func NewLocalImporter(opts LocalImporterOptions) *LocalImporter {
 	}
 }
 
+// Import a module by name.
 func (i *LocalImporter) Import(ctx context.Context, name string) (*object.Module, error) {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
+
 	if code, ok := i.codeCache[name]; ok {
 		return object.NewModule(name, code), nil
 	}
+
 	source, fullPath, found := readFileWithExtensions(i.sourceDir, name, i.extensions)
 	if !found {
 		return nil, fmt.Errorf("import error: module %q not found", name)
 	}
-	ast, err := parser.Parse(ctx, source, parser.WithFile(fullPath))
+
+	code, err := parseAndCompile(ctx, source, fullPath, i.globalNames)
 	if err != nil {
 		return nil, err
 	}
-	var opts []compiler.Option
-	if len(i.globalNames) > 0 {
-		opts = append(opts, compiler.WithGlobalNames(i.globalNames))
-	}
-	opts = append(opts, compiler.WithFilename(fullPath))
-	code, err := compiler.Compile(ast, opts...)
-	if err != nil {
-		return nil, err
-	}
+
 	i.codeCache[name] = code
+
 	return object.NewModule(name, code), nil
 }
 
@@ -94,4 +95,17 @@ func readFileWithExtensions(dir, name string, extensions []string) (string, stri
 		}
 	}
 	return "", "", false
+}
+
+func parseAndCompile(ctx context.Context, source, filepath string, globalNames []string) (*compiler.Code, error) {
+	ast, err := parser.Parse(ctx, source, parser.WithFilename(filepath))
+	if err != nil {
+		return nil, err
+	}
+	var opts []compiler.Option
+	if len(globalNames) > 0 {
+		opts = append(opts, compiler.WithGlobalNames(globalNames))
+	}
+	opts = append(opts, compiler.WithFilename(filepath))
+	return compiler.Compile(ast, opts...)
 }
