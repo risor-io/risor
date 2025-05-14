@@ -114,16 +114,18 @@ func (p *Proxy) SetAttr(name string, value Object) error {
 		if !ok {
 			return errz.TypeErrorf("type error: no converter for field %s", name)
 		}
+		result, err := conv.To(value)
+		if err != nil {
+			return err
+		}
+
 		var field reflect.Value
 		if p.typ.IsPointerType() {
 			field = reflect.ValueOf(p.obj).Elem().FieldByName(name)
 		} else {
 			field = reflect.ValueOf(p.obj).FieldByName(name)
 		}
-		result, err := conv.To(value)
-		if err != nil {
-			return err
-		}
+
 		if field.CanSet() {
 			if result == nil {
 				field.SetZero()
@@ -268,6 +270,16 @@ func NewProxy(obj interface{}) (*Proxy, error) {
 	// Is this type proxyable?
 	if !IsProxyableType(typ) {
 		return nil, errz.TypeErrorf("type error: unable to proxy type (%T given)", obj)
+	}
+
+	// If it's a struct value, convert to a pointer to make it mutable
+	if typ.Kind() == reflect.Struct {
+		// Create a pointer to a copy of the struct
+		ptrValue := reflect.New(typ)
+		ptrValue.Elem().Set(reflect.ValueOf(obj))
+		// Use the pointer instead
+		obj = ptrValue.Interface()
+		typ = reflect.TypeOf(obj)
 	}
 
 	goType, err := NewGoType(typ)
