@@ -42,7 +42,6 @@ require (
 	github.com/risor-io/risor v1.7.0
 	github.com/risor-io/risor/modules/aws v1.7.0
 	github.com/risor-io/risor/modules/bcrypt v1.7.0
-	github.com/risor-io/risor/modules/carbon v1.7.0
 	github.com/risor-io/risor/modules/cli v1.7.0
 	github.com/risor-io/risor/modules/color v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/gha v1.7.0
@@ -138,7 +137,6 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
-	github.com/dromara/carbon/v2 v2.6.5 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fogleman/gg v1.3.0 // indirect
@@ -154,7 +152,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-module/carbon/v2 v2.6.5 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
