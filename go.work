@@ -14,10 +14,12 @@ use (
 	./modules/bcrypt
 	./modules/carbon
 	./modules/cli
+	./modules/color
 	./modules/gha
 	./modules/goquery
 	./modules/htmltomarkdown
 	./modules/image
+	./modules/isatty
 	./modules/jmespath
 	./modules/pgx
 	./modules/playwright
@@ -27,8 +29,10 @@ use (
 	./modules/shlex
 	./modules/slack
 	./modules/sql
+	./modules/tablewriter
 	./modules/template
 	./modules/uuid
 	./modules/vault
+	./modules/yaml
 	./os/s3fs
 )

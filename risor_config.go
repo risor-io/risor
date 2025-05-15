@@ -24,7 +24,6 @@ import (
 	modStrconv "github.com/risor-io/risor/modules/strconv"
 	modStrings "github.com/risor-io/risor/modules/strings"
 	modTime "github.com/risor-io/risor/modules/time"
-	modYAML "github.com/risor-io/risor/modules/yaml"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/vm"
@@ -145,7 +144,6 @@ func (cfg *Config) applyDefaultGlobals() {
 		"strconv":  modStrconv.Module(),
 		"strings":  modStrings.Module(),
 		"time":     modTime.Module(),
-		"yaml":     modYAML.Module(),
 	}
 	for k, v := range modules {
 		cfg.globals[k] = v
