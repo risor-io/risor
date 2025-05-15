@@ -96,8 +96,8 @@ docker-build:
 	docker buildx build \
 		-t risor/risor:latest \
 		-t risor/risor:$(GIT_REVISION) \
-		-t risor/risor:1.8.0 \
-		--build-arg "RISOR_VERSION=1.8.0" \
+		-t risor/risor:1.8.1 \
+		--build-arg "RISOR_VERSION=1.8.1" \
 		--build-arg "GIT_REVISION=$(GIT_REVISION)" \
 		--build-arg "BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
 		--platform linux/amd64,linux/arm64 \

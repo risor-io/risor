@@ -2,13 +2,14 @@ module github.com/risor-io/risor/examples/go/sqlite
 
 go 1.23.0
 
-replace github.com/risor-io/risor => ../../..
-
-replace github.com/risor-io/risor/modules/sql => ../../../modules/sql
+replace (
+	github.com/risor-io/risor => ../../..
+	github.com/risor-io/risor/modules/sql => ../../../modules/sql
+)
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	github.com/risor-io/risor/modules/sql v0.0.0-00010101000000-000000000000
 )
 
