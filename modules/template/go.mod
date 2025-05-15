@@ -6,7 +6,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.33.0
 	k8s.io/client-go v0.33.0

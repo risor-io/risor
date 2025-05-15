@@ -44,7 +44,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/xray v1.31.4
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 )
 
 require (

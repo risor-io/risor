@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/risor-io/risor => ../..
 
 require (
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	github.com/slack-go/slack v0.16.0
 )
 
