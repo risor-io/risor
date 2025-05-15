@@ -34,7 +34,7 @@ func TestNil(t *testing.T) {
 }
 
 func TestNextToken1(t *testing.T) {
-	input := "%=+(){},;?|| &&`/foo`++--***=.."
+	input := "%=+(){},;?|| &&`/foo`++--***=..&"
 
 	tests := []struct {
 		expectedType    token.Type
@@ -59,6 +59,7 @@ func TestNextToken1(t *testing.T) {
 		{token.ASTERISK_EQUALS, "*="},
 		{token.PERIOD, "."},
 		{token.PERIOD, "."},
+		{token.AMPERSAND, "&"},
 		{token.EOF, ""},
 	}
 	l := New(input)

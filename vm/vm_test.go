@@ -659,6 +659,8 @@ func TestArithmetic(t *testing.T) {
 		{`-11`, object.NewInt(-11)},
 		{`x := -11; -x`, object.NewInt(11)},
 		{`-1.5`, object.NewFloat(-1.5)},
+		{`3 & 1`, object.NewInt(1)},
+		{`3 & 3`, object.NewInt(3)},
 	}
 	runTests(t, tests)
 }
