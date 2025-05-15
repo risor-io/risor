@@ -79,6 +79,7 @@ const (
 	OR              = "||"
 	PERIOD          = "."
 	PLUS            = "+"
+	AMPERSAND       = "&"
 	PLUS_EQUALS     = "+="
 	PLUS_PLUS       = "++"
 	POW             = "**"
