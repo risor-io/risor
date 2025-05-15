@@ -30,6 +30,7 @@ import (
 	"github.com/risor-io/risor/modules/template"
 	"github.com/risor-io/risor/modules/uuid"
 	"github.com/risor-io/risor/modules/vault"
+	"github.com/risor-io/risor/modules/yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -58,13 +59,14 @@ func getGlobals() risor.Option {
 		"playwright":     playwright.Module(),
 		"qrcode":         qrcode.Module(),
 		"sched":          sched.Module(),
-		"sql":            sql.Module(),
+		"semver":         semver.Module(),
+		"shlex":          shlex.Module(),
 		"slack":          slack.Module(),
+		"sql":            sql.Module(),
 		"tablewriter":    tablewriter.Module(),
 		"template":       template.Module(),
 		"uuid":           uuid.Module(),
-		"semver":         semver.Module(),
-		"shlex":          shlex.Module(),
+		"yaml":           yaml.Module(),
 	}
 
 	//************************************************************************//
