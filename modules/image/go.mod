@@ -9,8 +9,4 @@ require (
 	github.com/risor-io/risor v1.7.0
 )
 
-require (
-	github.com/kr/text v0.2.0 // indirect
-	golang.org/x/image v0.26.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
+require golang.org/x/image v0.27.0 // indirect

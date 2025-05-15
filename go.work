@@ -12,7 +12,6 @@ use (
 	./examples/go/tetra3d
 	./modules/aws
 	./modules/bcrypt
-	./modules/carbon
 	./modules/cli
 	./modules/color
 	./modules/gha

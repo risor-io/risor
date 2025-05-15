@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/risor-io/risor => ../..
 
 require (
-	github.com/playwright-community/playwright-go v0.5101.0
+	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/risor-io/risor v0.0.0-00010101000000-000000000000
 )
 
