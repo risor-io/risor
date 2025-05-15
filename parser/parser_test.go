@@ -1217,3 +1217,10 @@ func TestStringFromImport(t *testing.T) {
 		require.IsType(t, &ast.FromImport{}, result.Statements()[0])
 	}
 }
+
+func TestBitwiseAnd(t *testing.T) {
+	input := "1 & 2"
+	result, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Equal(t, "(1 & 2)", result.String())
+}

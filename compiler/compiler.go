@@ -1741,6 +1741,8 @@ func (c *Compiler) compileInfix(node *ast.Infix) error {
 		c.emit(op.BinaryOp, uint16(op.LShift))
 	case ">>":
 		c.emit(op.BinaryOp, uint16(op.RShift))
+	case "&":
+		c.emit(op.BinaryOp, uint16(op.BitwiseAnd))
 	case ">":
 		c.emit(op.CompareOp, uint16(op.GreaterThan))
 	case ">=":

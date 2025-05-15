@@ -243,6 +243,16 @@ func TestStringImport(t *testing.T) {
 			},
 			expectedConstants: []interface{}{"path/to/foo"},
 		},
+		{
+			input: `3 & 1`,
+			expectedCode: []op.Code{
+				op.LoadConst, 0, // 3
+				op.LoadConst, 1, // 1
+				op.BinaryOp,
+				op.Code(op.BitwiseAnd),
+			},
+			expectedConstants: []interface{}{int64(3), int64(1)},
+		},
 	}
 
 	for _, tt := range tests {

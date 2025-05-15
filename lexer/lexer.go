@@ -130,6 +130,8 @@ func (l *Lexer) Next() (token.Token, error) {
 			ch := l.ch
 			l.readChar()
 			tok = l.newToken(token.AND, string(ch)+string(l.ch))
+		} else {
+			tok = l.newToken(token.AMPERSAND, string(l.ch))
 		}
 	case rune('|'):
 		if l.peekChar() == rune('|') {

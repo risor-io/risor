@@ -156,6 +156,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	p.registerInfix(token.ASSIGN, p.parseAssign)
 	p.registerInfix(token.ASTERISK_EQUALS, p.parseAssign)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpr)
+	p.registerInfix(token.AMPERSAND, p.parseInfixExpr)
 	p.registerInfix(token.EQ, p.parseInfixExpr)
 	p.registerInfix(token.GT_EQUALS, p.parseInfixExpr)
 	p.registerInfix(token.GT_GT, p.parseInfixExpr)
