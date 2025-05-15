@@ -29,3 +29,5 @@ coverage.out
 unit-tests.xml
 
 examples/go/sqlite/test.db*
+
+/.dive

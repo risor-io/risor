@@ -17,7 +17,6 @@ import (
 
 	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -36,7 +35,6 @@ func init() {
 	RegisterCodec("base32", &Codec{Encode: encodeBase32, Decode: decodeBase32})
 	RegisterCodec("hex", &Codec{Encode: encodeHex, Decode: decodeHex})
 	RegisterCodec("json", &Codec{Encode: encodeJSON, Decode: decodeJSON})
-	RegisterCodec("yaml", &Codec{Encode: encodeYAML, Decode: decodeYAML})
 	RegisterCodec("csv", &Codec{Encode: encodeCsv, Decode: decodeCsv})
 	RegisterCodec("urlquery", &Codec{Encode: encodeUrlQuery, Decode: decodeUrlQuery})
 	RegisterCodec("gzip", &Codec{Encode: encodeGzip, Decode: decodeGzip})
@@ -131,18 +129,6 @@ func encodeJSON(ctx context.Context, obj object.Object) object.Object {
 		return object.NewError(err)
 	}
 	return object.NewString(string(jsonBytes))
-}
-
-func encodeYAML(ctx context.Context, obj object.Object) object.Object {
-	nativeObject := obj.Interface()
-	if nativeObject == nil {
-		return object.Errorf("value error: encode() does not support %T", obj)
-	}
-	yamlBytes, err := yaml.Marshal(nativeObject)
-	if err != nil {
-		return object.NewError(err)
-	}
-	return object.NewString(string(yamlBytes))
 }
 
 func encodeUrlQuery(ctx context.Context, obj object.Object) object.Object {
@@ -315,18 +301,6 @@ func decodeJSON(ctx context.Context, obj object.Object) object.Object {
 	}
 	var result interface{}
 	if err := json.Unmarshal([]byte(data), &result); err != nil {
-		return object.NewError(err)
-	}
-	return object.FromGoType(result)
-}
-
-func decodeYAML(ctx context.Context, obj object.Object) object.Object {
-	data, err := object.AsBytes(obj)
-	if err != nil {
-		return err
-	}
-	var result interface{}
-	if err := yaml.Unmarshal([]byte(data), &result); err != nil {
 		return object.NewError(err)
 	}
 	return object.FromGoType(result)

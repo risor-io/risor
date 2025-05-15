@@ -9,4 +9,4 @@ require (
 	github.com/risor-io/risor v1.7.0
 )
 
-require golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+require golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect

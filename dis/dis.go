@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 	"github.com/risor-io/risor/compiler"
+	"github.com/risor-io/risor/internal/color"
+	"github.com/risor-io/risor/internal/table"
 	"github.com/risor-io/risor/op"
 )
 
@@ -124,20 +124,23 @@ func Print(instructions []Instruction, writer io.Writer) {
 		}
 		lines = append(lines, values)
 	}
-	table := tablewriter.NewWriter(writer)
-	table.SetHeader([]string{"offset", "opcode", "operands", "info"})
-	table.SetReflowDuringAutoWrap(false)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment([]int{
-		tablewriter.ALIGN_RIGHT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_RIGHT,
-		tablewriter.ALIGN_LEFT,
-	})
-	for _, v := range lines {
-		table.Append(v)
-	}
-	table.Render()
+
+	table.NewTable(writer).
+		WithHeader([]string{"OFFSET", "OPCODE", "OPERANDS", "INFO"}).
+		WithColumnAlignment([]table.Alignment{
+			table.AlignRight,
+			table.AlignLeft,
+			table.AlignRight,
+			table.AlignLeft,
+		}).
+		WithHeaderAlignment([]table.Alignment{
+			table.AlignCenter,
+			table.AlignCenter,
+			table.AlignCenter,
+			table.AlignCenter,
+		}).
+		WithRows(lines).
+		Render()
 }
 
 func formatOperands(ops []op.Code) string {
