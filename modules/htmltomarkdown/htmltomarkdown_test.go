@@ -54,3 +54,13 @@ func TestConvertInvalidArgs(t *testing.T) {
 	_, ok = result.(*object.Error)
 	assert.True(t, ok)
 }
+
+func TestCreateModule(t *testing.T) {
+	module := Module()
+	assert.NotNil(t, module)
+
+	convert, ok := module.GetAttr("convert")
+	assert.True(t, ok)
+	assert.NotNil(t, convert)
+	assert.IsType(t, &object.Builtin{}, convert)
+}

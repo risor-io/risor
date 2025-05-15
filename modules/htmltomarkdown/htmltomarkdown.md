@@ -4,6 +4,16 @@ The `htmltomarkdown` module supports converting HTML to Markdown.
 
 This module uses the [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown) Go library.
 
+## Module
+
+```go copy filename="Function signature"
+htmltomarkdown(html string) string
+```
+
+The `htmltomarkdown` module object itself is callable in order to provide a shorthand for converting HTML to Markdown:
+
+This is equivalent to calling `htmltomarkdown.convert()` with the same arguments.
+
 ## Functions
 
 ### convert
