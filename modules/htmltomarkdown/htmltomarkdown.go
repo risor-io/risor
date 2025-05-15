@@ -25,5 +25,5 @@ func Convert(ctx context.Context, args ...object.Object) object.Object {
 func Module() *object.Module {
 	return object.NewBuiltinsModule("htmltomarkdown", map[string]object.Object{
 		"convert": object.NewBuiltin("convert", Convert),
-	})
+	}, Convert)
 }
