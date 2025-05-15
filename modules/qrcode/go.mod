@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	github.com/risor-io/risor/modules/image v0.0.0-00010101000000-000000000000
 	github.com/yeqown/go-qrcode/v2 v2.2.5
 	github.com/yeqown/go-qrcode/writer/standard v1.3.0

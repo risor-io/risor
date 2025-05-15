@@ -6,7 +6,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.3.2
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	github.com/stretchr/testify v1.10.0
 )
 

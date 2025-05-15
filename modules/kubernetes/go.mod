@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/risor-io/risor => ../..
 
 require (
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	k8s.io/apimachinery v0.33.0
 	k8s.io/client-go v0.33.0
 	sigs.k8s.io/controller-runtime v0.20.4

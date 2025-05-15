@@ -6,7 +6,7 @@ replace github.com/risor-io/risor => ../..
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v1.8.0
 	github.com/stretchr/testify v1.10.0
 )
 

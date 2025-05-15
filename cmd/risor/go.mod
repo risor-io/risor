@@ -39,31 +39,32 @@ require (
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/risor-io/risor v1.7.0
-	github.com/risor-io/risor/modules/aws v1.7.0
-	github.com/risor-io/risor/modules/bcrypt v1.7.0
-	github.com/risor-io/risor/modules/cli v1.7.0
+	github.com/risor-io/risor v1.8.0
+	github.com/risor-io/risor/modules/aws v1.8.0
+	github.com/risor-io/risor/modules/bcrypt v1.8.0
+	github.com/risor-io/risor/modules/cli v1.8.0
 	github.com/risor-io/risor/modules/color v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/gha v1.7.0
+	github.com/risor-io/risor/modules/gha v1.8.0
 	github.com/risor-io/risor/modules/goquery v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/htmltomarkdown v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/image v1.7.0
+	github.com/risor-io/risor/modules/image v1.8.0
 	github.com/risor-io/risor/modules/isatty v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/jmespath v1.7.0
-	github.com/risor-io/risor/modules/kubernetes v1.7.0
-	github.com/risor-io/risor/modules/pgx v1.7.0
+	github.com/risor-io/risor/modules/jmespath v1.8.0
+	github.com/risor-io/risor/modules/kubernetes v1.8.0
+	github.com/risor-io/risor/modules/pgx v1.8.0
 	github.com/risor-io/risor/modules/playwright v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/qrcode v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/sched v1.7.0
-	github.com/risor-io/risor/modules/semver v1.7.0
-	github.com/risor-io/risor/modules/shlex v1.7.0
+	github.com/risor-io/risor/modules/sched v1.8.0
+	github.com/risor-io/risor/modules/semver v1.8.0
+	github.com/risor-io/risor/modules/shlex v1.8.0
 	github.com/risor-io/risor/modules/slack v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/sql v1.7.0
+	github.com/risor-io/risor/modules/sql v1.8.0
 	github.com/risor-io/risor/modules/tablewriter v0.0.0-00010101000000-000000000000
-	github.com/risor-io/risor/modules/template v1.7.0
-	github.com/risor-io/risor/modules/uuid v1.7.0
-	github.com/risor-io/risor/modules/vault v1.7.0
-	github.com/risor-io/risor/os/s3fs v1.7.0
+	github.com/risor-io/risor/modules/template v1.8.0
+	github.com/risor-io/risor/modules/uuid v1.8.0
+	github.com/risor-io/risor/modules/vault v1.8.0
+	github.com/risor-io/risor/modules/yaml v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/os/s3fs v1.8.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0

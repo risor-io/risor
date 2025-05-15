@@ -4,4 +4,4 @@ go 1.23.0
 
 replace github.com/risor-io/risor => ../..
 
-require github.com/risor-io/risor v1.7.0
+require github.com/risor-io/risor v1.8.0
