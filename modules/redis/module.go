@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/risor-io/risor/arg"
 	"github.com/risor-io/risor/object"

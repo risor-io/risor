@@ -2,14 +2,13 @@ package redis
 
 import (
 	"context"
-	"github.com/risor-io/risor/object"
 	"os"
 	"testing"
+
+	"github.com/risor-io/risor/object"
 )
 
-var (
-	client object.Object
-)
+var client object.Object
 
 func TestMain(m *testing.M) {
 	redisURL := object.NewString("redis://localhost:6379")

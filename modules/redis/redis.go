@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"

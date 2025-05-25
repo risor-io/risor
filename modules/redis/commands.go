@@ -2,8 +2,9 @@ package redis
 
 import (
 	"context"
-	"github.com/risor-io/risor/object"
 	"time"
+
+	"github.com/risor-io/risor/object"
 )
 
 func (r *Client) Ping(ctx context.Context, args ...object.Object) object.Object {
@@ -73,6 +74,7 @@ func (r *Client) Set(ctx context.Context, args ...object.Object) object.Object {
 	}
 	return object.NewString(result.Val())
 }
+
 func (r *Client) Del(ctx context.Context, args ...object.Object) object.Object {
 	if len(args) == 0 {
 		return object.TypeErrorf("type error: redis.client.del() requires at least one argument")

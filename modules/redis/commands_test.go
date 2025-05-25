@@ -2,8 +2,9 @@ package redis
 
 import (
 	"context"
-	"github.com/risor-io/risor/object"
 	"testing"
+
+	"github.com/risor-io/risor/object"
 )
 
 func TestRedisPing(t *testing.T) {
@@ -159,7 +160,6 @@ func testRedisGet(t *testing.T, key object.Object) {
 	if res != "test_value" {
 		t.Errorf("expected get result to be 'test_value', got %s", res)
 	}
-
 }
 
 func testRedisExists(t *testing.T, key object.Object) {
