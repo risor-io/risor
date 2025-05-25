@@ -1,5 +1,5 @@
 
-export GOFLAGS=-tags=aws,k8s,vault
+export GOFLAGS=-tags=aws,k8s,vault,redis
 
 export GIT_REVISION=$(shell git rev-parse --short HEAD)
 
@@ -34,6 +34,10 @@ extension:
 .PHONY: postgres
 postgres:
 	docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=pwd -d postgres
+
+.PHONY: redis
+redis:
+	docker run --rm --name redis -p 6379:6379 -d redis
 
 .PHONY: tidy
 tidy:
