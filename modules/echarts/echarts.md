@@ -5,11 +5,14 @@ The `echarts` module provides a Risor interface for creating charts using the [g
 ## Key Features
 
 - Support for multiple chart types (bar, line, scatter, pie, liquid, heatmap)
+- Consistent API across all chart types
 - Chart overlapping functionality for creating composite visualizations
 - Configurable chart options (titles, legends, axes)
-- Direct rendering to HTML files
+- Rendering to HTML files via `.render()` method
 
 ## Functions
+
+All chart functions follow a consistent pattern: they take data as the first parameter, optional configuration as the second parameter, and return a chart object that can be manipulated and rendered.
 
 ### bar
 
@@ -17,7 +20,7 @@ The `echarts` module provides a Risor interface for creating charts using the [g
 bar(data map, options map) chart
 ```
 
-Creates a new bar chart object. Returns a chart object that can be rendered or overlapped with other charts.
+Creates a new bar chart object.
 
 ```risor copy filename="Example"
 data := {
@@ -89,10 +92,10 @@ For scatter plots, data values should be lists of [x, y] coordinates.
 ### pie
 
 ```go filename="Function signature"
-pie(filename string, data map, options map)
+pie(data map, options map) chart
 ```
 
-Creates and renders a pie chart directly to a file.
+Creates a new pie chart object.
 
 ```risor copy filename="Example"
 data := {
@@ -107,31 +110,35 @@ options := {
   subtitle: "2024 Statistics"
 }
 
-echarts.pie("browser_share.html", data, options)
+chart := echarts.pie(data, options)
+chart.render("browser_share.html")
 ```
 
 ### liquid
 
 ```go filename="Function signature"
-liquid(filename string, value number, options map)
+liquid(value number, options map) chart
 ```
 
-Creates and renders a liquid fill chart directly to a file.
+Creates a new liquid fill chart object.
 
 ```risor copy filename="Example"
-echarts.liquid("progress.html", 0.75, {
+chart := echarts.liquid(0.75, {
   title: "Project Completion",
   subtitle: "75% Complete"
 })
+chart.render("progress.html")
 ```
+
+The `value` parameter should be a number between 0 and 1 representing the fill percentage.
 
 ### heatmap
 
 ```go filename="Function signature"
-heatmap(filename string, data map, options map)
+heatmap(data map, options map) chart
 ```
 
-Creates and renders a heatmap chart directly to a file.
+Creates a new heatmap chart object.
 
 ```risor copy filename="Example"
 data := {
@@ -149,14 +156,28 @@ options := {
   ylabels: ["Metric X", "Metric Y", "Metric Z"]
 }
 
-echarts.heatmap("correlation.html", data, options)
+chart := echarts.heatmap(data, options)
+chart.render("correlation.html")
 ```
 
-For heatmaps, the `values` array contains [x, y, value] triplets.
+For heatmaps, the `values` array contains [x, y, value] triplets where x and y are coordinates and value is the intensity.
 
 ## Chart Objects
 
-Chart objects returned by `bar()`, `line()`, and `scatter()` functions have the following methods:
+All chart functions return chart objects that implement the following methods:
+
+### render
+
+```go filename="Method signature"
+chart.render(filename string)
+```
+
+Renders the chart to an HTML file.
+
+```risor copy filename="Example"
+chart := echarts.bar(data, options)
+chart.render("output.html")
+```
 
 ### overlap
 
@@ -164,7 +185,7 @@ Chart objects returned by `bar()`, `line()`, and `scatter()` functions have the 
 chart.overlap(other_chart chart)
 ```
 
-Overlaps another chart onto this chart, creating a composite visualization.
+Overlaps another chart onto this chart, creating a composite visualization. Note that not all chart types support overlapping (e.g., pie and liquid charts cannot be overlapped).
 
 ```risor copy filename="Example"
 // Create a bar chart
@@ -185,18 +206,13 @@ bar_chart.overlap(line_chart)
 bar_chart.render("combined_chart.html")
 ```
 
-### render
-
-```go filename="Method signature"
-chart.render(filename string)
-```
-
-Renders the chart to an HTML file.
-
-```risor copy filename="Example"
-chart := echarts.bar(data, options)
-chart.render("output.html")
-```
+**Chart Overlap Compatibility:**
+- ✅ Bar charts can overlap and be overlapped
+- ✅ Line charts can overlap and be overlapped  
+- ✅ Scatter charts can overlap and be overlapped
+- ❌ Pie charts cannot overlap or be overlapped
+- ❌ Liquid charts cannot overlap or be overlapped
+- ❌ Heatmap charts cannot overlap or be overlapped
 
 ## Options
 
@@ -204,12 +220,32 @@ All chart functions accept an optional `options` map with the following supporte
 
 | Option    | Type     | Description                    | Default Value     |
 |-----------|----------|--------------------------------|-------------------|
-| `title`   | string   | Main title of the chart        | Chart type + "Chart" |
-| `subtitle`| string   | Subtitle text                  | Chart type + "Example" |
+| `title`   | string   | Main title of the chart        | Chart type + " Chart" |
+| `subtitle`| string   | Subtitle text                  | Chart type + " Example" |
 | `xlabels` | []string | X-axis category labels         | Empty array       |
 | `ylabels` | []string | Y-axis category labels (heatmap only) | Empty array |
 
-## Complete Example
+## Complete Examples
+
+### Basic Chart Creation
+
+```risor copy filename="Simple chart creation"
+// Create a basic bar chart
+data := {"Revenue": [100, 150, 200, 175, 225]}
+chart := echarts.bar(data, {title: "Monthly Revenue"})
+chart.render("revenue.html")
+
+// Create a pie chart
+pie_data := {"Product A": 45, "Product B": 30, "Product C": 25}
+pie_chart := echarts.pie(pie_data, {title: "Product Distribution"})
+pie_chart.render("products.html")
+
+// Create a liquid chart
+progress := echarts.liquid(0.68, {title: "Project Progress"})
+progress.render("progress.html")
+```
+
+### Advanced Overlapping Chart
 
 ```risor copy filename="Complex overlapping chart example"
 // Sales data
@@ -240,4 +276,23 @@ sales_chart.overlap(trend_chart)
 sales_chart.render("sales_dashboard.html")
 ```
 
-This creates a comprehensive chart combining bar and line visualizations, demonstrating the power of the overlap functionality for creating rich, multi-layered data visualizations.
+### Multi-Chart Dashboard
+
+```risor copy filename="Creating multiple charts"
+// Different chart types for a dashboard
+sales := {"Q1": 100, "Q2": 150, "Q3": 200, "Q4": 175}
+temperatures := {"Week 1": [20, 22, 25], "Week 2": [18, 21, 24]}
+completion := 0.85
+
+// Create individual charts
+sales_pie := echarts.pie(sales, {title: "Quarterly Sales"})
+temp_line := echarts.line(temperatures, {title: "Temperature Trends"})
+progress_liquid := echarts.liquid(completion, {title: "Project Status"})
+
+// Render each chart
+sales_pie.render("dashboard_sales.html")
+temp_line.render("dashboard_temperature.html")
+progress_liquid.render("dashboard_progress.html")
+```
+
+This demonstrates the power and flexibility of the echarts module for creating rich, interactive data visualizations with a simple and consistent API.
