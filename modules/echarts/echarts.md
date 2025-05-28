@@ -182,7 +182,7 @@ chart.render("output.html")
 ### overlap
 
 ```go filename="Method signature"
-chart.overlap(other_chart chart)
+chart.overlap(other_chart)
 ```
 
 Overlaps another chart onto this chart, creating a composite visualization. Note that not all chart types support overlapping (e.g., pie and liquid charts cannot be overlapped).
