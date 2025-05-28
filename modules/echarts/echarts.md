@@ -143,3 +143,36 @@ echarts.pie(
 	},
 )
 ```
+
+### liquid
+
+```go filename="Function signature"
+liquid(file string, value number, opts map)
+```
+
+Creates a new liquid chart (also known as a liquid fill gauge).
+
+```go copy filename="Example"
+echarts.liquid(
+	"liquid.html",
+	0.6,
+)
+```
+
+The `opts` argument may be a map containing any of the following keys:
+
+| Name   | Type                          | Description                              |
+| ------ | ----------------------------- | ---------------------------------------- |
+| title  | string                        | The title of the chart                   |
+| subtitle | string                      | The subtitle of the chart                |
+
+```go copy filename="Example"
+echarts.liquid(
+	"liquid.html",
+	0.75,
+	{
+		title: "Progress Indicator",
+		subtitle: "75% Complete"
+	},
+)
+```
