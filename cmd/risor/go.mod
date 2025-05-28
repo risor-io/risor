@@ -8,6 +8,7 @@ replace (
 	github.com/risor-io/risor/modules/bcrypt => ../../modules/bcrypt
 	github.com/risor-io/risor/modules/cli => ../../modules/cli
 	github.com/risor-io/risor/modules/color => ../../modules/color
+	github.com/risor-io/risor/modules/echarts => ../../modules/echarts
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
 	github.com/risor-io/risor/modules/goquery => ../../modules/goquery
 	github.com/risor-io/risor/modules/htmltomarkdown => ../../modules/htmltomarkdown
@@ -44,6 +45,7 @@ require (
 	github.com/risor-io/risor/modules/bcrypt v1.8.0
 	github.com/risor-io/risor/modules/cli v1.8.0
 	github.com/risor-io/risor/modules/color v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/echarts v1.8.0
 	github.com/risor-io/risor/modules/gha v1.8.0
 	github.com/risor-io/risor/modules/goquery v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/htmltomarkdown v0.0.0-00010101000000-000000000000
@@ -143,6 +145,7 @@ require (
 	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.5.4 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect

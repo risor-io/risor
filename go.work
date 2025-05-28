@@ -14,6 +14,7 @@ use (
 	./modules/bcrypt
 	./modules/cli
 	./modules/color
+	./modules/echarts
 	./modules/gha
 	./modules/goquery
 	./modules/htmltomarkdown
