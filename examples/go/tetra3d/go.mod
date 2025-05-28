@@ -5,7 +5,7 @@ go 1.23.0
 replace github.com/risor-io/risor => ../../..
 
 require (
-	github.com/risor-io/risor v1.7.0
+	github.com/risor-io/risor v0.0.0-00010101000000-000000000000
 	github.com/solarlune/tetra3d v0.16.3
 )
 
