@@ -176,3 +176,68 @@ echarts.liquid(
 	},
 )
 ```
+
+### heatmap
+
+```go filename="Function signature"
+heatmap(file string, data map, opts map)
+```
+
+Creates a new heatmap chart.
+
+```go copy filename="Example"
+data := {
+  "values": [
+    [0, 0, 10],
+    [0, 1, 19],
+    [0, 2, 8],
+    [1, 0, 12],
+    [1, 1, 15],
+    [1, 2, 6],
+    [2, 0, 4],
+    [2, 1, 7],
+    [2, 2, 20],
+  ]
+}
+
+echarts.heatmap(
+	"heatmap.html",
+	data,
+)
+```
+
+The `opts` argument may be a map containing any of the following keys:
+
+| Name   | Type                          | Description                              |
+| ------ | ----------------------------- | ---------------------------------------- |
+| title  | string                        | The title of the chart                   |
+| subtitle | string                      | The subtitle of the chart                |
+| xlabels | []string                      | The labels for the x-axis                |
+| ylabels | []string                      | The labels for the y-axis                |
+
+```go copy filename="Example"
+data := {
+  "values": [
+    [0, 0, 10],
+    [0, 1, 19],
+    [0, 2, 8],
+    [1, 0, 12],
+    [1, 1, 15],
+    [1, 2, 6],
+    [2, 0, 4],
+    [2, 1, 7],
+    [2, 2, 20],
+  ]
+}
+
+echarts.heatmap(
+	"heatmap.html",
+	data,
+	{
+		title: "Temperature Map",
+		subtitle: "Daily temperature readings",
+		xlabels: ["Monday", "Tuesday", "Wednesday"],
+		ylabels: ["Morning", "Afternoon", "Evening"]
+	},
+)
+```

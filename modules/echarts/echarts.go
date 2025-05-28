@@ -13,10 +13,11 @@ import (
 func Module() *object.Module {
 	return object.NewBuiltinsModule(
 		"echarts", map[string]object.Object{
-			"bar":    object.NewBuiltin("bar", Bar),
-			"line":   object.NewBuiltin("line", Line),
-			"pie":    object.NewBuiltin("pie", Pie),
-			"liquid": object.NewBuiltin("liquid", Liquid),
+			"bar":     object.NewBuiltin("bar", Bar),
+			"line":    object.NewBuiltin("line", Line),
+			"pie":     object.NewBuiltin("pie", Pie),
+			"liquid":  object.NewBuiltin("liquid", Liquid),
+			"heatmap": object.NewBuiltin("heatmap", Heatmap),
 		},
 	)
 }
@@ -281,7 +282,7 @@ func Liquid(ctx context.Context, args ...object.Object) object.Object {
 	}
 
 	value := args[1]
-	
+
 	file, err := object.AsString(args[0])
 	if err != nil {
 		return err
@@ -322,6 +323,113 @@ func Liquid(ctx context.Context, args ...object.Object) object.Object {
 	defer f.Close()
 
 	nErr := liquid.Render(f)
+	if nErr != nil {
+		return object.NewError(nErr)
+	}
+	return nil
+}
+
+func Heatmap(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 2 {
+		return object.Errorf("missing arguments, 2 required")
+	}
+
+	data, err := object.AsMap(args[1])
+	if err != nil {
+		return err
+	}
+
+	file, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+
+	options := object.NewMap(map[string]object.Object{})
+	if len(args) > 2 {
+		options, err = object.AsMap(args[2])
+		if err != nil {
+			return err
+		}
+	}
+
+	title, err := strValue(options, "title", "Heatmap")
+	if err != nil {
+		return err
+	}
+
+	subtitle, err := strValue(options, "subtitle", "Heatmap Example")
+	if err != nil {
+		return err
+	}
+
+	xAxis, err := strListValue(options, "xlabels", []string{})
+	if err != nil {
+		return err
+	}
+
+	yAxis, err := strListValue(options, "ylabels", []string{})
+	if err != nil {
+		return err
+	}
+
+	// Extract heatmap data from the input map
+	heatmapData := make([]opts.HeatMapData, 0)
+	dataMap := data.Value()
+
+	if values, ok := dataMap["values"]; ok {
+		valuesList, err := object.AsList(values)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range valuesList.Value() {
+			itemList, err := object.AsList(item)
+			if err != nil {
+				return err
+			}
+
+			if len(itemList.Value()) >= 3 {
+				x := itemList.Value()[0]
+				y := itemList.Value()[1]
+				value := itemList.Value()[2]
+				heatmapData = append(heatmapData, opts.HeatMapData{Value: [3]interface{}{x, y, value}})
+			}
+		}
+	}
+
+	heatmap := charts.NewHeatMap()
+	heatmap.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    title,
+			Subtitle: subtitle,
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type:      "category",
+			Data:      xAxis,
+			SplitArea: &opts.SplitArea{Show: opts.Bool(true)},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Type:      "category",
+			Data:      yAxis,
+			SplitArea: &opts.SplitArea{Show: opts.Bool(false)},
+		}),
+		charts.WithVisualMapOpts(opts.VisualMap{
+			Calculable: opts.Bool(true),
+			Orient:     "horizontal",
+			Left:       "center",
+			Bottom:     "15%",
+		}),
+	)
+
+	heatmap.AddSeries("heatmap", heatmapData)
+
+	f, cerr := os.Create(file)
+	if cerr != nil {
+		return object.NewError(cerr)
+	}
+	defer f.Close()
+
+	nErr := heatmap.Render(f)
 	if nErr != nil {
 		return object.NewError(nErr)
 	}
