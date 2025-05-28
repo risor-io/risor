@@ -3,12 +3,113 @@ package echarts
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
+	"github.com/risor-io/risor/op"
 )
+
+const (
+	CHART object.Type = "echarts.chart"
+)
+
+type Chart struct {
+	chart interface {
+		Render(w io.Writer) error
+		Overlap(chart ...charts.Overlaper)
+	}
+	chartType string
+}
+
+func (c *Chart) Type() object.Type {
+	return CHART
+}
+
+func (c *Chart) Inspect() string {
+	return fmt.Sprintf("echarts.%s()", c.chartType)
+}
+
+func (c *Chart) Interface() interface{} {
+	return c.chart
+}
+
+func (c *Chart) IsTruthy() bool {
+	return true
+}
+
+func (c *Chart) Cost() int {
+	return 0
+}
+
+func (c *Chart) MarshalJSON() ([]byte, error) {
+	return nil, errz.TypeErrorf("type error: unable to marshal %s", CHART)
+}
+
+func (c *Chart) RunOperation(opType op.BinaryOpType, right object.Object) object.Object {
+	return object.TypeErrorf("type error: unsupported operation for %s: %v", CHART, opType)
+}
+
+func (c *Chart) Equals(other object.Object) object.Object {
+	return object.NewBool(c == other)
+}
+
+func (c *Chart) GetAttr(name string) (object.Object, bool) {
+	switch name {
+	case "overlap":
+		return object.NewBuiltin("echarts.chart.overlap",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return object.Errorf("overlap() takes exactly 1 argument (%d given)", len(args))
+				}
+
+				otherChart, ok := args[0].(*Chart)
+				if !ok {
+					return object.Errorf("overlap() argument must be a chart object")
+				}
+
+				overlaper, ok := otherChart.chart.(charts.Overlaper)
+				if !ok {
+					return object.Errorf("chart does not support overlapping")
+				}
+
+				c.chart.Overlap(overlaper)
+				return object.Nil
+			}), true
+	case "render":
+		return object.NewBuiltin("echarts.chart.render",
+			func(ctx context.Context, args ...object.Object) object.Object {
+				if len(args) != 1 {
+					return object.Errorf("render() takes exactly 1 argument (%d given)", len(args))
+				}
+
+				filename, err := object.AsString(args[0])
+				if err != nil {
+					return err
+				}
+
+				f, cerr := os.Create(filename)
+				if cerr != nil {
+					return object.NewError(cerr)
+				}
+				defer f.Close()
+
+				if renderErr := c.chart.Render(f); renderErr != nil {
+					return object.NewError(renderErr)
+				}
+
+				return object.Nil
+			}), true
+	}
+	return nil, false
+}
+
+func (c *Chart) SetAttr(name string, value object.Object) error {
+	return object.TypeErrorf("type error: %s object has no settable attribute %q", CHART, name)
+}
 
 func Module() *object.Module {
 	return object.NewBuiltinsModule(
@@ -18,31 +119,17 @@ func Module() *object.Module {
 			"pie":     object.NewBuiltin("pie", Pie),
 			"liquid":  object.NewBuiltin("liquid", Liquid),
 			"heatmap": object.NewBuiltin("heatmap", Heatmap),
+			"scatter": object.NewBuiltin("scatter", Scatter),
 		},
 	)
 }
 
-func require(funcName string, count int, args []object.Object) *object.Error {
-	nArgs := len(args)
-	if nArgs != count {
-		if count == 1 {
-			return object.Errorf(
-				fmt.Sprintf("type error: %s() takes exactly 1 argument (%d given)",
-					funcName, nArgs))
-		}
-		return object.Errorf(
-			fmt.Sprintf("type error: %s() takes exactly %d arguments (%d given)",
-				funcName, count, nArgs))
-	}
-	return nil
-}
-
 func Line(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.Errorf("missing arguments, 2 required")
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
 
-	data, err := object.AsMap(args[1])
+	data, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
@@ -62,14 +149,9 @@ func Line(ctx context.Context, args ...object.Object) object.Object {
 		series[title] = items
 	}
 
-	file, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-
 	options := object.NewMap(map[string]object.Object{})
-	if len(args) > 2 {
-		options, err = object.AsMap(args[2])
+	if len(args) > 1 {
+		options, err = object.AsMap(args[1])
 		if err != nil {
 			return err
 		}
@@ -104,28 +186,19 @@ func Line(ctx context.Context, args ...object.Object) object.Object {
 		line.AddSeries(t, i)
 	}
 
-	f, ferr := os.Create(file)
-	if ferr != nil {
-		return object.NewError(ferr)
-	}
-	defer f.Close()
-
-	nErr := line.Render(f)
-	if nErr != nil {
-		return object.NewError(nErr)
-	}
-	return nil
+	return &Chart{chart: line, chartType: "line"}
 }
 
 func Bar(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.Errorf("missing arguments, 2 required")
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
 
-	data, err := object.AsMap(args[1])
+	data, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
+
 	series := map[string][]opts.BarData{}
 	for k, v := range data.Value() {
 		items := make([]opts.BarData, 0)
@@ -141,14 +214,9 @@ func Bar(ctx context.Context, args ...object.Object) object.Object {
 		series[title] = items
 	}
 
-	file, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-
 	options := object.NewMap(map[string]object.Object{})
-	if len(args) > 2 {
-		options, err = object.AsMap(args[2])
+	if len(args) > 1 {
+		options, err = object.AsMap(args[1])
 		if err != nil {
 			return err
 		}
@@ -183,17 +251,75 @@ func Bar(ctx context.Context, args ...object.Object) object.Object {
 		bar.AddSeries(t, i)
 	}
 
-	f, cerr := os.Create(file)
-	if cerr != nil {
-		return object.NewError(cerr)
-	}
-	defer f.Close()
+	return &Chart{chart: bar, chartType: "bar"}
+}
 
-	nErr := bar.Render(f)
-	if nErr != nil {
-		return object.NewError(nErr)
+func Scatter(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
-	return nil
+
+	data, err := object.AsMap(args[0])
+	if err != nil {
+		return err
+	}
+
+	series := map[string][]opts.ScatterData{}
+	for k, v := range data.Value() {
+		items := make([]opts.ScatterData, 0)
+		i, err := object.AsList(v)
+		if err != nil {
+			return err
+		}
+
+		title := object.NewString(k).String()
+		for _, v := range i.Value() {
+			switch item := v.(type) {
+			case *object.List:
+				if len(item.Value()) >= 2 {
+					x := item.Value()[0]
+					y := item.Value()[1]
+					items = append(items, opts.ScatterData{Value: []interface{}{x, y}})
+				}
+			default:
+				items = append(items, opts.ScatterData{Value: v})
+			}
+		}
+		series[title] = items
+	}
+
+	options := object.NewMap(map[string]object.Object{})
+	if len(args) > 1 {
+		options, err = object.AsMap(args[1])
+		if err != nil {
+			return err
+		}
+	}
+
+	title, err := strValue(options, "title", "Scatter Chart")
+	if err != nil {
+		return err
+	}
+
+	subtitle, err := strValue(options, "subtitle", "Scatter Chart Example")
+	if err != nil {
+		return err
+	}
+
+	scatter := charts.NewScatter()
+	scatter.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    title,
+			Subtitle: subtitle,
+		}),
+		charts.WithLegendOpts(opts.Legend{Orient: "horizontal", Left: "right", Top: "bottom"}),
+	)
+
+	for t, i := range series {
+		scatter.AddSeries(t, i)
+	}
+
+	return &Chart{chart: scatter, chartType: "scatter"}
 }
 
 func strValue(opts *object.Map, key, def string) (string, *object.Error) {
@@ -273,7 +399,7 @@ func Pie(ctx context.Context, args ...object.Object) object.Object {
 	if nErr != nil {
 		return object.NewError(nErr)
 	}
-	return nil
+	return object.Nil
 }
 
 func Liquid(ctx context.Context, args ...object.Object) object.Object {
@@ -326,7 +452,7 @@ func Liquid(ctx context.Context, args ...object.Object) object.Object {
 	if nErr != nil {
 		return object.NewError(nErr)
 	}
-	return nil
+	return object.Nil
 }
 
 func Heatmap(ctx context.Context, args ...object.Object) object.Object {
@@ -372,7 +498,6 @@ func Heatmap(ctx context.Context, args ...object.Object) object.Object {
 		return err
 	}
 
-	// Extract heatmap data from the input map
 	heatmapData := make([]opts.HeatMapData, 0)
 	dataMap := data.Value()
 
@@ -433,7 +558,7 @@ func Heatmap(ctx context.Context, args ...object.Object) object.Object {
 	if nErr != nil {
 		return object.NewError(nErr)
 	}
-	return nil
+	return object.Nil
 }
 
 func strListValue(opts *object.Map, key string, def []string) ([]string, *object.Error) {
