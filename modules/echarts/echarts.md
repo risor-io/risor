@@ -22,7 +22,7 @@ bar(data map, options map) chart
 
 Creates a new bar chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 data := {
   "Sales": [120, 200, 150, 80, 70, 110, 130],
   "Revenue": [100, 190, 140, 70, 60, 100, 120]
@@ -48,7 +48,7 @@ line(data map, options map) chart
 
 Creates a new line chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 data := {
   "Temperature": [20, 22, 25, 28, 30, 32, 29],
   "Humidity": [60, 65, 70, 68, 72, 75, 73]
@@ -72,7 +72,7 @@ scatter(data map, options map) chart
 
 Creates a new scatter plot chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 data := {
   "Dataset A": [[1, 4], [2, 6], [3, 8], [4, 10], [5, 12]],
   "Dataset B": [[1, 2], [2, 5], [3, 3], [4, 8], [5, 7]]
@@ -97,7 +97,7 @@ pie(data map, options map) chart
 
 Creates a new pie chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 data := {
   "Chrome": 60,
   "Firefox": 20,
@@ -122,7 +122,7 @@ liquid(value number, options map) chart
 
 Creates a new liquid fill chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 chart := echarts.liquid(0.75, {
   title: "Project Completion",
   subtitle: "75% Complete"
@@ -140,7 +140,7 @@ heatmap(data map, options map) chart
 
 Creates a new heatmap chart object.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 data := {
   values: [
     [0, 0, 5], [0, 1, 1], [0, 2, 0],
@@ -174,7 +174,7 @@ chart.render(filename string)
 
 Renders the chart to an HTML file.
 
-```risor copy filename="Example"
+```go copy filename="Example"
 chart := echarts.bar(data, options)
 chart.render("output.html")
 ```
@@ -187,7 +187,7 @@ chart.overlap(other_chart chart)
 
 Overlaps another chart onto this chart, creating a composite visualization. Note that not all chart types support overlapping (e.g., pie and liquid charts cannot be overlapped).
 
-```risor copy filename="Example"
+```go copy filename="Example"
 // Create a bar chart
 bar_data := {"Sales": [120, 200, 150, 80, 70]}
 bar_chart := echarts.bar(bar_data, {
@@ -208,7 +208,7 @@ bar_chart.render("combined_chart.html")
 
 **Chart Overlap Compatibility:**
 - ✅ Bar charts can overlap and be overlapped
-- ✅ Line charts can overlap and be overlapped  
+- ✅ Line charts can overlap and be overlapped
 - ✅ Scatter charts can overlap and be overlapped
 - ❌ Pie charts cannot overlap or be overlapped
 - ❌ Liquid charts cannot overlap or be overlapped
@@ -229,7 +229,7 @@ All chart functions accept an optional `options` map with the following supporte
 
 ### Basic Chart Creation
 
-```risor copy filename="Simple chart creation"
+```go copy filename="Simple chart creation"
 // Create a basic bar chart
 data := {"Revenue": [100, 150, 200, 175, 225]}
 chart := echarts.bar(data, {title: "Monthly Revenue"})
@@ -247,7 +247,7 @@ progress.render("progress.html")
 
 ### Advanced Overlapping Chart
 
-```risor copy filename="Complex overlapping chart example"
+```go copy filename="Complex overlapping chart example"
 // Sales data
 sales_data := {
   "Actual Sales": [120, 200, 150, 80, 70, 110, 130],
@@ -278,7 +278,7 @@ sales_chart.render("sales_dashboard.html")
 
 ### Multi-Chart Dashboard
 
-```risor copy filename="Creating multiple charts"
+```go copy filename="Creating multiple charts"
 // Different chart types for a dashboard
 sales := {"Q1": 100, "Q2": 150, "Q3": 200, "Q4": 175}
 temperatures := {"Week 1": [20, 22, 25], "Week 2": [18, 21, 24]}
