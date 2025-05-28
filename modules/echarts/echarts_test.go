@@ -277,7 +277,7 @@ func TestInvalidOperations(t *testing.T) {
 	})
 
 	chart := Bar(context.Background(), data)
-	
+
 	result := chart.SetAttr("invalid", object.NewString("test"))
 	assert.Error(t, result)
 

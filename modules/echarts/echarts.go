@@ -75,7 +75,9 @@ func (c *Chart) GetAttr(name string) (object.Object, bool) {
 					return object.Errorf("chart does not support overlapping")
 				}
 
-				overlapable, ok := c.chart.(interface{ Overlap(chart ...charts.Overlaper) })
+				overlapable, ok := c.chart.(interface {
+					Overlap(chart ...charts.Overlaper)
+				})
 				if !ok {
 					return object.Errorf("this chart type does not support overlapping")
 				}
