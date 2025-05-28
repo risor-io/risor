@@ -32,7 +32,7 @@ func (c *Chart) Inspect() string {
 	return fmt.Sprintf("echarts.%s()", c.chartType)
 }
 
-func (c *Chart) Interface() interface{} {
+func (c *Chart) Interface() any {
 	return c.chart
 }
 
@@ -489,7 +489,7 @@ func Heatmap(ctx context.Context, args ...object.Object) object.Object {
 				x := itemList.Value()[0]
 				y := itemList.Value()[1]
 				value := itemList.Value()[2]
-				heatmapData = append(heatmapData, opts.HeatMapData{Value: [3]interface{}{x, y, value}})
+				heatmapData = append(heatmapData, opts.HeatMapData{Value: [3]any{x, y, value}})
 			}
 		}
 	}
