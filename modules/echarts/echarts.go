@@ -15,6 +15,7 @@ func Module() *object.Module {
 		"echarts", map[string]object.Object{
 			"bar":  object.NewBuiltin("bar", Bar),
 			"line": object.NewBuiltin("line", Line),
+			"pie":  object.NewBuiltin("pie", Pie),
 		},
 	)
 }
@@ -207,6 +208,70 @@ func strValue(opts *object.Map, key, def string) (string, *object.Error) {
 		return def, nil
 	}
 	return v, nil
+}
+
+func Pie(ctx context.Context, args ...object.Object) object.Object {
+	if len(args) < 2 {
+		return object.Errorf("missing arguments, 2 required")
+	}
+
+	data, err := object.AsMap(args[1])
+	if err != nil {
+		return err
+	}
+
+	items := make([]opts.PieData, 0)
+	for k, v := range data.Value() {
+		name := object.NewString(k).String()
+		value := v
+		items = append(items, opts.PieData{Name: name, Value: value})
+	}
+
+	file, err := object.AsString(args[0])
+	if err != nil {
+		return err
+	}
+
+	options := object.NewMap(map[string]object.Object{})
+	if len(args) > 2 {
+		options, err = object.AsMap(args[2])
+		if err != nil {
+			return err
+		}
+	}
+
+	title, err := strValue(options, "title", "Pie Chart")
+	if err != nil {
+		return err
+	}
+
+	subtitle, err := strValue(options, "subtitle", "Pie Chart Example")
+	if err != nil {
+		return err
+	}
+
+	pie := charts.NewPie()
+	pie.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title:    title,
+			Subtitle: subtitle,
+		}),
+		charts.WithLegendOpts(opts.Legend{Orient: "vertical", Left: "left"}),
+	)
+
+	pie.AddSeries("pie", items)
+
+	f, cerr := os.Create(file)
+	if cerr != nil {
+		return object.NewError(cerr)
+	}
+	defer f.Close()
+
+	nErr := pie.Render(f)
+	if nErr != nil {
+		return object.NewError(nErr)
+	}
+	return nil
 }
 
 func strListValue(opts *object.Map, key string, def []string) ([]string, *object.Error) {

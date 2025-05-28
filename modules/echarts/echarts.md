@@ -96,3 +96,50 @@ echarts.line(
 	},
 )
 ```
+
+### pie
+
+```go filename="Function signature"
+pie(file string, data map, opts map)
+```
+
+Creates a new pie chart.
+
+```go copy filename="Example"
+data := {
+  "Apples": 30,
+  "Oranges": 20,
+  "Bananas": 25,
+  "Grapes": 15,
+}
+
+echarts.pie(
+	"pie.html",
+	data,
+)
+```
+
+The `opts` argument may be a map containing any of the following keys:
+
+| Name   | Type                          | Description                              |
+| ------ | ----------------------------- | ---------------------------------------- |
+| title  | string                        | The title of the chart                   |
+| subtitle | string                      | The subtitle of the chart                |
+
+```go copy filename="Example"
+data := {
+  "Apples": 30,
+  "Oranges": 20,
+  "Bananas": 25,
+  "Grapes": 15,
+}
+
+echarts.pie(
+	"pie.html",
+	data,
+	{
+		title: "Fruit Distribution",
+		subtitle: "Sales by fruit type"
+	},
+)
+```
