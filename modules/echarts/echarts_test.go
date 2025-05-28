@@ -3,6 +3,7 @@ package echarts
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/risor-io/risor/object"
@@ -175,14 +176,12 @@ func TestChartRender(t *testing.T) {
 	renderMethod, ok := chart.GetAttr("render")
 	assert.True(t, ok)
 
-	filename := "test_chart.html"
+	filename := filepath.Join(t.TempDir(), "test_chart.html")
 	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
 	assert.NoError(t, err)
-
-	os.Remove(filename)
 }
 
 func TestPieChartRender(t *testing.T) {
@@ -198,14 +197,12 @@ func TestPieChartRender(t *testing.T) {
 	renderMethod, ok := chart.GetAttr("render")
 	assert.True(t, ok)
 
-	filename := "test_pie.html"
+	filename := filepath.Join(t.TempDir(), "test_pie.html")
 	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
 	assert.NoError(t, err)
-
-	os.Remove(filename)
 }
 
 func TestLiquidChartRender(t *testing.T) {
@@ -217,14 +214,12 @@ func TestLiquidChartRender(t *testing.T) {
 	renderMethod, ok := chart.GetAttr("render")
 	assert.True(t, ok)
 
-	filename := "test_liquid.html"
+	filename := filepath.Join(t.TempDir(), "test_liquid.html")
 	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
 	assert.NoError(t, err)
-
-	os.Remove(filename)
 }
 
 func TestHeatmapChartRender(t *testing.T) {
@@ -249,14 +244,12 @@ func TestHeatmapChartRender(t *testing.T) {
 	renderMethod, ok := chart.GetAttr("render")
 	assert.True(t, ok)
 
-	filename := "test_heatmap.html"
+	filename := filepath.Join(t.TempDir(), "test_heatmap.html")
 	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
 	assert.NoError(t, err)
-
-	os.Remove(filename)
 }
 
 func TestChartEquals(t *testing.T) {
@@ -498,11 +491,10 @@ func TestEndToEndWorkflow(t *testing.T) {
 	// Render combined chart
 	renderMethod, ok := barChart.GetAttr("render")
 	assert.True(t, ok)
-	filename := "test_combined.html"
+	filename := filepath.Join(t.TempDir(), "test_combined.html")
 	result = renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
 	assert.NoError(t, err)
-	os.Remove(filename)
 }
