@@ -80,6 +80,56 @@ func TestScatterChart(t *testing.T) {
 	assert.Equal(t, "scatter", chartObj.chartType)
 }
 
+func TestPieChart(t *testing.T) {
+	data := object.NewMap(map[string]object.Object{
+		"Apple":  object.NewInt(30),
+		"Orange": object.NewInt(20),
+		"Banana": object.NewInt(25),
+	})
+
+	chart := Pie(context.Background(), data)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+
+	chartObj := chart.(*Chart)
+	assert.Equal(t, "pie", chartObj.chartType)
+}
+
+func TestLiquidChart(t *testing.T) {
+	value := object.NewFloat(0.75)
+
+	chart := Liquid(context.Background(), value)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+
+	chartObj := chart.(*Chart)
+	assert.Equal(t, "liquid", chartObj.chartType)
+}
+
+func TestHeatmapChart(t *testing.T) {
+	data := object.NewMap(map[string]object.Object{
+		"values": object.NewList([]object.Object{
+			object.NewList([]object.Object{
+				object.NewInt(0),
+				object.NewInt(0),
+				object.NewInt(10),
+			}),
+			object.NewList([]object.Object{
+				object.NewInt(1),
+				object.NewInt(1),
+				object.NewInt(20),
+			}),
+		}),
+	})
+
+	chart := Heatmap(context.Background(), data)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+
+	chartObj := chart.(*Chart)
+	assert.Equal(t, "heatmap", chartObj.chartType)
+}
+
 func TestChartOverlap(t *testing.T) {
 	barData := object.NewMap(map[string]object.Object{
 		"Bars": object.NewList([]object.Object{
@@ -135,15 +185,21 @@ func TestChartRender(t *testing.T) {
 	os.Remove(filename)
 }
 
-func TestPieChart(t *testing.T) {
+func TestPieChartRender(t *testing.T) {
 	data := object.NewMap(map[string]object.Object{
 		"Apple":  object.NewInt(30),
 		"Orange": object.NewInt(20),
 		"Banana": object.NewInt(25),
 	})
 
+	chart := Pie(context.Background(), data)
+	assert.False(t, object.IsError(chart))
+
+	renderMethod, ok := chart.GetAttr("render")
+	assert.True(t, ok)
+
 	filename := "test_pie.html"
-	result := Pie(context.Background(), object.NewString(filename), data)
+	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
@@ -152,11 +208,17 @@ func TestPieChart(t *testing.T) {
 	os.Remove(filename)
 }
 
-func TestLiquidChart(t *testing.T) {
+func TestLiquidChartRender(t *testing.T) {
 	value := object.NewFloat(0.75)
 
+	chart := Liquid(context.Background(), value)
+	assert.False(t, object.IsError(chart))
+
+	renderMethod, ok := chart.GetAttr("render")
+	assert.True(t, ok)
+
 	filename := "test_liquid.html"
-	result := Liquid(context.Background(), object.NewString(filename), value)
+	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
@@ -165,7 +227,7 @@ func TestLiquidChart(t *testing.T) {
 	os.Remove(filename)
 }
 
-func TestHeatmapChart(t *testing.T) {
+func TestHeatmapChartRender(t *testing.T) {
 	data := object.NewMap(map[string]object.Object{
 		"values": object.NewList([]object.Object{
 			object.NewList([]object.Object{
@@ -181,8 +243,14 @@ func TestHeatmapChart(t *testing.T) {
 		}),
 	})
 
+	chart := Heatmap(context.Background(), data)
+	assert.False(t, object.IsError(chart))
+
+	renderMethod, ok := chart.GetAttr("render")
+	assert.True(t, ok)
+
 	filename := "test_heatmap.html"
-	result := Heatmap(context.Background(), object.NewString(filename), data)
+	result := renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
 	assert.Equal(t, object.Nil, result)
 
 	_, err := os.Stat(filename)
@@ -227,13 +295,13 @@ func TestInvalidChartArguments(t *testing.T) {
 	result = Scatter(context.Background())
 	assert.True(t, object.IsError(result))
 
-	result = Pie(context.Background(), object.NewString("test.html"))
+	result = Pie(context.Background())
 	assert.True(t, object.IsError(result))
 
-	result = Liquid(context.Background(), object.NewString("test.html"))
+	result = Liquid(context.Background())
 	assert.True(t, object.IsError(result))
 
-	result = Heatmap(context.Background(), object.NewString("test.html"))
+	result = Heatmap(context.Background())
 	assert.True(t, object.IsError(result))
 }
 
@@ -249,6 +317,25 @@ func TestOverlapWithIncompatibleChart(t *testing.T) {
 	assert.True(t, ok)
 
 	result := overlapMethod.(*object.Builtin).Call(context.Background(), otherObject)
+	assert.True(t, object.IsError(result))
+}
+
+func TestOverlapWithUnsupportedChartType(t *testing.T) {
+	data := object.NewMap(map[string]object.Object{
+		"Apple": object.NewInt(30),
+	})
+
+	pieChart := Pie(context.Background(), data)
+	lineData := object.NewMap(map[string]object.Object{
+		"Lines": object.NewList([]object.Object{object.NewInt(15)}),
+	})
+	lineChart := Line(context.Background(), lineData)
+
+	overlapMethod, ok := pieChart.GetAttr("overlap")
+	assert.True(t, ok)
+
+	// Pie charts don't support overlapping
+	result := overlapMethod.(*object.Builtin).Call(context.Background(), lineChart)
 	assert.True(t, object.IsError(result))
 }
 
@@ -276,6 +363,63 @@ func TestChartWithOptions(t *testing.T) {
 	assert.Equal(t, CHART, chart.Type())
 }
 
+func TestPieChartWithOptions(t *testing.T) {
+	data := object.NewMap(map[string]object.Object{
+		"Apple":  object.NewInt(30),
+		"Orange": object.NewInt(20),
+		"Banana": object.NewInt(25),
+	})
+
+	options := object.NewMap(map[string]object.Object{
+		"title":    object.NewString("Fruit Distribution"),
+		"subtitle": object.NewString("Survey Results"),
+	})
+
+	chart := Pie(context.Background(), data, options)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+}
+
+func TestLiquidChartWithOptions(t *testing.T) {
+	value := object.NewFloat(0.65)
+
+	options := object.NewMap(map[string]object.Object{
+		"title":    object.NewString("Progress"),
+		"subtitle": object.NewString("65% Complete"),
+	})
+
+	chart := Liquid(context.Background(), value, options)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+}
+
+func TestHeatmapChartWithOptions(t *testing.T) {
+	data := object.NewMap(map[string]object.Object{
+		"values": object.NewList([]object.Object{
+			object.NewList([]object.Object{
+				object.NewInt(0),
+				object.NewInt(0),
+				object.NewInt(10),
+			}),
+		}),
+	})
+
+	options := object.NewMap(map[string]object.Object{
+		"title":    object.NewString("Heat Distribution"),
+		"subtitle": object.NewString("Temperature Map"),
+		"xlabels": object.NewList([]object.Object{
+			object.NewString("X1"),
+		}),
+		"ylabels": object.NewList([]object.Object{
+			object.NewString("Y1"),
+		}),
+	})
+
+	chart := Heatmap(context.Background(), data, options)
+	assert.False(t, object.IsError(chart))
+	assert.Equal(t, CHART, chart.Type())
+}
+
 func TestChartInspect(t *testing.T) {
 	data := object.NewMap(map[string]object.Object{
 		"Test": object.NewList([]object.Object{object.NewInt(1)}),
@@ -289,6 +433,27 @@ func TestChartInspect(t *testing.T) {
 
 	scatterChart := Scatter(context.Background(), data)
 	assert.Equal(t, "echarts.scatter()", scatterChart.Inspect())
+
+	pieData := object.NewMap(map[string]object.Object{
+		"A": object.NewInt(1),
+	})
+	pieChart := Pie(context.Background(), pieData)
+	assert.Equal(t, "echarts.pie()", pieChart.Inspect())
+
+	liquidChart := Liquid(context.Background(), object.NewFloat(0.5))
+	assert.Equal(t, "echarts.liquid()", liquidChart.Inspect())
+
+	heatmapData := object.NewMap(map[string]object.Object{
+		"values": object.NewList([]object.Object{
+			object.NewList([]object.Object{
+				object.NewInt(0),
+				object.NewInt(0),
+				object.NewInt(1),
+			}),
+		}),
+	})
+	heatmapChart := Heatmap(context.Background(), heatmapData)
+	assert.Equal(t, "echarts.heatmap()", heatmapChart.Inspect())
 }
 
 func TestChartProperties(t *testing.T) {
@@ -299,4 +464,45 @@ func TestChartProperties(t *testing.T) {
 	chart := Bar(context.Background(), data)
 	assert.True(t, chart.IsTruthy())
 	assert.Equal(t, 0, chart.Cost())
+}
+
+func TestEndToEndWorkflow(t *testing.T) {
+	// Test complete workflow: create chart, overlap with another, then render
+	barData := object.NewMap(map[string]object.Object{
+		"Sales": object.NewList([]object.Object{
+			object.NewInt(100),
+			object.NewInt(150),
+		}),
+	})
+
+	lineData := object.NewMap(map[string]object.Object{
+		"Target": object.NewList([]object.Object{
+			object.NewInt(120),
+			object.NewInt(140),
+		}),
+	})
+
+	// Create charts
+	barChart := Bar(context.Background(), barData)
+	lineChart := Line(context.Background(), lineData)
+
+	assert.False(t, object.IsError(barChart))
+	assert.False(t, object.IsError(lineChart))
+
+	// Overlap charts
+	overlapMethod, ok := barChart.GetAttr("overlap")
+	assert.True(t, ok)
+	result := overlapMethod.(*object.Builtin).Call(context.Background(), lineChart)
+	assert.Equal(t, object.Nil, result)
+
+	// Render combined chart
+	renderMethod, ok := barChart.GetAttr("render")
+	assert.True(t, ok)
+	filename := "test_combined.html"
+	result = renderMethod.(*object.Builtin).Call(context.Background(), object.NewString(filename))
+	assert.Equal(t, object.Nil, result)
+
+	_, err := os.Stat(filename)
+	assert.NoError(t, err)
+	os.Remove(filename)
 }

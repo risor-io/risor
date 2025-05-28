@@ -20,7 +20,6 @@ const (
 type Chart struct {
 	chart interface {
 		Render(w io.Writer) error
-		Overlap(chart ...charts.Overlaper)
 	}
 	chartType string
 }
@@ -76,7 +75,12 @@ func (c *Chart) GetAttr(name string) (object.Object, bool) {
 					return object.Errorf("chart does not support overlapping")
 				}
 
-				c.chart.Overlap(overlaper)
+				overlapable, ok := c.chart.(interface{ Overlap(chart ...charts.Overlaper) })
+				if !ok {
+					return object.Errorf("this chart type does not support overlapping")
+				}
+
+				overlapable.Overlap(overlaper)
 				return object.Nil
 			}), true
 	case "render":
@@ -339,11 +343,11 @@ func strValue(opts *object.Map, key, def string) (string, *object.Error) {
 }
 
 func Pie(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.Errorf("missing arguments, 2 required")
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
 
-	data, err := object.AsMap(args[1])
+	data, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
@@ -355,14 +359,9 @@ func Pie(ctx context.Context, args ...object.Object) object.Object {
 		items = append(items, opts.PieData{Name: name, Value: value})
 	}
 
-	file, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
-
 	options := object.NewMap(map[string]object.Object{})
-	if len(args) > 2 {
-		options, err = object.AsMap(args[2])
+	if len(args) > 1 {
+		options, err = object.AsMap(args[1])
 		if err != nil {
 			return err
 		}
@@ -389,34 +388,20 @@ func Pie(ctx context.Context, args ...object.Object) object.Object {
 
 	pie.AddSeries("pie", items)
 
-	f, cerr := os.Create(file)
-	if cerr != nil {
-		return object.NewError(cerr)
-	}
-	defer f.Close()
-
-	nErr := pie.Render(f)
-	if nErr != nil {
-		return object.NewError(nErr)
-	}
-	return object.Nil
+	return &Chart{chart: pie, chartType: "pie"}
 }
 
 func Liquid(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.Errorf("missing arguments, 2 required")
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
 
-	value := args[1]
-
-	file, err := object.AsString(args[0])
-	if err != nil {
-		return err
-	}
+	value := args[0]
 
 	options := object.NewMap(map[string]object.Object{})
-	if len(args) > 2 {
-		options, err = object.AsMap(args[2])
+	if len(args) > 1 {
+		var err *object.Error
+		options, err = object.AsMap(args[1])
 		if err != nil {
 			return err
 		}
@@ -442,37 +427,22 @@ func Liquid(ctx context.Context, args ...object.Object) object.Object {
 
 	liquid.AddSeries("liquid", []opts.LiquidData{{Value: value}})
 
-	f, cerr := os.Create(file)
-	if cerr != nil {
-		return object.NewError(cerr)
-	}
-	defer f.Close()
-
-	nErr := liquid.Render(f)
-	if nErr != nil {
-		return object.NewError(nErr)
-	}
-	return object.Nil
+	return &Chart{chart: liquid, chartType: "liquid"}
 }
 
 func Heatmap(ctx context.Context, args ...object.Object) object.Object {
-	if len(args) < 2 {
-		return object.Errorf("missing arguments, 2 required")
+	if len(args) < 1 {
+		return object.Errorf("missing arguments, at least 1 required")
 	}
 
-	data, err := object.AsMap(args[1])
-	if err != nil {
-		return err
-	}
-
-	file, err := object.AsString(args[0])
+	data, err := object.AsMap(args[0])
 	if err != nil {
 		return err
 	}
 
 	options := object.NewMap(map[string]object.Object{})
-	if len(args) > 2 {
-		options, err = object.AsMap(args[2])
+	if len(args) > 1 {
+		options, err = object.AsMap(args[1])
 		if err != nil {
 			return err
 		}
@@ -548,17 +518,7 @@ func Heatmap(ctx context.Context, args ...object.Object) object.Object {
 
 	heatmap.AddSeries("heatmap", heatmapData)
 
-	f, cerr := os.Create(file)
-	if cerr != nil {
-		return object.NewError(cerr)
-	}
-	defer f.Close()
-
-	nErr := heatmap.Render(f)
-	if nErr != nil {
-		return object.NewError(nErr)
-	}
-	return object.Nil
+	return &Chart{chart: heatmap, chartType: "heatmap"}
 }
 
 func strListValue(opts *object.Map, key string, def []string) ([]string, *object.Error) {
