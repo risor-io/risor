@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/risor-io/risor/object"
 )
 
@@ -34,6 +35,9 @@ func (r *Client) Get(ctx context.Context, args ...object.Object) object.Object {
 
 	result := r.client.Get(ctx, key)
 	if result.Err() != nil {
+		if result.Err() == redis.Nil {
+			return object.Nil
+		}
 		return object.NewError(result.Err())
 	}
 	return object.NewString(result.Val())
