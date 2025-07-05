@@ -10,6 +10,7 @@ import (
 	"github.com/risor-io/risor/modules/bcrypt"
 	"github.com/risor-io/risor/modules/cli"
 	"github.com/risor-io/risor/modules/color"
+	"github.com/risor-io/risor/modules/echarts"
 	"github.com/risor-io/risor/modules/gha"
 	"github.com/risor-io/risor/modules/goquery"
 	"github.com/risor-io/risor/modules/htmltomarkdown"
@@ -50,6 +51,7 @@ func getGlobals() risor.Option {
 		"bcrypt":         bcrypt.Module(),
 		"cli":            cli.Module(),
 		"color":          color.Module(),
+		"echarts":        echarts.Module(),
 		"gha":            gha.Module(),
 		"goquery":        goquery.Module(),
 		"htmltomarkdown": htmltomarkdown.Module(),
