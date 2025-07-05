@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/risor-io/risor/errz"
 	"github.com/risor-io/risor/object"
 	"github.com/risor-io/risor/op"
+	"github.com/risor-io/risor/os"
 )
 
 const (
@@ -97,7 +97,8 @@ func (c *Chart) GetAttr(name string) (object.Object, bool) {
 					return err
 				}
 
-				f, cerr := os.Create(filename)
+				ros := os.GetDefaultOS(ctx)
+				f, cerr := ros.Create(filename)
 				if cerr != nil {
 					return object.NewError(cerr)
 				}
