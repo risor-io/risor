@@ -158,7 +158,7 @@ application. The modules are present in this same Git repository, but must be
 installed with `go get` as separate dependencies:
 
 | Name           | Path                                               | Go Get Command                                            |
-| -------------- | -------------------------------------------------- | --------------------------------------------------------- |
+|----------------|----------------------------------------------------|-----------------------------------------------------------|
 | aws            | [modules/aws](./modules/aws)                       | `go get github.com/risor-io/risor/modules/aws`            |
 | bcrypt         | [modules/bcrypt](./modules/bcrypt)                 | `go get github.com/risor-io/risor/modules/bcrypt`         |
 | cli            | [modules/cli](./modules/cli)                       | `go get github.com/risor-io/risor/modules/cli`            |
@@ -173,6 +173,7 @@ installed with `go get` as separate dependencies:
 | pgx            | [modules/pgx](./modules/pgx)                       | `go get github.com/risor-io/risor/modules/pgx`            |
 | playwright     | [modules/playwright](./modules/playwright)         | `go get github.com/risor-io/risor/modules/playwright`     |
 | qrcode         | [modules/qrcode](./modules/qrcode)                 | `go get github.com/risor-io/risor/modules/qrcode`         |
+| redis          | [modules/redis](./modules/redis)                   | `go get github.com/risor-io/risor/modules/redis`          |
 | s3fs           | [os/s3fs](./os/s3fs)                               | `go get github.com/risor-io/risor/os/s3fs`                |
 | sched          | [modules/sched](./modules/sched)                   | `go get github.com/risor-io/risor/modules/sched`          |
 | semver         | [modules/semver](./modules/semver)                 | `go get github.com/risor-io/risor/modules/semver`         |

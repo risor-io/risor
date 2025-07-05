@@ -35,6 +35,10 @@ extension:
 postgres:
 	docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=pwd -d postgres
 
+.PHONY: redis
+redis:
+	docker run --rm --name redis -p 6379:6379 -d redis
+
 .PHONY: tidy
 tidy:
 	find . -name go.mod -execdir go mod tidy \;

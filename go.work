@@ -23,6 +23,7 @@ use (
 	./modules/pgx
 	./modules/playwright
 	./modules/qrcode
+	./modules/redis
 	./modules/sched
 	./modules/semver
 	./modules/shlex
