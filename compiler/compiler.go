@@ -129,6 +129,13 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if c.filename != "" {
 		c.main.filename = c.filename
 	}
+	
+	// First pass: collect function declarations to allow forward references
+	if err := c.collectFunctionDeclarations(node); err != nil {
+		return nil, err
+	}
+	
+	// Second pass: actual compilation
 	if err := c.compile(node); err != nil {
 		return nil, err
 	}
@@ -138,6 +145,36 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 		return nil, c.failure
 	}
 	return c.main, nil
+}
+
+// collectFunctionDeclarations walks the AST and collects all function declarations,
+// adding them to the symbol table to allow forward references.
+func (c *Compiler) collectFunctionDeclarations(node ast.Node) error {
+	switch node := node.(type) {
+	case *ast.Program:
+		for _, stmt := range node.Statements() {
+			if err := c.collectFunctionDeclarations(stmt); err != nil {
+				return err
+			}
+		}
+	case *ast.Block:
+		for _, stmt := range node.Statements() {
+			if err := c.collectFunctionDeclarations(stmt); err != nil {
+				return err
+			}
+		}
+	case *ast.Func:
+		// Only collect named functions at the top level
+		if node.Name() != nil && c.current.parent == nil {
+			functionName := node.Name().Literal()
+			if _, found := c.current.symbols.Get(functionName); !found {
+				if _, err := c.current.symbols.InsertConstant(functionName); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // compile the given AST node and all its children.
@@ -1159,9 +1196,15 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 	// If the function was named, we store it as a named variable in the current
 	// code. Otherwise, we just leave it on the stack.
 	if code.isNamed {
-		funcSymbol, err := c.current.symbols.InsertConstant(functionName)
-		if err != nil {
-			return err
+		// Check if the function name already exists in the symbol table
+		// (it would have been added in the first pass for forward references)
+		funcSymbol, found := c.current.symbols.Get(functionName)
+		if !found {
+			var err error
+			funcSymbol, err = c.current.symbols.InsertConstant(functionName)
+			if err != nil {
+				return err
+			}
 		}
 		// Duplicate function on the stack, so that we ensure the function
 		// evaluates to a value even when it's named.
