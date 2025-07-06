@@ -418,3 +418,25 @@ func TestWithExistingVM(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, int64(4), result.Interface())
 }
+
+func TestDefaultGlobalsFunc(t *testing.T) {
+	globals := DefaultGlobals(DefaultGlobalsOpts{
+		ListenersAllowed: true,
+	})
+	expectedNames := []string{ // non-exhaustive
+		"base64",
+		"bytes",
+		"errors",
+		"exec",
+		"filepath",
+		"fmt",
+		"http",
+		"cat",
+		"ls",
+		"print",
+	}
+	for _, name := range expectedNames {
+		_, ok := globals[name]
+		require.True(t, ok, "expected global %s", name)
+	}
+}
