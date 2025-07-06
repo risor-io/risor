@@ -2433,3 +2433,455 @@ func TestClonedVMOS(t *testing.T) {
 	require.Nil(t, vm2.Run(ctx))
 	require.Equal(t, "hello\nhello\n", string(stdout.Bytes()))
 }
+
+func TestFunctionForwardDeclaration(t *testing.T) {
+	tests := []testCase{
+		// Basic forward declaration - function called before definition
+		{`
+		func main() {
+			return helper(5)
+		}
+		
+		func helper(x) {
+			return x * 2
+		}
+		
+		main()
+		`, object.NewInt(10)},
+
+		// Forward declaration with multiple functions
+		{`
+		func start() {
+			return first() + second()
+		}
+		
+		func first() {
+			return 10
+		}
+		
+		func second() {
+			return 20
+		}
+		
+		start()
+		`, object.NewInt(30)},
+
+		// Forward declaration with nested calls
+		{`
+		func outer() {
+			return inner() + 5
+		}
+		
+		func inner() {
+			return deepest() * 2
+		}
+		
+		func deepest() {
+			return 7
+		}
+		
+		outer()
+		`, object.NewInt(19)},
+
+		// Forward declaration with default parameters
+		{`
+		func calculator(op="add") {
+			if op == "add" {
+				return adder(5, 3)
+			} else {
+				return multiplier(5, 3)
+			}
+		}
+		
+		func adder(a, b) {
+			return a + b
+		}
+		
+		func multiplier(a, b) {
+			return a * b
+		}
+		
+		calculator()
+		`, object.NewInt(8)},
+
+		// Forward declaration with closures
+		{`
+		func makeCounter() {
+			count := 0
+			return func() {
+				count++
+				return incrementHelper(count)
+			}
+		}
+		
+		func incrementHelper(n) {
+			return n * 10
+		}
+		
+		counter := makeCounter()
+		counter()
+		`, object.NewInt(10)},
+	}
+	runTests(t, tests)
+}
+
+func TestMutualRecursion(t *testing.T) {
+	tests := []testCase{
+		// Basic mutual recursion - even/odd
+		{`
+		func is_even(n) {
+			if n == 0 {
+				return true
+			}
+			return is_odd(n - 1)
+		}
+		
+		func is_odd(n) {
+			if n == 0 {
+				return false
+			}
+			return is_even(n - 1)
+		}
+		
+		[is_even(4), is_odd(4), is_even(5), is_odd(5)]
+		`, object.NewList([]object.Object{
+			object.True,
+			object.False,
+			object.False,
+			object.True,
+		})},
+
+		// Mutual recursion with return values
+		{`
+		func countdown_a(n) {
+			if n <= 0 {
+				return 0
+			}
+			return n + countdown_b(n - 1)
+		}
+		
+		func countdown_b(n) {
+			if n <= 0 {
+				return 0
+			}
+			return n + countdown_a(n - 1)
+		}
+		
+		countdown_a(5)
+		`, object.NewInt(15)},
+
+		// More complex mutual recursion
+		{`
+		func fibonacci_a(n) {
+			if n <= 1 {
+				return n
+			}
+			return fibonacci_b(n - 1) + fibonacci_a(n - 2)
+		}
+		
+		func fibonacci_b(n) {
+			if n <= 1 {
+				return n
+			}
+			return fibonacci_a(n - 1) + fibonacci_b(n - 2)
+		}
+		
+		fibonacci_a(6)
+		`, object.NewInt(8)},
+	}
+	runTests(t, tests)
+}
+
+func TestForwardDeclarationWithConditionals(t *testing.T) {
+	tests := []testCase{
+		// Forward declaration with if statements
+		{`
+		func process(x) {
+			if x > 10 {
+				return big_handler(x)
+			} else {
+				return small_handler(x)
+			}
+		}
+		
+		func big_handler(x) {
+			return x * 2
+		}
+		
+		func small_handler(x) {
+			return x + 10
+		}
+		
+		[process(5), process(15)]
+		`, object.NewList([]object.Object{
+			object.NewInt(15),
+			object.NewInt(30),
+		})},
+
+		// Forward declaration with switch
+		{`
+		func router(op) {
+			switch op {
+				case "add":
+					return op_add(5, 3)
+				case "sub":
+					return op_sub(5, 3)
+				default:
+					return op_default()
+			}
+		}
+		
+		func op_add(a, b) {
+			return a + b
+		}
+		
+		func op_sub(a, b) {
+			return a - b
+		}
+		
+		func op_default() {
+			return 0
+		}
+		
+		[router("add"), router("sub"), router("unknown")]
+		`, object.NewList([]object.Object{
+			object.NewInt(8),
+			object.NewInt(2),
+			object.NewInt(0),
+		})},
+	}
+	runTests(t, tests)
+}
+
+func TestForwardDeclarationWithLoops(t *testing.T) {
+	tests := []testCase{
+		// Forward declaration with for loops
+		{`
+		func sum_with_helper(n) {
+			total := 0
+			for i := 1; i <= n; i++ {
+				total += process_number(i)
+			}
+			return total
+		}
+		
+		func process_number(x) {
+			return x * 2
+		}
+		
+		sum_with_helper(5)
+		`, object.NewInt(30)},
+
+		// Forward declaration with range loops
+		{`
+		func process_list(items) {
+			result := []
+			for _, item := range items {
+				result.append(transform_item(item))
+			}
+			return result
+		}
+		
+		func transform_item(x) {
+			return x + 10
+		}
+		
+		process_list([1, 2, 3])
+		`, object.NewList([]object.Object{
+			object.NewInt(11),
+			object.NewInt(12),
+			object.NewInt(13),
+		})},
+	}
+	runTests(t, tests)
+}
+
+func TestComplexForwardDeclarationScenarios(t *testing.T) {
+	tests := []testCase{
+		// Multiple forward declarations with dependencies
+		{`
+		func main_processor() {
+			data := prepare_data()
+			processed := process_data(data)
+			return finalize_data(processed)
+		}
+		
+		func prepare_data() {
+			return [1, 2, 3, 4, 5]
+		}
+		
+		func process_data(items) {
+			result := []
+			for _, item := range items {
+				result.append(transform_value(item))
+			}
+			return result
+		}
+		
+		func transform_value(x) {
+			return multiply_by_factor(x, 3)
+		}
+		
+		func multiply_by_factor(value, factor) {
+			return value * factor
+		}
+		
+		func finalize_data(items) {
+			return calculate_sum(items)
+		}
+		
+		func calculate_sum(items) {
+			total := 0
+			for _, item := range items {
+				total += item
+			}
+			return total
+		}
+		
+		main_processor()
+		`, object.NewInt(45)},
+
+		// Forward declaration with error handling
+		{`
+		func safe_processor(x) {
+			result := try(
+				func() { return risky_operation(x) },
+				func(e) { return fallback_operation(x) }
+			)
+			return result
+		}
+		
+		func risky_operation(x) {
+			if x < 0 {
+				error("negative number")
+			}
+			return x * 2
+		}
+		
+		func fallback_operation(x) {
+			return 0
+		}
+		
+		[safe_processor(5), safe_processor(-5)]
+		`, object.NewList([]object.Object{
+			object.NewInt(10),
+			object.NewInt(0),
+		})},
+	}
+	runTests(t, tests)
+}
+
+func TestForwardDeclarationEdgeCases(t *testing.T) {
+	tests := []testCase{
+		// Forward declaration with nested function returning global function
+		{`
+		func outer() {
+			func inner() {
+				return "inner"
+			}
+			
+			return inner() + " " + global_helper()
+		}
+		
+		func global_helper() {
+			return "outer"
+		}
+		
+		outer()
+		`, object.NewString("inner outer")},
+
+		// Forward declaration with anonymous functions
+		{`
+		func factory() {
+			return func() {
+				return delayed_function()
+			}
+		}
+		
+		func delayed_function() {
+			return "delayed"
+		}
+		
+		fn := factory()
+		fn()
+		`, object.NewString("delayed")},
+
+		// Forward declaration with function as parameter
+		{`
+		func processor(fn) {
+			return fn(5)
+		}
+		
+		func main() {
+			return processor(multiplier)
+		}
+		
+		func multiplier(x) {
+			return x * 3
+		}
+		
+		main()
+		`, object.NewInt(15)},
+	}
+	runTests(t, tests)
+}
+
+func TestForwardDeclarationErrors(t *testing.T) {
+	ctx := context.Background()
+	type testCase struct {
+		name        string
+		input       string
+		expectedErr string
+	}
+
+	tests := []testCase{
+		{
+			name: "undefined function call",
+			input: `
+			func caller() {
+				return nonexistent_function()
+			}
+			caller()
+			`,
+			expectedErr: "undefined variable \"nonexistent_function\"",
+		},
+		{
+			name: "function redefinition error",
+			input: `
+			func duplicate() {
+				return 1
+			}
+			
+			func duplicate() {
+				return 2
+			}
+			
+			duplicate()
+			`,
+			expectedErr: "function \"duplicate\" redefined",
+		},
+		{
+			name: "circular dependency with undefined function",
+			input: `
+			func a() {
+				return b() + c()  // c() is never defined
+			}
+			
+			func b() {
+				return a()
+			}
+			
+			a()
+			`,
+			expectedErr: "undefined variable \"c\"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := run(ctx, tt.input)
+			require.NotNil(t, err)
+			require.Contains(t, err.Error(), tt.expectedErr)
+		})
+	}
+}
