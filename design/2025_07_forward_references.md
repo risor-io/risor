@@ -1,7 +1,9 @@
 # Forward Reference Improvement for Risor
 
 ## Problem
-Previously, Risor required functions to be defined before they could be used, which caused compilation errors for forward references. For example:
+
+Previously, Risor required functions to be defined before they could be used,
+which caused compilation errors for forward references. For example:
 
 ```risor
 func say() {
@@ -16,7 +18,9 @@ func hello() {
 This would fail with: `compile error: undefined variable "hello"`
 
 ## Solution
-Implemented a two-pass compilation system that allows functions to be defined in any order, similar to how Python and Go work.
+
+Implemented a two-pass compilation system that allows functions to be defined in
+any order, similar to how Python and Go work.
 
 ### Changes Made
 
@@ -87,6 +91,7 @@ func (c *Compiler) collectFunctionDeclarations(node ast.Node) error {
 ```
 
 ### Result
+
 After this improvement, the following code now works correctly:
 
 ```risor
@@ -102,8 +107,10 @@ say()  // Outputs: hello
 ```
 
 ### Testing
+
 - Created comprehensive tests to verify the fix works correctly
 - Verified that existing functionality remains intact
 - Tested with both simple forward references and more complex scenarios
 
-This improvement makes Risor more user-friendly by allowing natural function organization without worrying about declaration order.
+This improvement makes Risor more user-friendly by allowing natural function
+organization without worrying about declaration order.
