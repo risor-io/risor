@@ -129,12 +129,12 @@ func (c *Compiler) Compile(node ast.Node) (*Code, error) {
 	if c.filename != "" {
 		c.main.filename = c.filename
 	}
-	
+
 	// First pass: collect function declarations to allow forward references
 	if err := c.collectFunctionDeclarations(node); err != nil {
 		return nil, err
 	}
-	
+
 	// Second pass: actual compilation
 	if err := c.compile(node); err != nil {
 		return nil, err

@@ -23,14 +23,14 @@ func hello() {
 say()
 `
 		ctx := context.Background()
-		
+
 		// Now this should work without error
 		_, err := risor.Eval(ctx, code)
-		
+
 		// It should not error
 		require.Nil(t, err)
 	})
-	
+
 	t.Run("forward reference returns correct value", func(t *testing.T) {
 		// This should work and return "hello"
 		code := `
@@ -46,7 +46,7 @@ say()
 `
 		ctx := context.Background()
 		result, err := risor.Eval(ctx, code)
-		
+
 		// This should work without error and return the correct value
 		require.Nil(t, err)
 		require.Equal(t, "\"hello\"", result.Inspect())
