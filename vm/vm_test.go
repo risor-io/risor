@@ -2885,3 +2885,277 @@ func TestForwardDeclarationErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestRunCode(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with initial code
+	source1 := `
+		x := 10
+		y := 20
+		x + y
+	`
+	vm, err := newVM(ctx, source1)
+	if err != nil {
+		t.Fatalf("Failed to create VM: %v", err)
+	}
+
+	// Run the initial code
+	if err := vm.Run(ctx); err != nil {
+		t.Fatalf("Failed to run initial code: %v", err)
+	}
+
+	result, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result.(*object.Int).Value() != 30 {
+		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
+	}
+
+	// Compile and run different code on the same VM
+	source2 := `
+		a := 5
+		b := 15
+		a * b
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	if err != nil {
+		t.Fatalf("Failed to parse second code: %v", err)
+	}
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		t.Fatalf("Failed to compile second code: %v", err)
+	}
+
+	// Run the second code on the same VM
+	if err := vm.RunCode(ctx, code2); err != nil {
+		t.Fatalf("Failed to run second code: %v", err)
+	}
+
+	result2, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result2.(*object.Int).Value() != 75 {
+		t.Errorf("Expected 75, got %d", result2.(*object.Int).Value())
+	}
+
+	// Run a third piece of code
+	source3 := `
+		name := "Risor"
+		greeting := "Hello, " + name + "!"
+		greeting
+	`
+	ast3, err := parser.Parse(ctx, source3)
+	if err != nil {
+		t.Fatalf("Failed to parse third code: %v", err)
+	}
+
+	code3, err := compiler.Compile(ast3, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		t.Fatalf("Failed to compile third code: %v", err)
+	}
+
+	if err := vm.RunCode(ctx, code3); err != nil {
+		t.Fatalf("Failed to run third code: %v", err)
+	}
+
+	result3, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result3.(*object.String).Value() != "Hello, Risor!" {
+		t.Errorf("Expected 'Hello, Risor!', got %s", result3.(*object.String).Value())
+	}
+}
+
+func TestRunCodeWithGlobalVariables(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with custom globals
+	customGlobals := map[string]interface{}{
+		"baseValue":  100,
+		"multiplier": 2,
+	}
+
+	source1 := `
+		result := baseValue * multiplier
+		result
+	`
+	vm, err := newVM(ctx, source1, runOpts{Globals: customGlobals})
+	if err != nil {
+		t.Fatalf("Failed to create VM: %v", err)
+	}
+
+	// Run the initial code
+	if err := vm.Run(ctx); err != nil {
+		t.Fatalf("Failed to run initial code: %v", err)
+	}
+
+	result, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result.(*object.Int).Value() != 200 {
+		t.Errorf("Expected 200, got %d", result.(*object.Int).Value())
+	}
+
+	// Run different code that also uses globals
+	source2 := `
+		newResult := baseValue + multiplier
+		newResult
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	if err != nil {
+		t.Fatalf("Failed to parse second code: %v", err)
+	}
+
+	allGlobals := basicBuiltins()
+	for k, v := range customGlobals {
+		allGlobals[k] = v
+	}
+
+	var globalNames []string
+	for k := range allGlobals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		t.Fatalf("Failed to compile second code: %v", err)
+	}
+
+	if err := vm.RunCode(ctx, code2); err != nil {
+		t.Fatalf("Failed to run second code: %v", err)
+	}
+
+	result2, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result2.(*object.Int).Value() != 102 {
+		t.Errorf("Expected 102, got %d", result2.(*object.Int).Value())
+	}
+}
+
+func TestRunCodeFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	// Test that functions work correctly when running multiple code objects
+	source1 := `
+		func add(a, b) {
+			return a + b
+		}
+		add(10, 20)
+	`
+	vm, err := newVM(ctx, source1)
+	if err != nil {
+		t.Fatalf("Failed to create VM: %v", err)
+	}
+
+	if err := vm.Run(ctx); err != nil {
+		t.Fatalf("Failed to run initial code: %v", err)
+	}
+
+	result, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result.(*object.Int).Value() != 30 {
+		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
+	}
+
+	// Run code with a different function
+	source2 := `
+		func multiply(x, y) {
+			return x * y
+		}
+		multiply(6, 7)
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	if err != nil {
+		t.Fatalf("Failed to parse second code: %v", err)
+	}
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		t.Fatalf("Failed to compile second code: %v", err)
+	}
+
+	if err := vm.RunCode(ctx, code2); err != nil {
+		t.Fatalf("Failed to run second code: %v", err)
+	}
+
+	result2, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result2.(*object.Int).Value() != 42 {
+		t.Errorf("Expected 42, got %d", result2.(*object.Int).Value())
+	}
+}
+
+func TestRunCodeOnVM(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with initial code
+	source1 := `
+		x := 42
+		x
+	`
+	vm, err := newVM(ctx, source1)
+	if err != nil {
+		t.Fatalf("Failed to create VM: %v", err)
+	}
+
+	// Run the initial code
+	if err := vm.Run(ctx); err != nil {
+		t.Fatalf("Failed to run initial code: %v", err)
+	}
+
+	// Compile a different piece of code
+	source2 := `
+		y := 100
+		z := 200
+		y + z
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	if err != nil {
+		t.Fatalf("Failed to parse second code: %v", err)
+	}
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	if err != nil {
+		t.Fatalf("Failed to compile second code: %v", err)
+	}
+
+	// Use the wrapper function to run code on the VM
+	result, err := RunCodeOnVM(ctx, vm, code2)
+	if err != nil {
+		t.Fatalf("Failed to run code on VM: %v", err)
+	}
+
+	if result.(*object.Int).Value() != 300 {
+		t.Errorf("Expected 300, got %d", result.(*object.Int).Value())
+	}
+}

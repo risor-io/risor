@@ -143,6 +143,72 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 	return vm.eval(vm.initContext(ctx))
 }
 
+// RunCode runs the given compiled code object on the VM. This allows running
+// multiple different code objects on the same VM instance sequentially.
+// The VM must not be currently running when this method is called.
+func (vm *VirtualMachine) RunCode(ctx context.Context, codeToRun *compiler.Code) (err error) {
+	// Set up some guarantees:
+	// 1. It is an error to call RunCode on a VM that is already running
+	// 2. The running flag will always be set to false when RunCode returns
+	// 3. Any panics are translated to errors and the VM is stopped
+	if err := vm.start(ctx); err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+		vm.stop()
+	}()
+
+	// Reset VM state for the new code execution
+	vm.resetForNewCode()
+
+	// Load the code to run and any functions that are constants
+	var codeObj *code
+	if existingCode, exists := vm.loadedCode[codeToRun]; exists {
+		codeObj = existingCode
+	} else {
+		codeObj = vm.loadCode(codeToRun)
+	}
+	for i := 0; i < codeToRun.ConstantsCount(); i++ {
+		if fn, ok := codeToRun.Constant(i).(*compiler.Function); ok {
+			vm.loadCode(fn.Code())
+		}
+	}
+
+	// Activate the entrypoint code in frame zero
+	vm.activateCode(0, 0, codeObj)
+
+	// Run the entrypoint until completion
+	return vm.eval(vm.initContext(ctx))
+}
+
+// resetForNewCode resets the VM state for running a new code object
+func (vm *VirtualMachine) resetForNewCode() {
+	vm.ip = 0
+	vm.sp = -1
+	vm.fp = 0
+	vm.halt = 0
+	vm.activeFrame = nil
+	vm.activeCode = nil
+	
+	// Clear the stack
+	for i := 0; i < MaxStackDepth; i++ {
+		vm.stack[i] = nil
+	}
+	
+	// Clear the frames
+	for i := 0; i < MaxFrameDepth; i++ {
+		vm.frames[i] = frame{}
+	}
+	
+	// Clear the temporary array
+	for i := 0; i < MaxArgs; i++ {
+		vm.tmp[i] = nil
+	}
+}
+
 // Get a global variable by name as a Risor Object.
 func (vm *VirtualMachine) Get(name string) (object.Object, error) {
 	code := vm.activeCode
