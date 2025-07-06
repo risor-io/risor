@@ -158,13 +158,14 @@ application. The modules are present in this same Git repository, but must be
 installed with `go get` as separate dependencies:
 
 | Name           | Path                                               | Go Get Command                                            |
-|----------------|----------------------------------------------------|-----------------------------------------------------------|
+| -------------- | -------------------------------------------------- | --------------------------------------------------------- |
 | aws            | [modules/aws](./modules/aws)                       | `go get github.com/risor-io/risor/modules/aws`            |
 | bcrypt         | [modules/bcrypt](./modules/bcrypt)                 | `go get github.com/risor-io/risor/modules/bcrypt`         |
 | cli            | [modules/cli](./modules/cli)                       | `go get github.com/risor-io/risor/modules/cli`            |
 | color          | [modules/color](./modules/color)                   | `go get github.com/risor-io/risor/modules/color`          |
-| echarts        | [modules/echarts](./modules/echarts)               | `go get github.com/risor-io/risor/modules/echarts`          |
+| echarts        | [modules/echarts](./modules/echarts)               | `go get github.com/risor-io/risor/modules/echarts`        |
 | gha            | [modules/gha](./modules/gha)                       | `go get github.com/risor-io/risor/modules/gha`            |
+| github         | [modules/github](./modules/github)                 | `go get github.com/risor-io/risor/modules/github`         |
 | goquery        | [modules/goquery](./modules/goquery)               | `go get github.com/risor-io/risor/modules/goquery`        |
 | htmltomarkdown | [modules/htmltomarkdown](./modules/htmltomarkdown) | `go get github.com/risor-io/risor/modules/htmltomarkdown` |
 | image          | [modules/image](./modules/image)                   | `go get github.com/risor-io/risor/modules/image`          |
