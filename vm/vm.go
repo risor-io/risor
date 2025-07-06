@@ -33,6 +33,7 @@ type VirtualMachine struct {
 	sp           int // stack pointer
 	fp           int // frame pointer
 	halt         int32
+	startCount   int64
 	activeFrame  *frame
 	activeCode   *code
 	main         *compiler.Code
@@ -53,26 +54,60 @@ type VirtualMachine struct {
 
 // New creates a new Virtual Machine.
 func New(main *compiler.Code, options ...Option) *VirtualMachine {
+	vm, err := createVM(options)
+	if err != nil {
+		// Being unable to convert globals to Risor objects is more likely a
+		// programming error than a runtime error, so this panic is borderline
+		// appropriate. The only reason we're keeping this function signature
+		// and not just switching to returning an error is for compatibility.
+		// Using NewEmpty instead of New addresses this.
+		panic(err)
+	}
+	vm.main = main
+	return vm
+}
+
+// NewEmpty creates a new Virtual Machine without initial main code.
+// Code can be provided later using RunCode, or functions can be called
+// directly using Call.
+func NewEmpty() (*VirtualMachine, error) {
+	return createVM(nil)
+}
+
+func createVM(options []Option) (*VirtualMachine, error) {
 	vm := &VirtualMachine{
 		sp:           -1,
-		ip:           0,
-		fp:           0,
-		halt:         0,
-		main:         main,
 		modules:      map[string]*object.Module{},
 		inputGlobals: map[string]any{},
 		globals:      map[string]object.Object{},
 		loadedCode:   map[*compiler.Code]*code{},
 	}
+	if err := vm.applyOptions(options); err != nil {
+		return nil, err
+	}
+	return vm, nil
+}
+
+func (vm *VirtualMachine) applyOptions(options []Option) error {
+	vm.runMutex.Lock()
+	defer vm.runMutex.Unlock()
+
+	if vm.running {
+		return fmt.Errorf("vm is already running")
+	}
+
+	// Apply options
 	for _, opt := range options {
 		opt(vm)
 	}
+
 	// Convert globals to Risor objects
 	var err error
 	vm.globals, err = object.AsObjects(vm.inputGlobals)
 	if err != nil {
-		panic(fmt.Sprintf("invalid global provided: %v", err))
+		return fmt.Errorf("invalid global provided: %v", err)
 	}
+
 	// Add any globals that are modules to a cache to make them available
 	// to import statements
 	for name, value := range vm.globals {
@@ -80,7 +115,7 @@ func New(main *compiler.Code, options ...Option) *VirtualMachine {
 			vm.modules[name] = module
 		}
 	}
-	return vm
+	return nil
 }
 
 func (vm *VirtualMachine) start(ctx context.Context) error {
@@ -90,6 +125,7 @@ func (vm *VirtualMachine) start(ctx context.Context) error {
 		return fmt.Errorf("vm is already running")
 	}
 	vm.running = true
+	vm.startCount++
 	// Halt execution when the context is cancelled
 	vm.halt = 0
 	if doneChan := ctx.Done(); doneChan != nil {
@@ -108,6 +144,24 @@ func (vm *VirtualMachine) stop() {
 }
 
 func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
+	if vm.main == nil {
+		return fmt.Errorf("no main code available")
+	}
+	return vm.runCodeInternal(ctx, vm.main, false)
+}
+
+// RunCode runs the given compiled code object on the VM. This allows running
+// multiple different code objects on the same VM instance sequentially.
+// The VM must not be currently running when this method is called.
+func (vm *VirtualMachine) RunCode(ctx context.Context, codeToRun *compiler.Code, opts ...Option) (err error) {
+	if err := vm.applyOptions(opts); err != nil {
+		return err
+	}
+	return vm.runCodeInternal(ctx, codeToRun, true)
+}
+
+// runCodeInternal is the shared implementation for Run and RunCode
+func (vm *VirtualMachine) runCodeInternal(ctx context.Context, codeToRun *compiler.Code, resetState bool) (err error) {
 	// Set up some guarantees:
 	// 1. It is an error to call Run on a VM that is already running
 	// 2. The running flag will always be set to false when Run returns
@@ -122,25 +176,69 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 		vm.stop()
 	}()
 
-	// Load the code for main and any functions that are constants. This makes
-	// the set of loaded code constant except for when imports run.
-	var main *code
-	if len(vm.loadedCode) > 0 {
-		main = vm.reloadCode(vm.main)
-	} else {
-		main = vm.loadCode(vm.main)
+	// Reset VM state for new code execution if requested
+	if resetState && vm.startCount > 1 {
+		vm.resetForNewCode()
 	}
-	for i := 0; i < vm.main.ConstantsCount(); i++ {
-		if fn, ok := vm.main.Constant(i).(*compiler.Function); ok {
+
+	// Load the code to run - unified logic for both paths
+	var codeObj *code
+
+	// Check if we already have this code loaded
+	if existingCode, exists := vm.loadedCode[codeToRun]; exists {
+		if !resetState {
+			// For Run(), we need to preserve globals from previous runs (REPL behavior)
+			// Use reloadCode to get fresh code with preserved globals
+			codeObj = vm.reloadCode(codeToRun)
+		} else {
+			// Reuse the existing code object as-is
+			codeObj = existingCode
+		}
+	} else {
+		// Load this code for the first time
+		codeObj = vm.loadCode(codeToRun)
+	}
+
+	// Load function constants
+	for i := 0; i < codeToRun.ConstantsCount(); i++ {
+		if fn, ok := codeToRun.Constant(i).(*compiler.Function); ok {
 			vm.loadCode(fn.Code())
 		}
 	}
 
 	// Activate the entrypoint code in frame zero
-	vm.activateCode(0, vm.ip, main)
+	// Use vm.ip for Run (preserving existing behavior), 0 for RunCode
+	startIP := 0
+	if !resetState {
+		startIP = vm.ip
+	}
+	vm.activateCode(0, startIP, codeObj)
 
 	// Run the entrypoint until completion
 	return vm.eval(vm.initContext(ctx))
+}
+
+// resetForNewCode resets the VM state for running a new code object
+func (vm *VirtualMachine) resetForNewCode() {
+	vm.sp = -1
+	vm.ip = 0
+	vm.fp = 0
+	vm.halt = 0
+	vm.activeFrame = nil
+	vm.activeCode = nil
+	vm.loadedCode = map[*compiler.Code]*code{}
+	vm.modules = map[string]*object.Module{}
+
+	// Clear arrays
+	for i := 0; i < MaxStackDepth; i++ {
+		vm.stack[i] = nil
+	}
+	for i := 0; i < MaxFrameDepth; i++ {
+		vm.frames[i] = frame{}
+	}
+	for i := 0; i < MaxArgs; i++ {
+		vm.tmp[i] = nil
+	}
 }
 
 // Get a global variable by name as a Risor Object.
@@ -988,7 +1086,12 @@ func (vm *VirtualMachine) Clone() (*VirtualMachine, error) {
 		loadedCode:   loadedCode,
 		concAllowed:  vm.concAllowed,
 	}
-	clone.activateCode(clone.fp, clone.ip, clone.loadCode(clone.main))
+
+	// Only activate main code if it exists
+	if clone.main != nil {
+		clone.activateCode(clone.fp, clone.ip, clone.loadCode(clone.main))
+	}
+
 	return clone, nil
 }
 

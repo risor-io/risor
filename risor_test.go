@@ -9,6 +9,7 @@ import (
 	"github.com/risor-io/risor/object"
 	ros "github.com/risor-io/risor/os"
 	"github.com/risor-io/risor/parser"
+	"github.com/risor-io/risor/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -393,4 +394,27 @@ func TestStructFieldModification(t *testing.T) {
 		require.Nil(t, err, "script: %s", tc.script)
 		require.Equal(t, object.NewInt(tc.expected), result, "script: %s", tc.script)
 	}
+}
+
+func TestWithExistingVM(t *testing.T) {
+	ctx := context.Background()
+
+	vm, err := vm.NewEmpty()
+	require.Nil(t, err)
+
+	result, err := Eval(ctx,
+		"foo",
+		WithVM(vm),
+		WithGlobals(map[string]any{"foo": object.NewInt(3)}),
+	)
+	require.Nil(t, err)
+	require.Equal(t, int64(3), result.Interface())
+
+	result, err = Eval(ctx,
+		"bar",
+		WithVM(vm),
+		WithGlobals(map[string]any{"bar": object.NewInt(4)}),
+	)
+	require.Nil(t, err)
+	require.Equal(t, int64(4), result.Interface())
 }

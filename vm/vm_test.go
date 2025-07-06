@@ -2885,3 +2885,273 @@ func TestForwardDeclarationErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestRunCode(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with initial code
+	vm, err := newVM(ctx, "x := 10; y := 20; x + y")
+	require.NoError(t, err)
+
+	// Run the initial code
+	require.NoError(t, vm.Run(ctx))
+
+	result, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
+
+	// Compile and run different code on the same VM
+	ast2, err := parser.Parse(ctx, "a := 5; b := 15; a * b")
+	require.NoError(t, err)
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	require.NoError(t, err)
+
+	// Run the second code on the same VM
+	require.NoError(t, vm.RunCode(ctx, code2))
+
+	result2, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(75))
+
+	// Run a third piece of code
+	source3 := `
+		name := "Risor"
+		greeting := "Hello, " + name + "!"
+		greeting
+	`
+	ast3, err := parser.Parse(ctx, source3)
+	require.NoError(t, err)
+
+	code3, err := compiler.Compile(ast3, compiler.WithGlobalNames(globalNames))
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code3))
+
+	result3, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result3.(*object.String).Value(), "Hello, Risor!")
+}
+
+func TestRunCodeWithGlobalVariables(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with custom globals
+	customGlobals := map[string]interface{}{
+		"baseValue":  100,
+		"multiplier": 2,
+	}
+
+	source1 := `
+		result := baseValue * multiplier
+		result
+	`
+	vm, err := newVM(ctx, source1, runOpts{Globals: customGlobals})
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
+
+	result, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(200))
+
+	// Run different code that also uses globals
+	source2 := `
+		newResult := baseValue + multiplier
+		newResult
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	require.NoError(t, err)
+
+	var globalNames []string
+	for k := range customGlobals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code2))
+
+	result2, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(102))
+}
+
+func TestRunCodeFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	// Test that functions work correctly when running multiple code objects
+	source1 := `
+		func add(a, b) {
+			return a + b
+		}
+		add(10, 20)
+	`
+	vm, err := newVM(ctx, source1)
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
+
+	result, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
+
+	// Run code with a different function
+	source2 := `
+		func multiply(x, y) {
+			return x * y
+		}
+		multiply(6, 7)
+	`
+	ast2, err := parser.Parse(ctx, source2)
+	require.NoError(t, err)
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code2))
+
+	result2, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(42))
+}
+
+func TestRunCodeOnVM(t *testing.T) {
+	ctx := context.Background()
+
+	// Create a VM with initial code
+	vm, err := newVM(ctx, "x := 42; x")
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
+
+	// Compile a different piece of code
+	ast2, err := parser.Parse(ctx, "y := 100; z := 200; y + z")
+	require.NoError(t, err)
+
+	globals := basicBuiltins()
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+
+	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
+	require.NoError(t, err)
+	result, err := RunCodeOnVM(ctx, vm, code2)
+	require.NoError(t, err)
+	require.Equal(t, result.(*object.Int).Value(), int64(300))
+}
+
+func TestRunCodeFirst(t *testing.T) {
+	ctx := context.Background()
+	vm, err := newVM(ctx, `
+		func add(a, b) { return a + b }
+		add(10, 20)
+	`)
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, vm.main))
+	result, exists := vm.TOS()
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
+}
+
+func TestNewEmpty(t *testing.T) {
+	ctx := context.Background()
+	compile := func(source string) *compiler.Code {
+		ast, err := parser.Parse(ctx, source)
+		require.NoError(t, err)
+		code, err := compiler.Compile(ast)
+		require.NoError(t, err)
+		return code
+	}
+
+	// Test creating a VM without main code
+	vm, err := NewEmpty()
+	require.NoError(t, err)
+
+	// Test that Run() returns an error when no main code is provided
+	err = vm.Run(ctx)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no main code available")
+
+	// Test that RunCode() works with specific code
+	code := compile(`x := 42; x`)
+	err = vm.RunCode(ctx, code)
+	require.NoError(t, err)
+
+	// Verify the result is on the stack
+	result, ok := vm.TOS()
+	require.True(t, ok)
+	intResult, ok := result.(*object.Int)
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(42))
+
+	// Test that Call() works with functions
+	fnCode := compile(`func add(a, b) { return a + b }`)
+	err = vm.RunCode(ctx, fnCode)
+	require.NoError(t, err)
+
+	addFn, err := vm.Get("add")
+	require.NoError(t, err)
+
+	result, err = vm.Call(ctx, addFn.(*object.Function), []object.Object{
+		object.NewInt(10),
+		object.NewInt(20),
+	})
+	require.NoError(t, err)
+
+	intResult, ok = result.(*object.Int)
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(30))
+}
+
+func TestNewEmptyClone(t *testing.T) {
+	ctx := context.Background()
+	compile := func(source string) *compiler.Code {
+		ast, err := parser.Parse(ctx, source)
+		require.NoError(t, err)
+		code, err := compiler.Compile(ast)
+		require.NoError(t, err)
+		return code
+	}
+
+	// Test cloning a VM without main code
+	vm, err := NewEmpty()
+	require.NoError(t, err)
+
+	// Run some code to set up state
+	code := compile(`x := 100`)
+	err = vm.RunCode(ctx, code)
+	require.NoError(t, err)
+
+	// Clone the VM
+	clone, err := vm.Clone()
+	require.NoError(t, err)
+
+	// Verify the clone also has no main code
+	require.Nil(t, clone.main)
+
+	// Verify Run() fails on clone too
+	err = clone.Run(ctx)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no main code available")
+
+	// Verify RunCode() works on clone
+	newCode := compile(`y := 200; y`)
+	err = clone.RunCode(ctx, newCode)
+	require.NoError(t, err)
+
+	// Verify result
+	result, ok := clone.TOS()
+	require.True(t, ok)
+	intResult, ok := result.(*object.Int)
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(200))
+}

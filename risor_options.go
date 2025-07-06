@@ -3,6 +3,7 @@ package risor
 import (
 	"github.com/risor-io/risor/importer"
 	"github.com/risor-io/risor/os"
+	"github.com/risor-io/risor/vm"
 )
 
 // Option describes a function used to configure a Risor evaluation.
@@ -99,5 +100,12 @@ func WithFilename(filename string) Option {
 func WithOS(os os.OS) Option {
 	return func(cfg *Config) {
 		cfg.os = os
+	}
+}
+
+// WithVM specifies an existing Virtual Machine to use for the evaluation.
+func WithVM(vm *vm.VirtualMachine) Option {
+	return func(cfg *Config) {
+		cfg.vm = vm
 	}
 }
