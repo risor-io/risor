@@ -7,7 +7,7 @@ replace github.com/risor-io/risor => ../..
 require (
 	github.com/risor-io/risor v1.8.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.35.0
 )
 
 require (
