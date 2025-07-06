@@ -30,6 +30,7 @@ var statementTerminators = map[token.Type]bool{
 	token.EOF:         true,
 	token.PLUS_PLUS:   true,
 	token.MINUS_MINUS: true,
+	token.COMMENT:     true,
 }
 
 // Parse the provided input as Risor source code and return the AST. This is
@@ -124,6 +125,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	// Register prefix-functions
 	p.registerPrefix(token.BACKTICK, p.parseString)
 	p.registerPrefix(token.BANG, p.parsePrefixExpr)
+	p.registerPrefix(token.COMMENT, p.parseComment)
 	p.registerPrefix(token.DEFER, p.parseDefer)
 	p.registerPrefix(token.EOF, p.illegalToken)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
@@ -326,6 +328,8 @@ func (p *Parser) parseStatement() ast.Node {
 		stmt = p.parseContinue()
 	case token.NEWLINE:
 		stmt = nil
+	case token.COMMENT:
+		stmt = p.parseComment()
 	case token.IDENT:
 		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
 			stmt = p.parseDeclaration()
@@ -959,6 +963,10 @@ func (p *Parser) parsePrefixExpr() ast.Node {
 func (p *Parser) parseNewline() ast.Node {
 	p.nextToken()
 	return nil
+}
+
+func (p *Parser) parseComment() ast.Node {
+	return ast.NewComment(p.curToken)
 }
 
 func (p *Parser) parsePostfix() ast.Statement {

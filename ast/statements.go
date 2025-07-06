@@ -8,6 +8,29 @@ import (
 	"github.com/risor-io/risor/token"
 )
 
+// Comment represents a comment in the source code.
+type Comment struct {
+	token token.Token
+	text  string
+}
+
+// NewComment creates a new Comment node.
+func NewComment(token token.Token) *Comment {
+	return &Comment{token: token, text: token.Literal}
+}
+
+func (c *Comment) StatementNode() {}
+
+func (c *Comment) IsExpression() bool { return false }
+
+func (c *Comment) Token() token.Token { return c.token }
+
+func (c *Comment) Literal() string { return c.token.Literal }
+
+func (c *Comment) Text() string { return c.text }
+
+func (c *Comment) String() string { return c.text }
+
 // Var is a statement that assigns a value to a variable. It may be a
 // declaration or an assignment. If it's a declaration, isWalrus is true.
 type Var struct {

@@ -44,6 +44,7 @@ const (
 	CASE            = "case"
 	COLON           = ":"
 	COMMA           = ","
+	COMMENT         = "COMMENT"
 	CONST           = "CONST"
 	DECLARE         = ":="
 	DEFAULT         = "DEFAULT"
