@@ -39,7 +39,7 @@ repos := client.list_repos("octocat", {
     per_page: 10,
     page: 1
 })
-for repo in repos {
+for _, repo := range repos {
     print(repo.name)
 }
 ```
@@ -78,7 +78,7 @@ client := github.client("your-token")
 contents := client.list_repo_contents("octocat", "Hello-World", "", {
     ref: "main"
 })
-for item in contents {
+for _, item := range contents {
     print(item.name, item.type)
 }
 ```
@@ -109,7 +109,7 @@ prs := client.list_pull_requests("octocat", "Hello-World", {
     sort: "updated",
     direction: "desc"
 })
-for pr in prs {
+for _, pr := range prs {
     print(pr.number, pr.title)
 }
 ```
@@ -147,7 +147,7 @@ Lists files in a pull request.
 ```risor
 client := github.client("your-token")
 files := client.list_pull_request_files("octocat", "Hello-World", 1)
-for file in files {
+for _, file := range files {
     print(file.filename)
     print(file.status)
 }
@@ -160,7 +160,7 @@ Lists commits in a pull request.
 ```risor
 client := github.client("your-token")
 commits := client.list_pull_request_commits("octocat", "Hello-World", 1)
-for commit in commits {
+for _, commit := range commits {
     print(commit.sha)
     print(commit.commit.message)
 }
@@ -179,7 +179,7 @@ commits := client.list_commits("octocat", "Hello-World", {
     path: "README.md",
     author: "octocat"
 })
-for commit in commits {
+for _, commit := range commits {
     print(commit.sha)
     print(commit.commit.message)
 }
@@ -211,7 +211,7 @@ runs := client.list_workflow_runs("octocat", "Hello-World", {
     event: "push",
     status: "success"
 })
-for run in runs {
+for _, run := range runs {
     print(run.id)
     print(run.status)
     print(run.conclusion)
@@ -236,7 +236,7 @@ Lists workflows for a repository.
 ```risor
 client := github.client("your-token")
 workflows := client.list_workflows("octocat", "Hello-World")
-for workflow in workflows {
+for _, workflow := range workflows {
     print(workflow.id)
     print(workflow.name)
     print(workflow.path)
@@ -301,7 +301,7 @@ if error(repo) {
 ```risor
 client := github.client("your-token")
 commits := client.list_commits("octocat", "Hello-World")
-for commit in commits[:5] {
+for _, commit := range commits[:5] {
     print(commit.commit.author.date, commit.commit.message)
 }
 ```
@@ -324,7 +324,7 @@ if pr.state == "open" {
 client := github.client("your-token")
 runs := client.list_workflow_runs("octocat", "Hello-World")
 failed_runs := []
-for run in runs {
+for _, run := range runs {
     if run.conclusion == "failure" {
         failed_runs.append(run)
     }

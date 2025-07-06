@@ -12,6 +12,7 @@ import (
 	"github.com/risor-io/risor/modules/color"
 	"github.com/risor-io/risor/modules/echarts"
 	"github.com/risor-io/risor/modules/gha"
+	"github.com/risor-io/risor/modules/github"
 	"github.com/risor-io/risor/modules/goquery"
 	"github.com/risor-io/risor/modules/htmltomarkdown"
 	"github.com/risor-io/risor/modules/image"
@@ -53,6 +54,7 @@ func getGlobals() risor.Option {
 		"color":          color.Module(),
 		"echarts":        echarts.Module(),
 		"gha":            gha.Module(),
+		"github":         github.Module(),
 		"goquery":        goquery.Module(),
 		"htmltomarkdown": htmltomarkdown.Module(),
 		"image":          image.Module(),
