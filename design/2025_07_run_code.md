@@ -6,9 +6,12 @@ Previously, each Risor VM instance was tied to a single compiled code object
 that was set during VM creation. While this approach worked well for many use
 cases, there were opportunities for improvement:
 
-1. **Memory Efficiency**: Each code execution required creating a new VM instance, which could be optimized for better memory utilization
-2. **State Sharing**: Global variables and module state couldn't be shared across different code executions
-3. **Enhanced Use Cases**: Interactive systems like REPLs, game engines, and script runners could benefit from more efficient multi-script execution
+1. **Memory Efficiency**: Each execution of different code required creating a
+   new VM instance, which could be optimized for better memory utilization
+2. **State Sharing**: Global variables and module state couldn't be shared across
+   different code executions
+3. **Enhanced Use Cases**: Interactive systems like REPLs, game engines, and
+   script runners could benefit from more efficient multi-script execution
 
 ## Solution Overview
 

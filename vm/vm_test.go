@@ -3159,3 +3159,164 @@ func TestRunCodeOnVM(t *testing.T) {
 		t.Errorf("Expected 300, got %d", result.(*object.Int).Value())
 	}
 }
+
+func TestRunCodeFirst(t *testing.T) {
+	ctx := context.Background()
+
+	// Test that functions work correctly when running multiple code objects
+	source := `
+		func add(a, b) {
+			return a + b
+		}
+		add(10, 20)
+	`
+	vm, err := newVM(ctx, source)
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, vm.main))
+
+	result, exists := vm.TOS()
+	if !exists {
+		t.Fatal("Expected result on stack")
+	}
+	if result.(*object.Int).Value() != 30 {
+		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
+	}
+}
+
+func TestNewEmpty(t *testing.T) {
+	// Helper function to compile source code
+	compile := func(t *testing.T, source string) *compiler.Code {
+		ast, err := parser.Parse(context.Background(), source)
+		if err != nil {
+			t.Fatalf("Failed to parse source: %v", err)
+		}
+		code, err := compiler.Compile(ast)
+		if err != nil {
+			t.Fatalf("Failed to compile source: %v", err)
+		}
+		return code
+	}
+
+	// Test creating a VM without main code
+	vm := NewEmpty()
+
+	// Test that Run() returns an error when no main code is provided
+	err := vm.Run(context.Background())
+	if err == nil {
+		t.Fatal("Expected error when calling Run() on VM without main code")
+	}
+	expectedErr := "no main code available - use RunCode() to run specific code or create VM with New()"
+	if err.Error() != expectedErr {
+		t.Fatalf("Expected error message %q, got %q", expectedErr, err.Error())
+	}
+
+	// Test that RunCode() works with specific code
+	code := compile(t, `x := 42; x`)
+	err = vm.RunCode(context.Background(), code)
+	if err != nil {
+		t.Fatalf("RunCode() failed: %v", err)
+	}
+
+	// Verify the result is on the stack
+	result, ok := vm.TOS()
+	if !ok {
+		t.Fatal("No result on stack after RunCode()")
+	}
+	intResult, ok := result.(*object.Int)
+	if !ok {
+		t.Fatalf("Expected Int result, got %T", result)
+	}
+	if intResult.Value() != 42 {
+		t.Fatalf("Expected result 42, got %d", intResult.Value())
+	}
+
+	// Test that Call() works with functions
+	fnCode := compile(t, `func add(a, b) { return a + b }`)
+	err = vm.RunCode(context.Background(), fnCode)
+	if err != nil {
+		t.Fatalf("Failed to run function definition: %v", err)
+	}
+
+	addFn, err := vm.Get("add")
+	if err != nil {
+		t.Fatalf("Failed to get add function: %v", err)
+	}
+
+	result, err = vm.Call(context.Background(), addFn.(*object.Function), []object.Object{
+		object.NewInt(10),
+		object.NewInt(20),
+	})
+	if err != nil {
+		t.Fatalf("Call() failed: %v", err)
+	}
+
+	intResult, ok = result.(*object.Int)
+	if !ok {
+		t.Fatalf("Expected Int result from Call(), got %T", result)
+	}
+	if intResult.Value() != 30 {
+		t.Fatalf("Expected Call() result 30, got %d", intResult.Value())
+	}
+}
+
+func TestNewEmptyClone(t *testing.T) {
+	// Helper function to compile source code
+	compile := func(t *testing.T, source string) *compiler.Code {
+		ast, err := parser.Parse(context.Background(), source)
+		if err != nil {
+			t.Fatalf("Failed to parse source: %v", err)
+		}
+		code, err := compiler.Compile(ast)
+		if err != nil {
+			t.Fatalf("Failed to compile source: %v", err)
+		}
+		return code
+	}
+
+	// Test cloning a VM without main code
+	vm := NewEmpty()
+
+	// Run some code to set up state
+	code := compile(t, `x := 100`)
+	err := vm.RunCode(context.Background(), code)
+	if err != nil {
+		t.Fatalf("RunCode() failed: %v", err)
+	}
+
+	// Clone the VM
+	clone, err := vm.Clone()
+	if err != nil {
+		t.Fatalf("Clone() failed: %v", err)
+	}
+
+	// Verify the clone also has no main code
+	if clone.main != nil {
+		t.Fatal("Clone should not have main code when original has none")
+	}
+
+	// Verify Run() fails on clone too
+	err = clone.Run(context.Background())
+	if err == nil {
+		t.Fatal("Expected error when calling Run() on cloned VM without main code")
+	}
+
+	// Verify RunCode() works on clone
+	newCode := compile(t, `y := 200; y`)
+	err = clone.RunCode(context.Background(), newCode)
+	if err != nil {
+		t.Fatalf("RunCode() failed on clone: %v", err)
+	}
+
+	// Verify result
+	result, ok := clone.TOS()
+	if !ok {
+		t.Fatal("No result on stack after RunCode() on clone")
+	}
+	intResult, ok := result.(*object.Int)
+	if !ok {
+		t.Fatalf("Expected Int result, got %T", result)
+	}
+	if intResult.Value() != 200 {
+		t.Fatalf("Expected result 200, got %d", intResult.Value())
+	}
+}
