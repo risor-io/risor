@@ -1,12 +1,15 @@
-# GitHub Module
+# github
 
-The GitHub module provides a wrapper around the GitHub API, allowing you to interact with repositories, pull requests, commits, workflows, and user information.
+The GitHub module provides a wrapper around the GitHub API, allowing you to
+interact with repositories, pull requests, commits, workflows, and user information.
 
 ## Creating a Client
 
-### github.client(token?)
+### github.client(token)
 
-Creates a new GitHub client. If no token is provided, an unauthenticated client is created with limited API access. For most operations, you'll need to provide a personal access token.
+Creates a new GitHub client. If no token is provided, an unauthenticated client
+is created with limited API access. For most operations, you'll need to provide
+a personal access token.
 
 ```risor
 // Unauthenticated client (limited access)
