@@ -31,6 +31,7 @@ use (
 	./modules/shlex
 	./modules/slack
 	./modules/sql
+	./modules/ssh
 	./modules/tablewriter
 	./modules/template
 	./modules/uuid

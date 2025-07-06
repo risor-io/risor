@@ -29,6 +29,7 @@ import (
 	"github.com/risor-io/risor/modules/shlex"
 	"github.com/risor-io/risor/modules/slack"
 	"github.com/risor-io/risor/modules/sql"
+	"github.com/risor-io/risor/modules/ssh"
 	"github.com/risor-io/risor/modules/tablewriter"
 	"github.com/risor-io/risor/modules/template"
 	"github.com/risor-io/risor/modules/uuid"
@@ -69,6 +70,7 @@ func getGlobals() risor.Option {
 		"shlex":          shlex.Module(),
 		"slack":          slack.Module(),
 		"sql":            sql.Module(),
+		"ssh":            ssh.Module(),
 		"tablewriter":    tablewriter.Module(),
 		"template":       template.Module(),
 		"uuid":           uuid.Module(),
