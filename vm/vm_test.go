@@ -3205,7 +3205,7 @@ func TestNewEmpty(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error when calling Run() on VM without main code")
 	}
-	expectedErr := "no main code available - use RunCode() to run specific code or create VM with New()"
+	expectedErr := "no main code available"
 	if err.Error() != expectedErr {
 		t.Fatalf("Expected error message %q, got %q", expectedErr, err.Error())
 	}

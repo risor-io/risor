@@ -176,22 +176,22 @@ func (vm *VirtualMachine) runCodeInternal(ctx context.Context, codeToRun *compil
 		vm.resetForNewCode()
 	}
 
-	// Load the code to run and any functions that are constants
+	// Load the code to run - unified logic for both paths
 	var codeObj *code
-	if resetState {
-		// For RunCode, check if code already exists in loadedCode
-		if existingCode, exists := vm.loadedCode[codeToRun]; exists {
-			codeObj = existingCode
-		} else {
-			codeObj = vm.loadCode(codeToRun)
-		}
-	} else {
-		// For Run, use reloadCode if there's existing loaded code
-		if len(vm.loadedCode) > 0 {
+
+	// Check if we already have this code loaded
+	if existingCode, exists := vm.loadedCode[codeToRun]; exists {
+		if !resetState {
+			// For Run(), we need to preserve globals from previous runs (REPL behavior)
+			// Use reloadCode to get fresh code with preserved globals
 			codeObj = vm.reloadCode(codeToRun)
 		} else {
-			codeObj = vm.loadCode(codeToRun)
+			// Reuse the existing code object as-is
+			codeObj = existingCode
 		}
+	} else {
+		// Load this code for the first time
+		codeObj = vm.loadCode(codeToRun)
 	}
 
 	// Load function constants
