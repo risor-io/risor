@@ -658,5 +658,35 @@ func (s *Send) Channel() Expression { return s.channel }
 func (s *Send) Value() Expression { return s.value }
 
 func (s *Send) String() string {
-	return fmt.Sprintf("%s <- %s", s.channel.String(), s.value.String())
+	var out bytes.Buffer
+	out.WriteString(s.channel.String())
+	out.WriteString(" <- ")
+	out.WriteString(s.value.String())
+	return out.String()
+}
+
+// Comment represents a comment in the source code. Comments are preserved
+// in the AST to support auto-formatting and other tooling.
+type Comment struct {
+	token token.Token
+	text  string
+}
+
+// NewComment creates a new Comment node.
+func NewComment(token token.Token, text string) *Comment {
+	return &Comment{token: token, text: text}
+}
+
+func (c *Comment) StatementNode() {}
+
+func (c *Comment) IsExpression() bool { return false }
+
+func (c *Comment) Token() token.Token { return c.token }
+
+func (c *Comment) Literal() string { return c.token.Literal }
+
+func (c *Comment) Text() string { return c.text }
+
+func (c *Comment) String() string {
+	return c.text
 }

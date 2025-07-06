@@ -107,16 +107,21 @@ func (l *Lexer) Next() (token.Token, error) {
 	l.skipTabsAndSpaces()
 	l.tokenStartPosition = l.Position()
 
-	// skip single-line comments
+	// handle single-line comments
 	if l.ch == rune('#') ||
 		(l.ch == rune('/') && l.peekChar() == rune('/')) {
-		l.skipComment()
-		return l.Next()
+		commentText := l.readComment()
+		tok = l.newToken(token.COMMENT, commentText)
+		l.prevToken = tok
+		return tok, nil
 	}
 
-	// multi-line comments
+	// handle multi-line comments
 	if l.ch == rune('/') && l.peekChar() == rune('*') {
-		l.skipMultiLineComment()
+		commentText := l.readMultiLineComment()
+		tok = l.newToken(token.MULTILINE_COMMENT, commentText)
+		l.prevToken = tok
+		return tok, nil
 	}
 
 	if l.prevToken.Type == token.EOF {
@@ -402,16 +407,19 @@ func (l *Lexer) skipTabsAndSpaces() {
 	}
 }
 
-// Skip a comment until the end of the line
-func (l *Lexer) skipComment() {
+// Read a comment until the end of the line
+func (l *Lexer) readComment() string {
+	var sb strings.Builder
 	for l.ch != '\n' && l.ch != rune(0) {
+		sb.WriteRune(l.ch)
 		l.readChar()
 	}
-	l.skipTabsAndSpaces()
+	return sb.String()
 }
 
-// Consume all tokens until we've had the close of a multi-line comment
-func (l *Lexer) skipMultiLineComment() {
+// Read a multi-line comment until the closing "*/"
+func (l *Lexer) readMultiLineComment() string {
+	var sb strings.Builder
 	found := false
 	for !found {
 		// break at the end of our input.
@@ -422,11 +430,15 @@ func (l *Lexer) skipMultiLineComment() {
 		if l.ch == '*' && l.peekChar() == '/' {
 			found = true
 			// Our current position is "*", so skip forward to consume the "/"
+			sb.WriteRune(l.ch)
 			l.readChar()
+			sb.WriteRune(l.ch)
+		} else {
+			sb.WriteRune(l.ch)
 		}
 		l.readChar()
 	}
-	l.skipTabsAndSpaces()
+	return sb.String()
 }
 
 // Read a decimal, hex, or octal number

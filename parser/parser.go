@@ -24,12 +24,14 @@ type (
 )
 
 var statementTerminators = map[token.Type]bool{
-	token.SEMICOLON:   true,
-	token.NEWLINE:     true,
-	token.RBRACE:      true,
-	token.EOF:         true,
-	token.PLUS_PLUS:   true,
-	token.MINUS_MINUS: true,
+	token.SEMICOLON:        true,
+	token.NEWLINE:          true,
+	token.RBRACE:           true,
+	token.EOF:              true,
+	token.PLUS_PLUS:        true,
+	token.MINUS_MINUS:      true,
+	token.COMMENT:          true,
+	token.MULTILINE_COMMENT: true,
 }
 
 // Parse the provided input as Risor source code and return the AST. This is
@@ -124,6 +126,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	// Register prefix-functions
 	p.registerPrefix(token.BACKTICK, p.parseString)
 	p.registerPrefix(token.BANG, p.parsePrefixExpr)
+	p.registerPrefix(token.COMMENT, p.parseComment)
 	p.registerPrefix(token.DEFER, p.parseDefer)
 	p.registerPrefix(token.EOF, p.illegalToken)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
@@ -142,6 +145,7 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseList)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpr)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpr)
+	p.registerPrefix(token.MULTILINE_COMMENT, p.parseComment)
 	p.registerPrefix(token.NEWLINE, p.parseNewline)
 	p.registerPrefix(token.NIL, p.parseNil)
 	p.registerPrefix(token.PIPE, p.parsePrefixExpr)
@@ -957,8 +961,11 @@ func (p *Parser) parsePrefixExpr() ast.Node {
 }
 
 func (p *Parser) parseNewline() ast.Node {
-	p.nextToken()
 	return nil
+}
+
+func (p *Parser) parseComment() ast.Node {
+	return ast.NewComment(p.curToken, p.curToken.Literal)
 }
 
 func (p *Parser) parsePostfix() ast.Statement {

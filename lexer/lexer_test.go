@@ -299,16 +299,22 @@ var a = 1; # This is a comment too.
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.COMMENT, "// This is a comment"},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "// This is still a comment"},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "# I like comments"},
 		{token.NEWLINE, "\n"},
 		{token.VAR, "var"},
 		{token.IDENT, "a"},
 		{token.ASSIGN, "="},
 		{token.INT, "1"},
 		{token.SEMICOLON, ";"},
+		{token.COMMENT, "# This is a comment too."},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "// This is a final"},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "// comment on two-lines"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -342,6 +348,10 @@ var a = 1;
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.MULTILINE_COMMENT, `/* This is a comment
+
+We're still in a comment
+var c = 2; */`},
 		{token.NEWLINE, "\n"},
 		{token.VAR, "var"},
 		{token.IDENT, "a"},
@@ -349,8 +359,13 @@ var a = 1;
 		{token.INT, "1"},
 		{token.SEMICOLON, ";"},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "// This isa comment"},
 		{token.NEWLINE, "\n"},
+		{token.COMMENT, "// This is still a comment."},
 		{token.NEWLINE, "\n"},
+		{token.MULTILINE_COMMENT, `/* Now a multi-line again
+   Which is two-lines
+ */`},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -425,6 +440,7 @@ func TestShebang(t *testing.T) {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.COMMENT, "#!/bin/risor"},
 		{token.NEWLINE, "\n"},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
