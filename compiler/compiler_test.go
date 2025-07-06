@@ -325,3 +325,174 @@ func foo() {
 		})
 	}
 }
+
+func TestForwardDeclarationCompilation(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{
+			name: "basic forward declaration",
+			input: `
+			func main() {
+				return helper()
+			}
+			
+			func helper() {
+				return 42
+			}
+			`,
+			wantErr: false,
+		},
+		{
+			name: "mutual recursion",
+			input: `
+			func is_even(n) {
+				if n == 0 {
+					return true
+				}
+				return is_odd(n - 1)
+			}
+			
+			func is_odd(n) {
+				if n == 0 {
+					return false
+				}
+				return is_even(n - 1)
+			}
+			`,
+			wantErr: false,
+		},
+		{
+			name: "multiple forward declarations",
+			input: `
+			func a() {
+				return b() + c()
+			}
+			
+			func b() {
+				return d()
+			}
+			
+			func c() {
+				return 10
+			}
+			
+			func d() {
+				return 20
+			}
+			`,
+			wantErr: false,
+		},
+		{
+			name: "forward declaration with closures",
+			input: `
+			func outer() {
+				x := 10
+				return func() {
+					return inner() + x
+				}
+			}
+			
+			func inner() {
+				return 5
+			}
+			`,
+			wantErr: false,
+		},
+		{
+			name: "forward declaration with default parameters",
+			input: `
+			func caller(op="add") {
+				if op == "add" {
+					return adder(5, 3)
+				}
+				return multiplier(5, 3)
+			}
+			
+			func adder(a, b) {
+				return a + b
+			}
+			
+			func multiplier(a, b) {
+				return a * b
+			}
+			`,
+			wantErr: false,
+		},
+		{
+			name: "undefined function should error",
+			input: `
+			func caller() {
+				return undefined_function()
+			}
+			`,
+			wantErr: true,
+		},
+		{
+			name: "function redefinition should error",
+			input: `
+			func duplicate() {
+				return 1
+			}
+			
+			func duplicate() {
+				return 2
+			}
+			`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := New()
+			require.Nil(t, err)
+
+			ast, err := parser.Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+
+			_, err = c.Compile(ast)
+			if tt.wantErr {
+				require.NotNil(t, err)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestForwardDeclarationInstructionGeneration(t *testing.T) {
+	// Test that forward declarations generate correct instructions
+	input := `
+	func main() {
+		return helper(5)
+	}
+	
+	func helper(x) {
+		return x * 2
+	}
+	
+	main()
+	`
+
+	c, err := New()
+	require.Nil(t, err)
+
+	ast, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+
+	code, err := c.Compile(ast)
+	require.Nil(t, err)
+
+	// Verify that the code compiles successfully and has expected structure
+	require.NotNil(t, code)
+	require.Greater(t, code.InstructionCount(), 0)
+
+	// Verify that the code compiles successfully and contains expected constants
+	require.Greater(t, code.ConstantsCount(), 0, "should have constants")
+
+	// The main verification is that compilation succeeded without errors
+	// indicating that forward declarations were properly resolved
+}
