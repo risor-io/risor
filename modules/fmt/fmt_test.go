@@ -37,3 +37,9 @@ func TestErrorf(t *testing.T) {
 	require.IsType(t, &object.Error{}, result)
 	require.Equal(t, "hello world\n", result.(*object.Error).Message().Value())
 }
+
+func TestSprintf(t *testing.T) {
+	ctx := context.Background()
+	result := Sprintf(ctx, object.NewString("hello %s\n"), object.NewString("world"))
+	require.Equal(t, "hello world\n", result.(*object.String).Value())
+}

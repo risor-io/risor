@@ -16,6 +16,7 @@ use (
 	./modules/color
 	./modules/echarts
 	./modules/gha
+	./modules/github
 	./modules/goquery
 	./modules/htmltomarkdown
 	./modules/image
