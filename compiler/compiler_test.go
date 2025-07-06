@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/risor-io/risor/ast"
@@ -265,6 +266,62 @@ func TestStringImport(t *testing.T) {
 
 			require.Equal(t, tt.expectedCode, code.instructions)
 			require.Equal(t, tt.expectedConstants, code.constants)
+		})
+	}
+}
+
+func TestFunctionRedefinition(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name: "duplicate function definition",
+			input: `
+func bar() {
+    print("first bar")
+}
+
+func bar() {
+    print("second bar")
+}
+`,
+			expected: `function "bar" redefined`,
+		},
+		{
+			name: "multiple duplicate function definitions",
+			input: `
+func foo() {
+    print("first foo")
+}
+
+func foo() {
+    print("second foo")
+}
+
+func foo() {
+    print("third foo")
+}
+`,
+			expected: `function "foo" redefined`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := New()
+			require.Nil(t, err)
+			ast, err := parser.Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+			_, err = c.Compile(ast)
+			if err == nil {
+				t.Errorf("Expected error but got none")
+				return
+			}
+			if !strings.Contains(err.Error(), tt.expected) {
+				t.Errorf("Expected error containing %q, got %q", tt.expected, err.Error())
+			}
 		})
 	}
 }

@@ -167,10 +167,11 @@ func (c *Compiler) collectFunctionDeclarations(node ast.Node) error {
 		// Only collect named functions at the top level
 		if node.Name() != nil && c.current.parent == nil {
 			functionName := node.Name().Literal()
-			if _, found := c.current.symbols.Get(functionName); !found {
-				if _, err := c.current.symbols.InsertConstant(functionName); err != nil {
-					return err
-				}
+			if _, found := c.current.symbols.Get(functionName); found {
+				return c.formatError(fmt.Sprintf("function %q redefined", functionName), node.Token().StartPosition)
+			}
+			if _, err := c.current.symbols.InsertConstant(functionName); err != nil {
+				return err
 			}
 		}
 	}
