@@ -6,37 +6,26 @@ import (
 
 	"github.com/google/go-github/v73/github"
 	"github.com/risor-io/risor/object"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
 	client := github.NewClient(nil)
 	ghClient := New(client)
 
-	if ghClient == nil {
-		t.Fatal("Expected non-nil client")
-	}
-
-	if ghClient.Type() != CLIENT {
-		t.Errorf("Expected type %s, got %s", CLIENT, ghClient.Type())
-	}
+	require.NotNil(t, ghClient)
+	require.IsType(t, &Client{}, ghClient)
+	require.Equal(t, CLIENT, ghClient.Type())
 }
 
 func TestCreateUnauthenticated(t *testing.T) {
 	ctx := context.Background()
 	result := Create(ctx)
 
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
+	require.NotNil(t, result)
+	require.IsType(t, &Client{}, result)
 
-	client, ok := result.(*Client)
-	if !ok {
-		t.Fatalf("Expected *Client, got %T", result)
-	}
-
-	if client.Type() != CLIENT {
-		t.Errorf("Expected type %s, got %s", CLIENT, client.Type())
-	}
+	require.Equal(t, CLIENT, result.(*Client).Type())
 }
 
 func TestCreateAuthenticated(t *testing.T) {
@@ -44,35 +33,21 @@ func TestCreateAuthenticated(t *testing.T) {
 	token := object.NewString("test-token")
 	result := Create(ctx, token)
 
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
-
-	client, ok := result.(*Client)
-	if !ok {
-		t.Fatalf("Expected *Client, got %T", result)
-	}
-
-	if client.Type() != CLIENT {
-		t.Errorf("Expected type %s, got %s", CLIENT, client.Type())
-	}
+	require.NotNil(t, result)
+	require.IsType(t, &Client{}, result)
+	require.Equal(t, CLIENT, result.(*Client).Type())
 }
 
 func TestModule(t *testing.T) {
 	module := Module()
 
-	if module == nil {
-		t.Fatal("Expected non-nil module")
-	}
+	require.NotNil(t, module)
+	require.IsType(t, &object.Module{}, module)
 
 	nameObj := module.Name()
 	name, err := object.AsString(nameObj)
-	if err != nil {
-		t.Fatalf("Expected string name, got error: %v", err)
-	}
-	if name != "github" {
-		t.Errorf("Expected module name 'github', got %s", name)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "github", name)
 }
 
 func TestAsMap(t *testing.T) {
@@ -88,26 +63,40 @@ func TestAsMap(t *testing.T) {
 
 	result := asMap(test)
 
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
+	require.NotNil(t, result)
+	require.IsType(t, &object.Map{}, result)
 
-	mapObj, ok := result.(*object.Map)
-	if !ok {
-		t.Fatalf("Expected *object.Map, got %T", result)
-	}
-
+	mapObj := result.(*object.Map)
 	nameObj := mapObj.Get("name")
-	if nameObj == nil {
-		t.Fatal("Expected name field")
-	}
+	require.NotNil(t, nameObj)
+	require.IsType(t, &object.String{}, nameObj)
+	require.Equal(t, "test", nameObj.(*object.String).Value())
+}
 
-	name, err := object.AsString(nameObj)
-	if err != nil {
-		t.Fatalf("Expected string, got error: %v", err)
-	}
+func TestGetRepository(t *testing.T) {
+	ctx := context.Background()
+	client := github.NewClient(nil)
+	ghClient := New(client)
 
-	if name != "test" {
-		t.Errorf("Expected 'test', got %s", name)
-	}
+	result := ghClient.GetRepo(ctx, object.NewString("octocat"), object.NewString("Hello-World"))
+
+	require.NotNil(t, result)
+	require.IsType(t, &object.Map{}, result)
+}
+
+func TestGetUser(t *testing.T) {
+	ctx := context.Background()
+	client := github.NewClient(nil)
+	ghClient := New(client)
+
+	result := ghClient.GetUser(ctx, object.NewString("octocat"))
+
+	require.NotNil(t, result)
+	require.IsType(t, &object.Map{}, result)
+
+	m := result.(*object.Map)
+	nameObj := m.Get("name")
+	require.NotNil(t, nameObj)
+	require.IsType(t, &object.String{}, nameObj)
+	require.Equal(t, "The Octocat", nameObj.(*object.String).Value())
 }
