@@ -10,6 +10,7 @@ replace (
 	github.com/risor-io/risor/modules/color => ../../modules/color
 	github.com/risor-io/risor/modules/echarts => ../../modules/echarts
 	github.com/risor-io/risor/modules/gha => ../../modules/gha
+	github.com/risor-io/risor/modules/github => ../../modules/github
 	github.com/risor-io/risor/modules/goquery => ../../modules/goquery
 	github.com/risor-io/risor/modules/htmltomarkdown => ../../modules/htmltomarkdown
 	github.com/risor-io/risor/modules/image => ../../modules/image
@@ -25,6 +26,7 @@ replace (
 	github.com/risor-io/risor/modules/shlex => ../../modules/shlex
 	github.com/risor-io/risor/modules/slack => ../../modules/slack
 	github.com/risor-io/risor/modules/sql => ../../modules/sql
+	github.com/risor-io/risor/modules/ssh => ../../modules/ssh
 	github.com/risor-io/risor/modules/tablewriter => ../../modules/tablewriter
 	github.com/risor-io/risor/modules/template => ../../modules/template
 	github.com/risor-io/risor/modules/uuid => ../../modules/uuid
@@ -48,6 +50,7 @@ require (
 	github.com/risor-io/risor/modules/color v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/echarts v1.8.0
 	github.com/risor-io/risor/modules/gha v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/github v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/goquery v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/htmltomarkdown v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/image v0.0.0-00010101000000-000000000000
@@ -63,6 +66,7 @@ require (
 	github.com/risor-io/risor/modules/shlex v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/slack v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/sql v0.0.0-00010101000000-000000000000
+	github.com/risor-io/risor/modules/ssh v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/tablewriter v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/template v0.0.0-00010101000000-000000000000
 	github.com/risor-io/risor/modules/uuid v0.0.0-00010101000000-000000000000
@@ -165,6 +169,8 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/go-github/v73 v73.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

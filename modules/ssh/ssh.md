@@ -1,209 +1,142 @@
 # ssh
 
-The SSH module provides functionality to establish SSH connections and execute commands on remote servers.
+The `ssh` module provides functions for establishing SSH connections and executing commands remotely on servers.
 
-## Functions
+## Module
 
-### connect
-
-```go filename="Function signature"
-connect(host string, user string, password string, timeout int, port int) ssh_client
+```go copy filename="Function signature"
+ssh.connect(user string, host string, options map) ssh.client
 ```
 
-Establishes an SSH connection using password authentication.
+Establishes an SSH connection to a remote host. The module is callable, so `ssh(...)` is equivalent to `ssh.connect(...)`.
 
 **Parameters:**
-- `host` (string): The hostname or IP address of the SSH server
-- `user` (string): The username for authentication
-- `password` (string): The password for authentication
-- `timeout` (int, optional): Connection timeout in seconds (default: 30)
-- `port` (int, optional): SSH port (default: 22)
+- `user` (string): Username for authentication
+- `host` (string): Hostname or IP address to connect to
+- `options` (map): Configuration options
 
-**Returns:** SSH client object for use with other SSH functions
+**Options:**
+- `password` (string): Password for authentication (optional)
+- `private_key` (string): Private key content for key-based authentication (optional)
+- `port` (int): Port number (optional, defaults to 22)
+- `timeout` (int): Connection timeout in seconds (optional, defaults to 30)
+- `insecure` (bool): Use insecure host key callback (optional, defaults to false)
 
-```go copy filename="Example"
-client := ssh.connect("example.com", "myuser", "mypassword")
-```
-
-### connect_with_key
-
-```go filename="Function signature"
-connect_with_key(host string, user string, private_key string, timeout int, port int) ssh_client
-```
-
-Establishes an SSH connection using private key authentication.
-
-**Parameters:**
-- `host` (string): The hostname or IP address of the SSH server
-- `user` (string): The username for authentication
-- `private_key` (string): The private key content (PEM format)
-- `timeout` (int, optional): Connection timeout in seconds (default: 30)
-- `port` (int, optional): SSH port (default: 22)
-
-**Returns:** SSH client object for use with other SSH functions
+**Note:** You must provide either `password` or `private_key` in the options map for authentication.
 
 ```go copy filename="Example"
-key := `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA...
------END RSA PRIVATE KEY-----`
-client := ssh.connect_with_key("example.com", "myuser", key)
+>>> client := ssh.connect("user", "example.com", {
+...   password: "secret123",
+...   port: 22,
+...   timeout: 10
+... })
+>>> client.execute("ls -la")
+"total 24\ndrwxr-xr-x 3 user user 4096 Jan 15 10:30 .\ndrwxr-xr-x 5 user user 4096 Jan 15 10:29 ..\n-rw-r--r-- 1 user user  220 Jan 15 10:29 .bash_logout\n"
+
+>>> // Shorter form using callable module
+>>> client := ssh("user", "example.com", {
+...   password: "secret123"
+... })
+>>> client.execute("whoami")
+"user"
 ```
+
+## Client
+
+The SSH client provides methods for executing commands on remote servers.
 
 ### execute
 
-```go filename="Function signature"
-execute(client ssh_client, command string) string
+```go filename="Method signature"
+execute(command string) string
 ```
 
-Executes a command on the SSH connection and returns the output.
+Executes a command on the SSH connection. This method automatically creates a session, runs the command, and closes the session.
 
-**Parameters:**
-- `client` (ssh_client): SSH client object from `connect()` or `connect_with_key()`
-- `command` (string): The command to execute
+```go filename="Example"
+>>> client := ssh("user", "example.com", {
+...   password: "secret123"
+... })
+>>> output := client.execute("ls -la")
+>>> print(output)
+total 24
+drwxr-xr-x 3 user user 4096 Jan 15 10:30 .
+drwxr-xr-x 5 user user 4096 Jan 15 10:29 ..
+-rw-r--r-- 1 user user  220 Jan 15 10:29 .bash_logout
 
-**Returns:** Command output as a string
-
-```go copy filename="Example"
-client := ssh.connect("example.com", "myuser", "mypassword")
-output := ssh.execute(client, "ls -la")
-print(output)
-ssh.close(client)
-```
-
-### new_session
-
-```go filename="Function signature"
-new_session(client ssh_client) ssh_session
-```
-
-Creates a new SSH session for executing multiple commands.
-
-**Parameters:**
-- `client` (ssh_client): SSH client object from `connect()` or `connect_with_key()`
-
-**Returns:** SSH session object
-
-```go copy filename="Example"
-client := ssh.connect("example.com", "myuser", "mypassword")
-session := ssh.new_session(client)
-```
-
-### session_run
-
-```go filename="Function signature"
-session_run(session ssh_session, command string) string
-```
-
-Executes a command on an SSH session.
-
-**Parameters:**
-- `session` (ssh_session): SSH session object from `new_session()`
-- `command` (string): The command to execute
-
-**Returns:** Command output as a string
-
-```go copy filename="Example"
-client := ssh.connect("example.com", "myuser", "mypassword")
-session := ssh.new_session(client)
-output := ssh.session_run(session, "whoami")
-print(output)
-ssh.session_close(session)
-ssh.close(client)
-```
-
-### session_close
-
-```go filename="Function signature"
-session_close(session ssh_session) null
-```
-
-Closes an SSH session.
-
-**Parameters:**
-- `session` (ssh_session): SSH session object to close
-
-**Returns:** null
-
-```go copy filename="Example"
-session := ssh.new_session(client)
-// ... use session ...
-ssh.session_close(session)
+>>> uptime := client.execute("uptime")
+>>> print("Server uptime:", uptime)
+Server uptime:  10:30:42 up 1 day,  2:45,  1 user,  load average: 0.08, 0.02, 0.01
 ```
 
 ### close
 
-```go filename="Function signature"
-close(client ssh_client) null
+```go filename="Method signature"
+close()
 ```
 
-Closes an SSH connection.
+Closes the SSH connection and frees associated resources.
 
-**Parameters:**
-- `client` (ssh_client): SSH client object to close
+```go filename="Example"
+>>> client := ssh("user", "example.com", {
+...   password: "secret123"
+... })
+>>> client.execute("whoami")
+"user"
+>>> client.close()
+```
 
-**Returns:** null
+## Authentication Examples
+
+### Password Authentication
 
 ```go copy filename="Example"
-client := ssh.connect("example.com", "myuser", "mypassword")
-// ... use client ...
-ssh.close(client)
+>>> client := ssh("ubuntu", "192.168.1.100", {
+...   password: "mypassword",
+...   port: 22,
+...   timeout: 30
+... })
+>>> client.execute("uname -a")
+"Linux server 5.4.0-88-generic #99-Ubuntu SMP Thu Sep 23 17:29:00 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux"
 ```
 
-## Usage Examples
-
-### Basic Password Authentication
+### Private Key Authentication
 
 ```go copy filename="Example"
-// Connect with password
-client := ssh.connect("example.com", "user", "password", 30, 22)
-
-// Execute a command
-output := ssh.execute(client, "uptime")
-print("Server uptime:", output)
-
-// Close the connection
-ssh.close(client)
+>>> private_key := `-----BEGIN RSA PRIVATE KEY-----
+... MIIEpAIBAAKCAQEA...
+... -----END RSA PRIVATE KEY-----`
+>>> client := ssh("user", "example.com", {
+...   private_key: private_key,
+...   port: 2222
+... })
+>>> client.execute("hostname")
+"example.com"
 ```
 
-### Key-Based Authentication
+### Insecure Host Key
 
 ```go copy filename="Example"
-// Load private key
-private_key := `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA...
------END RSA PRIVATE KEY-----`
-
-// Connect with key
-client := ssh.connect_with_key("example.com", "user", private_key)
-
-// Execute commands
-output := ssh.execute(client, "df -h")
-print("Disk usage:", output)
-
-ssh.close(client)
+>>> // Not recommended for production use
+>>> client := ssh("user", "example.com", {
+...   password: "secret123",
+...   insecure: true
+... })
+>>> client.execute("echo 'Connected with insecure host key verification'")
+"Connected with insecure host key verification"
 ```
 
-### Session Management
+## Types
 
-```go copy filename="Example"
-// Connect and create session
-client := ssh.connect("example.com", "user", "password")
-session := ssh.new_session(client)
+### ssh.client
 
-// Execute multiple commands on the same session
-output1 := ssh.session_run(session, "pwd")
-output2 := ssh.session_run(session, "ls -la")
-
-print("Current directory:", output1)
-print("Directory listing:", output2)
-
-// Clean up
-ssh.session_close(session)
-ssh.close(client)
-```
+The SSH client represents an active SSH connection to a remote host and provides
+methods for executing commands.
 
 ## Security Notes
 
-- The current implementation uses `ssh.InsecureIgnoreHostKey()` for host key verification. In production environments, you should implement proper host key verification.
-- Always close SSH connections and sessions when done to free resources.
-- Store private keys securely and never include them directly in your code in production environments.
+- By default, the module uses the system's `~/.ssh/known_hosts` file for host key verification
+- Set `insecure: true` in the options to disable host key verification (not recommended for production)
+- Always close connections when finished to free resources
+- Private keys should be stored securely and not hardcoded in scripts
+- Each call to `execute()` creates a new session that is automatically closed after the command completes

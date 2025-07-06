@@ -32,6 +32,7 @@ git tag modules/semver/$VERSION
 git tag modules/shlex/$VERSION
 git tag modules/slack/$VERSION
 git tag modules/sql/$VERSION
+git tag modules/ssh/$VERSION
 git tag modules/tablewriter/$VERSION
 git tag modules/template/$VERSION
 git tag modules/uuid/$VERSION
@@ -62,6 +63,7 @@ git push origin modules/semver/$VERSION
 git push origin modules/shlex/$VERSION
 git push origin modules/slack/$VERSION
 git push origin modules/sql/$VERSION
+git push origin modules/ssh/$VERSION
 git push origin modules/tablewriter/$VERSION
 git push origin modules/template/$VERSION
 git push origin modules/uuid/$VERSION
