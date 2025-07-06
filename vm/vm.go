@@ -192,17 +192,17 @@ func (vm *VirtualMachine) resetForNewCode() {
 	vm.halt = 0
 	vm.activeFrame = nil
 	vm.activeCode = nil
-	
+
 	// Clear the stack
 	for i := 0; i < MaxStackDepth; i++ {
 		vm.stack[i] = nil
 	}
-	
+
 	// Clear the frames
 	for i := 0; i < MaxFrameDepth; i++ {
 		vm.frames[i] = frame{}
 	}
-	
+
 	// Clear the temporary array
 	for i := 0; i < MaxArgs; i++ {
 		vm.tmp[i] = nil
