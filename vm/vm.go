@@ -1123,6 +1123,63 @@ func (vm *VirtualMachine) cloneCallSync(
 	return clone.callFunction(clone.initContext(ctx), fn, args)
 }
 
+// captureStackTrace captures the current stack trace from the VM
+func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
+	var frames []object.StackFrame
+	
+	// Debug: print current VM state
+	fmt.Printf("DEBUG: VM state - fp: %d, sp: %d, running: %v\n", vm.fp, vm.sp, vm.running)
+	
+	// Start from the current frame and walk up the stack
+	for i := vm.fp; i >= 0; i-- {
+		frame := &vm.frames[i]
+		
+		fmt.Printf("DEBUG: Frame %d - fn: %v, code: %v\n", i, frame.fn != nil, frame.code != nil)
+		
+		// Check if this frame has a function
+		if frame.fn != nil {
+			// This is a function frame
+			functionName := frame.fn.Name()
+			if functionName == "" {
+				functionName = "<anonymous>"
+			}
+			
+			fmt.Printf("DEBUG: Adding function frame: %s\n", functionName)
+			frames = append(frames, object.StackFrame{
+				FunctionName: functionName,
+				FileName:     "", // TODO: Add filename support when available
+				LineNumber:   0,  // TODO: Add line number support when available
+			})
+		} else if frame.code != nil {
+			// This is a code frame (main execution)
+			fmt.Printf("DEBUG: Adding code frame: <module>\n")
+			frames = append(frames, object.StackFrame{
+				FunctionName: "<module>",
+				FileName:     "", // TODO: Add filename support when available
+				LineNumber:   0,  // TODO: Add line number support when available
+			})
+		}
+		
+		// Stop if we hit frame 0 (the main frame)
+		if i == 0 {
+			break
+		}
+	}
+	
+	// If we don't have any frames, at least add the current context
+	if len(frames) == 0 {
+		fmt.Printf("DEBUG: No frames found, adding current context\n")
+		frames = append(frames, object.StackFrame{
+			FunctionName: "<current>",
+			FileName:     "",
+			LineNumber:   0,
+		})
+	}
+	
+	fmt.Printf("DEBUG: Final frames count: %d\n", len(frames))
+	return frames
+}
+
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 	oss := vm.getOS(ctx)
 	ctx = os.WithOS(ctx, oss)
@@ -1131,6 +1188,7 @@ func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
 		ctx = object.WithCloneCallFunc(ctx, vm.cloneCallSync)
 	}
+	ctx = object.WithTraceFunc(ctx, vm.captureStackTrace)
 	return ctx
 }
 
