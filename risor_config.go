@@ -42,6 +42,7 @@ type Config struct {
 	listenersAllowed      bool
 	initialized           bool
 	filename              string
+	vm                    *vm.VirtualMachine
 }
 
 // NewConfig returns a new Risor Config. Use the Risor options functions

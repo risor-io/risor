@@ -2890,39 +2890,19 @@ func TestRunCode(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a VM with initial code
-	source1 := `
-		x := 10
-		y := 20
-		x + y
-	`
-	vm, err := newVM(ctx, source1)
-	if err != nil {
-		t.Fatalf("Failed to create VM: %v", err)
-	}
+	vm, err := newVM(ctx, "x := 10; y := 20; x + y")
+	require.NoError(t, err)
 
 	// Run the initial code
-	if err := vm.Run(ctx); err != nil {
-		t.Fatalf("Failed to run initial code: %v", err)
-	}
+	require.NoError(t, vm.Run(ctx))
 
 	result, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result.(*object.Int).Value() != 30 {
-		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
 
 	// Compile and run different code on the same VM
-	source2 := `
-		a := 5
-		b := 15
-		a * b
-	`
-	ast2, err := parser.Parse(ctx, source2)
-	if err != nil {
-		t.Fatalf("Failed to parse second code: %v", err)
-	}
+	ast2, err := parser.Parse(ctx, "a := 5; b := 15; a * b")
+	require.NoError(t, err)
 
 	globals := basicBuiltins()
 	var globalNames []string
@@ -2931,22 +2911,14 @@ func TestRunCode(t *testing.T) {
 	}
 
 	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
-	if err != nil {
-		t.Fatalf("Failed to compile second code: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Run the second code on the same VM
-	if err := vm.RunCode(ctx, code2); err != nil {
-		t.Fatalf("Failed to run second code: %v", err)
-	}
+	require.NoError(t, vm.RunCode(ctx, code2))
 
 	result2, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result2.(*object.Int).Value() != 75 {
-		t.Errorf("Expected 75, got %d", result2.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(75))
 
 	// Run a third piece of code
 	source3 := `
@@ -2955,26 +2927,15 @@ func TestRunCode(t *testing.T) {
 		greeting
 	`
 	ast3, err := parser.Parse(ctx, source3)
-	if err != nil {
-		t.Fatalf("Failed to parse third code: %v", err)
-	}
+	require.NoError(t, err)
 
 	code3, err := compiler.Compile(ast3, compiler.WithGlobalNames(globalNames))
-	if err != nil {
-		t.Fatalf("Failed to compile third code: %v", err)
-	}
-
-	if err := vm.RunCode(ctx, code3); err != nil {
-		t.Fatalf("Failed to run third code: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code3))
 
 	result3, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result3.(*object.String).Value() != "Hello, Risor!" {
-		t.Errorf("Expected 'Hello, Risor!', got %s", result3.(*object.String).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result3.(*object.String).Value(), "Hello, Risor!")
 }
 
 func TestRunCodeWithGlobalVariables(t *testing.T) {
@@ -2991,22 +2952,12 @@ func TestRunCodeWithGlobalVariables(t *testing.T) {
 		result
 	`
 	vm, err := newVM(ctx, source1, runOpts{Globals: customGlobals})
-	if err != nil {
-		t.Fatalf("Failed to create VM: %v", err)
-	}
-
-	// Run the initial code
-	if err := vm.Run(ctx); err != nil {
-		t.Fatalf("Failed to run initial code: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
 
 	result, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result.(*object.Int).Value() != 200 {
-		t.Errorf("Expected 200, got %d", result.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(200))
 
 	// Run different code that also uses globals
 	source2 := `
@@ -3014,36 +2965,20 @@ func TestRunCodeWithGlobalVariables(t *testing.T) {
 		newResult
 	`
 	ast2, err := parser.Parse(ctx, source2)
-	if err != nil {
-		t.Fatalf("Failed to parse second code: %v", err)
-	}
-
-	allGlobals := basicBuiltins()
-	for k, v := range customGlobals {
-		allGlobals[k] = v
-	}
+	require.NoError(t, err)
 
 	var globalNames []string
-	for k := range allGlobals {
+	for k := range customGlobals {
 		globalNames = append(globalNames, k)
 	}
 
 	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
-	if err != nil {
-		t.Fatalf("Failed to compile second code: %v", err)
-	}
-
-	if err := vm.RunCode(ctx, code2); err != nil {
-		t.Fatalf("Failed to run second code: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code2))
 
 	result2, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result2.(*object.Int).Value() != 102 {
-		t.Errorf("Expected 102, got %d", result2.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(102))
 }
 
 func TestRunCodeFunctions(t *testing.T) {
@@ -3057,21 +2992,12 @@ func TestRunCodeFunctions(t *testing.T) {
 		add(10, 20)
 	`
 	vm, err := newVM(ctx, source1)
-	if err != nil {
-		t.Fatalf("Failed to create VM: %v", err)
-	}
-
-	if err := vm.Run(ctx); err != nil {
-		t.Fatalf("Failed to run initial code: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
 
 	result, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result.(*object.Int).Value() != 30 {
-		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
 
 	// Run code with a different function
 	source2 := `
@@ -3081,9 +3007,7 @@ func TestRunCodeFunctions(t *testing.T) {
 		multiply(6, 7)
 	`
 	ast2, err := parser.Parse(ctx, source2)
-	if err != nil {
-		t.Fatalf("Failed to parse second code: %v", err)
-	}
+	require.NoError(t, err)
 
 	globals := basicBuiltins()
 	var globalNames []string
@@ -3092,51 +3016,25 @@ func TestRunCodeFunctions(t *testing.T) {
 	}
 
 	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
-	if err != nil {
-		t.Fatalf("Failed to compile second code: %v", err)
-	}
-
-	if err := vm.RunCode(ctx, code2); err != nil {
-		t.Fatalf("Failed to run second code: %v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, vm.RunCode(ctx, code2))
 
 	result2, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result2.(*object.Int).Value() != 42 {
-		t.Errorf("Expected 42, got %d", result2.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result2.(*object.Int).Value(), int64(42))
 }
 
 func TestRunCodeOnVM(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a VM with initial code
-	source1 := `
-		x := 42
-		x
-	`
-	vm, err := newVM(ctx, source1)
-	if err != nil {
-		t.Fatalf("Failed to create VM: %v", err)
-	}
-
-	// Run the initial code
-	if err := vm.Run(ctx); err != nil {
-		t.Fatalf("Failed to run initial code: %v", err)
-	}
+	vm, err := newVM(ctx, "x := 42; x")
+	require.NoError(t, err)
+	require.NoError(t, vm.Run(ctx))
 
 	// Compile a different piece of code
-	source2 := `
-		y := 100
-		z := 200
-		y + z
-	`
-	ast2, err := parser.Parse(ctx, source2)
-	if err != nil {
-		t.Fatalf("Failed to parse second code: %v", err)
-	}
+	ast2, err := parser.Parse(ctx, "y := 100; z := 200; y + z")
+	require.NoError(t, err)
 
 	globals := basicBuiltins()
 	var globalNames []string
@@ -3145,178 +3043,115 @@ func TestRunCodeOnVM(t *testing.T) {
 	}
 
 	code2, err := compiler.Compile(ast2, compiler.WithGlobalNames(globalNames))
-	if err != nil {
-		t.Fatalf("Failed to compile second code: %v", err)
-	}
-
-	// Use the wrapper function to run code on the VM
+	require.NoError(t, err)
 	result, err := RunCodeOnVM(ctx, vm, code2)
-	if err != nil {
-		t.Fatalf("Failed to run code on VM: %v", err)
-	}
-
-	if result.(*object.Int).Value() != 300 {
-		t.Errorf("Expected 300, got %d", result.(*object.Int).Value())
-	}
+	require.NoError(t, err)
+	require.Equal(t, result.(*object.Int).Value(), int64(300))
 }
 
 func TestRunCodeFirst(t *testing.T) {
 	ctx := context.Background()
-
-	// Test that functions work correctly when running multiple code objects
-	source := `
-		func add(a, b) {
-			return a + b
-		}
+	vm, err := newVM(ctx, `
+		func add(a, b) { return a + b }
 		add(10, 20)
-	`
-	vm, err := newVM(ctx, source)
+	`)
 	require.NoError(t, err)
 	require.NoError(t, vm.RunCode(ctx, vm.main))
-
 	result, exists := vm.TOS()
-	if !exists {
-		t.Fatal("Expected result on stack")
-	}
-	if result.(*object.Int).Value() != 30 {
-		t.Errorf("Expected 30, got %d", result.(*object.Int).Value())
-	}
+	require.True(t, exists)
+	require.Equal(t, result.(*object.Int).Value(), int64(30))
 }
 
 func TestNewEmpty(t *testing.T) {
-	// Helper function to compile source code
-	compile := func(t *testing.T, source string) *compiler.Code {
-		ast, err := parser.Parse(context.Background(), source)
-		if err != nil {
-			t.Fatalf("Failed to parse source: %v", err)
-		}
+	ctx := context.Background()
+	compile := func(source string) *compiler.Code {
+		ast, err := parser.Parse(ctx, source)
+		require.NoError(t, err)
 		code, err := compiler.Compile(ast)
-		if err != nil {
-			t.Fatalf("Failed to compile source: %v", err)
-		}
+		require.NoError(t, err)
 		return code
 	}
 
 	// Test creating a VM without main code
-	vm := NewEmpty()
+	vm, err := NewEmpty()
+	require.NoError(t, err)
 
 	// Test that Run() returns an error when no main code is provided
-	err := vm.Run(context.Background())
-	if err == nil {
-		t.Fatal("Expected error when calling Run() on VM without main code")
-	}
-	expectedErr := "no main code available"
-	if err.Error() != expectedErr {
-		t.Fatalf("Expected error message %q, got %q", expectedErr, err.Error())
-	}
+	err = vm.Run(ctx)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no main code available")
 
 	// Test that RunCode() works with specific code
-	code := compile(t, `x := 42; x`)
-	err = vm.RunCode(context.Background(), code)
-	if err != nil {
-		t.Fatalf("RunCode() failed: %v", err)
-	}
+	code := compile(`x := 42; x`)
+	err = vm.RunCode(ctx, code)
+	require.NoError(t, err)
 
 	// Verify the result is on the stack
 	result, ok := vm.TOS()
-	if !ok {
-		t.Fatal("No result on stack after RunCode()")
-	}
+	require.True(t, ok)
 	intResult, ok := result.(*object.Int)
-	if !ok {
-		t.Fatalf("Expected Int result, got %T", result)
-	}
-	if intResult.Value() != 42 {
-		t.Fatalf("Expected result 42, got %d", intResult.Value())
-	}
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(42))
 
 	// Test that Call() works with functions
-	fnCode := compile(t, `func add(a, b) { return a + b }`)
-	err = vm.RunCode(context.Background(), fnCode)
-	if err != nil {
-		t.Fatalf("Failed to run function definition: %v", err)
-	}
+	fnCode := compile(`func add(a, b) { return a + b }`)
+	err = vm.RunCode(ctx, fnCode)
+	require.NoError(t, err)
 
 	addFn, err := vm.Get("add")
-	if err != nil {
-		t.Fatalf("Failed to get add function: %v", err)
-	}
+	require.NoError(t, err)
 
-	result, err = vm.Call(context.Background(), addFn.(*object.Function), []object.Object{
+	result, err = vm.Call(ctx, addFn.(*object.Function), []object.Object{
 		object.NewInt(10),
 		object.NewInt(20),
 	})
-	if err != nil {
-		t.Fatalf("Call() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	intResult, ok = result.(*object.Int)
-	if !ok {
-		t.Fatalf("Expected Int result from Call(), got %T", result)
-	}
-	if intResult.Value() != 30 {
-		t.Fatalf("Expected Call() result 30, got %d", intResult.Value())
-	}
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(30))
 }
 
 func TestNewEmptyClone(t *testing.T) {
-	// Helper function to compile source code
-	compile := func(t *testing.T, source string) *compiler.Code {
-		ast, err := parser.Parse(context.Background(), source)
-		if err != nil {
-			t.Fatalf("Failed to parse source: %v", err)
-		}
+	ctx := context.Background()
+	compile := func(source string) *compiler.Code {
+		ast, err := parser.Parse(ctx, source)
+		require.NoError(t, err)
 		code, err := compiler.Compile(ast)
-		if err != nil {
-			t.Fatalf("Failed to compile source: %v", err)
-		}
+		require.NoError(t, err)
 		return code
 	}
 
 	// Test cloning a VM without main code
-	vm := NewEmpty()
+	vm, err := NewEmpty()
+	require.NoError(t, err)
 
 	// Run some code to set up state
-	code := compile(t, `x := 100`)
-	err := vm.RunCode(context.Background(), code)
-	if err != nil {
-		t.Fatalf("RunCode() failed: %v", err)
-	}
+	code := compile(`x := 100`)
+	err = vm.RunCode(ctx, code)
+	require.NoError(t, err)
 
 	// Clone the VM
 	clone, err := vm.Clone()
-	if err != nil {
-		t.Fatalf("Clone() failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Verify the clone also has no main code
-	if clone.main != nil {
-		t.Fatal("Clone should not have main code when original has none")
-	}
+	require.Nil(t, clone.main)
 
 	// Verify Run() fails on clone too
-	err = clone.Run(context.Background())
-	if err == nil {
-		t.Fatal("Expected error when calling Run() on cloned VM without main code")
-	}
+	err = clone.Run(ctx)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no main code available")
 
 	// Verify RunCode() works on clone
-	newCode := compile(t, `y := 200; y`)
-	err = clone.RunCode(context.Background(), newCode)
-	if err != nil {
-		t.Fatalf("RunCode() failed on clone: %v", err)
-	}
+	newCode := compile(`y := 200; y`)
+	err = clone.RunCode(ctx, newCode)
+	require.NoError(t, err)
 
 	// Verify result
 	result, ok := clone.TOS()
-	if !ok {
-		t.Fatal("No result on stack after RunCode() on clone")
-	}
+	require.True(t, ok)
 	intResult, ok := result.(*object.Int)
-	if !ok {
-		t.Fatalf("Expected Int result, got %T", result)
-	}
-	if intResult.Value() != 200 {
-		t.Fatalf("Expected result 200, got %d", intResult.Value())
-	}
+	require.True(t, ok)
+	require.Equal(t, intResult.Value(), int64(200))
 }

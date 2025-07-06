@@ -33,6 +33,7 @@ type VirtualMachine struct {
 	sp           int // stack pointer
 	fp           int // frame pointer
 	halt         int32
+	startCount   int64
 	activeFrame  *frame
 	activeCode   *code
 	main         *compiler.Code
@@ -53,60 +54,60 @@ type VirtualMachine struct {
 
 // New creates a new Virtual Machine.
 func New(main *compiler.Code, options ...Option) *VirtualMachine {
-	vm := &VirtualMachine{
-		sp:           -1,
-		ip:           0,
-		fp:           0,
-		halt:         0,
-		main:         main,
-		modules:      map[string]*object.Module{},
-		inputGlobals: map[string]any{},
-		globals:      map[string]object.Object{},
-		loadedCode:   map[*compiler.Code]*code{},
-	}
-	for _, opt := range options {
-		opt(vm)
-	}
-	// Convert globals to Risor objects
-	var err error
-	vm.globals, err = object.AsObjects(vm.inputGlobals)
+	vm, err := createVM(options)
 	if err != nil {
-		panic(fmt.Sprintf("invalid global provided: %v", err))
+		// Being unable to convert globals to Risor objects is more likely a
+		// programming error than a runtime error, so this panic is borderline
+		// appropriate. The only reason we're keeping this function signature
+		// and not just switching to returning an error is for compatibility.
+		// Using NewEmpty instead of New addresses this.
+		panic(err)
 	}
-	// Add any globals that are modules to a cache to make them available
-	// to import statements
-	for name, value := range vm.globals {
-		if module, ok := value.(*object.Module); ok {
-			vm.modules[name] = module
-		}
-	}
+	vm.main = main
 	return vm
 }
 
 // NewEmpty creates a new Virtual Machine without initial main code.
 // Code can be provided later using RunCode, or functions can be called
 // directly using Call.
-func NewEmpty(options ...Option) *VirtualMachine {
+func NewEmpty() (*VirtualMachine, error) {
+	return createVM(nil)
+}
+
+func createVM(options []Option) (*VirtualMachine, error) {
 	vm := &VirtualMachine{
 		sp:           -1,
-		ip:           0,
-		fp:           0,
-		halt:         0,
-		main:         nil, // No main code initially
 		modules:      map[string]*object.Module{},
 		inputGlobals: map[string]any{},
 		globals:      map[string]object.Object{},
 		loadedCode:   map[*compiler.Code]*code{},
 	}
+	if err := vm.applyOptions(options); err != nil {
+		return nil, err
+	}
+	return vm, nil
+}
+
+func (vm *VirtualMachine) applyOptions(options []Option) error {
+	vm.runMutex.Lock()
+	defer vm.runMutex.Unlock()
+
+	if vm.running {
+		return fmt.Errorf("vm is already running")
+	}
+
+	// Apply options
 	for _, opt := range options {
 		opt(vm)
 	}
+
 	// Convert globals to Risor objects
 	var err error
 	vm.globals, err = object.AsObjects(vm.inputGlobals)
 	if err != nil {
-		panic(fmt.Sprintf("invalid global provided: %v", err))
+		return fmt.Errorf("invalid global provided: %v", err)
 	}
+
 	// Add any globals that are modules to a cache to make them available
 	// to import statements
 	for name, value := range vm.globals {
@@ -114,7 +115,7 @@ func NewEmpty(options ...Option) *VirtualMachine {
 			vm.modules[name] = module
 		}
 	}
-	return vm
+	return nil
 }
 
 func (vm *VirtualMachine) start(ctx context.Context) error {
@@ -124,6 +125,7 @@ func (vm *VirtualMachine) start(ctx context.Context) error {
 		return fmt.Errorf("vm is already running")
 	}
 	vm.running = true
+	vm.startCount++
 	// Halt execution when the context is cancelled
 	vm.halt = 0
 	if doneChan := ctx.Done(); doneChan != nil {
@@ -151,7 +153,10 @@ func (vm *VirtualMachine) Run(ctx context.Context) (err error) {
 // RunCode runs the given compiled code object on the VM. This allows running
 // multiple different code objects on the same VM instance sequentially.
 // The VM must not be currently running when this method is called.
-func (vm *VirtualMachine) RunCode(ctx context.Context, codeToRun *compiler.Code) (err error) {
+func (vm *VirtualMachine) RunCode(ctx context.Context, codeToRun *compiler.Code, opts ...Option) (err error) {
+	if err := vm.applyOptions(opts); err != nil {
+		return err
+	}
 	return vm.runCodeInternal(ctx, codeToRun, true)
 }
 
@@ -172,7 +177,7 @@ func (vm *VirtualMachine) runCodeInternal(ctx context.Context, codeToRun *compil
 	}()
 
 	// Reset VM state for new code execution if requested
-	if resetState {
+	if resetState && vm.startCount > 1 {
 		vm.resetForNewCode()
 	}
 
@@ -215,12 +220,14 @@ func (vm *VirtualMachine) runCodeInternal(ctx context.Context, codeToRun *compil
 
 // resetForNewCode resets the VM state for running a new code object
 func (vm *VirtualMachine) resetForNewCode() {
-	vm.ip = 0
 	vm.sp = -1
+	vm.ip = 0
 	vm.fp = 0
 	vm.halt = 0
 	vm.activeFrame = nil
 	vm.activeCode = nil
+	vm.loadedCode = map[*compiler.Code]*code{}
+	vm.modules = map[string]*object.Module{}
 
 	// Clear arrays
 	for i := 0; i < MaxStackDepth; i++ {

@@ -35,8 +35,8 @@ func Run(ctx context.Context, main *compiler.Code, options ...Option) (object.Ob
 
 // RunCodeOnVM runs the given compiled code on an existing Virtual Machine and returns the result.
 // This allows reusing a VM instance to run multiple different code objects sequentially.
-func RunCodeOnVM(ctx context.Context, vm *VirtualMachine, code *compiler.Code) (object.Object, error) {
-	if err := vm.RunCode(ctx, code); err != nil {
+func RunCodeOnVM(ctx context.Context, vm *VirtualMachine, code *compiler.Code, opts ...Option) (object.Object, error) {
+	if err := vm.RunCode(ctx, code, opts...); err != nil {
 		return nil, err
 	}
 	if result, exists := vm.TOS(); exists {
