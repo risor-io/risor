@@ -341,6 +341,8 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileReceive(node); err != nil {
 			return err
 		}
+	case *ast.Comment:
+		return nil
 	default:
 		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
 	}

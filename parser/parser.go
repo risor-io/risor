@@ -24,13 +24,13 @@ type (
 )
 
 var statementTerminators = map[token.Type]bool{
-	token.SEMICOLON:        true,
-	token.NEWLINE:          true,
-	token.RBRACE:           true,
-	token.EOF:              true,
-	token.PLUS_PLUS:        true,
-	token.MINUS_MINUS:      true,
-	token.COMMENT:          true,
+	token.SEMICOLON:         true,
+	token.NEWLINE:           true,
+	token.RBRACE:            true,
+	token.EOF:               true,
+	token.PLUS_PLUS:         true,
+	token.MINUS_MINUS:       true,
+	token.COMMENT:           true,
 	token.MULTILINE_COMMENT: true,
 }
 
@@ -329,6 +329,11 @@ func (p *Parser) parseStatement() ast.Node {
 	case token.CONTINUE:
 		stmt = p.parseContinue()
 	case token.NEWLINE:
+		stmt = nil
+	case token.COMMENT, token.MULTILINE_COMMENT:
+		// Parse the comment but don't treat it as a statement
+		// Comments should be captured but not interfere with statement parsing
+		p.parseComment()
 		stmt = nil
 	case token.IDENT:
 		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
@@ -961,6 +966,7 @@ func (p *Parser) parsePrefixExpr() ast.Node {
 }
 
 func (p *Parser) parseNewline() ast.Node {
+	p.nextToken()
 	return nil
 }
 

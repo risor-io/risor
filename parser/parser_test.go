@@ -1247,10 +1247,7 @@ func TestComments(t *testing.T) {
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
-		require.Len(t, program.Statements(), 1)
-		comment, ok := program.First().(*ast.Comment)
-		require.True(t, ok)
-		require.Equal(t, tt.expected, comment.Text())
+		require.Len(t, program.Statements(), 0)
 	}
 }
 
@@ -1266,38 +1263,26 @@ func TestCommentsInCode(t *testing.T) {
 	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	statements := program.Statements()
-	require.Len(t, statements, 6)
-	
-	// Check first comment
-	comment1, ok := statements[0].(*ast.Comment)
-	require.True(t, ok)
-	require.Equal(t, "# This is a comment", comment1.Text())
-	
+	require.Len(t, statements, 3)
+
 	// Check variable declaration
-	var1, ok := statements[1].(*ast.Var)
+	var1, ok := statements[0].(*ast.Var)
 	require.True(t, ok)
 	name, _ := var1.Value()
 	require.Equal(t, "x", name)
-	
-	// Check second comment
-	comment2, ok := statements[2].(*ast.Comment)
-	require.True(t, ok)
-	require.Equal(t, "// Another comment", comment2.Text())
-	
+
 	// Check variable declaration
-	var2, ok := statements[3].(*ast.Var)
+	var2, ok := statements[1].(*ast.Var)
 	require.True(t, ok)
 	name, _ = var2.Value()
 	require.Equal(t, "y", name)
-	
-	// Check multi-line comment
-	comment3, ok := statements[4].(*ast.Comment)
-	require.True(t, ok)
-	require.Equal(t, "/* Multi-line comment */", comment3.Text())
-	
+
 	// Check variable declaration
-	var3, ok := statements[5].(*ast.Var)
+	var3, ok := statements[2].(*ast.Var)
 	require.True(t, ok)
 	name, _ = var3.Value()
 	require.Equal(t, "z", name)
+
+	s := program.String()
+	require.Equal(t, input, s)
 }
