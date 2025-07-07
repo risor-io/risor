@@ -709,17 +709,40 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("error", 1, 64, args); err != nil {
 		return err
 	}
+	
+	// Try to capture the current stack trace
+	var traceback []object.StackFrame
+	if traceFunc, ok := object.GetTraceFunc(ctx); ok {
+		traceback = traceFunc()
+		fmt.Printf("DEBUG: Error() captured %d frames\n", len(traceback))
+		for i, frame := range traceback {
+			fmt.Printf("DEBUG: Error() frame %d: %s\n", i, frame.FunctionName)
+		}
+	} else {
+		fmt.Printf("DEBUG: Error() no trace function found in context\n")
+	}
+	
 	switch arg := args[0].(type) {
 	case *object.Error:
 		// Return a copy of the error that has its raised flag set.
 		// It's possible an error was passed that did not have raised set.
-		return object.NewError(arg.Value()).WithRaised(true)
+		err := object.NewError(arg.Value()).WithRaised(true)
+		if len(traceback) > 0 {
+			fmt.Printf("DEBUG: Error() setting traceback on existing error\n")
+			err = err.WithTraceback(traceback)
+		}
+		return err
 	case *object.String:
 		msg := arg
 		var msgArgs []interface{}
 		for _, arg := range args[1:] {
 			msgArgs = append(msgArgs, arg.Interface())
 		}
+		if len(traceback) > 0 {
+			fmt.Printf("DEBUG: Error() creating new error with traceback\n")
+			return object.ErrorfWithTraceback(traceback, msg.Value(), msgArgs...)
+		}
+		fmt.Printf("DEBUG: Error() creating new error without traceback\n")
 		return object.Errorf(msg.Value(), msgArgs...)
 	default:
 		return object.TypeErrorf("type error: error() expected a string or error (%s given)",

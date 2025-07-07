@@ -275,3 +275,5 @@ func ArgsErrorf(format string, args ...interface{}) *Error {
 func TypeErrorf(format string, args ...interface{}) *Error {
 	return NewError(errz.TypeErrorf(format, args...))
 }
+
+

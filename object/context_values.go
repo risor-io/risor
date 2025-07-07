@@ -12,6 +12,9 @@ type CallFunc func(ctx context.Context, fn *Function, args []Object) (Object, er
 // SpawnFunc is a type signature for a function that can spawn a Risor thread.
 type SpawnFunc func(ctx context.Context, fn Callable, args []Object) (*Thread, error)
 
+// TraceFunc is a type signature for a function that can capture a stack trace.
+type TraceFunc func() []StackFrame
+
 ////////////////////////////////////////////////////////////////////////////////
 
 const callFuncKey = contextKey("risor:call")
@@ -68,6 +71,26 @@ func WithCloneCallFunc(ctx context.Context, fn CallFunc) context.Context {
 // function on it synchronously.
 func GetCloneCallFunc(ctx context.Context) (CallFunc, bool) {
 	if fn, ok := ctx.Value(cloneCallKey).(CallFunc); ok {
+		if fn != nil {
+			return fn, ok
+		}
+	}
+	return nil, false
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+const traceFuncKey = contextKey("risor:trace")
+
+// WithTraceFunc adds a TraceFunc to the context, which can be used by
+// objects to capture a stack trace at runtime.
+func WithTraceFunc(ctx context.Context, fn TraceFunc) context.Context {
+	return context.WithValue(ctx, traceFuncKey, fn)
+}
+
+// GetTraceFunc returns the TraceFunc from the context, if it exists.
+func GetTraceFunc(ctx context.Context) (TraceFunc, bool) {
+	if fn, ok := ctx.Value(traceFuncKey).(TraceFunc); ok {
 		if fn != nil {
 			return fn, ok
 		}

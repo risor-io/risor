@@ -3155,3 +3155,56 @@ func TestNewEmptyClone(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, intResult.Value(), int64(200))
 }
+
+func TestTryWithTraceback(t *testing.T) {
+	code := `
+	func level3() {
+		error("deep error")
+	}
+
+	func level2() {
+		level3()
+	}
+
+	func level1() {
+		level2()
+	}
+
+	try(
+		func() {
+			level1()
+		},
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "level1")
+	require.Contains(t, tracebackStr, "level2")
+	require.Contains(t, tracebackStr, "level3")
+	require.Contains(t, tracebackStr, "deep error")
+}
+
+func TestErrorTraceback(t *testing.T) {
+	code := `
+	try(
+		func() {
+			error("kaboom")
+		},
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "kaboom")
+}
