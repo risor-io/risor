@@ -161,10 +161,12 @@ func TestVirtualOSStdIO(t *testing.T) {
 	ctx := context.Background()
 	stdin := &InMemoryFile{name: "stdin", data: []byte("test input")}
 	stdout := &InMemoryFile{name: "stdout"}
+	stderr := &InMemoryFile{name: "stderr"}
 
 	vos := NewVirtualOS(ctx,
 		WithStdin(stdin),
 		WithStdout(stdout),
+		WithStderr(stderr),
 	)
 
 	// Instead of comparing the File objects directly, we verify stdin by reading from it
@@ -191,6 +193,22 @@ func TestVirtualOSStdIO(t *testing.T) {
 	stdoutContents := stdout.data
 	if string(stdoutContents) != "test output" {
 		t.Errorf("Expected stdout contents to be 'test output', got '%s'", string(stdoutContents))
+	}
+
+	// Verify stderr by writing to it and checking the underlying memory file
+	stderrFile := vos.Stderr()
+	n, err = stderrFile.Write([]byte("test error"))
+	if err != nil {
+		t.Errorf("Writing to stderr failed: %v", err)
+	}
+	if n != 10 {
+		t.Errorf("Expected to write 10 bytes to stderr, wrote %d", n)
+	}
+
+	// Verify stderr contents
+	stderrContents := stderr.data
+	if string(stderrContents) != "test error" {
+		t.Errorf("Expected stderr contents to be 'test error', got '%s'", string(stderrContents))
 	}
 }
 

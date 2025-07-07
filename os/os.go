@@ -97,6 +97,7 @@ type OS interface {
 	UserHomeDir() (string, error)
 	Stdin() File
 	Stdout() File
+	Stderr() File
 	PathSeparator() rune
 	PathListSeparator() rune
 	CurrentUser() (User, error)

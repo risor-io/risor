@@ -77,6 +77,7 @@ type VirtualOS struct {
 	exitHandler   ExitHandler
 	stdin         File
 	stdout        File
+	stderr        File
 	args          []string
 	currentUser   *VirtualUser
 	users         map[string]*VirtualUser  // by username
@@ -190,6 +191,13 @@ func WithStdout(stdout File) Option {
 	}
 }
 
+// WithStderr sets the stderr.
+func WithStderr(stderr File) Option {
+	return func(vos *VirtualOS) {
+		vos.stderr = stderr
+	}
+}
+
 // WithCurrentUser sets the current user.
 func WithCurrentUser(user *VirtualUser) Option {
 	return func(vos *VirtualOS) {
@@ -225,6 +233,7 @@ func NewVirtualOS(ctx context.Context, opts ...Option) *VirtualOS {
 		cwd:         "/",
 		stdin:       &NilFile{},
 		stdout:      &NilFile{},
+		stderr:      &NilFile{},
 		users:       map[string]*VirtualUser{},
 		usersByUid:  map[string]*VirtualUser{},
 		groups:      map[string]*VirtualGroup{},
@@ -513,6 +522,10 @@ func (osObj *VirtualOS) Stdin() File {
 
 func (osObj *VirtualOS) Stdout() File {
 	return osObj.stdout
+}
+
+func (osObj *VirtualOS) Stderr() File {
+	return osObj.stderr
 }
 
 func (osObj *VirtualOS) PathSeparator() rune {

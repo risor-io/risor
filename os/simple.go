@@ -143,6 +143,10 @@ func (osObj *SimpleOS) Stdout() File {
 	return os.Stdout
 }
 
+func (osObj *SimpleOS) Stderr() File {
+	return os.Stderr
+}
+
 func (osObj *SimpleOS) ReadDir(name string) ([]DirEntry, error) {
 	results, err := os.ReadDir(name)
 	if err != nil {

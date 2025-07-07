@@ -626,6 +626,10 @@ func Module() *object.Module {
 			f := GetOS(ctx).Stdout()
 			return object.NewFile(ctx, f, "/dev/stdout"), nil
 		}),
+		"stderr": object.NewDynamicAttr("stderr", func(ctx context.Context, name string) (object.Object, error) {
+			f := GetOS(ctx).Stderr()
+			return object.NewFile(ctx, f, "/dev/stderr"), nil
+		}),
 		"err_not_exist":         object.NewError(goos.ErrNotExist).WithRaised(false),
 		"err_exist":             object.NewError(goos.ErrExist).WithRaised(false),
 		"err_permission":        object.NewError(goos.ErrPermission).WithRaised(false),
