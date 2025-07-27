@@ -358,7 +358,7 @@ func Apply(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(err)
 	}
 
-	return object.FromGoType(op)
+	return object.FromGoType(string(op))
 }
 
 //go:embed kubernetes.md
