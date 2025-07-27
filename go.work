@@ -22,6 +22,7 @@ use (
 	./modules/image
 	./modules/isatty
 	./modules/jmespath
+	./modules/kubernetes
 	./modules/pgx
 	./modules/playwright
 	./modules/qrcode

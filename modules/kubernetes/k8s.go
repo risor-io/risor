@@ -358,7 +358,7 @@ func Apply(ctx context.Context, args ...object.Object) object.Object {
 		return object.NewError(err)
 	}
 
-	return object.FromGoType(op)
+	return object.FromGoType(string(op))
 }
 
 //go:embed kubernetes.md
@@ -367,6 +367,7 @@ var docs string
 // TODO: some ideas for other useful functions
 // - wait for condition
 // - check if ready
+
 func Module() *object.Module {
 	return object.NewBuiltinsModule("k8s", map[string]object.Object{
 		"get":    object.NewBuiltin("k8s.get", Get),
