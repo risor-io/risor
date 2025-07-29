@@ -66,18 +66,27 @@ func findSymbolAtPosition(program *ast.Program, line, column int) string {
 func findIdentInNode(node ast.Node, line, column int) string {
 	switch n := node.(type) {
 	case *ast.Var:
-		name, _ := n.Value()
-		pos := n.Token().StartPosition
-		endPos := n.Token().EndPosition
-		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
-			return name
+		// For var statements, we need to check all child expressions recursively
+		_, value := n.Value()
+		if value != nil {
+			if symbol := findIdentInNode(value, line, column); symbol != "" {
+				return symbol
+			}
 		}
+		// Also check if we can find any identifiers by traversing the statement
+		return findIdentInNodeRecursive(n, line, column)
 	case *ast.Assign:
 		name := n.Name()
 		pos := n.Token().StartPosition
 		endPos := n.Token().EndPosition
 		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
 			return name
+		}
+		// Also check the value expression
+		if n.Value() != nil {
+			if symbol := findIdentInNode(n.Value(), line, column); symbol != "" {
+				return symbol
+			}
 		}
 	case *ast.Func:
 		if n.Name() != nil {
@@ -88,7 +97,53 @@ func findIdentInNode(node ast.Node, line, column int) string {
 				return name
 			}
 		}
+	case *ast.Ident:
+		// Check if this identifier is at the requested position
+		pos := n.Token().StartPosition
+		endPos := n.Token().EndPosition
+		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
+			return n.String()
+		}
 	}
+	return ""
+}
+
+// findIdentInNodeRecursive performs a more thorough recursive search through node children
+func findIdentInNodeRecursive(node ast.Node, line, column int) string {
+	// Check if this node itself is an identifier
+	if ident, ok := node.(*ast.Ident); ok {
+		pos := ident.Token().StartPosition
+		endPos := ident.Token().EndPosition
+		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
+			return ident.String()
+		}
+	}
+
+	// For statements like Var, we need to use reflection or other methods to traverse
+	// Since we can't access private fields, let's try a different approach
+	// by checking if the position matches the expected identifier positions
+
+	switch n := node.(type) {
+	case *ast.Var:
+		name, _ := n.Value()
+		varPos := n.Token().StartPosition
+		if varPos.LineNumber() == line {
+			var identStartCol, identEndCol int
+			if n.IsWalrus() {
+				// For walrus operator "y := value", the token position is at the identifier
+				identStartCol = varPos.ColumnNumber()
+				identEndCol = identStartCol + len(name)
+			} else {
+				// For "var x = value", the identifier 'x' should be after 'var '
+				identStartCol = varPos.ColumnNumber() + 4 // after "var "
+				identEndCol = identStartCol + len(name)
+			}
+			if identStartCol <= column && column <= identEndCol {
+				return name
+			}
+		}
+	}
+
 	return ""
 }
 

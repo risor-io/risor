@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
+	"github.com/stretchr/testify/require"
 )
 
 // TestLanguageServerIntegration demonstrates testing the language server
@@ -35,7 +36,7 @@ process_user := func(user_id, name) {
 
 // Main processing logic
 users := []
-for i in range(1, 5) {
+for i := 0; i < 5; i++ {
     user := process_user(i, sprintf("User_%d", i))
     users = append(users, user)
 }
@@ -57,27 +58,17 @@ for user in users {
 	// Test 1: Document parsing and caching
 	t.Run("DocumentParsing", func(t *testing.T) {
 		err := setTestDocument(server.cache, uri, risorCode)
-		if err != nil {
-			t.Fatalf("Failed to cache document: %v", err)
-		}
+		require.NoError(t, err, "Failed to cache document")
 
 		doc, err := server.cache.get(uri)
-		if err != nil {
-			t.Fatalf("Failed to retrieve document: %v", err)
-		}
+		require.NoError(t, err, "Failed to retrieve document")
 
-		if doc.err != nil {
-			t.Fatalf("Document parsing failed: %v", doc.err)
-		}
+		require.NoError(t, doc.err, "Document parsing failed")
 
-		if doc.ast == nil {
-			t.Fatal("Expected AST to be parsed")
-		}
+		require.NotNil(t, doc.ast, "Expected AST to be parsed")
 
 		statements := doc.ast.Statements()
-		if len(statements) == 0 {
-			t.Fatal("Expected statements in AST")
-		}
+		require.NotEmpty(t, statements, "Expected statements in AST")
 
 		t.Logf("Successfully parsed %d statements", len(statements))
 	})
@@ -93,13 +84,10 @@ for user in users {
 		}
 
 		result, err := server.Completion(context.Background(), params)
-		if err != nil {
-			t.Fatalf("Completion failed: %v", err)
-		}
+		require.NoError(t, err, "Completion failed")
 
-		if result == nil || len(result.Items) == 0 {
-			t.Fatal("Expected completion items")
-		}
+		require.NotNil(t, result, "Expected completion result")
+		require.NotEmpty(t, result.Items, "Expected completion items")
 
 		// Should include variables like "users", keywords, and builtins
 		hasUsers := false
@@ -117,15 +105,9 @@ for user in users {
 			}
 		}
 
-		if !hasUsers {
-			t.Error("Expected 'users' variable in completion")
-		}
-		if !hasKeywords {
-			t.Error("Expected keywords in completion")
-		}
-		if !hasBuiltins {
-			t.Error("Expected builtin functions in completion")
-		}
+		require.True(t, hasUsers, "Expected 'users' variable in completion")
+		require.True(t, hasKeywords, "Expected keywords in completion")
+		require.True(t, hasBuiltins, "Expected builtin functions in completion")
 
 		t.Logf("Completion returned %d items", len(result.Items))
 	})
@@ -141,9 +123,7 @@ for user in users {
 		}
 
 		result, err := server.Hover(context.Background(), params)
-		if err != nil {
-			t.Fatalf("Hover failed: %v", err)
-		}
+		require.NoError(t, err, "Hover failed")
 
 		// Note: hover might not find anything with our simple position-based implementation
 		// This is expected for this test
@@ -161,13 +141,10 @@ for user in users {
 		}
 
 		result, err := server.DocumentSymbol(context.Background(), params)
-		if err != nil {
-			t.Fatalf("DocumentSymbol failed: %v", err)
-		}
+		require.NoError(t, err, "DocumentSymbol failed")
 
-		if result == nil || len(result) == 0 {
-			t.Fatal("Expected document symbols")
-		}
+		require.NotNil(t, result, "Expected document symbols result")
+		require.NotEmpty(t, result, "Expected document symbols")
 
 		// Should find variables like "config", "process_user", "users"
 		symbolNames := []string{}
@@ -186,9 +163,7 @@ for user in users {
 					break
 				}
 			}
-			if !found {
-				t.Errorf("Expected symbol '%s' not found in %v", expected, symbolNames)
-			}
+			require.True(t, found, "Expected symbol '%s' not found in %v", expected, symbolNames)
 		}
 
 		t.Logf("Found symbols: %v", symbolNames)
@@ -205,9 +180,7 @@ for user in users {
 		}
 
 		result, err := server.Definition(context.Background(), params)
-		if err != nil {
-			t.Fatalf("Definition failed: %v", err)
-		}
+		require.NoError(t, err, "Definition failed")
 
 		// This might not find anything with our simple implementation,
 		// but shouldn't error
@@ -235,19 +208,13 @@ if true {
 	uri := protocol.DocumentURI("file:///invalid.risor")
 
 	err := setTestDocument(server.cache, uri, invalidCode)
-	if err != nil {
-		t.Fatalf("Failed to cache document: %v", err)
-	}
+	require.NoError(t, err, "Failed to cache document")
 
 	doc, err := server.cache.get(uri)
-	if err != nil {
-		t.Fatalf("Failed to retrieve document: %v", err)
-	}
+	require.NoError(t, err, "Failed to retrieve document")
 
 	// Should have a parse error
-	if doc.err == nil {
-		t.Fatal("Expected parse error for invalid code")
-	}
+	require.Error(t, doc.err, "Expected parse error for invalid code")
 
 	t.Logf("Parse error (as expected): %v", doc.err)
 
@@ -260,14 +227,11 @@ if true {
 	}
 
 	result, err := server.Completion(context.Background(), params)
-	if err != nil {
-		t.Fatalf("Completion failed: %v", err)
-	}
+	require.NoError(t, err, "Completion failed")
 
 	// Should still provide keywords and builtins even with syntax errors
-	if result == nil || len(result.Items) == 0 {
-		t.Fatal("Expected completion items even with syntax errors")
-	}
+	require.NotNil(t, result, "Expected completion result")
+	require.NotEmpty(t, result.Items, "Expected completion items even with syntax errors")
 
 	t.Logf("Completion with errors returned %d items", len(result.Items))
 }
@@ -314,27 +278,17 @@ numbers := [1, 2, 3, 4, 5]`,
 			uri := protocol.DocumentURI("file:///" + name + ".risor")
 
 			err := setTestDocument(server.cache, uri, code)
-			if err != nil {
-				t.Fatalf("Failed to cache document: %v", err)
-			}
+			require.NoError(t, err, "Failed to cache document")
 
 			doc, err := server.cache.get(uri)
-			if err != nil {
-				t.Fatalf("Failed to retrieve document: %v", err)
-			}
+			require.NoError(t, err, "Failed to retrieve document")
 
-			if doc.err != nil {
-				t.Fatalf("Parse error in %s: %v", name, doc.err)
-			}
+			require.NoError(t, doc.err, "Parse error in %s", name)
 
-			if doc.ast == nil {
-				t.Fatalf("No AST parsed for %s", name)
-			}
+			require.NotNil(t, doc.ast, "No AST parsed for %s", name)
 
 			statements := doc.ast.Statements()
-			if len(statements) == 0 {
-				t.Fatalf("No statements found in %s", name)
-			}
+			require.NotEmpty(t, statements, "No statements found in %s", name)
 
 			t.Logf("Example '%s': parsed %d statements successfully", name, len(statements))
 
@@ -347,13 +301,10 @@ numbers := [1, 2, 3, 4, 5]`,
 			}
 
 			result, err := server.Completion(context.Background(), params)
-			if err != nil {
-				t.Fatalf("Completion failed for %s: %v", name, err)
-			}
+			require.NoError(t, err, "Completion failed for %s", name)
 
-			if result == nil || len(result.Items) == 0 {
-				t.Fatalf("No completion items for %s", name)
-			}
+			require.NotNil(t, result, "No completion result for %s", name)
+			require.NotEmpty(t, result.Items, "No completion items for %s", name)
 
 			t.Logf("Example '%s': completion returned %d items", name, len(result.Items))
 		})

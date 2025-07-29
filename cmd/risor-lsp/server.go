@@ -66,14 +66,16 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 	}
 
 	// Publish diagnostics to the client
-	params := &protocol.PublishDiagnosticsParams{
-		URI:         uri,
-		Diagnostics: diagnostics,
-	}
+	if s.client != nil {
+		params := &protocol.PublishDiagnosticsParams{
+			URI:         uri,
+			Diagnostics: diagnostics,
+		}
 
-	err = s.client.PublishDiagnostics(context.Background(), params)
-	if err != nil {
-		log.Error().Err(err).Str("uri", string(uri)).Msg("failed to publish diagnostics")
+		err = s.client.PublishDiagnostics(context.Background(), params)
+		if err != nil {
+			log.Error().Err(err).Str("uri", string(uri)).Msg("failed to publish diagnostics")
+		}
 	}
 }
 
@@ -170,12 +172,14 @@ func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocume
 func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
 	log.Info().Str("filename", params.TextDocument.URI.SpanURI().Filename()).Msg("DidClose")
 	// Clear diagnostics for closed document
-	err := s.client.PublishDiagnostics(context.Background(), &protocol.PublishDiagnosticsParams{
-		URI:         params.TextDocument.URI,
-		Diagnostics: []protocol.Diagnostic{},
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("failed to clear diagnostics")
+	if s.client != nil {
+		err := s.client.PublishDiagnostics(context.Background(), &protocol.PublishDiagnosticsParams{
+			URI:         params.TextDocument.URI,
+			Diagnostics: []protocol.Diagnostic{},
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to clear diagnostics")
+		}
 	}
 	return nil
 }

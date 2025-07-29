@@ -6,6 +6,7 @@ import (
 
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/risor-io/risor/parser"
+	"github.com/stretchr/testify/require"
 )
 
 // Helper function to set a document in the cache for testing
@@ -41,28 +42,18 @@ func add(a, b) {
 
 	uri := protocol.DocumentURI("file:///test.risor")
 	err := setTestDocument(c, uri, validCode)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 
 	doc, err := c.get(uri)
-	if err != nil {
-		t.Fatalf("Expected no error retrieving document, got %v", err)
-	}
+	require.NoError(t, err)
 
-	if doc.err != nil {
-		t.Fatalf("Expected no parse error, got %v", doc.err)
-	}
+	require.NoError(t, doc.err)
 
-	if doc.ast == nil {
-		t.Fatalf("Expected AST to be parsed, got nil")
-	}
+	require.NotNil(t, doc.ast)
 
 	// Verify we have statements
 	statements := doc.ast.Statements()
-	if len(statements) == 0 {
-		t.Fatalf("Expected statements in AST, got none")
-	}
+	require.NotEmpty(t, statements)
 }
 
 func TestCache_ParseInvalidRisorCode(t *testing.T) {
@@ -74,19 +65,13 @@ func incomplete(`
 
 	uri := protocol.DocumentURI("file:///test_invalid.risor")
 	err := setTestDocument(c, uri, invalidCode)
-	if err != nil {
-		t.Fatalf("Expected no error setting document, got %v", err)
-	}
+	require.NoError(t, err)
 
 	doc, err := c.get(uri)
-	if err != nil {
-		t.Fatalf("Expected no error retrieving document, got %v", err)
-	}
+	require.NoError(t, err)
 
 	// Should have a parse error
-	if doc.err == nil {
-		t.Fatalf("Expected parse error for invalid code, got none")
-	}
+	require.Error(t, doc.err)
 }
 
 func TestCompletionProvider_ExtractVariables(t *testing.T) {
@@ -97,16 +82,12 @@ z = [1, 2, 3]`
 
 	ctx := context.Background()
 	prog, err := parser.Parse(ctx, code)
-	if err != nil {
-		t.Fatalf("Failed to parse test code: %v", err)
-	}
+	require.NoError(t, err)
 
 	variables := extractVariables(prog)
 
 	expectedVars := []string{"x", "y", "z"}
-	if len(variables) != len(expectedVars) {
-		t.Fatalf("Expected %d variables, got %d: %v", len(expectedVars), len(variables), variables)
-	}
+	require.Equal(t, len(expectedVars), len(variables))
 
 	// Check that all expected variables are found
 	varMap := make(map[string]bool)
@@ -115,9 +96,7 @@ z = [1, 2, 3]`
 	}
 
 	for _, expected := range expectedVars {
-		if !varMap[expected] {
-			t.Errorf("Expected variable %s not found in %v", expected, variables)
-		}
+		require.True(t, varMap[expected], "Expected variable %s not found in %v", expected, variables)
 	}
 }
 
@@ -128,16 +107,12 @@ subtract = func(x, y) { return x - y }`
 
 	ctx := context.Background()
 	prog, err := parser.Parse(ctx, code)
-	if err != nil {
-		t.Fatalf("Failed to parse test code: %v", err)
-	}
+	require.NoError(t, err)
 
 	functions := extractFunctions(prog)
 
 	expectedFuncs := []string{"add", "subtract"}
-	if len(functions) != len(expectedFuncs) {
-		t.Fatalf("Expected %d functions, got %d: %v", len(expectedFuncs), len(functions), functions)
-	}
+	require.Equal(t, len(expectedFuncs), len(functions))
 
 	// Check that all expected functions are found
 	funcMap := make(map[string]bool)
@@ -146,9 +121,7 @@ subtract = func(x, y) { return x - y }`
 	}
 
 	for _, expected := range expectedFuncs {
-		if !funcMap[expected] {
-			t.Errorf("Expected function %s not found in %v", expected, functions)
-		}
+		require.True(t, funcMap[expected], "Expected function %s not found in %v", expected, functions)
 	}
 }
 
@@ -159,27 +132,19 @@ y := "hello"`
 
 	ctx := context.Background()
 	prog, err := parser.Parse(ctx, code)
-	if err != nil {
-		t.Fatalf("Failed to parse test code: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Test finding symbol at position of variable 'x' (line 1, around column 5)
 	symbol := findSymbolAtPosition(prog, 1, 5)
-	if symbol != "x" {
-		t.Errorf("Expected to find symbol 'x', got '%s'", symbol)
-	}
+	require.Equal(t, "x", symbol)
 
 	// Test finding symbol at position of variable 'y' (line 2, around column 1)
 	symbol = findSymbolAtPosition(prog, 2, 1)
-	if symbol != "y" {
-		t.Errorf("Expected to find symbol 'y', got '%s'", symbol)
-	}
+	require.Equal(t, "y", symbol)
 
 	// Test position with no symbol
 	symbol = findSymbolAtPosition(prog, 1, 15)
-	if symbol != "" {
-		t.Errorf("Expected no symbol at position, got '%s'", symbol)
-	}
+	require.Empty(t, symbol)
 }
 
 func TestKeywordsAndBuiltins(t *testing.T) {
@@ -194,9 +159,7 @@ func TestKeywordsAndBuiltins(t *testing.T) {
 				break
 			}
 		}
-		if !found {
-			t.Errorf("Expected keyword '%s' not found in risorKeywords", keyword)
-		}
+		require.True(t, found, "Expected keyword '%s' not found in risorKeywords", keyword)
 	}
 
 	// Test that our builtin list contains expected functions
@@ -210,9 +173,7 @@ func TestKeywordsAndBuiltins(t *testing.T) {
 				break
 			}
 		}
-		if !found {
-			t.Errorf("Expected builtin '%s' not found in risorBuiltins", builtin)
-		}
+		require.True(t, found, "Expected builtin '%s' not found in risorBuiltins", builtin)
 	}
 }
 
@@ -224,23 +185,16 @@ func incomplete(`
 	// Parse the code to get a parse error
 	ctx := context.Background()
 	_, err := parser.Parse(ctx, invalidCode)
-	if err == nil {
-		t.Fatalf("Expected parse error for invalid code, got none")
-	}
+	require.Error(t, err)
 
 	// Verify it's a parse error we can handle
-	if parseErr, ok := err.(parser.ParserError); ok {
-		if parseErr.Message() == "" {
-			t.Errorf("Expected parse error to have a message")
-		}
+	parseErr, ok := err.(parser.ParserError)
+	require.True(t, ok, "Expected parser.ParseError type, got %T", err)
 
-		startPos := parseErr.StartPosition()
-		if startPos.LineNumber() <= 0 {
-			t.Errorf("Expected valid line number in parse error, got %d", startPos.LineNumber())
-		}
-	} else {
-		t.Errorf("Expected parser.ParseError type, got %T", err)
-	}
+	require.NotEmpty(t, parseErr.Message())
+
+	startPos := parseErr.StartPosition()
+	require.Greater(t, startPos.LineNumber(), 0)
 }
 
 func TestServer_QueueDiagnostics(t *testing.T) {
@@ -257,9 +211,7 @@ func TestServer_QueueDiagnostics(t *testing.T) {
 
 	// Set a document with an error
 	err := setTestDocument(server.cache, uri, "var x = \nfunc incomplete(")
-	if err != nil {
-		t.Fatalf("Failed to set test document: %v", err)
-	}
+	require.NoError(t, err)
 
 	// This should not panic
 	server.queueDiagnostics(uri)
