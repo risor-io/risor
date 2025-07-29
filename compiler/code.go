@@ -72,6 +72,7 @@ func (c *Code) newChild(name, source, funcID string) *Code {
 		symbols:    c.symbols.NewChild(),
 		source:     source,
 		functionID: funcID,
+		filename:   c.filename, // Inherit filename from parent
 	}
 	c.children = append(c.children, child)
 	return child

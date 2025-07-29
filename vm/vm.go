@@ -538,7 +538,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				switch obj := obj.(type) {
 				case *object.Error:
 					if obj.IsRaised() {
-						return obj.Value()
+						return obj
 					}
 					items[dst] = obj.Value().Error()
 				case *object.String:
@@ -897,7 +897,7 @@ func (vm *VirtualMachine) callObject(
 	case object.Callable:
 		result := fn.Call(ctx, args...)
 		if err, ok := result.(*object.Error); ok && err.IsRaised() {
-			return err.Value()
+			return err
 		}
 		vm.push(result)
 		return nil
@@ -1127,14 +1127,9 @@ func (vm *VirtualMachine) cloneCallSync(
 func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 	var frames []object.StackFrame
 	
-	// Debug: print current VM state
-	fmt.Printf("DEBUG: VM state - fp: %d, sp: %d, running: %v\n", vm.fp, vm.sp, vm.running)
-	
 	// Start from the current frame and walk up the stack
 	for i := vm.fp; i >= 0; i-- {
 		frame := &vm.frames[i]
-		
-		fmt.Printf("DEBUG: Frame %d - fn: %v, code: %v\n", i, frame.fn != nil, frame.code != nil)
 		
 		// Check if this frame has a function
 		if frame.fn != nil {
@@ -1144,18 +1139,30 @@ func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 				functionName = "<anonymous>"
 			}
 			
-			fmt.Printf("DEBUG: Adding function frame: %s\n", functionName)
+			fileName := ""
+			// Try to get filename from the function's code first
+			if frame.fn.Code() != nil {
+				fileName = frame.fn.Code().Filename()
+			} else if frame.code != nil && frame.code.Code != nil {
+				// Fall back to frame's code
+				fileName = frame.code.Code.Filename()
+			}
+			
 			frames = append(frames, object.StackFrame{
 				FunctionName: functionName,
-				FileName:     "", // TODO: Add filename support when available
+				FileName:     fileName,
 				LineNumber:   0,  // TODO: Add line number support when available
 			})
 		} else if frame.code != nil {
 			// This is a code frame (main execution)
-			fmt.Printf("DEBUG: Adding code frame: <module>\n")
+			fileName := ""
+			if frame.code.Code != nil {
+				fileName = frame.code.Code.Filename()
+			}
+			
 			frames = append(frames, object.StackFrame{
 				FunctionName: "<module>",
-				FileName:     "", // TODO: Add filename support when available
+				FileName:     fileName,
 				LineNumber:   0,  // TODO: Add line number support when available
 			})
 		}
@@ -1168,7 +1175,6 @@ func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 	
 	// If we don't have any frames, at least add the current context
 	if len(frames) == 0 {
-		fmt.Printf("DEBUG: No frames found, adding current context\n")
 		frames = append(frames, object.StackFrame{
 			FunctionName: "<current>",
 			FileName:     "",
@@ -1176,7 +1182,6 @@ func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 		})
 	}
 	
-	fmt.Printf("DEBUG: Final frames count: %d\n", len(frames))
 	return frames
 }
 

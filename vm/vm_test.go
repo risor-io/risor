@@ -3208,3 +3208,121 @@ func TestErrorTraceback(t *testing.T) {
 	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
 	require.Contains(t, tracebackStr, "kaboom")
 }
+
+func TestErrorTracebackInNestedCalls(t *testing.T) {
+	code := `
+	func outer() {
+		inner()
+	}
+	
+	func inner() {
+		deepest()
+	}
+	
+	func deepest() {
+		error("nested error")
+	}
+	
+	try(
+		func() {
+			outer()
+		},
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "deepest")
+	require.Contains(t, tracebackStr, "inner")
+	require.Contains(t, tracebackStr, "outer")
+	require.Contains(t, tracebackStr, "nested error")
+}
+
+func TestErrorTracebackWithNamedFunction(t *testing.T) {
+	code := `
+	func myFunc() {
+		error("in myFunc")
+	}
+	
+	try(
+		myFunc,
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "myFunc")
+	require.Contains(t, tracebackStr, "in myFunc")
+}
+
+func TestErrorTracebackPreservedAcrossCalls(t *testing.T) {
+	code := `
+	func raiseError() {
+		error("original error")
+	}
+	
+	func catchAndReraise() {
+		err := nil
+		try(
+			raiseError,
+			func(e) {
+				// Store the error to re-raise it outside the try block
+				err = e
+			}
+		)
+		if err != nil {
+			// Re-raise the error outside the try block
+			error(err)
+		}
+	}
+	
+	try(
+		catchAndReraise,
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	// Should show the new traceback with catchAndReraise in the stack
+	require.Contains(t, tracebackStr, "catchAndReraise")
+}
+
+func TestErrorTracebackWithFilename(t *testing.T) {
+	code := `
+	func myFunction() {
+		error("test error with filename")
+	}
+	
+	try(
+		myFunction,
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	// Run with a filename set
+	ctx := context.Background()
+	result, err := runWithFilename(ctx, code, "test_file.risor")
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "test_file.risor")
+	require.Contains(t, tracebackStr, "myFunction")
+	require.Contains(t, tracebackStr, "test error with filename")
+}

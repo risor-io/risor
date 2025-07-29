@@ -64,6 +64,21 @@ func run(ctx context.Context, source string, opts ...runOpts) (object.Object, er
 	return object.Nil, nil
 }
 
+// runWithFilename runs the given source code with a specified filename. Used for testing.
+func runWithFilename(ctx context.Context, source string, filename string, opts ...runOpts) (object.Object, error) {
+	vm, err := newVMWithFilename(ctx, source, filename, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := vm.Run(ctx); err != nil {
+		return nil, err
+	}
+	if result, exists := vm.TOS(); exists {
+		return result, nil
+	}
+	return object.Nil, nil
+}
+
 // Return a new VM that's ready to run the given source code. Used for testing.
 func newVM(ctx context.Context, source string, opts ...runOpts) (*VirtualMachine, error) {
 	ast, err := parser.Parse(ctx, source)
@@ -90,6 +105,37 @@ func newVM(ctx context.Context, source string, opts ...runOpts) (*VirtualMachine
 		GlobalNames: globalNames,
 	})
 	return New(main, WithImporter(im), WithGlobals(globals), WithConcurrency()), nil
+}
+
+// Return a new VM that's ready to run the given source code with a filename. Used for testing.
+func newVMWithFilename(ctx context.Context, source string, filename string, opts ...runOpts) (*VirtualMachine, error) {
+	ast, err := parser.Parse(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	globals := basicBuiltins()
+	if len(opts) > 0 {
+		for k, v := range opts[0].Globals {
+			globals[k] = v
+		}
+	}
+	var globalNames []string
+	for k := range globals {
+		globalNames = append(globalNames, k)
+	}
+	c, err := compiler.New(
+		compiler.WithGlobalNames(globalNames),
+		compiler.WithFilename(filename),
+	)
+	if err != nil {
+		return nil, err
+	}
+	code, err := c.Compile(ast)
+	if err != nil {
+		return nil, err
+	}
+	vm := New(code, WithGlobals(globals))
+	return vm, nil
 }
 
 // Builtins to be used in VM tests.
