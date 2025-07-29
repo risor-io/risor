@@ -799,7 +799,7 @@ func TestForInLoopErrors(t *testing.T) {
 			expectedErr: "unexpected end of file",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Parse(context.Background(), tt.input)
@@ -814,10 +814,10 @@ func TestForInLoopAST(t *testing.T) {
 	program, err := Parse(context.Background(), input)
 	require.Nil(t, err)
 	require.Len(t, program.Statements(), 1)
-	
+
 	forIn, ok := program.First().(*ast.ForIn)
 	require.True(t, ok)
-	
+
 	// Test all AST node methods
 	require.Equal(t, "for", forIn.Literal())
 	require.Equal(t, "FOR", string(forIn.Token().Type))
@@ -825,7 +825,7 @@ func TestForInLoopAST(t *testing.T) {
 	require.Equal(t, "item", forIn.Variable().Literal())
 	require.Equal(t, "collection", forIn.Iterable().String())
 	require.NotNil(t, forIn.Consequence())
-	
+
 	// Test String() method
 	expected := "for item in collection print(item)"
 	require.Equal(t, expected, forIn.String())
@@ -838,7 +838,6 @@ func TestForInLoopEdgeCases(t *testing.T) {
 		variable string
 		iterable string
 	}{
-
 		{
 			name:     "nested array access",
 			input:    "for val in arr[0] { }",
@@ -858,7 +857,7 @@ func TestForInLoopEdgeCases(t *testing.T) {
 			iterable: "(obj.method().field[0])",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			program, err := Parse(context.Background(), tt.input)
@@ -890,7 +889,7 @@ func TestForInLoopParseErrorCases(t *testing.T) {
 			input: "for x in items",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Parse(context.Background(), tt.input)

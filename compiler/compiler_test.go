@@ -619,7 +619,7 @@ func TestForInWithBreakContinue(t *testing.T) {
 		x
 	}
 	`
-	
+
 	program, err := parser.Parse(context.Background(), input)
 	require.Nil(t, err)
 
@@ -646,7 +646,7 @@ func TestForInWithBreakContinue(t *testing.T) {
 			hasJumpBackward = true
 		}
 	}
-	
+
 	require.True(t, hasJumpForward, "Expected JumpForward instruction for break/continue")
 	require.True(t, hasJumpBackward, "Expected JumpBackward instruction for loop")
 }
@@ -659,7 +659,7 @@ func TestForInNestedLoops(t *testing.T) {
 		}
 	}
 	`
-	
+
 	program, err := parser.Parse(context.Background(), input)
 	require.Nil(t, err)
 
@@ -686,7 +686,7 @@ func TestForInNestedLoops(t *testing.T) {
 			getIterCount++
 		}
 	}
-	
+
 	require.Equal(t, 2, getIterCount, "Expected 2 GetIter instructions for nested loops")
 	require.Equal(t, 2, forIterCount, "Expected 2 ForIter instructions for nested loops")
 }

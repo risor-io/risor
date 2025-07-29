@@ -31,7 +31,7 @@ func TestForInNode(t *testing.T) {
 	// Create tokens
 	forToken := token.Token{Type: token.FOR, Literal: "for"}
 	identToken := token.Token{Type: token.IDENT, Literal: "x"}
-	
+
 	// Create AST nodes
 	variable := NewIdent(identToken)
 	iterable := NewIdent(token.Token{Type: token.IDENT, Literal: "items"})
@@ -41,35 +41,35 @@ func TestForInNode(t *testing.T) {
 			NewIdent(token.Token{Type: token.IDENT, Literal: "print"}),
 		},
 	}
-	
+
 	// Create ForIn node
 	forIn := NewForIn(forToken, variable, iterable, block)
-	
+
 	// Test all methods
 	if forIn.Token().Type != token.FOR {
 		t.Errorf("forIn.Token().Type wrong. got=%s", forIn.Token().Type)
 	}
-	
+
 	if forIn.Literal() != "for" {
 		t.Errorf("forIn.Literal() wrong. got=%s", forIn.Literal())
 	}
-	
+
 	if forIn.IsExpression() != false {
 		t.Errorf("forIn.IsExpression() wrong. got=%t", forIn.IsExpression())
 	}
-	
+
 	if forIn.Variable().Literal() != "x" {
 		t.Errorf("forIn.Variable().Literal() wrong. got=%s", forIn.Variable().Literal())
 	}
-	
+
 	if forIn.Iterable().String() != "items" {
 		t.Errorf("forIn.Iterable().String() wrong. got=%s", forIn.Iterable().String())
 	}
-	
+
 	if forIn.Consequence() == nil {
 		t.Error("forIn.Consequence() should not be nil")
 	}
-	
+
 	expected := "for x in items print"
 	if forIn.String() != expected {
 		t.Errorf("forIn.String() wrong. got=%q, expected=%q", forIn.String(), expected)
@@ -79,10 +79,10 @@ func TestForInNode(t *testing.T) {
 func TestForInNodeComplexCase(t *testing.T) {
 	// Test with more complex expressions
 	forToken := token.Token{Type: token.FOR, Literal: "for"}
-	
+
 	// Variable
 	variable := NewIdent(token.Token{Type: token.IDENT, Literal: "item"})
-	
+
 	// Complex iterable (list literal)
 	list := &List{
 		token: token.Token{Type: token.LBRACKET, Literal: "["},
@@ -92,13 +92,13 @@ func TestForInNodeComplexCase(t *testing.T) {
 			&Int{token: token.Token{Type: token.INT, Literal: "3"}, value: 3},
 		},
 	}
-	
+
 	// Block with multiple statements
 	block := &Block{
 		token: token.Token{Type: token.LBRACE, Literal: "{"},
 		statements: []Node{
 			&Call{
-				token: token.Token{Type: token.IDENT, Literal: "print"},
+				token:    token.Token{Type: token.IDENT, Literal: "print"},
 				function: NewIdent(token.Token{Type: token.IDENT, Literal: "print"}),
 				arguments: []Node{
 					NewIdent(token.Token{Type: token.IDENT, Literal: "item"}),
@@ -106,9 +106,9 @@ func TestForInNodeComplexCase(t *testing.T) {
 			},
 		},
 	}
-	
+
 	forIn := NewForIn(forToken, variable, list, block)
-	
+
 	// Test String output
 	result := forIn.String()
 	if !contains(result, "for item in") {
@@ -125,18 +125,18 @@ func TestForInNodeMethods(t *testing.T) {
 	variable := NewIdent(token.Token{Type: token.IDENT, Literal: "x"})
 	iterable := NewIdent(token.Token{Type: token.IDENT, Literal: "items"})
 	block := &Block{token: token.Token{Type: token.LBRACE, Literal: "{"}}
-	
+
 	forIn := NewForIn(forToken, variable, iterable, block)
-	
+
 	// Test that it implements Node interface
 	var node Node = forIn
 	if node.Token().Type != token.FOR {
 		t.Errorf("ForIn should implement Node interface correctly")
 	}
-	
+
 	// Test StatementNode method (should not panic)
 	forIn.StatementNode()
-	
+
 	// Test that all accessors work
 	if forIn.Variable() != variable {
 		t.Errorf("Variable() should return the correct variable")
@@ -151,8 +151,8 @@ func TestForInNodeMethods(t *testing.T) {
 
 // Helper function for string containment check
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || 
-		(len(s) > len(substr) && 
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) &&
 			(s[:len(substr)] == substr ||
 				s[len(s)-len(substr):] == substr ||
 				containsAt(s, substr))))

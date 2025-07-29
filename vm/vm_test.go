@@ -3411,9 +3411,9 @@ func TestForInWithDifferentTypes(t *testing.T) {
 			result
 			`,
 			expected: object.NewList([]object.Object{
-				object.NewString("a"),  // string character
-				object.NewString("b"),  // string character
-				object.NewString("c"),  // string character
+				object.NewString("a"), // string character
+				object.NewString("b"), // string character
+				object.NewString("c"), // string character
 			}),
 		},
 	}
