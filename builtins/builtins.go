@@ -714,12 +714,6 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	var traceback []object.StackFrame
 	if traceFunc, ok := object.GetTraceFunc(ctx); ok {
 		traceback = traceFunc()
-		fmt.Printf("DEBUG: Error() captured %d frames\n", len(traceback))
-		for i, frame := range traceback {
-			fmt.Printf("DEBUG: Error() frame %d: %s\n", i, frame.FunctionName)
-		}
-	} else {
-		fmt.Printf("DEBUG: Error() no trace function found in context\n")
 	}
 	
 	switch arg := args[0].(type) {
@@ -728,8 +722,11 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 		// It's possible an error was passed that did not have raised set.
 		err := object.NewError(arg.Value()).WithRaised(true)
 		if len(traceback) > 0 {
-			fmt.Printf("DEBUG: Error() setting traceback on existing error\n")
+			// Use the new traceback if one was captured
 			err = err.WithTraceback(traceback)
+		} else if origTraceback := arg.GetTraceback(); len(origTraceback) > 0 {
+			// Otherwise preserve the original error's traceback
+			err = err.WithTraceback(origTraceback)
 		}
 		return err
 	case *object.String:
@@ -739,14 +736,12 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 			msgArgs = append(msgArgs, arg.Interface())
 		}
 		if len(traceback) > 0 {
-			fmt.Printf("DEBUG: Error() creating new error with traceback\n")
 			return object.ErrorfWithTraceback(traceback, msg.Value(), msgArgs...)
 		}
-		fmt.Printf("DEBUG: Error() creating new error without traceback\n")
 		return object.Errorf(msg.Value(), msgArgs...)
 	default:
 		return object.TypeErrorf("type error: error() expected a string or error (%s given)",
-			args[0].Type())
+			arg.Type())
 	}
 }
 
@@ -789,7 +784,12 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 				// This indicates an unrecoverable evaluation error
 				return object.NewError(err)
 			}
-			lastErr = object.NewError(err).WithRaised(false)
+			// Check if err is already an *object.Error to preserve traceback
+			if objErr, ok := err.(*object.Error); ok {
+				lastErr = objErr.WithRaised(false)
+			} else {
+				lastErr = object.NewError(err).WithRaised(false)
+			}
 			continue
 		}
 		return result

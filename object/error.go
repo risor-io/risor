@@ -105,7 +105,6 @@ func (e *Error) Message() *String {
 }
 
 func (e *Error) WithRaised(value bool) *Error {
-	fmt.Printf("DEBUG: WithRaised called - current traceback len: %d\n", len(e.traceback))
 	e.raised = value
 	return e
 }
@@ -143,16 +142,12 @@ func (e *Error) MarshalJSON() ([]byte, error) {
 }
 
 func NewError(err error) *Error {
-	fmt.Printf("DEBUG: NewError called with error type: %T\n", err)
 	switch err := err.(type) {
 	case *Error: // unwrap to get the inner error, to avoid unhelpful nesting
-		fmt.Printf("DEBUG: NewError - input is *Error with %d traceback frames\n", len(err.traceback))
 		// Preserve the traceback from the original error
 		newErr := &Error{base: &base{}, err: err.Unwrap(), raised: true, traceback: err.traceback}
-		fmt.Printf("DEBUG: NewError - created new Error with %d traceback frames\n", len(newErr.traceback))
 		return newErr
 	default:
-		fmt.Printf("DEBUG: NewError - input is not *Error, creating new error without traceback\n")
 		return &Error{base: &base{}, err: err, raised: true}
 	}
 }
@@ -169,12 +164,11 @@ func (e *Error) WithTraceback(traceback []StackFrame) *Error {
 	return e
 }
 
+func (e *Error) GetTraceback() []StackFrame {
+	return e.traceback
+}
+
 func (e *Error) Traceback() *String {
-	fmt.Printf("DEBUG: Error.Traceback() called - traceback len: %d\n", len(e.traceback))
-	for i, frame := range e.traceback {
-		fmt.Printf("DEBUG: Frame %d: %s\n", i, frame.FunctionName)
-	}
-	
 	if len(e.traceback) == 0 {
 		return NewString("No traceback available")
 	}
@@ -211,6 +205,5 @@ func ErrorfWithTraceback(traceback []StackFrame, format string, a ...interface{}
 			args = append(args, arg)
 		}
 	}
-	fmt.Printf("DEBUG: ErrorfWithTraceback creating error with %d frames\n", len(traceback))
 	return &Error{base: &base{}, err: fmt.Errorf(format, args...), raised: true, traceback: traceback}
 }

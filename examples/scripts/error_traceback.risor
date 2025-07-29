@@ -1,0 +1,122 @@
+#!/usr/bin/env risor
+// error_traceback.risor - Demonstrates error traceback functionality
+//
+// This example shows how Risor captures and displays call stacks when errors occur,
+// making it easier to debug issues in your scripts.
+
+// A function that performs division and checks for divide by zero
+func divide(a, b) {
+    if b == 0 {
+        error("division by zero: cannot divide %d by %d", a, b)
+    }
+    return a / b
+}
+
+// A function that calculates an average
+func calculate_average(numbers) {
+    if len(numbers) == 0 {
+        error("cannot calculate average of empty list")
+    }
+    
+    sum := 0
+    for _, n := range numbers {
+        sum += n
+    }
+    
+    // This will cause an error if we have a zero count
+    return divide(sum, len(numbers))
+}
+
+// A function that processes user data
+func process_user_scores(user_data) {
+    scores := user_data.scores
+    avg := calculate_average(scores)
+    return {
+        user: user_data.name,
+        average_score: avg,
+    }
+}
+
+// Main execution with error handling
+print("=== Error Traceback Example ===\n")
+
+// Example 1: Successful calculation
+print("1. Processing valid user data:")
+user1 := {
+    name: "Alice",
+    scores: [85, 90, 78, 92, 88],
+}
+
+try(
+    func() {
+        result := process_user_scores(user1)
+        print("  Success:", result)
+    },
+    func(err) {
+        print("  Error:", err.message())
+        print("  Traceback:\n", err.traceback())
+    }
+)
+
+// Example 2: Error with empty scores
+print("\n2. Processing user with no scores:")
+user2 := {
+    name: "Bob",
+    scores: [],
+}
+
+try(
+    func() {
+        result := process_user_scores(user2)
+        print("  Success:", result)
+    },
+    func(err) {
+        print("  Error:", err.message())
+        print("\n  Traceback:")
+        print(err.traceback())
+    }
+)
+
+// Example 3: Demonstrating error re-raising with preserved traceback
+print("\n3. Re-raising errors with preserved traceback:")
+
+func validate_and_process(user_data) {
+    // First validate the data
+    if !user_data.name {
+        error("user data missing required field: name")
+    }
+    
+    // Try to process, but re-raise with additional context
+    err := nil
+    try(
+        func() {
+            process_user_scores(user_data)
+        },
+        func(e) {
+            err = e
+        }
+    )
+    
+    if err != nil {
+        // Re-raise the error - traceback will show this function too
+        error("failed to process user '%s': %s", user_data.name, err.message())
+    }
+}
+
+user3 := {
+    name: "Charlie",
+    scores: [],
+}
+
+try(
+    func() {
+        validate_and_process(user3)
+    },
+    func(err) {
+        print("  Error:", err.message())
+        print("\n  Full traceback showing the re-raise:")
+        print(err.traceback())
+    }
+)
+
+print("\n=== End of traceback examples ===")
