@@ -1581,39 +1581,37 @@ func (p *Parser) parseIn(leftNode ast.Node) ast.Node {
 	return ast.NewIn(inToken, left, right)
 }
 
-
-
 func (p *Parser) parseNotIn(leftNode ast.Node) ast.Node {
 	left, ok := leftNode.(ast.Expression)
 	if !ok {
 		p.setTokenError(p.curToken, "invalid not in expression")
 		return nil
 	}
-	
+
 	notToken := p.curToken
-	
+
 	// Check if the next token is IN
 	if !p.peekTokenIs(token.IN) {
 		p.setTokenError(p.peekToken, "expected 'in' after 'not' (got %s)", p.peekToken.Literal)
 		return nil
 	}
-	
+
 	// Move to the IN token
 	if err := p.nextToken(); err != nil {
 		return nil
 	}
-	
+
 	// Move past the IN token to parse the right operand
 	if err := p.nextToken(); err != nil {
 		return nil
 	}
-	
+
 	right := p.parseExpression(PREFIX)
 	if right == nil {
 		p.setTokenError(p.curToken, "invalid not in expression")
 		return nil
 	}
-	
+
 	return ast.NewNotIn(notToken, left, right)
 }
 
