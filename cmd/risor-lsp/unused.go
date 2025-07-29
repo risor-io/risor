@@ -37,8 +37,6 @@ func (s *Server) DidRenameFiles(context.Context, *protocol.RenameFilesParams) er
 	return notImplemented("DidRenameFiles")
 }
 
-
-
 func (s *Server) DocumentColor(context.Context, *protocol.DocumentColorParams) ([]protocol.ColorInformation, error) {
 	return nil, notImplemented("DocumentColor")
 }
@@ -222,8 +220,6 @@ func (s *Server) DidChangeWatchedFiles(context.Context, *protocol.DidChangeWatch
 func (s *Server) DidChangeWorkspaceFolders(context.Context, *protocol.DidChangeWorkspaceFoldersParams) error {
 	return notImplemented("DidChangeWorkspaceFolders")
 }
-
-
 
 func (s *Server) DidCreateFiles(context.Context, *protocol.CreateFilesParams) error {
 	return notImplemented("DidCreateFiles")

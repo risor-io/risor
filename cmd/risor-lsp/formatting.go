@@ -18,47 +18,47 @@ func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormat
 	// For now, implement basic formatting: ensure proper indentation and spacing
 	text := doc.item.Text
 	lines := strings.Split(text, "\n")
-	
+
 	var formattedLines []string
 	indentLevel := 0
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			formattedLines = append(formattedLines, "")
 			continue
 		}
-		
+
 		// Decrease indent for closing braces/brackets
 		if strings.HasPrefix(trimmed, "}") || strings.HasPrefix(trimmed, "]") {
 			if indentLevel > 0 {
 				indentLevel--
 			}
 		}
-		
+
 		// Apply indentation
 		indent := strings.Repeat("  ", indentLevel) // 2 spaces per level
 		formattedLine := indent + trimmed
 		formattedLines = append(formattedLines, formattedLine)
-		
+
 		// Increase indent for opening braces/brackets
 		if strings.HasSuffix(trimmed, "{") || strings.HasSuffix(trimmed, "[") {
 			indentLevel++
 		}
 	}
-	
+
 	formattedText := strings.Join(formattedLines, "\n")
-	
+
 	// If no changes needed, return nil
 	if formattedText == text {
 		return nil, nil
 	}
-	
+
 	// Calculate the range for the entire document
 	lines = strings.Split(text, "\n")
 	lastLine := len(lines) - 1
 	lastChar := len(lines[lastLine])
-	
+
 	return []protocol.TextEdit{
 		{
 			Range: protocol.Range{

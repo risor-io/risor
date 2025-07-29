@@ -33,34 +33,34 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 		if parseErr, ok := doc.err.(parser.ParserError); ok {
 			startPos := parseErr.StartPosition()
 			endPos := parseErr.EndPosition()
-			
-					diagnostic := protocol.Diagnostic{
-			Range: protocol.Range{
-				Start: protocol.Position{
-					Line:      uint32(startPos.LineNumber() - 1), // LSP uses 0-based line numbers
-					Character: uint32(startPos.ColumnNumber() - 1), // LSP uses 0-based column numbers
+
+			diagnostic := protocol.Diagnostic{
+				Range: protocol.Range{
+					Start: protocol.Position{
+						Line:      uint32(startPos.LineNumber() - 1),   // LSP uses 0-based line numbers
+						Character: uint32(startPos.ColumnNumber() - 1), // LSP uses 0-based column numbers
+					},
+					End: protocol.Position{
+						Line:      uint32(endPos.LineNumber() - 1),
+						Character: uint32(endPos.ColumnNumber() - 1),
+					},
 				},
-				End: protocol.Position{
-					Line:      uint32(endPos.LineNumber() - 1),
-					Character: uint32(endPos.ColumnNumber() - 1),
-				},
-			},
-			Severity: 1, // Error
-			Source:   "risor-lsp",
-			Message:  parseErr.Message(),
-		}
+				Severity: 1, // Error
+				Source:   "risor-lsp",
+				Message:  parseErr.Message(),
+			}
 			diagnostics = append(diagnostics, diagnostic)
 		} else {
-					// Generic error handling for non-parser errors
-		diagnostic := protocol.Diagnostic{
-			Range: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
-			Severity: 1, // Error
-			Source:   "risor-lsp",
-			Message:  doc.err.Error(),
-		}
+			// Generic error handling for non-parser errors
+			diagnostic := protocol.Diagnostic{
+				Range: protocol.Range{
+					Start: protocol.Position{Line: 0, Character: 0},
+					End:   protocol.Position{Line: 0, Character: 0},
+				},
+				Severity: 1, // Error
+				Source:   "risor-lsp",
+				Message:  doc.err.Error(),
+			}
 			diagnostics = append(diagnostics, diagnostic)
 		}
 	}

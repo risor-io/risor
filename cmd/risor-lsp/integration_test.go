@@ -53,7 +53,7 @@ for user in users {
 	}
 
 	uri := protocol.DocumentURI("file:///example.risor")
-	
+
 	// Test 1: Document parsing and caching
 	t.Run("DocumentParsing", func(t *testing.T) {
 		err := setTestDocument(server.cache, uri, risorCode)
@@ -233,7 +233,7 @@ if true {
     // missing closing brace`
 
 	uri := protocol.DocumentURI("file:///invalid.risor")
-	
+
 	err := setTestDocument(server.cache, uri, invalidCode)
 	if err != nil {
 		t.Fatalf("Failed to cache document: %v", err)
@@ -312,7 +312,7 @@ numbers := [1, 2, 3, 4, 5]`,
 	for name, code := range examples {
 		t.Run(name, func(t *testing.T) {
 			uri := protocol.DocumentURI("file:///" + name + ".risor")
-			
+
 			err := setTestDocument(server.cache, uri, code)
 			if err != nil {
 				t.Fatalf("Failed to cache document: %v", err)

@@ -32,7 +32,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 			if name != "" {
 				pos := stmt.Token().StartPosition
 				endPos := stmt.Token().EndPosition
-				
+
 				symbols = append(symbols, protocol.DocumentSymbol{
 					Name: name,
 					Kind: 13, // Variable
@@ -67,7 +67,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 			if name != "" {
 				pos := stmt.Token().StartPosition
 				endPos := stmt.Token().EndPosition
-				
+
 				symbols = append(symbols, protocol.DocumentSymbol{
 					Name: name,
 					Kind: 13, // Variable
@@ -104,8 +104,6 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 
 	return result, nil
 }
-
-
 
 // getLastToken attempts to get the last token from a statement
 func getLastToken(stmt ast.Statement) token.Token {
