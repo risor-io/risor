@@ -3155,3 +3155,80 @@ func TestNewEmptyClone(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, intResult.Value(), int64(200))
 }
+
+func TestForIn1(t *testing.T) {
+	result, err := run(context.Background(), `
+	sum := 0
+	for x in [1, 2, 3]: {
+		sum = sum + x
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(6), result)
+}
+
+func TestForIn2(t *testing.T) {
+	result, err := run(context.Background(), `
+	fruits := ["apple", "banana", "cherry"]
+	last := ""
+	for fruit in fruits: {
+		last = fruit
+	}
+	last
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("cherry"), result)
+}
+
+func TestForIn3(t *testing.T) {
+	result, err := run(context.Background(), `
+	items := []
+	for x in [10, 20, 30]: {
+		items.append(x * 2)
+	}
+	items
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(20),
+		object.NewInt(40),
+		object.NewInt(60),
+	}), result)
+}
+
+func TestForInString(t *testing.T) {
+	result, err := run(context.Background(), `
+	chars := []
+	for c in "hello": {
+		chars.append(c)
+	}
+	chars
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("h"),
+		object.NewString("e"),
+		object.NewString("l"),
+		object.NewString("l"),
+		object.NewString("o"),
+	}), result)
+}
+
+func TestForInBreakContinue(t *testing.T) {
+	result, err := run(context.Background(), `
+	sum := 0
+	for x in [1, 2, 3, 4, 5]: {
+		if x == 3 {
+			continue
+		}
+		if x == 5 {
+			break
+		}
+		sum = sum + x
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(7), result) // 1 + 2 + 4, skipping 3 and breaking before 5
+}

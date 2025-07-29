@@ -1224,3 +1224,36 @@ func TestBitwiseAnd(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "(1 & 2)", result.String())
 }
+
+func TestForInLoop(t *testing.T) {
+	tests := []struct {
+		input    string
+		variable string
+		iterable string
+	}{
+		{
+			"for x in [1, 2, 3]: { }",
+			"x",
+			"[1, 2, 3]",
+		},
+		{
+			"for item in items: { print(item) }",
+			"item",
+			"items",
+		},
+		{
+			"for fruit in fruits: { print(fruit) }",
+			"fruit",
+			"fruits",
+		},
+	}
+	for _, tt := range tests {
+		program, err := Parse(context.Background(), tt.input)
+		require.Nil(t, err)
+		require.Len(t, program.Statements(), 1)
+		expr, ok := program.First().(*ast.ForIn)
+		require.True(t, ok)
+		require.Equal(t, tt.variable, expr.Variable().String())
+		require.Equal(t, tt.iterable, expr.Iterable().String())
+	}
+}
