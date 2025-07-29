@@ -11,9 +11,6 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-  // Skip the language server for now
-  return;
-
   // The debug options for the server
   // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
   const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
@@ -35,18 +32,22 @@ export function activate(context: ExtensionContext) {
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
-    // Register the server for plain text documents
-    documentSelector: [{ scheme: 'file', language: 'plaintext' }],
+    // Register the server for Risor files
+    documentSelector: [
+      { scheme: 'file', language: 'risor' },
+      { scheme: 'file', pattern: '**/*.risor' },
+      { scheme: 'file', pattern: '**/*.rsr' }
+    ],
     synchronize: {
-      // Notify the server about file changes to '.clientrc files contained in the workspace
-      fileEvents: workspace.createFileSystemWatcher('**/.clientrc'),
+      // Notify the server about file changes to Risor files
+      fileEvents: workspace.createFileSystemWatcher('**/*.{risor,rsr}'),
     },
   };
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    'languageServerExample',
-    'Language Server Example',
+    'risorLanguageServer',
+    'Risor Language Server',
     serverOptions,
     clientOptions
   );
