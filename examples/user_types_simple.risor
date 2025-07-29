@@ -1,0 +1,93 @@
+// Practical Example: Simple User Management System
+// Demonstrates Risor's new user-defined type system
+
+// Define user types
+type User {
+    id: int,
+    username: string,
+    email: string,
+    isActive: bool
+}
+
+type UserStats {
+    totalUsers: int,
+    activeUsers: int,
+    inactiveUsers: int
+}
+
+// Define interfaces for different capabilities
+interface Identifiable {
+    getId(): int,
+    getUsername(): string
+}
+
+interface Contactable {
+    getEmail(): string,
+    sendNotification(message: string): bool
+}
+
+// Helper functions with return type annotations
+func createUser(id, username, email): User {
+    return {
+        id: id,
+        username: username, 
+        email: email,
+        isActive: true
+    }
+}
+
+func validateEmail(email): bool {
+    // Simple email validation (contains @)
+    return len(email) > 0 && email.indexOf("@") >= 0
+}
+
+func calculateUserStats(users): UserStats {
+    totalCount: int := len(users)
+    activeCount: int := 0
+    
+    for user in users {
+        if user.isActive {
+            activeCount = activeCount + 1
+        }
+    }
+    
+    return {
+        totalUsers: totalCount,
+        activeUsers: activeCount,
+        inactiveUsers: totalCount - activeCount
+    }
+}
+
+// Create some test data
+admin: User := {id: 1, username: "admin", email: "admin@example.com", isActive: true}
+user1: User := {id: 2, username: "alice", email: "alice@example.com", isActive: true}
+user2: User := {id: 3, username: "bob", email: "bob@example.com", isActive: false}
+
+// Test type annotations with different data types
+userList: []User := [admin, user1, user2]
+userCount: int := len(userList)
+adminEmail: string := admin.email
+systemActive: bool := true
+
+// Calculate statistics
+stats: UserStats := calculateUserStats(userList)
+
+// Display results
+print("=== User Management System ===")
+print("Total users:", userCount)
+print("Admin email:", adminEmail)
+print("System active:", systemActive)
+print("")
+print("=== User Statistics ===")
+print("Total users:", stats.totalUsers)
+print("Active users:", stats.activeUsers) 
+print("Inactive users:", stats.inactiveUsers)
+print("")
+print("=== User Details ===")
+for user in userList {
+    status: string := "inactive"
+    if user.isActive {
+        status = "active"
+    }
+    print("User:", user.username, "(" + user.email + ") -", status)
+}

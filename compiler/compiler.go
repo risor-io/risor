@@ -341,6 +341,14 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileReceive(node); err != nil {
 			return err
 		}
+	case *ast.TypeDecl:
+		if err := c.compileTypeDecl(node); err != nil {
+			return err
+		}
+	case *ast.InterfaceDecl:
+		if err := c.compileInterfaceDecl(node); err != nil {
+			return err
+		}
 	default:
 		panic(fmt.Sprintf("compile error: unknown ast node type: %T", node))
 	}
@@ -2004,4 +2012,18 @@ func (c *Compiler) formatError(msg string, pos token.Position) error {
 	b.WriteString(fmt.Sprintf("%s:%d:%d", filename, pos.LineNumber(), pos.ColumnNumber()))
 	b.WriteString(fmt.Sprintf(" (%s)", lineCol))
 	return fmt.Errorf("%s", b.String())
+}
+
+// compileTypeDecl handles type declarations (currently a no-op)
+func (c *Compiler) compileTypeDecl(node *ast.TypeDecl) error {
+	// TODO: Implement type registration in a type system
+	// For now, this is a no-op to allow parsing to work
+	return nil
+}
+
+// compileInterfaceDecl handles interface declarations (currently a no-op)
+func (c *Compiler) compileInterfaceDecl(node *ast.InterfaceDecl) error {
+	// TODO: Implement interface registration in a type system
+	// For now, this is a no-op to allow parsing to work
+	return nil
 }

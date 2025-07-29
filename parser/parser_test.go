@@ -1295,6 +1295,37 @@ func TestVariableWithTypeAnnotation(t *testing.T) {
 	require.Equal(t, "string", typeAnnotation.TypeExpr().String())
 }
 
+func TestWalrusWithTypeAnnotation(t *testing.T) {
+	tests := []struct {
+		input        string
+		expectedName string
+		expectedType string
+	}{
+		{"name: string := \"Alice\"", "name", "string"},
+		{"age: int := 30", "age", "int"},
+		{"active: bool := true", "active", "bool"},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			program, err := Parse(context.Background(), tt.input)
+			require.Nil(t, err, "Input: %s", tt.input)
+			require.Len(t, program.Statements(), 1, "Input: %s", tt.input)
+			
+			stmt, ok := program.First().(*ast.Var)
+			require.True(t, ok, "Expected Var, got %T for input: %s", program.First(), tt.input)
+			
+			name, _ := stmt.Value()
+			require.Equal(t, tt.expectedName, name, "Input: %s", tt.input)
+			require.Equal(t, true, stmt.IsWalrus(), "Input: %s", tt.input)
+			
+			typeAnnotation := stmt.TypeAnnotation()
+			require.NotNil(t, typeAnnotation, "Input: %s", tt.input)
+			require.Equal(t, tt.expectedType, typeAnnotation.TypeExpr().String(), "Input: %s", tt.input)
+		})
+	}
+}
+
 func TestFunctionWithReceiver(t *testing.T) {
 	t.Skip("TODO: Method receiver parsing requires more sophisticated lookahead to avoid conflicts with anonymous functions")
 	

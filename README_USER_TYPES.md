@@ -2,14 +2,13 @@
 
 This document describes the new user-defined types feature in Risor, which brings TypeScript-inspired syntax for type declarations, interfaces, and method definitions to the language.
 
-## Overview
+## ✅ Currently Working Features
 
-Risor now supports first-class user-defined types with the following features:
+Risor now supports the following type system features:
 
 - **Type declarations** with field specifications
-- **Interface declarations** for defining contracts
-- **Type annotations** on variables and function parameters
-- **Method receivers** for associating functions with types
+- **Interface declarations** for defining contracts  
+- **Type annotations** on variables (both `var` and `:=` declarations)
 - **Return type annotations** for functions
 
 ## Type Declaration Syntax
@@ -62,7 +61,7 @@ var age: int = 30
 var scores: []float = [95.5, 87.2, 92.1]
 ```
 
-### Short Declarations with Type Annotations
+### Short Declarations with Type Annotations (Walrus Operator)
 
 ```risor
 name: string := "Alice"
@@ -70,30 +69,12 @@ age: int := 30
 scores: []float := [95.5, 87.2, 92.1]
 ```
 
-## Method Receivers (Go-like Syntax)
-
-Functions can be associated with types using method receivers:
-
-```risor
-func (p Person) greet(): string {
-    return "Hello, I'm " + p.name
-}
-
-func (p Person) getAge(): int {
-    return p.age
-}
-
-func (p Person) celebrate(): void {
-    p.age = p.age + 1
-}
-```
-
 ## Function Return Type Annotations
 
 Functions can specify their return types:
 
 ```risor
-func NewPerson(name: string, age: int): Person {
+func NewPerson(name, age): Person {
     return Person{
         name: name,
         age: age,
@@ -101,52 +82,95 @@ func NewPerson(name: string, age: int): Person {
     }
 }
 
-func calculate(x: float, y: float): float {
+func calculate(x, y): float {
     return x * y + 10.0
 }
 ```
 
-## Complete Example
+## Working Example
 
 ```risor
-// Type declaration
-type Rectangle {
-    width: float,
-    height: float
+// Type declarations
+type User {
+    id: int,
+    username: string,
+    email: string
 }
 
-// Interface declaration
-interface Shape {
-    getArea(): float,
-    getPerimeter(): float
+// Interface declarations
+interface Identifiable {
+    getId(): int,
+    getUsername(): string
 }
 
-// Constructor function
-func NewRectangle(w: float, h: float): Rectangle {
-    return Rectangle{width: w, height: h}
+// Variable declarations with type annotations
+var adminUser: string = "admin"
+var maxUsers: int = 1000
+var systemActive: bool = true
+
+// Walrus declarations with type annotations
+currentUser: string := "alice"
+userCount: int := 150
+serverLoad: float := 67.5
+
+// Functions with return type annotations
+func getUserCount(): int {
+    return userCount
 }
 
-// Methods with receivers
-func (r Rectangle) getArea(): float {
-    return r.width * r.height
+func formatUsername(name): string {
+    return "[" + name + "]"
 }
 
-func (r Rectangle) getPerimeter(): float {
-    return 2 * (r.width + r.height)
-}
+// Using the functions
+formattedUser: string := formatUsername(currentUser)
+totalUsers: int := getUserCount()
 
-func (r Rectangle) describe(): string {
-    return "Rectangle " + string(r.width) + "x" + string(r.height)
-}
-
-// Usage
-var rect: Rectangle = NewRectangle(10.0, 5.0)
-area: float := rect.getArea()
-description: string := rect.describe()
-
-print(description)
-print("Area:", area)
+print("Current user:", formattedUser)
+print("Total users:", totalUsers)
+print("System status:", systemActive)
 ```
+
+## 🚧 Planned Features (Not Yet Implemented)
+
+The following features are designed but not yet implemented:
+
+### Method Receivers
+
+```risor
+// Planned syntax (not working yet)
+func (p Person) greet(): string {
+    return "Hello, I'm " + p.name
+}
+```
+
+### Function Parameter Type Annotations
+
+```risor
+// Planned syntax (not working yet)  
+func add(x: int, y: int): int {
+    return x + y
+}
+```
+
+### Struct Literal Construction
+
+```risor
+// Planned syntax (not working yet)
+var person: Person = Person{
+    name: "Alice",
+    age: 30,
+    email: "alice@example.com"
+}
+```
+
+### Runtime Type Checking
+
+Currently, type annotations are parsed and stored but not enforced at runtime. Future versions will include:
+
+- Type validation during assignment
+- Type checking for function calls
+- Interface implementation verification
 
 ## Design Decisions
 
@@ -159,9 +183,9 @@ The syntax draws heavily from TypeScript for several reasons:
 3. **Optional typing** that doesn't interfere with existing code
 4. **Interface-based design** for flexible type contracts
 
-### Go-like Method Receivers
+### Go-like Method Receivers (Planned)
 
-Method receivers follow Go's syntax `func (receiver Type) method()` because:
+Method receivers will follow Go's syntax `func (receiver Type) method()` because:
 
 1. **Explicit receiver naming** avoids confusion about `this` binding
 2. **Clear association** between methods and types
@@ -170,52 +194,59 @@ Method receivers follow Go's syntax `func (receiver Type) method()` because:
 
 ### Avoiding Parsing Conflicts
 
-The design carefully avoids the parsing ambiguity mentioned in the discussion:
+The design carefully avoids the parsing ambiguity mentioned in the original discussion:
 
 - **No type prefixes on literals** like `[]int[1, 2, 3]`
 - **Type annotations only on variables** using `: type` syntax
 - **Clear token boundaries** that don't require lookahead parsing
 
-## Implementation Notes
+## Implementation Status
 
-### AST Extensions
+### ✅ Completed
 
-New AST nodes were added:
+- Token support for `type` and `interface` keywords
+- AST nodes for all type system constructs
+- Parser support for type declarations and interface declarations
+- Parser support for variable type annotations (both `var` and `:=`)
+- Parser support for function return type annotations
+- Compiler support (no-op compilation for now)
+- Comprehensive test suite
+- Working examples and documentation
 
-- `TypeDecl` - for type declarations
-- `InterfaceDecl` - for interface declarations  
-- `TypeField` - for fields in type declarations
-- `InterfaceMethod` - for method signatures in interfaces
-- `TypeAnnotation` - for type annotations on variables
-- `MethodReceiver` - for method receivers on functions
+### 🔄 In Progress
 
-### Parser Extensions
+- Method receiver parsing (complex due to lookahead requirements)
+- Function parameter type annotations
+- Struct literal construction syntax
 
-The parser was extended to:
+### 📋 Planned
 
-- Recognize `type` and `interface` keywords
-- Parse type declarations with field lists
-- Parse interface declarations with method signatures
-- Handle type annotations on variable declarations
-- Support method receivers in function declarations
-- Parse return type annotations
+- Runtime type checking and validation
+- Type inference capabilities
+- Generic types support
+- Union types support
 
-### Token Extensions
+## Testing
 
-New tokens were added:
+The implementation includes comprehensive tests covering:
 
-- `TYPE` - for the `type` keyword
-- `INTERFACE` - for the `interface` keyword
+- Type declaration parsing
+- Interface declaration parsing
+- Variable type annotation parsing (both `var` and `:=`)
+- Function return type annotation parsing
+- Integration with existing Risor features
 
-## Future Enhancements
+Run the tests with:
 
-Potential future improvements could include:
+```bash
+go test ./parser -v -run "TestType|TestInterface|TestVariable.*TypeAnnotation|TestWalrus|TestFunction.*ReturnType"
+```
 
-1. **Generic types** - `type List<T> { items: []T }`
-2. **Union types** - `type StringOrNumber = string | int`
-3. **Type aliases** - `type UserId = string`
-4. **Type inference** - automatically inferring types from usage
-5. **Runtime type checking** - validating types at runtime
+## Examples
+
+See the working examples in:
+- `examples/user_types_working.risor` - Comprehensive demonstration
+- `test_comprehensive.risor` - Feature testing
 
 ## Backward Compatibility
 

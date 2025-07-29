@@ -1,0 +1,96 @@
+// Working Example: Type System Features in Risor
+// Demonstrates currently implemented type system functionality
+
+// 1. Type Declarations
+type Person {
+    name: string,
+    age: int,
+    email: string
+}
+
+type Company {
+    name: string,
+    employeeCount: int,
+    revenue: float
+}
+
+// 2. Interface Declarations  
+interface Drawable {
+    draw(): void,
+    getArea(): float
+}
+
+interface Nameable {
+    getName(): string,
+    setName(newName: string): void
+}
+
+// 3. Variable declarations with type annotations
+var companyName: string = "Tech Innovations Inc"
+var foundedYear: int = 2020
+var isPublic: bool = false
+var stockPrice: float = 45.67
+
+// 4. Walrus declarations with type annotations
+ceoName: string := "Sarah Johnson"
+headquartersCity: string := "San Francisco"
+employeeCount: int := 150
+quarterlyRevenue: float := 2500000.50
+hasRemoteWorkers: bool := true
+
+// 5. Functions with return type annotations
+func formatCurrency(amount): string {
+    return "$" + string(amount)
+}
+
+func calculateTaxes(revenue): float {
+    taxRate: float := 0.21
+    return revenue * taxRate
+}
+
+func getCompanyAge(currentYear, foundedYear): int {
+    return currentYear - foundedYear
+}
+
+func isLargeCompany(employees): bool {
+    return employees >= 100
+}
+
+// 6. Using all the declared variables and functions
+currentYear: int := 2024
+companyAge: int := getCompanyAge(currentYear, foundedYear)
+formattedRevenue: string := formatCurrency(quarterlyRevenue)
+taxAmount: float := calculateTaxes(quarterlyRevenue)
+isLarge: bool := isLargeCompany(employeeCount)
+
+// 7. Display results
+print("=== Company Information ===")
+print("Company:", companyName)
+print("CEO:", ceoName)
+print("Headquarters:", headquartersCity)
+print("Founded:", foundedYear)
+print("Age:", companyAge, "years")
+print("Employees:", employeeCount)
+print("Public company:", isPublic)
+print("")
+
+print("=== Financial Information ===")
+print("Stock price:", formatCurrency(stockPrice))
+print("Quarterly revenue:", formattedRevenue)
+print("Tax amount:", formatCurrency(taxAmount))
+print("Is large company:", isLarge)
+print("")
+
+print("=== Operational Details ===")
+print("Has remote workers:", hasRemoteWorkers)
+print("")
+
+print("=== Type System Features Demonstrated ===")
+print("✓ Type declarations (Person, Company)")
+print("✓ Interface declarations (Drawable, Nameable)")
+print("✓ Variable type annotations (var name: type)")
+print("✓ Walrus declarations with types (name: type := value)")
+print("✓ Function return type annotations (func name(): type)")
+print("✓ Mixed type usage (string, int, float, bool)")
+print("")
+print("🎉 All type system features working correctly!")

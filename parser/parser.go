@@ -333,7 +333,7 @@ func (p *Parser) parseStatement() ast.Node {
 	case token.NEWLINE:
 		stmt = nil
 	case token.IDENT:
-		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
+		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) || p.peekTokenIs(token.COLON) {
 			stmt = p.parseDeclaration()
 		} else {
 			stmt = p.parseExpressionStatement()
