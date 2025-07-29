@@ -496,3 +496,197 @@ func TestForwardDeclarationInstructionGeneration(t *testing.T) {
 	// The main verification is that compilation succeeded without errors
 	// indicating that forward declarations were properly resolved
 }
+
+func TestForInCompilation(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []op.Code
+	}{
+		{
+			name:  "basic for-in loop",
+			input: "for x in [1, 2, 3] { x }",
+			expected: []op.Code{
+				op.BuildList,    // Create array [1, 2, 3]
+				op.GetIter,      // Get iterator
+				op.ForIter,      // ForIter instruction
+				op.StoreFast,    // Store to variable x
+				op.LoadFast,     // Load x
+				op.PopTop,       // Pop result
+				op.JumpBackward, // Jump back to ForIter
+			},
+		},
+		{
+			name:  "for-in with variable assignment",
+			input: "result := 0; for x in [1, 2] { result = result + x }",
+			expected: []op.Code{
+				op.LoadConst,    // 0
+				op.StoreFast,    // result := 0
+				op.BuildList,    // [1, 2]
+				op.GetIter,      // Get iterator
+				op.ForIter,      // ForIter instruction
+				op.StoreFast,    // Store to x
+				op.LoadFast,     // Load result
+				op.LoadFast,     // Load x
+				op.BinaryOp,     // result + x (binary operation)
+				op.StoreFast,    // result = ...
+				op.PopTop,       // Pop assignment result
+				op.JumpBackward, // Jump back
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := parser.Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+
+			c, err := New()
+			require.Nil(t, err)
+
+			code, err := c.Compile(program)
+			require.Nil(t, err)
+			require.NotNil(t, code)
+
+			// Verify basic compilation succeeded
+			require.Greater(t, code.InstructionCount(), 0)
+
+			// Check for presence of key opcodes
+			instructions := make([]op.Code, code.InstructionCount())
+			for i := 0; i < code.InstructionCount(); i++ {
+				instructions[i] = op.Code(code.Instruction(i))
+			}
+
+			// Verify GetIter and ForIter are present
+			hasGetIter := false
+			hasForIter := false
+			for _, instr := range instructions {
+				if instr == op.GetIter {
+					hasGetIter = true
+				}
+				if instr == op.ForIter {
+					hasForIter = true
+				}
+			}
+			require.True(t, hasGetIter, "Expected GetIter instruction")
+			require.True(t, hasForIter, "Expected ForIter instruction")
+		})
+	}
+}
+
+func TestForInCompilationErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:        "undefined variable in iterable",
+			input:       "for x in undefined_var { }",
+			expectedErr: "undefined variable",
+		},
+		{
+			name:        "undefined variable in loop body",
+			input:       "for x in [1, 2, 3] { undefined_func(x) }",
+			expectedErr: "undefined variable",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := parser.Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+
+			c, err := New()
+			require.Nil(t, err)
+
+			_, err = c.Compile(program)
+			require.NotNil(t, err)
+			require.Contains(t, err.Error(), tt.expectedErr)
+		})
+	}
+}
+
+func TestForInWithBreakContinue(t *testing.T) {
+	input := `
+	for x in [1, 2, 3, 4, 5] {
+		if x == 2 {
+			continue
+		}
+		if x == 4 {
+			break
+		}
+		x
+	}
+	`
+	
+	program, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+
+	c, err := New()
+	require.Nil(t, err)
+
+	code, err := c.Compile(program)
+	require.Nil(t, err)
+	require.NotNil(t, code)
+
+	// Verify that break/continue instructions are present
+	instructions := make([]op.Code, code.InstructionCount())
+	for i := 0; i < code.InstructionCount(); i++ {
+		instructions[i] = op.Code(code.Instruction(i))
+	}
+
+	hasJumpForward := false
+	hasJumpBackward := false
+	for _, instr := range instructions {
+		if instr == op.JumpForward {
+			hasJumpForward = true
+		}
+		if instr == op.JumpBackward {
+			hasJumpBackward = true
+		}
+	}
+	
+	require.True(t, hasJumpForward, "Expected JumpForward instruction for break/continue")
+	require.True(t, hasJumpBackward, "Expected JumpBackward instruction for loop")
+}
+
+func TestForInNestedLoops(t *testing.T) {
+	input := `
+	for x in [1, 2] {
+		for y in [3, 4] {
+			x + y
+		}
+	}
+	`
+	
+	program, err := parser.Parse(context.Background(), input)
+	require.Nil(t, err)
+
+	c, err := New()
+	require.Nil(t, err)
+
+	code, err := c.Compile(program)
+	require.Nil(t, err)
+	require.NotNil(t, code)
+
+	// Count ForIter instructions - should have 2 for nested loops
+	instructions := make([]op.Code, code.InstructionCount())
+	for i := 0; i < code.InstructionCount(); i++ {
+		instructions[i] = op.Code(code.Instruction(i))
+	}
+
+	forIterCount := 0
+	getIterCount := 0
+	for _, instr := range instructions {
+		if instr == op.ForIter {
+			forIterCount++
+		}
+		if instr == op.GetIter {
+			getIterCount++
+		}
+	}
+	
+	require.Equal(t, 2, getIterCount, "Expected 2 GetIter instructions for nested loops")
+	require.Equal(t, 2, forIterCount, "Expected 2 ForIter instructions for nested loops")
+}

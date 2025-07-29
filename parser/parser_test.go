@@ -739,55 +739,163 @@ func TestGetAttr(t *testing.T) {
 	require.Equal(t, "foo.bar", getAttr.String())
 }
 
-func TestForLoop(t *testing.T) {
+func TestForInLoop(t *testing.T) {
 	tests := []struct {
-		input   string
-		initStr string
-		condStr string
-		postStr string
+		input    string
+		variable string
+		iterable string
 	}{
 		{
-			"for var i = 0; i < 5; i++ { }",
-			"var i = 0",
-			"(i < 5)",
-			"(i++)",
+			"for x in [1, 2, 3] { }",
+			"x",
+			"[1, 2, 3]",
 		},
 		{
-			"for i := 2+2; x < i; x-- { }",
-			"i := (2 + 2)",
-			"(x < i)",
-			"(x--)",
+			"for item in items { print(item) }",
+			"item",
+			"items",
 		},
 		{
-			"for i := range mymap { }",
-			"",
-			"i := range mymap",
-			"",
-		},
-		{
-			"for k,v := range [1,2,3,4] { }",
-			"",
-			"k, v := range [1, 2, 3, 4]",
-			"",
+			"for fruit in fruits { print(fruit) }",
+			"fruit",
+			"fruits",
 		},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		expr, ok := program.First().(*ast.For)
+		expr, ok := program.First().(*ast.ForIn)
 		require.True(t, ok)
-		require.Equal(t, tt.condStr, expr.Condition().String())
-		if tt.initStr != "" {
-			require.Equal(t, tt.initStr, expr.Init().String())
-		} else if expr.Init() != nil {
-			t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
-		}
-		if tt.postStr != "" {
-			require.Equal(t, tt.postStr, expr.Post().String())
-		} else if expr.Post() != nil {
-			t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
-		}
+		require.Equal(t, tt.variable, expr.Variable().String())
+		require.Equal(t, tt.iterable, expr.Iterable().String())
+	}
+}
+
+func TestForInLoopErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:        "missing iterable",
+			input:       "for x in { }",
+			expectedErr: "unexpected end of file",
+		},
+		{
+			name:        "missing opening brace",
+			input:       "for x in items",
+			expectedErr: "unexpected end of file",
+		},
+		{
+			name:        "missing variable",
+			input:       "for in items { }",
+			expectedErr: "unexpected \"in\"",
+		},
+		{
+			name:        "invalid token after in",
+			input:       "for x in { }",
+			expectedErr: "unexpected end of file",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Parse(context.Background(), tt.input)
+			require.NotNil(t, err)
+			require.Contains(t, err.Error(), tt.expectedErr)
+		})
+	}
+}
+
+func TestForInLoopAST(t *testing.T) {
+	input := "for item in collection { print(item) }"
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	
+	forIn, ok := program.First().(*ast.ForIn)
+	require.True(t, ok)
+	
+	// Test all AST node methods
+	require.Equal(t, "for", forIn.Literal())
+	require.Equal(t, "FOR", string(forIn.Token().Type))
+	require.False(t, forIn.IsExpression())
+	require.Equal(t, "item", forIn.Variable().Literal())
+	require.Equal(t, "collection", forIn.Iterable().String())
+	require.NotNil(t, forIn.Consequence())
+	
+	// Test String() method
+	expected := "for item in collection print(item)"
+	require.Equal(t, expected, forIn.String())
+}
+
+func TestForInLoopEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		variable string
+		iterable string
+	}{
+
+		{
+			name:     "nested array access",
+			input:    "for val in arr[0] { }",
+			variable: "val",
+			iterable: "(arr[0])",
+		},
+		{
+			name:     "map access",
+			input:    "for item in data.items { }",
+			variable: "item",
+			iterable: "data.items",
+		},
+		{
+			name:     "complex expression chain",
+			input:    "for x in obj.method().field[0] { }",
+			variable: "x",
+			iterable: "(obj.method().field[0])",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			program, err := Parse(context.Background(), tt.input)
+			require.Nil(t, err)
+			require.Len(t, program.Statements(), 1)
+			expr, ok := program.First().(*ast.ForIn)
+			require.True(t, ok)
+			require.Equal(t, tt.variable, expr.Variable().String())
+			require.Equal(t, tt.iterable, expr.Iterable().String())
+		})
+	}
+}
+
+func TestForInLoopParseErrorCases(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "missing variable name",
+			input: "for in items { }",
+		},
+		{
+			name:  "missing 'in' keyword",
+			input: "for x items { }",
+		},
+		{
+			name:  "unterminated - missing brace",
+			input: "for x in items",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Parse(context.Background(), tt.input)
+			require.NotNil(t, err, "Expected parse error for input: %s", tt.input)
+		})
 	}
 }
 
@@ -1225,35 +1333,54 @@ func TestBitwiseAnd(t *testing.T) {
 	require.Equal(t, "(1 & 2)", result.String())
 }
 
-func TestForInLoop(t *testing.T) {
+func TestForLoop(t *testing.T) {
 	tests := []struct {
-		input    string
-		variable string
-		iterable string
+		input   string
+		initStr string
+		condStr string
+		postStr string
 	}{
 		{
-			"for x in [1, 2, 3] { }",
-			"x",
-			"[1, 2, 3]",
+			"for var i = 0; i < 5; i++ { }",
+			"var i = 0",
+			"(i < 5)",
+			"(i++)",
 		},
 		{
-			"for item in items { print(item) }",
-			"item",
-			"items",
+			"for i := 2+2; x < i; x-- { }",
+			"i := (2 + 2)",
+			"(x < i)",
+			"(x--)",
 		},
 		{
-			"for fruit in fruits { print(fruit) }",
-			"fruit",
-			"fruits",
+			"for i := range mymap { }",
+			"",
+			"i := range mymap",
+			"",
+		},
+		{
+			"for k,v := range [1,2,3,4] { }",
+			"",
+			"k, v := range [1, 2, 3, 4]",
+			"",
 		},
 	}
 	for _, tt := range tests {
 		program, err := Parse(context.Background(), tt.input)
 		require.Nil(t, err)
 		require.Len(t, program.Statements(), 1)
-		expr, ok := program.First().(*ast.ForIn)
+		expr, ok := program.First().(*ast.For)
 		require.True(t, ok)
-		require.Equal(t, tt.variable, expr.Variable().String())
-		require.Equal(t, tt.iterable, expr.Iterable().String())
+		require.Equal(t, tt.condStr, expr.Condition().String())
+		if tt.initStr != "" {
+			require.Equal(t, tt.initStr, expr.Init().String())
+		} else if expr.Init() != nil {
+			t.Fatalf("expected no init statement. got='%v'", expr.Init().String())
+		}
+		if tt.postStr != "" {
+			require.Equal(t, tt.postStr, expr.Post().String())
+		} else if expr.Post() != nil {
+			t.Fatalf("expected no post statement. got='%v'", expr.Post().String())
+		}
 	}
 }
