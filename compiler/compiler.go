@@ -281,6 +281,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileIn(node); err != nil {
 			return err
 		}
+	case *ast.NotIn:
+		if err := c.compileNotIn(node); err != nil {
+			return err
+		}
 	case *ast.Const:
 		if err := c.compileConst(node); err != nil {
 			return err
@@ -918,6 +922,18 @@ func (c *Compiler) compileIn(node *ast.In) error {
 		return err
 	}
 	c.emit(op.ContainsOp, 0)
+	return nil
+}
+
+func (c *Compiler) compileNotIn(node *ast.NotIn) error {
+	if err := c.compile(node.Right()); err != nil {
+		return err
+	}
+	if err := c.compile(node.Left()); err != nil {
+		return err
+	}
+	c.emit(op.ContainsOp, 0)
+	c.emit(op.UnaryNot)
 	return nil
 }
 

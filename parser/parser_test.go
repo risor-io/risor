@@ -814,6 +814,18 @@ func TestIn(t *testing.T) {
 	require.Equal(t, "x in [1, 2]", node.String())
 }
 
+func TestNotIn(t *testing.T) {
+	program, err := Parse(context.Background(), "x not in [1, 2]")
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	node, ok := program.First().(*ast.NotIn)
+	require.True(t, ok)
+	require.Equal(t, "not", node.Literal())
+	require.Equal(t, "x", node.Left().String())
+	require.Equal(t, "[1, 2]", node.Right().String())
+	require.Equal(t, "x not in [1, 2]", node.String())
+}
+
 func TestBreak(t *testing.T) {
 	program, err := Parse(context.Background(), "break")
 	require.Nil(t, err)
@@ -1017,6 +1029,25 @@ func TestInPrecedence(t *testing.T) {
 
 	require.Equal(t, "2", inStmt.Left().String())
 	require.Equal(t, "float_slice([1, 2, 3])", inStmt.Right().String())
+}
+
+func TestNotInPrecedence(t *testing.T) {
+	// This confirms the correct precedence of the "not in" vs. "call" operators
+	input := `2 not in float_slice([1,2,3])`
+
+	// Parse the program, which should be 1 statement in length
+	program, err := Parse(context.Background(), input)
+	require.Nil(t, err)
+	require.Len(t, program.Statements(), 1)
+	stmt := program.First()
+
+	// The top-level of the AST should be a not in statement
+	require.IsType(t, &ast.NotIn{}, stmt)
+	notInStmt := stmt.(*ast.NotIn)
+	fmt.Println(notInStmt.String())
+
+	require.Equal(t, "2", notInStmt.Left().String())
+	require.Equal(t, "float_slice([1, 2, 3])", notInStmt.Right().String())
 }
 
 func TestNakedReturns(t *testing.T) {
