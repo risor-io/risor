@@ -355,6 +355,50 @@ func (f *For) String() string {
 	return out.String()
 }
 
+// ForIn is a statement node that defines a Python-style for-in loop.
+type ForIn struct {
+	token token.Token
+
+	// variable is the identifier that holds the current iteration value
+	variable *Ident
+
+	// iterable is the expression that provides the values to iterate over
+	iterable Node
+
+	// consequence contains the statements that make up the loop body.
+	consequence *Block
+}
+
+// NewForIn creates a new ForIn node.
+func NewForIn(token token.Token, variable *Ident, iterable Node, consequence *Block) *ForIn {
+	return &ForIn{token: token, variable: variable, iterable: iterable, consequence: consequence}
+}
+
+func (f *ForIn) StatementNode() {}
+
+func (f *ForIn) IsExpression() bool { return false }
+
+func (f *ForIn) Token() token.Token { return f.token }
+
+func (f *ForIn) Literal() string { return f.token.Literal }
+
+func (f *ForIn) Variable() *Ident { return f.variable }
+
+func (f *ForIn) Iterable() Node { return f.iterable }
+
+func (f *ForIn) Consequence() *Block { return f.consequence }
+
+func (f *ForIn) String() string {
+	var out bytes.Buffer
+	out.WriteString("for ")
+	out.WriteString(f.variable.String())
+	out.WriteString(" in ")
+	out.WriteString(f.iterable.String())
+	out.WriteString(" ")
+	out.WriteString(f.consequence.String())
+	return out.String()
+}
+
 // Assign is a statement node used to describe a variable assignment.
 type Assign struct {
 	token    token.Token

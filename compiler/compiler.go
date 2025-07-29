@@ -233,6 +233,10 @@ func (c *Compiler) compile(node ast.Node) error {
 		if err := c.compileFor(node); err != nil {
 			return err
 		}
+	case *ast.ForIn:
+		if err := c.compileForIn(node); err != nil {
+			return err
+		}
 	case *ast.Control:
 		if err := c.compileControl(node); err != nil {
 			return err
@@ -1701,6 +1705,79 @@ func (c *Compiler) compileSimpleFor(node *ast.For) error {
 		delta := jumpBackPos - pos
 		if delta > math.MaxUint16 {
 			return fmt.Errorf("compile error: loop code size exceeded limits")
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+	return nil
+}
+
+func (c *Compiler) compileForIn(node *ast.ForIn) error {
+	// Compile the iterable expression
+	if err := c.compile(node.Iterable()); err != nil {
+		return err
+	}
+	// Get an iterator for the container at TOS
+	c.emit(op.GetIter)
+
+	code := c.current
+	code.symbols = code.symbols.NewBlock()
+	loop := c.startLoop()
+	loop.isRangeLoop = true
+	defer func() {
+		loop.end()
+		code.symbols = code.symbols.parent
+	}()
+
+	// ForIter instruction: pop iterator, advance it, push current values
+	// Use 3 to indicate Python-style single variable (gets value, not key)
+	iterPos := c.emit(op.ForIter, 0, 3) // 3 indicates Python-style single variable (gets value)
+
+	// Assign the current value of the iterator to the loop variable
+	varName := node.Variable().Literal()
+	sym, err := code.symbols.InsertVariable(varName)
+	if err != nil {
+		return err
+	}
+	if code.symbols.IsGlobal() {
+		c.emit(op.StoreGlobal, sym.Index())
+	} else {
+		c.emit(op.StoreFast, sym.Index())
+	}
+
+	// Compile the body of the loop
+	if err := c.compile(node.Consequence()); err != nil {
+		return err
+	}
+	c.emit(op.PopTop)
+
+	// Jump back to the start of the loop
+	delta, err := c.calculateDelta(iterPos)
+	if err != nil {
+		return err
+	}
+	jumpBackPos := c.emit(op.JumpBackward, delta)
+
+	// Update the ForIter instruction to jump "here" when done
+	delta, err = c.calculateDelta(iterPos)
+	if err != nil {
+		return err
+	}
+	c.changeOperand(iterPos, delta)
+
+	// Update breaks to jump to this point
+	for _, pos := range loop.breakPos {
+		delta, err = c.calculateDelta(pos)
+		if err != nil {
+			return err
+		}
+		c.changeOperand(pos, uint16(delta))
+	}
+
+	// Update continues
+	for _, pos := range loop.continuePos {
+		delta := jumpBackPos - pos
+		if delta > math.MaxUint16 {
+			return c.formatError("loop code size exceeded limits", node.Token().StartPosition)
 		}
 		c.changeOperand(pos, uint16(delta))
 	}

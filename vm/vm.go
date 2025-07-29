@@ -680,6 +680,9 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				} else if nameCount == 2 {
 					vm.push(obj.Value())
 					vm.push(obj.Key())
+				} else if nameCount == 3 {
+					// Python-style for-in: single variable gets the value
+					vm.push(obj.Value())
 				} else if nameCount != 0 {
 					return errz.EvalErrorf("eval error: invalid iteration")
 				}

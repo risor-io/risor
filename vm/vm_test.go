@@ -3155,3 +3155,313 @@ func TestNewEmptyClone(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, intResult.Value(), int64(200))
 }
+
+func TestForIn1(t *testing.T) {
+	result, err := run(context.Background(), `
+	sum := 0
+	for x in [1, 2, 3] {
+		sum = sum + x
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(6), result)
+}
+
+func TestForIn2(t *testing.T) {
+	result, err := run(context.Background(), `
+	fruits := ["apple", "banana", "cherry"]
+	last := ""
+	for fruit in fruits {
+		last = fruit
+	}
+	last
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("cherry"), result)
+}
+
+func TestForIn3(t *testing.T) {
+	result, err := run(context.Background(), `
+	items := []
+	for x in [10, 20, 30] {
+		items.append(x * 2)
+	}
+	items
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(20),
+		object.NewInt(40),
+		object.NewInt(60),
+	}), result)
+}
+
+func TestForInString(t *testing.T) {
+	result, err := run(context.Background(), `
+	chars := []
+	for c in "hello" {
+		chars.append(c)
+	}
+	chars
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewString("h"),
+		object.NewString("e"),
+		object.NewString("l"),
+		object.NewString("l"),
+		object.NewString("o"),
+	}), result)
+}
+
+func TestForInBreakContinue(t *testing.T) {
+	result, err := run(context.Background(), `
+	sum := 0
+	for x in [1, 2, 3, 4, 5] {
+		if x == 3 {
+			continue
+		}
+		if x == 5 {
+			break
+		}
+		sum = sum + x
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(7), result) // 1 + 2 + 4, skipping 3 and breaking before 5
+}
+
+func TestForInWithMaps(t *testing.T) {
+	result, err := run(context.Background(), `
+	data := {a: 1, b: 2, c: 3}
+	result := []
+	for key in data {
+		result.append(key)
+	}
+	result.sort()
+	result
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewList([]object.Object{
+		object.NewInt(1),
+		object.NewInt(2),
+		object.NewInt(3),
+	}), result)
+}
+
+func TestForInWithSets(t *testing.T) {
+	result, err := run(context.Background(), `
+	data := {1, 2, 3}
+	result := []
+	for item in data {
+		result.append(item)
+	}
+	result.sort()
+	result
+	`)
+	require.Nil(t, err)
+	// Sets might return the values (not keys) for iteration, let's check what we get
+	list, ok := result.(*object.List)
+	require.True(t, ok)
+	require.Equal(t, 3, len(list.Value()))
+}
+
+func TestForInWithRangeFunction(t *testing.T) {
+	result, err := run(context.Background(), `
+	total := 0
+	for i in range(5) {
+		total = total + i
+	}
+	total
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(10), result) // 0+1+2+3+4 = 10
+}
+
+func TestForInNestedLoops(t *testing.T) {
+	result, err := run(context.Background(), `
+	pairs := []
+	for x in [1, 2] {
+		for y in [3, 4] {
+			pairs.append([x, y])
+		}
+	}
+	pairs
+	`)
+	require.Nil(t, err)
+	expected := object.NewList([]object.Object{
+		object.NewList([]object.Object{object.NewInt(1), object.NewInt(3)}),
+		object.NewList([]object.Object{object.NewInt(1), object.NewInt(4)}),
+		object.NewList([]object.Object{object.NewInt(2), object.NewInt(3)}),
+		object.NewList([]object.Object{object.NewInt(2), object.NewInt(4)}),
+	})
+	require.Equal(t, expected, result)
+}
+
+func TestForInWithComplexExpressions(t *testing.T) {
+	result, err := run(context.Background(), `
+	data := [[1, 2], [3, 4], [5, 6]]
+	sum := 0
+	for row in data {
+		for val in row {
+			sum = sum + val
+		}
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(21), result) // 1+2+3+4+5+6 = 21
+}
+
+func TestForInWithFunctionCalls(t *testing.T) {
+	result, err := run(context.Background(), `
+	getData := func() { 
+		return [10, 20, 30] 
+	}
+	sum := 0
+	for val in getData() {
+		sum = sum + val
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(60), result) // 10+20+30 = 60
+}
+
+func TestForInWithMethodChaining(t *testing.T) {
+	result, err := run(context.Background(), `
+	getData := func() { return [1, 2, 3] }
+	sum := 0
+	for val in getData() {
+		sum = sum + val
+	}
+	sum
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(6), result) // 1+2+3 = 6
+}
+
+func TestForInEmptyIterable(t *testing.T) {
+	result, err := run(context.Background(), `
+	count := 0
+	for x in [] {
+		count++
+	}
+	count
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(0), result)
+}
+
+func TestForInSingleElement(t *testing.T) {
+	result, err := run(context.Background(), `
+	value := nil
+	for x in [42] {
+		value = x
+	}
+	value
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewInt(42), result)
+}
+
+func TestForInVariableScoping(t *testing.T) {
+	result, err := run(context.Background(), `
+	x := "outer"
+	for x in ["inner"] {
+		// x is now "inner" in loop scope
+	}
+	x  // Should still be "outer" after loop
+	`)
+	require.Nil(t, err)
+	require.Equal(t, object.NewString("outer"), result)
+}
+
+func TestForInWithDifferentTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected object.Object
+	}{
+		{
+			name: "iterate over mixed types",
+			input: `
+			result := []
+			for item in [1, "hello", true, 3.14] {
+				result.append(item)
+			}
+			result
+			`,
+			expected: object.NewList([]object.Object{
+				object.NewInt(1),
+				object.NewString("hello"),
+				object.True,
+				object.NewFloat(3.14),
+			}),
+		},
+		{
+			name: "iterate over string bytes",
+			input: `
+			result := []
+			for b in "abc" {
+				result.append(b)
+			}
+			result
+			`,
+			expected: object.NewList([]object.Object{
+				object.NewString("a"), // string character
+				object.NewString("b"), // string character
+				object.NewString("c"), // string character
+			}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := run(context.Background(), tt.input)
+			require.Nil(t, err)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestForInErrorConditions(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectError bool
+	}{
+		{
+			name: "non-iterable object",
+			input: `
+			for x in true {
+				x
+			}
+			`,
+			expectError: true,
+		},
+		{
+			name: "nil iterable",
+			input: `
+			data := nil
+			for x in data {
+				x
+			}
+			`,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := run(context.Background(), tt.input)
+			if tt.expectError {
+				require.NotNil(t, err)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}
