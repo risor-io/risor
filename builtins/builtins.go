@@ -709,21 +709,39 @@ func Error(ctx context.Context, args ...object.Object) object.Object {
 	if err := arg.RequireRange("error", 1, 64, args); err != nil {
 		return err
 	}
+	
+	// Try to capture the current stack trace
+	var traceback []object.StackFrame
+	if traceFunc, ok := object.GetTraceFunc(ctx); ok {
+		traceback = traceFunc()
+	}
+	
 	switch arg := args[0].(type) {
 	case *object.Error:
 		// Return a copy of the error that has its raised flag set.
 		// It's possible an error was passed that did not have raised set.
-		return object.NewError(arg.Value()).WithRaised(true)
+		err := object.NewError(arg.Value()).WithRaised(true)
+		if len(traceback) > 0 {
+			// Use the new traceback if one was captured
+			err = err.WithTraceback(traceback)
+		} else if origTraceback := arg.GetTraceback(); len(origTraceback) > 0 {
+			// Otherwise preserve the original error's traceback
+			err = err.WithTraceback(origTraceback)
+		}
+		return err
 	case *object.String:
 		msg := arg
 		var msgArgs []interface{}
 		for _, arg := range args[1:] {
 			msgArgs = append(msgArgs, arg.Interface())
 		}
+		if len(traceback) > 0 {
+			return object.ErrorfWithTraceback(traceback, msg.Value(), msgArgs...)
+		}
 		return object.Errorf(msg.Value(), msgArgs...)
 	default:
 		return object.TypeErrorf("type error: error() expected a string or error (%s given)",
-			args[0].Type())
+			arg.Type())
 	}
 }
 
@@ -766,7 +784,12 @@ func Try(ctx context.Context, args ...object.Object) object.Object {
 				// This indicates an unrecoverable evaluation error
 				return object.NewError(err)
 			}
-			lastErr = object.NewError(err).WithRaised(false)
+			// Check if err is already an *object.Error to preserve traceback
+			if objErr, ok := err.(*object.Error); ok {
+				lastErr = objErr.WithRaised(false)
+			} else {
+				lastErr = object.NewError(err).WithRaised(false)
+			}
 			continue
 		}
 		return result

@@ -538,7 +538,7 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				switch obj := obj.(type) {
 				case *object.Error:
 					if obj.IsRaised() {
-						return obj.Value()
+						return obj
 					}
 					items[dst] = obj.Value().Error()
 				case *object.String:
@@ -897,7 +897,7 @@ func (vm *VirtualMachine) callObject(
 	case object.Callable:
 		result := fn.Call(ctx, args...)
 		if err, ok := result.(*object.Error); ok && err.IsRaised() {
-			return err.Value()
+			return err
 		}
 		vm.push(result)
 		return nil
@@ -1123,6 +1123,68 @@ func (vm *VirtualMachine) cloneCallSync(
 	return clone.callFunction(clone.initContext(ctx), fn, args)
 }
 
+// captureStackTrace captures the current stack trace from the VM
+func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
+	var frames []object.StackFrame
+	
+	// Start from the current frame and walk up the stack
+	for i := vm.fp; i >= 0; i-- {
+		frame := &vm.frames[i]
+		
+		// Check if this frame has a function
+		if frame.fn != nil {
+			// This is a function frame
+			functionName := frame.fn.Name()
+			if functionName == "" {
+				functionName = "<anonymous>"
+			}
+			
+			fileName := ""
+			// Try to get filename from the function's code first
+			if frame.fn.Code() != nil {
+				fileName = frame.fn.Code().Filename()
+			} else if frame.code != nil && frame.code.Code != nil {
+				// Fall back to frame's code
+				fileName = frame.code.Code.Filename()
+			}
+			
+			frames = append(frames, object.StackFrame{
+				FunctionName: functionName,
+				FileName:     fileName,
+				LineNumber:   0,  // TODO: Add line number support when available
+			})
+		} else if frame.code != nil {
+			// This is a code frame (main execution)
+			fileName := ""
+			if frame.code.Code != nil {
+				fileName = frame.code.Code.Filename()
+			}
+			
+			frames = append(frames, object.StackFrame{
+				FunctionName: "<module>",
+				FileName:     fileName,
+				LineNumber:   0,  // TODO: Add line number support when available
+			})
+		}
+		
+		// Stop if we hit frame 0 (the main frame)
+		if i == 0 {
+			break
+		}
+	}
+	
+	// If we don't have any frames, at least add the current context
+	if len(frames) == 0 {
+		frames = append(frames, object.StackFrame{
+			FunctionName: "<current>",
+			FileName:     "",
+			LineNumber:   0,
+		})
+	}
+	
+	return frames
+}
+
 func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 	oss := vm.getOS(ctx)
 	ctx = os.WithOS(ctx, oss)
@@ -1131,6 +1193,7 @@ func (vm *VirtualMachine) initContext(ctx context.Context) context.Context {
 		ctx = object.WithSpawnFunc(ctx, vm.cloneCallAsync)
 		ctx = object.WithCloneCallFunc(ctx, vm.cloneCallSync)
 	}
+	ctx = object.WithTraceFunc(ctx, vm.captureStackTrace)
 	return ctx
 }
 
