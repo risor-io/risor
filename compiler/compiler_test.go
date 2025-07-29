@@ -498,80 +498,30 @@ func TestForwardDeclarationInstructionGeneration(t *testing.T) {
 }
 
 func TestForInCompilation(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected []op.Code
-	}{
-		{
-			name:  "basic for-in loop",
-			input: "for x in [1, 2, 3] { x }",
-			expected: []op.Code{
-				op.BuildList,    // Create array [1, 2, 3]
-				op.GetIter,      // Get iterator
-				op.ForIter,      // ForIter instruction
-				op.StoreFast,    // Store to variable x
-				op.LoadFast,     // Load x
-				op.PopTop,       // Pop result
-				op.JumpBackward, // Jump back to ForIter
-			},
-		},
-		{
-			name:  "for-in with variable assignment",
-			input: "result := 0; for x in [1, 2] { result = result + x }",
-			expected: []op.Code{
-				op.LoadConst,    // 0
-				op.StoreFast,    // result := 0
-				op.BuildList,    // [1, 2]
-				op.GetIter,      // Get iterator
-				op.ForIter,      // ForIter instruction
-				op.StoreFast,    // Store to x
-				op.LoadFast,     // Load result
-				op.LoadFast,     // Load x
-				op.BinaryOp,     // result + x (binary operation)
-				op.StoreFast,    // result = ...
-				op.PopTop,       // Pop assignment result
-				op.JumpBackward, // Jump back
-			},
-		},
+	input := "for x in [1, 2, 3] { x }"
+	expectedCode := []op.Code{
+		op.LoadConst, 0, // 1
+		op.LoadConst, 1, // 2
+		op.LoadConst, 2, // 3
+		op.BuildList, 3, // Create array [1, 2, 3] with 3 elements
+		op.GetIter,        // Get iterator
+		op.ForIter, 10, 3, // ForIter with 2 operands: jump offset 10, operand 3
+		op.StoreGlobal, 0, // Store to global variable x
+		op.LoadGlobal, 0, // Load global variable x
+		op.PopTop,          // Pop result
+		op.JumpBackward, 8, // Jump back 8 instructions to ForIter
+		op.Nil, // Return nil
 	}
+	expectedConstants := []interface{}{int64(1), int64(2), int64(3)}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			program, err := parser.Parse(context.Background(), tt.input)
-			require.Nil(t, err)
+	program, err := parser.Parse(context.Background(), input)
+	require.NoError(t, err)
 
-			c, err := New()
-			require.Nil(t, err)
+	code, err := Compile(program)
+	require.NoError(t, err)
 
-			code, err := c.Compile(program)
-			require.Nil(t, err)
-			require.NotNil(t, code)
-
-			// Verify basic compilation succeeded
-			require.Greater(t, code.InstructionCount(), 0)
-
-			// Check for presence of key opcodes
-			instructions := make([]op.Code, code.InstructionCount())
-			for i := 0; i < code.InstructionCount(); i++ {
-				instructions[i] = op.Code(code.Instruction(i))
-			}
-
-			// Verify GetIter and ForIter are present
-			hasGetIter := false
-			hasForIter := false
-			for _, instr := range instructions {
-				if instr == op.GetIter {
-					hasGetIter = true
-				}
-				if instr == op.ForIter {
-					hasForIter = true
-				}
-			}
-			require.True(t, hasGetIter, "Expected GetIter instruction")
-			require.True(t, hasForIter, "Expected ForIter instruction")
-		})
-	}
+	require.Equal(t, expectedCode, code.instructions)
+	require.Equal(t, expectedConstants, code.constants)
 }
 
 func TestForInCompilationErrors(t *testing.T) {
