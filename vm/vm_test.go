@@ -3159,7 +3159,7 @@ func TestNewEmptyClone(t *testing.T) {
 func TestForIn1(t *testing.T) {
 	result, err := run(context.Background(), `
 	sum := 0
-	for x in [1, 2, 3]: {
+	for x in [1, 2, 3] {
 		sum = sum + x
 	}
 	sum
@@ -3172,7 +3172,7 @@ func TestForIn2(t *testing.T) {
 	result, err := run(context.Background(), `
 	fruits := ["apple", "banana", "cherry"]
 	last := ""
-	for fruit in fruits: {
+	for fruit in fruits {
 		last = fruit
 	}
 	last
@@ -3184,7 +3184,7 @@ func TestForIn2(t *testing.T) {
 func TestForIn3(t *testing.T) {
 	result, err := run(context.Background(), `
 	items := []
-	for x in [10, 20, 30]: {
+	for x in [10, 20, 30] {
 		items.append(x * 2)
 	}
 	items
@@ -3200,7 +3200,7 @@ func TestForIn3(t *testing.T) {
 func TestForInString(t *testing.T) {
 	result, err := run(context.Background(), `
 	chars := []
-	for c in "hello": {
+	for c in "hello" {
 		chars.append(c)
 	}
 	chars
@@ -3218,7 +3218,7 @@ func TestForInString(t *testing.T) {
 func TestForInBreakContinue(t *testing.T) {
 	result, err := run(context.Background(), `
 	sum := 0
-	for x in [1, 2, 3, 4, 5]: {
+	for x in [1, 2, 3, 4, 5] {
 		if x == 3 {
 			continue
 		}

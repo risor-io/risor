@@ -394,7 +394,7 @@ func (f *ForIn) String() string {
 	out.WriteString(f.variable.String())
 	out.WriteString(" in ")
 	out.WriteString(f.iterable.String())
-	out.WriteString(": ")
+	out.WriteString(" ")
 	out.WriteString(f.consequence.String())
 	return out.String()
 }

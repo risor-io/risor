@@ -1076,7 +1076,7 @@ func (p *Parser) parseFor() ast.Node {
 		return ast.NewSimpleFor(forToken, consequence)
 	}
 
-	// Check for Python-style "for x in iterable:" form
+	// Check for Python-style "for x in iterable" form
 	if p.curTokenIs(token.IDENT) && p.peekTokenIs(token.IN) {
 		// Parse variable identifier
 		variable := ast.NewIdent(p.curToken)
@@ -1090,12 +1090,7 @@ func (p *Parser) parseFor() ast.Node {
 			return nil
 		}
 		
-		// Expect colon
-		if !p.expectPeek("for-in loop", token.COLON) {
-			return nil
-		}
-		
-		// For Python-style syntax, we expect a block after the colon
+		// Expect opening brace directly (no colon)
 		if !p.expectPeek("for-in loop", token.LBRACE) {
 			return nil
 		}

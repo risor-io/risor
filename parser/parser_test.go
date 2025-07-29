@@ -1232,17 +1232,17 @@ func TestForInLoop(t *testing.T) {
 		iterable string
 	}{
 		{
-			"for x in [1, 2, 3]: { }",
+			"for x in [1, 2, 3] { }",
 			"x",
 			"[1, 2, 3]",
 		},
 		{
-			"for item in items: { print(item) }",
+			"for item in items { print(item) }",
 			"item",
 			"items",
 		},
 		{
-			"for fruit in fruits: { print(fruit) }",
+			"for fruit in fruits { print(fruit) }",
 			"fruit",
 			"fruits",
 		},
