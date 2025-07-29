@@ -565,6 +565,38 @@ func (i *In) String() string {
 	return out.String()
 }
 
+// NotIn is an expression node that checks whether a value is NOT present in a container.
+type NotIn struct {
+	token token.Token
+	left  Expression
+	right Expression
+}
+
+// NewNotIn creates a new NotIn node.
+func NewNotIn(token token.Token, left Expression, right Expression) *NotIn {
+	return &NotIn{token: token, left: left, right: right}
+}
+
+func (n *NotIn) ExpressionNode() {}
+
+func (n *NotIn) IsExpression() bool { return true }
+
+func (n *NotIn) Token() token.Token { return n.token }
+
+func (n *NotIn) Literal() string { return n.token.Literal }
+
+func (n *NotIn) Left() Expression { return n.left }
+
+func (n *NotIn) Right() Expression { return n.right }
+
+func (n *NotIn) String() string {
+	var out bytes.Buffer
+	out.WriteString(n.left.String())
+	out.WriteString(" not in ")
+	out.WriteString(n.right.String())
+	return out.String()
+}
+
 // Range is an expression node that describes iterating over a container.
 type Range struct {
 	// the "range" token

@@ -75,6 +75,7 @@ const (
 	MOD             = "%"
 	NOT_EQ          = "!="
 	NIL             = "nil"
+	NOT             = "NOT"
 	PIPE            = "|"
 	OR              = "||"
 	PERIOD          = "."
@@ -126,6 +127,7 @@ var keywords = map[string]Type{
 	"import":   IMPORT,
 	"in":       IN,
 	"nil":      NIL,
+	"not":      NOT,
 	"range":    RANGE,
 	"return":   RETURN,
 	"struct":   STRUCT,
