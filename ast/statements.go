@@ -21,6 +21,9 @@ type Var struct {
 
 	// isWalrus is true if this is a ":=" statement.
 	isWalrus bool
+
+	// typeAnnotation is an optional type annotation (e.g., var x: string = "hello")
+	typeAnnotation *TypeAnnotation
 }
 
 // NewVar creates a new Var node.
@@ -28,9 +31,19 @@ func NewVar(token token.Token, name *Ident, value Expression) *Var {
 	return &Var{token: token, name: name, value: value}
 }
 
+// NewVarWithType creates a new Var node with a type annotation.
+func NewVarWithType(token token.Token, name *Ident, value Expression, typeAnnotation *TypeAnnotation) *Var {
+	return &Var{token: token, name: name, value: value, typeAnnotation: typeAnnotation}
+}
+
 // NewDeclaration creates a new Var node that is a declaration.
 func NewDeclaration(token token.Token, name *Ident, value Expression) *Var {
 	return &Var{token: token, name: name, value: value, isWalrus: true}
+}
+
+// NewDeclarationWithType creates a new Var node that is a declaration with type annotation.
+func NewDeclarationWithType(token token.Token, name *Ident, value Expression, typeAnnotation *TypeAnnotation) *Var {
+	return &Var{token: token, name: name, value: value, isWalrus: true, typeAnnotation: typeAnnotation}
 }
 
 func (s *Var) StatementNode() {}
@@ -45,15 +58,27 @@ func (s *Var) Value() (string, Expression) { return s.name.value, s.value }
 
 func (s *Var) IsWalrus() bool { return s.isWalrus }
 
+// TypeAnnotation returns the type annotation if present
+func (s *Var) TypeAnnotation() *TypeAnnotation { return s.typeAnnotation }
+
 func (s *Var) String() string {
 	var out bytes.Buffer
 	if s.isWalrus {
-		out.WriteString(s.name.Literal() + " := ")
+		out.WriteString(s.name.Literal())
+		if s.typeAnnotation != nil {
+			out.WriteString(": ")
+			out.WriteString(s.typeAnnotation.String())
+		}
+		out.WriteString(" := ")
 		out.WriteString(s.value.String())
 		return out.String()
 	}
 	out.WriteString(s.Literal() + " ")
 	out.WriteString(s.name.Literal())
+	if s.typeAnnotation != nil {
+		out.WriteString(": ")
+		out.WriteString(s.typeAnnotation.String())
+	}
 	out.WriteString(" = ")
 	if s.value != nil {
 		out.WriteString(s.value.String())
@@ -659,4 +684,134 @@ func (s *Send) Value() Expression { return s.value }
 
 func (s *Send) String() string {
 	return fmt.Sprintf("%s <- %s", s.channel.String(), s.value.String())
+}
+
+// TypeDecl represents a type declaration statement
+// Supports: type MyType { field1: string, field2: int }
+type TypeDecl struct {
+	token token.Token
+	name  *Ident
+	fields []*TypeField
+}
+
+// TypeField represents a field in a type declaration
+type TypeField struct {
+	name     *Ident
+	typeExpr Expression // Type expression (could be an identifier like "string" or complex type)
+}
+
+// NewTypeDecl creates a new TypeDecl node
+func NewTypeDecl(token token.Token, name *Ident, fields []*TypeField) *TypeDecl {
+	return &TypeDecl{token: token, name: name, fields: fields}
+}
+
+// NewTypeField creates a new TypeField node
+func NewTypeField(name *Ident, typeExpr Expression) *TypeField {
+	return &TypeField{name: name, typeExpr: typeExpr}
+}
+
+func (td *TypeDecl) StatementNode() {}
+
+func (td *TypeDecl) IsExpression() bool { return false }
+
+func (td *TypeDecl) Token() token.Token { return td.token }
+
+func (td *TypeDecl) Literal() string { return td.token.Literal }
+
+func (td *TypeDecl) Name() *Ident { return td.name }
+
+func (td *TypeDecl) Fields() []*TypeField { return td.fields }
+
+func (td *TypeDecl) String() string {
+	var out bytes.Buffer
+	out.WriteString("type ")
+	out.WriteString(td.name.String())
+	out.WriteString(" {\n")
+	for _, field := range td.fields {
+		out.WriteString("  ")
+		out.WriteString(field.name.String())
+		out.WriteString(": ")
+		out.WriteString(field.typeExpr.String())
+		out.WriteString("\n")
+	}
+	out.WriteString("}")
+	return out.String()
+}
+
+func (tf *TypeField) Name() *Ident { return tf.name }
+
+func (tf *TypeField) TypeExpr() Expression { return tf.typeExpr }
+
+// InterfaceDecl represents an interface declaration statement  
+// Supports: interface MyInterface { method1(string): int, method2(): void }
+type InterfaceDecl struct {
+	token   token.Token
+	name    *Ident
+	methods []*InterfaceMethod
+}
+
+// InterfaceMethod represents a method signature in an interface
+type InterfaceMethod struct {
+	name       *Ident
+	parameters []*Ident
+	returnType Expression // Optional return type
+}
+
+// NewInterfaceDecl creates a new InterfaceDecl node
+func NewInterfaceDecl(token token.Token, name *Ident, methods []*InterfaceMethod) *InterfaceDecl {
+	return &InterfaceDecl{token: token, name: name, methods: methods}
+}
+
+// NewInterfaceMethod creates a new InterfaceMethod node
+func NewInterfaceMethod(name *Ident, parameters []*Ident, returnType Expression) *InterfaceMethod {
+	return &InterfaceMethod{name: name, parameters: parameters, returnType: returnType}
+}
+
+func (id *InterfaceDecl) StatementNode() {}
+
+func (id *InterfaceDecl) IsExpression() bool { return false }
+
+func (id *InterfaceDecl) Token() token.Token { return id.token }
+
+func (id *InterfaceDecl) Literal() string { return id.token.Literal }
+
+func (id *InterfaceDecl) Name() *Ident { return id.name }
+
+func (id *InterfaceDecl) Methods() []*InterfaceMethod { return id.methods }
+
+func (id *InterfaceDecl) String() string {
+	var out bytes.Buffer
+	out.WriteString("interface ")
+	out.WriteString(id.name.String())
+	out.WriteString(" {\n")
+	for _, method := range id.methods {
+		out.WriteString("  ")
+		out.WriteString(method.String())
+		out.WriteString("\n")
+	}
+	out.WriteString("}")
+	return out.String()
+}
+
+func (im *InterfaceMethod) Name() *Ident { return im.name }
+
+func (im *InterfaceMethod) Parameters() []*Ident { return im.parameters }
+
+func (im *InterfaceMethod) ReturnType() Expression { return im.returnType }
+
+func (im *InterfaceMethod) String() string {
+	var out bytes.Buffer
+	out.WriteString(im.name.String())
+	out.WriteString("(")
+	params := make([]string, 0, len(im.parameters))
+	for _, p := range im.parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(")")
+	if im.returnType != nil {
+		out.WriteString(": ")
+		out.WriteString(im.returnType.String())
+	}
+	return out.String()
 }

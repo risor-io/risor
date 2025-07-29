@@ -107,6 +107,9 @@ type Func struct {
 
 	name *Ident
 
+	// receiver is an optional method receiver (e.g., func (m MyType) method() {})
+	receiver *MethodReceiver
+
 	// parameters is the list of parameters the function receives.
 	parameters []*Ident
 
@@ -115,6 +118,20 @@ type Func struct {
 
 	// body contains the set of statements within the function.
 	body *Block
+
+	// returnType is an optional return type annotation
+	returnType Expression
+}
+
+// MethodReceiver represents a method receiver
+type MethodReceiver struct {
+	name     *Ident
+	typeName *Ident
+}
+
+// NewMethodReceiver creates a new MethodReceiver
+func NewMethodReceiver(name *Ident, typeName *Ident) *MethodReceiver {
+	return &MethodReceiver{name: name, typeName: typeName}
 }
 
 // NewFunc creates a new Func node.
@@ -125,6 +142,43 @@ func NewFunc(token token.Token, name *Ident, parameters []*Ident, defaults map[s
 		parameters: parameters,
 		defaults:   defaults,
 		body:       body,
+	}
+}
+
+// NewFuncWithReceiver creates a new Func node with a method receiver.
+func NewFuncWithReceiver(token token.Token, name *Ident, receiver *MethodReceiver, parameters []*Ident, defaults map[string]Expression, body *Block) *Func {
+	return &Func{
+		token:      token,
+		name:       name,
+		receiver:   receiver,
+		parameters: parameters,
+		defaults:   defaults,
+		body:       body,
+	}
+}
+
+// NewFuncWithReturnType creates a new Func node with a return type.
+func NewFuncWithReturnType(token token.Token, name *Ident, parameters []*Ident, defaults map[string]Expression, body *Block, returnType Expression) *Func {
+	return &Func{
+		token:      token,
+		name:       name,
+		parameters: parameters,
+		defaults:   defaults,
+		body:       body,
+		returnType: returnType,
+	}
+}
+
+// NewFuncComplete creates a new Func node with optional receiver and return type.
+func NewFuncComplete(token token.Token, name *Ident, receiver *MethodReceiver, parameters []*Ident, defaults map[string]Expression, body *Block, returnType Expression) *Func {
+	return &Func{
+		token:      token,
+		name:       name,
+		receiver:   receiver,
+		parameters: parameters,
+		defaults:   defaults,
+		body:       body,
+		returnType: returnType,
 	}
 }
 
@@ -152,6 +206,12 @@ func (f *Func) Defaults() map[string]Expression { return f.defaults }
 
 func (f *Func) Body() *Block { return f.body }
 
+// Receiver returns the method receiver if present
+func (f *Func) Receiver() *MethodReceiver { return f.receiver }
+
+// ReturnType returns the return type annotation if present  
+func (f *Func) ReturnType() Expression { return f.returnType }
+
 func (f *Func) String() string {
 	var out bytes.Buffer
 	params := make([]string, 0)
@@ -159,12 +219,22 @@ func (f *Func) String() string {
 		params = append(params, p.value)
 	}
 	out.WriteString(f.Literal())
+	if f.receiver != nil {
+		out.WriteString(" (")
+		out.WriteString(f.receiver.String())
+		out.WriteString(")")
+	}
 	if f.name != nil {
 		out.WriteString(" " + f.name.value)
 	}
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(") { ")
+	out.WriteString(")")
+	if f.returnType != nil {
+		out.WriteString(": ")
+		out.WriteString(f.returnType.String())
+	}
+	out.WriteString(" { ")
 	out.WriteString(f.body.String())
 	out.WriteString(" }")
 	return out.String()
@@ -310,4 +380,12 @@ func (s *Set) String() string {
 	out.WriteString(strings.Join(items, ", "))
 	out.WriteString("}")
 	return out.String()
+}
+
+func (mr *MethodReceiver) Name() *Ident { return mr.name }
+
+func (mr *MethodReceiver) TypeName() *Ident { return mr.typeName }
+
+func (mr *MethodReceiver) String() string {
+	return mr.name.String() + " " + mr.typeName.String()
 }
