@@ -1,0 +1,98 @@
+// Example Risor program for testing language server features
+// This file demonstrates various Risor language constructs
+
+// Configuration object
+var config = {
+    "host": "localhost",
+    "port": 8080,
+    "debug": true,
+    "timeout": 30.5
+}
+
+// Simple function
+greet := func(name) {
+    if name == "" {
+        return "Hello, World!"
+    }
+    return sprintf("Hello, %s!", name)
+}
+
+// Function with multiple parameters
+calculate := func(operation, a, b) {
+    if operation == "add" {
+        return a + b
+    } else if operation == "subtract" {
+        return a - b
+    } else if operation == "multiply" {
+        return a * b
+    } else if operation == "divide" {
+        if b == 0 {
+            return "Division by zero error"
+        }
+        return a / b
+    }
+    return "Unknown operation"
+}
+
+// Array operations
+numbers := [1, 2, 3, 4, 5]
+doubled := []
+
+for num in numbers {
+    doubled = append(doubled, num * 2)
+}
+
+// Object manipulation
+person := {
+    "name": "Alice",
+    "age": 30,
+    "email": "alice@example.com"
+}
+
+// Test various builtins
+println("Config:", config)
+println("Numbers length:", len(numbers))
+println("Greeting:", greet("Developer"))
+println("Calculation:", calculate("add", 10, 5))
+
+// String manipulation
+message := "   Hello, Risor!   "
+trimmed := strings.trim_space(message)
+upper := strings.to_upper(trimmed)
+println("Processed message:", upper)
+
+// Error handling example
+safe_divide := func(a, b) {
+    if b == 0 {
+        return nil, "cannot divide by zero"
+    }
+    return a / b, nil
+}
+
+result, err := safe_divide(10, 2)
+if err != nil {
+    println("Error:", err)
+} else {
+    println("Result:", result)
+}
+
+// Range operations
+for i in range(3) {
+    println("Index:", i)
+}
+
+for i in range(1, 4) {
+    println("Range 1-4:", i)
+}
+
+// List comprehension style
+squares := []
+for i in range(1, 6) {
+    squares = append(squares, i * i)
+}
+println("Squares:", squares)
+
+// Dictionary access examples
+name := person["name"]
+age := person["age"]
+println("Person info:", name, age)
