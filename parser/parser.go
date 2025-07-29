@@ -134,6 +134,8 @@ func New(l *lexer.Lexer, options ...Option) *Parser {
 	p.registerPrefix(token.FUNC, p.parseFunc)
 	p.registerPrefix(token.GO, p.parseGo)
 	p.registerPrefix(token.IDENT, p.parseIdent)
+	p.registerPrefix(token.TYPE, p.parseIdent) // Allow 'type' as identifier in expressions
+	p.registerPrefix(token.INTERFACE, p.parseIdent) // Allow 'interface' as identifier in expressions
 	p.registerPrefix(token.IF, p.parseIf)
 	p.registerPrefix(token.ILLEGAL, p.illegalToken)
 	p.registerPrefix(token.IMPORT, p.parseImport)
@@ -318,6 +320,10 @@ func (p *Parser) parseStatement() ast.Node {
 		stmt = p.parseVar()
 	case token.CONST:
 		stmt = p.parseConst()
+	case token.TYPE:
+		stmt = p.parseTypeDecl()
+	case token.INTERFACE:
+		stmt = p.parseInterfaceDecl()
 	case token.RETURN:
 		stmt = p.parseReturn()
 	case token.BREAK:
@@ -327,7 +333,7 @@ func (p *Parser) parseStatement() ast.Node {
 	case token.NEWLINE:
 		stmt = nil
 	case token.IDENT:
-		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) {
+		if p.peekTokenIs(token.DECLARE) || p.peekTokenIs(token.COMMA) || p.peekTokenIs(token.COLON) {
 			stmt = p.parseDeclaration()
 		} else {
 			stmt = p.parseExpressionStatement()
@@ -355,6 +361,20 @@ func (p *Parser) parseVar() ast.Node {
 		}
 		idents = append(idents, ast.NewIdent(p.curToken))
 	}
+	
+	// Check for optional type annotation
+	var typeAnnotation *ast.TypeAnnotation
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // move to ':'
+		colonToken := p.curToken
+		p.nextToken() // move past ':'
+		typeExpr := p.parseExpression(TERNARY) // Use TERNARY precedence to exclude assignment operations
+		if typeExpr == nil {
+			return nil
+		}
+		typeAnnotation = ast.NewTypeAnnotation(colonToken, typeExpr)
+	}
+	
 	if !p.expectPeek("var statement", token.ASSIGN) {
 		return nil
 	}
@@ -365,6 +385,9 @@ func (p *Parser) parseVar() ast.Node {
 	}
 	if len(idents) > 1 {
 		return ast.NewMultiVar(tok, idents, value, false)
+	}
+	if typeAnnotation != nil {
+		return ast.NewVarWithType(tok, idents[0], value, typeAnnotation)
 	}
 	return ast.NewVar(tok, idents[0], value)
 }
@@ -379,6 +402,20 @@ func (p *Parser) parseDeclaration() ast.Node {
 		}
 		idents = append(idents, ast.NewIdent(p.curToken))
 	}
+	
+	// Check for optional type annotation
+	var typeAnnotation *ast.TypeAnnotation
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // move to ':'
+		colonToken := p.curToken
+		p.nextToken() // move past ':'
+		typeExpr := p.parseExpression(TERNARY) // Use TERNARY precedence to exclude assignment operations
+		if typeExpr == nil {
+			return nil
+		}
+		typeAnnotation = ast.NewTypeAnnotation(colonToken, typeExpr)
+	}
+	
 	var isWalrus bool
 	switch p.peekToken.Type {
 	case token.ASSIGN:
@@ -398,7 +435,17 @@ func (p *Parser) parseDeclaration() ast.Node {
 	if len(idents) > 1 {
 		return ast.NewMultiVar(tok, idents, value, isWalrus)
 	}
-	return ast.NewDeclaration(tok, idents[0], value)
+	if typeAnnotation != nil {
+		if isWalrus {
+			return ast.NewDeclarationWithType(tok, idents[0], value, typeAnnotation)
+		} else {
+			return ast.NewVarWithType(tok, idents[0], value, typeAnnotation)
+		}
+	}
+	if isWalrus {
+		return ast.NewDeclaration(tok, idents[0], value)
+	}
+	return ast.NewVar(tok, idents[0], value)
 }
 
 func (p *Parser) parseConst() *ast.Const {
@@ -1196,19 +1243,67 @@ func (p *Parser) parseBlock() *ast.Block {
 
 func (p *Parser) parseFunc() ast.Node {
 	funcToken := p.curToken
+	
+	// Simple approach: parse function name first, then check for receiver
 	var ident *ast.Ident
-	if p.peekTokenIs(token.IDENT) { // Read optional function name
+	var receiver *ast.MethodReceiver
+	
+	// Try to parse function name 
+	if p.peekTokenIs(token.IDENT) {
 		p.nextToken()
 		ident = ast.NewIdent(p.curToken)
 	}
+	
+	// Special case: if no function name and we see (, try receiver
+	// Use lookahead to check if this matches receiver pattern
+	if ident == nil && p.peekTokenIs(token.LPAREN) {
+		// Manually look ahead to see if this is a receiver: ( IDENT IDENT ) IDENT
+		if p.isReceiverPattern() {
+			p.nextToken() // move to (
+			p.nextToken() // move to receiver name
+			receiverName := ast.NewIdent(p.curToken)
+			p.nextToken() // move to receiver type
+			receiverType := ast.NewIdent(p.curToken)
+			p.nextToken() // move to )
+			receiver = ast.NewMethodReceiver(receiverName, receiverType)
+			// Parse function name
+			if p.peekTokenIs(token.IDENT) {
+				p.nextToken()
+				ident = ast.NewIdent(p.curToken)
+			}
+		}
+	}
+	
 	if !p.expectPeek("function", token.LPAREN) { // Move to the "("
 		return nil
 	}
 	defaults, params := p.parseFuncParams()
+	
+	// Check for return type annotation
+	var returnType ast.Expression
+	if p.peekTokenIs(token.COLON) {
+		p.nextToken() // move to ':'
+		p.nextToken() // move past ':'
+		returnType = p.parseExpression(TERNARY)
+	}
+	
 	if !p.expectPeek("function", token.LBRACE) { // move to the "{"
 		return nil
 	}
-	return ast.NewFunc(funcToken, ident, params, defaults, p.parseBlock())
+	
+	body := p.parseBlock()
+	
+	// Use the complete constructor that handles both receiver and return type
+	return ast.NewFuncComplete(funcToken, ident, receiver, params, defaults, body, returnType)
+}
+
+// isReceiverPattern checks if the upcoming tokens match the receiver pattern: ( IDENT IDENT ) IDENT
+func (p *Parser) isReceiverPattern() bool {
+	// For now, we'll use a simple heuristic
+	// If we're at a ( token, we can only know for sure by parsing
+	// Let's be conservative and assume it's not a receiver for now
+	// TODO: Implement proper lookahead when we have better lexer support
+	return false
 }
 
 func (p *Parser) parseFuncParams() (map[string]ast.Expression, []*ast.Ident) {
@@ -1813,4 +1908,146 @@ func (p *Parser) eatNewlines() {
 			return
 		}
 	}
+}
+
+// parseTypeDecl parses a type declaration
+// Supports: type MyType { field1: string, field2: int }
+func (p *Parser) parseTypeDecl() ast.Node {
+	tok := p.curToken
+	if !p.expectPeek("type declaration", token.IDENT) {
+		return nil
+	}
+	name := ast.NewIdent(p.curToken)
+	if !p.expectPeek("type declaration", token.LBRACE) {
+		return nil
+	}
+	p.nextToken() // move past '{'
+	
+	// Skip newlines
+	for p.curTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	
+	var fields []*ast.TypeField
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		// Skip newlines and whitespace
+		if p.curTokenIs(token.NEWLINE) {
+			p.nextToken()
+			continue
+		}
+		
+		if !p.curTokenIs(token.IDENT) {
+			p.setTokenError(p.curToken, "expected field name in type declaration")
+			return nil
+		}
+		fieldName := ast.NewIdent(p.curToken)
+		if !p.expectPeek("type declaration field", token.COLON) {
+			return nil
+		}
+		p.nextToken() // move past ':'
+		fieldType := p.parseExpression(LOWEST)
+		if fieldType == nil {
+			return nil
+		}
+		fields = append(fields, ast.NewTypeField(fieldName, fieldType))
+		
+		// Handle optional comma and newlines
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken() // move past comma
+		} else {
+			p.nextToken()
+		}
+		
+		// Skip newlines
+		for p.curTokenIs(token.NEWLINE) {
+			p.nextToken()
+		}
+	}
+	if !p.curTokenIs(token.RBRACE) {
+		p.setTokenError(p.curToken, "expected '}' to close type declaration")
+		return nil
+	}
+	return ast.NewTypeDecl(tok, name, fields)
+}
+
+// parseInterfaceDecl parses an interface declaration  
+// Supports: interface MyInterface { method1(string): int, method2(): void }
+func (p *Parser) parseInterfaceDecl() ast.Node {
+	tok := p.curToken
+	if !p.expectPeek("interface declaration", token.IDENT) {
+		return nil
+	}
+	name := ast.NewIdent(p.curToken)
+	if !p.expectPeek("interface declaration", token.LBRACE) {
+		return nil
+	}
+	p.nextToken() // move past '{'
+	
+	// Skip newlines
+	for p.curTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	
+	var methods []*ast.InterfaceMethod
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		// Skip newlines and whitespace
+		if p.curTokenIs(token.NEWLINE) {
+			p.nextToken()
+			continue
+		}
+		
+		if !p.curTokenIs(token.IDENT) {
+			p.setTokenError(p.curToken, "expected method name in interface declaration")
+			return nil
+		}
+		methodName := ast.NewIdent(p.curToken)
+		if !p.expectPeek("interface method", token.LPAREN) {
+			return nil
+		}
+		// Parse method parameters (simplified for now)
+		p.nextToken() // move past '('
+		var params []*ast.Ident
+		for !p.curTokenIs(token.RPAREN) && !p.curTokenIs(token.EOF) {
+			if p.curTokenIs(token.IDENT) {
+				params = append(params, ast.NewIdent(p.curToken))
+			}
+			p.nextToken()
+			if p.curTokenIs(token.COMMA) {
+				p.nextToken()
+			}
+		}
+		if !p.curTokenIs(token.RPAREN) {
+			p.setTokenError(p.curToken, "expected ')' in interface method")
+			return nil
+		}
+		
+		// Parse optional return type
+		var returnType ast.Expression
+		if p.peekTokenIs(token.COLON) {
+			p.nextToken() // move to ':'
+			p.nextToken() // move past ':'
+			returnType = p.parseExpression(LOWEST)
+		}
+		
+		methods = append(methods, ast.NewInterfaceMethod(methodName, params, returnType))
+		
+		// Handle optional comma and newlines
+		if p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken() // move past comma
+		} else {
+			p.nextToken()
+		}
+		
+		// Skip newlines
+		for p.curTokenIs(token.NEWLINE) {
+			p.nextToken()
+		}
+	}
+	if !p.curTokenIs(token.RBRACE) {
+		p.setTokenError(p.curToken, "expected '}' to close interface declaration")
+		return nil
+	}
+	return ast.NewInterfaceDecl(tok, name, methods)
 }

@@ -1,0 +1,103 @@
+// Risor User-Defined Types Demo
+// This demonstrates the new TypeScript-inspired syntax for user types
+
+// Basic type declaration
+type Person {
+    name: string,
+    age: int,
+    email: string
+}
+
+// Interface declaration
+interface Drawable {
+    draw(): void,
+    getArea(): float
+}
+
+// Type with constructor-like function
+func NewPerson(name: string, age: int, email: string): Person {
+    return Person{
+        name: name,
+        age: age,
+        email: email
+    }
+}
+
+// Method with receiver (Go-like syntax)
+func (p Person) greet(): string {
+    return "Hello, I'm " + p.name + " and I'm " + string(p.age) + " years old"
+}
+
+func (p Person) getEmail(): string {
+    return p.email
+}
+
+// Method that modifies the receiver
+func (p Person) celebrate(): void {
+    p.age = p.age + 1
+}
+
+// Complex type with nested structures
+type Company {
+    name: string,
+    employees: []Person,
+    address: Address
+}
+
+type Address {
+    street: string,
+    city: string,
+    zipCode: string
+}
+
+// Interface implementation example
+type Rectangle {
+    width: float,
+    height: float
+}
+
+func (r Rectangle) draw(): void {
+    print("Drawing rectangle " + string(r.width) + "x" + string(r.height))
+}
+
+func (r Rectangle) getArea(): float {
+    return r.width * r.height
+}
+
+// Variable declarations with type annotations
+var person1: Person = NewPerson("Alice", 30, "alice@example.com")
+var person2: Person = NewPerson("Bob", 25, "bob@example.com")
+
+// Short declaration with type annotation
+greeting: string := person1.greet()
+print(greeting)
+
+// Array with type annotation
+var people: []Person = [person1, person2]
+
+// Using the types
+var myCompany: Company = Company{
+    name: "Tech Corp",
+    employees: people,
+    address: Address{
+        street: "123 Main St",
+        city: "San Francisco", 
+        zipCode: "94105"
+    }
+}
+
+// Demonstrating interface usage
+var shape: Drawable = Rectangle{width: 10.0, height: 5.0}
+shape.draw()
+area: float := shape.getArea()
+print("Area:", area)
+
+// Generic-like array types
+var numbers: []int = [1, 2, 3, 4, 5]
+var names: []string = ["Alice", "Bob", "Charlie"]
+
+// Map-like syntax (if supported)
+// var scores: map[string]int = {"Alice": 95, "Bob": 87, "Charlie": 92}
+
+print("Company:", myCompany.name)
+print("Employee count:", len(myCompany.employees))

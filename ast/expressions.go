@@ -628,3 +628,77 @@ func (r *Receive) String() string {
 	out.WriteString(r.channel.String())
 	return out.String()
 }
+
+// TypeAnnotation represents a type annotation for variables
+// Supports: var x: string = "hello" or x: string := "hello"
+type TypeAnnotation struct {
+	token    token.Token
+	typeExpr Expression
+}
+
+// NewTypeAnnotation creates a new TypeAnnotation node
+func NewTypeAnnotation(token token.Token, typeExpr Expression) *TypeAnnotation {
+	return &TypeAnnotation{token: token, typeExpr: typeExpr}
+}
+
+func (ta *TypeAnnotation) ExpressionNode() {}
+
+func (ta *TypeAnnotation) IsExpression() bool { return true }
+
+func (ta *TypeAnnotation) Token() token.Token { return ta.token }
+
+func (ta *TypeAnnotation) Literal() string { return ta.token.Literal }
+
+func (ta *TypeAnnotation) TypeExpr() Expression { return ta.typeExpr }
+
+func (ta *TypeAnnotation) String() string {
+	return ta.typeExpr.String()
+}
+
+// TypeExpression represents a type expression (array types, generic types, etc.)
+// Supports: []int, map[string]int, MyType, etc.
+type TypeExpression struct {
+	token    token.Token
+	baseType *Ident
+	params   []Expression // For generic-like types: []int has [] as operator and int as param
+	operator string       // For array types: "[]", for map types: "map", etc.
+}
+
+// NewTypeExpression creates a new TypeExpression node
+func NewTypeExpression(token token.Token, baseType *Ident, operator string, params []Expression) *TypeExpression {
+	return &TypeExpression{token: token, baseType: baseType, operator: operator, params: params}
+}
+
+func (te *TypeExpression) ExpressionNode() {}
+
+func (te *TypeExpression) IsExpression() bool { return true }
+
+func (te *TypeExpression) Token() token.Token { return te.token }
+
+func (te *TypeExpression) Literal() string { return te.token.Literal }
+
+func (te *TypeExpression) BaseType() *Ident { return te.baseType }
+
+func (te *TypeExpression) Operator() string { return te.operator }
+
+func (te *TypeExpression) Params() []Expression { return te.params }
+
+func (te *TypeExpression) String() string {
+	var out bytes.Buffer
+	if te.operator != "" {
+		out.WriteString(te.operator)
+		if len(te.params) > 0 {
+			out.WriteString("[")
+			params := make([]string, 0, len(te.params))
+			for _, p := range te.params {
+				params = append(params, p.String())
+			}
+			out.WriteString(strings.Join(params, ", "))
+			out.WriteString("]")
+		}
+	}
+	if te.baseType != nil {
+		out.WriteString(te.baseType.String())
+	}
+	return out.String()
+}

@@ -105,33 +105,37 @@ const (
 	RANGE           = "RANGE"
 	FROM            = "FROM"
 	AS              = "AS"
+	TYPE            = "TYPE"
+	INTERFACE       = "INTERFACE"
 )
 
 // Reserved keywords
 var keywords = map[string]Type{
-	"as":       AS,
-	"break":    BREAK,
-	"case":     CASE,
-	"const":    CONST,
-	"continue": CONTINUE,
-	"default":  DEFAULT,
-	"defer":    DEFER,
-	"else":     ELSE,
-	"false":    FALSE,
-	"for":      FOR,
-	"from":     FROM,
-	"func":     FUNC,
-	"go":       GO,
-	"if":       IF,
-	"import":   IMPORT,
-	"in":       IN,
-	"nil":      NIL,
-	"range":    RANGE,
-	"return":   RETURN,
-	"struct":   STRUCT,
-	"switch":   SWITCH,
-	"true":     TRUE,
-	"var":      VAR,
+	"as":        AS,
+	"break":     BREAK,
+	"case":      CASE,
+	"const":     CONST,
+	"continue":  CONTINUE,
+	"default":   DEFAULT,
+	"defer":     DEFER,
+	"else":      ELSE,
+	"false":     FALSE,
+	"for":       FOR,
+	"from":      FROM,
+	"func":      FUNC,
+	"go":        GO,
+	"if":        IF,
+	"import":    IMPORT,
+	"in":        IN,
+	"interface": INTERFACE,
+	"nil":       NIL,
+	"range":     RANGE,
+	"return":    RETURN,
+	"struct":    STRUCT,
+	"switch":    SWITCH,
+	"true":      TRUE,
+	"type":      TYPE,
+	"var":       VAR,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
