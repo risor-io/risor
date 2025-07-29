@@ -6,7 +6,7 @@ export GIT_REVISION=$(shell git rev-parse --short HEAD)
 .PHONY: test
 test:
 	gotestsum --junitfile /tmp/test-reports/unit-tests.xml \
-		-- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/...
+		-- -coverprofile=coverage.out -covermode=atomic ./... ./cmd/risor/... ./cmd/risor-lsp/...
 
 .PHONY: pprof
 pprof:

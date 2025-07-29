@@ -21,7 +21,7 @@
     "vscode": "^1.63.0"
   },
   "activationEvents": [
-    "onLanguage:plaintext"
+    "onLanguage:risor"
   ],
   "main": "./client/out/extension",
   "contributes": {
@@ -49,15 +49,15 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "Example configuration",
+      "title": "Risor Language Server Configuration",
       "properties": {
-        "languageServerExample.maxNumberOfProblems": {
+        "risor.maxNumberOfProblems": {
           "scope": "resource",
           "type": "number",
           "default": 100,
-          "description": "Controls the maximum number of problems produced by the server."
+          "description": "Controls the maximum number of problems produced by the Risor language server."
         },
-        "languageServerExample.trace.server": {
+        "risor.trace.server": {
           "scope": "window",
           "type": "string",
           "enum": [
@@ -66,7 +66,19 @@
             "verbose"
           ],
           "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
+          "description": "Traces the communication between VS Code and the Risor language server."
+        },
+        "risor.enableEvalDiagnostics": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "Enable evaluation-based diagnostics (may be slower)."
+        },
+        "risor.enableLintDiagnostics": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": true,
+          "description": "Enable lint-based diagnostics."
         }
       }
     }
