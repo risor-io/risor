@@ -3326,3 +3326,71 @@ func TestErrorTracebackWithFilename(t *testing.T) {
 	require.Contains(t, tracebackStr, "myFunction")
 	require.Contains(t, tracebackStr, "test error with filename")
 }
+
+func TestErrorTracebackWithDefer(t *testing.T) {
+	code := `
+	func cleanup() {
+		error("error in deferred function")
+	}
+	
+	func doWork() {
+		defer cleanup()
+		// Normal work completes, but defer will raise an error
+		x := 1 + 1
+		return x
+	}
+	
+	try(
+		doWork,
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "cleanup")
+	require.Contains(t, tracebackStr, "error in deferred function")
+	// Note: deferred functions are called after the function returns,
+	// so doWork might not appear in the traceback
+}
+
+func TestErrorTracebackInRecursiveFunction(t *testing.T) {
+	code := `
+	func factorial(n) {
+		if n < 0 {
+			error("factorial of negative number: %d", n)
+		}
+		if n <= 1 {
+			return 1
+		}
+		return n * factorial(n - 1)
+	}
+	
+	try(
+		func() {
+			// This will work fine
+			result1 := factorial(5)
+			print("5! =", result1)
+			
+			// This will cause an error
+			result2 := factorial(-3)
+			return result2
+		},
+		func(err) {
+			return err.traceback()
+		}
+	)
+	`
+	result, err := run(context.Background(), code)
+	require.NoError(t, err)
+	
+	tracebackStr := result.(*object.String).Value()
+	require.Contains(t, tracebackStr, "Traceback (most recent call last)")
+	require.Contains(t, tracebackStr, "factorial")
+	require.Contains(t, tracebackStr, "factorial of negative number: -3")
+	require.Contains(t, tracebackStr, "<anonymous>")
+}
