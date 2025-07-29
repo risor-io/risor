@@ -1082,24 +1082,24 @@ func (p *Parser) parseFor() ast.Node {
 		variable := ast.NewIdent(p.curToken)
 		p.nextToken() // Move to 'in'
 		p.nextToken() // Move past 'in'
-		
+
 		// Parse the iterable expression
 		iterable := p.parseExpression(LOWEST)
 		if iterable == nil {
 			p.setTokenError(p.curToken, "invalid iterable in for-in loop")
 			return nil
 		}
-		
+
 		// Expect opening brace directly (no colon)
 		if !p.expectPeek("for-in loop", token.LBRACE) {
 			return nil
 		}
-		
+
 		consequence := p.parseBlock()
 		if consequence == nil {
 			return nil
 		}
-		
+
 		return ast.NewForIn(forToken, variable, iterable, consequence)
 	}
 
