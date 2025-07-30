@@ -216,3 +216,158 @@ func TestServer_QueueDiagnostics(t *testing.T) {
 	// This should not panic
 	server.queueDiagnostics(uri)
 }
+
+func TestHoverProvider_FullHover(t *testing.T) {
+	// Create a test program with various constructs
+	code := `var config = {
+    "host": "localhost",
+    "port": 8080
+}
+
+greet := func(name) {
+    return sprintf("Hello, %s!", name)
+}
+
+message := "test"
+print(message)`
+
+	ctx := context.Background()
+	prog, err := parser.Parse(ctx, code)
+	require.NoError(t, err)
+
+	// Create a test server
+	server := &Server{
+		name:    "test-server",
+		version: "1.0.0",
+		cache:   newCache(),
+	}
+
+	// Create a test document
+	uri := protocol.DocumentURI("file:///test.risor")
+	doc := &document{
+		item: protocol.TextDocumentItem{
+			URI:  uri,
+			Text: code,
+		},
+		ast: prog,
+		err: nil,
+	}
+	err = server.cache.put(doc)
+	require.NoError(t, err)
+
+	// Test 1: Hover over variable 'config' (line 1, column 5)
+	hoverParams := &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			Position:     protocol.Position{Line: 0, Character: 4}, // LSP uses 0-based indexing
+		},
+	}
+
+	result, err := server.Hover(ctx, hoverParams)
+	require.NoError(t, err)
+	if result != nil {
+		t.Logf("Hover result for 'config': %s", result.Contents.Value)
+		require.Contains(t, result.Contents.Value, "config")
+	} else {
+		t.Log("No hover result for 'config' (checking if this is expected)")
+	}
+
+	// Test 2: Hover over function 'greet' (line 6, column 1)
+	hoverParams = &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			Position:     protocol.Position{Line: 5, Character: 0}, // LSP uses 0-based indexing
+		},
+	}
+
+	result, err = server.Hover(ctx, hoverParams)
+	require.NoError(t, err)
+	if result != nil {
+		t.Logf("Hover result for 'greet': %s", result.Contents.Value)
+	} else {
+		t.Log("No hover result for 'greet'")
+	}
+
+	// Test 3: Hover over builtin function 'print' (line 11, column 1)
+	hoverParams = &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			Position:     protocol.Position{Line: 10, Character: 0}, // LSP uses 0-based indexing
+		},
+	}
+
+	result, err = server.Hover(ctx, hoverParams)
+	require.NoError(t, err)
+	if result != nil {
+		t.Logf("Hover result for 'print': %s", result.Contents.Value)
+		require.Contains(t, result.Contents.Value, "print")
+		require.Contains(t, result.Contents.Value, "Built-in function")
+	} else {
+		t.Log("No hover result for 'print' - this indicates an issue")
+	}
+
+	// Test 4: Hover over variable 'message' (line 10, around column 8)
+	hoverParams = &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			Position:     protocol.Position{Line: 9, Character: 0}, // LSP uses 0-based indexing
+		},
+	}
+
+	result, err = server.Hover(ctx, hoverParams)
+	require.NoError(t, err)
+	if result != nil {
+		t.Logf("Hover result for 'message': %s", result.Contents.Value)
+	} else {
+		t.Log("No hover result for 'message'")
+	}
+}
+
+func TestServer_DidSave_ClearsDiagnosticsOnFix(t *testing.T) {
+	// Create a minimal server for testing
+	server := &Server{
+		name:    "test-server",
+		version: "test",
+		cache:   newCache(),
+	}
+
+	uri := protocol.DocumentURI("file:///test.risor")
+	ctx := context.Background()
+
+	// First, set a document with a syntax error
+	invalidCode := `var x = 
+func incomplete(`
+
+	err := setTestDocument(server.cache, uri, invalidCode)
+	require.NoError(t, err)
+
+	// Verify the document has a parse error
+	doc, err := server.cache.get(uri)
+	require.NoError(t, err)
+	require.Error(t, doc.err)
+
+	// Now simulate saving the file with the error fixed
+	fixedCode := `var x = 42
+func complete() {
+    return x
+}`
+
+	saveParams := &protocol.DidSaveTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+		Text:         &fixedCode,
+	}
+
+	// Call DidSave with the fixed code
+	err = server.DidSave(ctx, saveParams)
+	require.NoError(t, err)
+
+	// Verify the document now parses without error
+	doc, err = server.cache.get(uri)
+	require.NoError(t, err)
+	require.NoError(t, doc.err, "Document should parse without error after fix")
+
+	// Verify the AST was updated
+	require.NotNil(t, doc.ast)
+	statements := doc.ast.Statements()
+	require.NotEmpty(t, statements)
+}

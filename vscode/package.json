@@ -1,16 +1,16 @@
 {
-  "name": "risor-language",
-  "displayName": "Risor Language",
+  "name": "Risor",
+  "displayName": "Risor",
   "description": "Risor Language Support",
-  "author": "Curtis Myzie",
+  "author": "Deep Noodle",
   "license": "MIT",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "icon": "images/logo-256.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/risor-io/risor"
+    "url": "https://github.com/deepnoodle-ai/risor"
   },
-  "publisher": "CurtisMyzie",
+  "publisher": "deep-noodle",
   "categories": [
     "Programming Languages"
   ],
@@ -79,6 +79,12 @@
           "type": "boolean",
           "default": true,
           "description": "Enable lint-based diagnostics."
+        },
+        "risor.languageServerPath": {
+          "scope": "resource",
+          "type": "string",
+          "default": "",
+          "description": "Custom path to the risor-lsp binary. If empty, the extension will attempt to find or install it automatically."
         }
       }
     }
