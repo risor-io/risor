@@ -2,11 +2,9 @@ module github.com/risor-io/risor/cmd/risor-lsp
 
 go 1.23.0
 
-replace github.com/risor-io/risor => ../..
-
 require (
 	github.com/jdbaldry/go-language-server-protocol v0.0.0-20211013214444-3022da0884b2
-	github.com/risor-io/risor v1.8.0
+	github.com/risor-io/risor v1.8.1
 	github.com/rs/zerolog v1.34.0
 )
 
