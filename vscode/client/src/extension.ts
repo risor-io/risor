@@ -50,7 +50,7 @@ async function findOrInstallLanguageServer(
   try {
     window.showInformationMessage("Installing Risor Language Server...");
     await execAsync(
-      "go install github.com/deepnoodle-ai/risor/cmd/risor-lsp@latest"
+      "go install github.com/risor-io/risor/cmd/risor-lsp@v1.8.1"
     );
 
     // Verify installation
@@ -66,7 +66,7 @@ async function findOrInstallLanguageServer(
   } catch (error) {
     console.error("Failed to install risor-lsp via go install:", error);
     window.showErrorMessage(
-      "Failed to install Risor Language Server automatically. Please run: go install github.com/deepnoodle-ai/risor/cmd/risor-lsp@latest"
+      "Failed to install Risor Language Server automatically. Please run: go install github.com/risor-io/risor/cmd/risor-lsp@v1.8.1"
     );
     throw error;
   }
@@ -116,9 +116,9 @@ export async function activate(context: ExtensionContext) {
         append: (value: string) => console.log("[LSP TRACE]", value),
         appendLine: (value: string) => console.log("[LSP TRACE]", value),
         clear: () => console.log("[LSP TRACE] CLEARED"),
-        show: () => {},
-        hide: () => {},
-        dispose: () => {},
+        show: () => { },
+        hide: () => { },
+        dispose: () => { },
         replace: (value: string) => console.log("[LSP TRACE REPLACE]", value),
       },
     };
