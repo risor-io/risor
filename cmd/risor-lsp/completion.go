@@ -11,22 +11,28 @@ import (
 // Risor keywords for completion
 var risorKeywords = []string{
 	"as", "break", "case", "const", "continue", "default", "defer", "else",
-	"false", "for", "from", "func", "go", "if", "import", "in", "nil",
+	"false", "for", "from", "func", "go", "if", "import", "in", "nil", "not",
 	"range", "return", "struct", "switch", "true", "var",
 }
 
 // Common built-in functions
 var risorBuiltins = []string{
-	"len", "sprintf", "delete", "set", "list", "dict", "print", "println",
-	"range", "reverse", "sort", "map", "filter", "reduce", "any", "all",
-	"zip", "enumerate", "float", "int", "string", "bool", "type", "str",
-	"repr", "hash", "min", "max", "sum", "abs", "round", "floor", "ceil",
+	"all", "any", "assert", "bool", "buffer", "byte_slice", "byte", "call",
+	"chan", "chr", "chunk", "close", "coalesce", "decode", "delete", "encode",
+	"error", "float_slice", "float", "getattr", "hash", "int", "is_hashable",
+	"iter", "jmespath", "keys", "len", "list", "make", "map", "ord", "reversed",
+	"set", "sorted", "spawn", "sprintf", "string", "try", "type",
 }
 
 // Common modules
 var risorModules = []string{
-	"http", "json", "os", "strings", "math", "time", "base64", "fmt",
-	"exec", "filepath", "errors", "bytes", "rand", "uuid", "bcrypt",
+	"aws", "base64", "bcrypt", "bytes", "cli", "color", "dns", "echarts",
+	"errors", "exec", "filepath", "fmt", "gha", "github", "goquery",
+	"htmltomarkdown", "http", "image", "isatty", "jmespath", "json",
+	"kubernetes", "math", "net", "os", "pgx", "playwright", "qrcode",
+	"rand", "redis", "regexp", "sched", "semver", "shlex", "slack",
+	"sql", "ssh", "strconv", "strings", "tablewriter", "template",
+	"time", "uuid", "vault", "yaml",
 }
 
 func (s *Server) Completion(ctx context.Context, params *protocol.CompletionParams) (*protocol.CompletionList, error) {

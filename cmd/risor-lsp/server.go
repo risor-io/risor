@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/risor-io/risor/parser"
@@ -16,10 +17,34 @@ type Server struct {
 }
 
 func (s *Server) queueDiagnostics(uri protocol.DocumentURI) {
+	log.Info().Str("uri", string(uri)).Msg("=== queueDiagnostics: spawning publishDiagnostics goroutine ===")
 	go s.publishDiagnostics(uri)
 }
 
+// forceClearDiagnostics explicitly clears all diagnostics for a URI
+func (s *Server) forceClearDiagnostics(uri protocol.DocumentURI) {
+	log.Info().Str("uri", string(uri)).Msg("=== forceClearDiagnostics: EXPLICITLY CLEARING ALL DIAGNOSTICS ===")
+
+	if s.client != nil {
+		diagnosticsParams := &protocol.PublishDiagnosticsParams{
+			URI:         uri,
+			Diagnostics: []protocol.Diagnostic{},
+		}
+
+		err := s.client.PublishDiagnostics(context.Background(), diagnosticsParams)
+		if err != nil {
+			log.Error().Err(err).Str("uri", string(uri)).Msg("!!! forceClearDiagnostics: FAILED !!!")
+		} else {
+			log.Info().Str("uri", string(uri)).Msg("=== forceClearDiagnostics: SUCCESS ===")
+		}
+	} else {
+		log.Error().Str("uri", string(uri)).Msg("!!! forceClearDiagnostics: CLIENT IS NIL !!!")
+	}
+}
+
 func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
+	log.Info().Str("uri", string(uri)).Msg("=== publishDiagnostics START ===")
+
 	doc, err := s.cache.get(uri)
 	if err != nil {
 		log.Error().Err(err).Str("uri", string(uri)).Msg("failed to get document for diagnostics")
@@ -30,6 +55,7 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 
 	// Check for parse errors
 	if doc.err != nil {
+		log.Info().Err(doc.err).Msg("publishDiagnostics: Found parse error")
 		if parseErr, ok := doc.err.(parser.ParserError); ok {
 			startPos := parseErr.StartPosition()
 			endPos := parseErr.EndPosition()
@@ -49,6 +75,13 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 				Source:   "risor-lsp",
 				Message:  parseErr.Message(),
 			}
+			log.Info().
+				Uint32("start_line", diagnostic.Range.Start.Line).
+				Uint32("start_char", diagnostic.Range.Start.Character).
+				Uint32("end_line", diagnostic.Range.End.Line).
+				Uint32("end_char", diagnostic.Range.End.Character).
+				Str("message", diagnostic.Message).
+				Msg("Adding diagnostic for parse error")
 			diagnostics = append(diagnostics, diagnostic)
 		} else {
 			// Generic error handling for non-parser errors
@@ -61,9 +94,14 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 				Source:   "risor-lsp",
 				Message:  doc.err.Error(),
 			}
+			log.Info().Str("message", diagnostic.Message).Msg("Adding diagnostic for generic error")
 			diagnostics = append(diagnostics, diagnostic)
 		}
+	} else {
+		log.Info().Msg("publishDiagnostics: No parse errors, clearing diagnostics")
 	}
+
+	log.Info().Int("diagnostic_count", len(diagnostics)).Str("uri", string(uri)).Msg("=== SENDING DIAGNOSTICS TO VSCODE ===")
 
 	// Publish diagnostics to the client
 	if s.client != nil {
@@ -74,9 +112,15 @@ func (s *Server) publishDiagnostics(uri protocol.DocumentURI) {
 
 		err = s.client.PublishDiagnostics(context.Background(), params)
 		if err != nil {
-			log.Error().Err(err).Str("uri", string(uri)).Msg("failed to publish diagnostics")
+			log.Error().Err(err).Str("uri", string(uri)).Msg("!!! FAILED TO PUBLISH DIAGNOSTICS !!!")
+		} else {
+			log.Info().Str("uri", string(uri)).Msg("=== SUCCESSFULLY SENT DIAGNOSTICS TO VSCODE ===")
 		}
+	} else {
+		log.Error().Msg("!!! CLIENT IS NIL - CANNOT PUBLISH DIAGNOSTICS !!!")
 	}
+
+	log.Info().Str("uri", string(uri)).Msg("=== publishDiagnostics END ===")
 }
 
 func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
@@ -107,6 +151,8 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 		log.Error().Err(doc.err).Msg("parse program failed after change")
 	} else {
 		log.Info().Msg("parse program ok after change")
+		// Force clear diagnostics when parsing succeeds (clear as you type!)
+		s.forceClearDiagnostics(params.TextDocument.URI)
 	}
 
 	defer s.queueDiagnostics(params.TextDocument.URI)
@@ -149,7 +195,7 @@ func (s *Server) Initialize(ctx context.Context, params *protocol.ParamInitializ
 				Change:    protocol.Full,
 				OpenClose: true,
 				Save: protocol.SaveOptions{
-					IncludeText: false,
+					IncludeText: true,
 				},
 			},
 		},
@@ -164,22 +210,64 @@ func (s *Server) Initialize(ctx context.Context, params *protocol.ParamInitializ
 }
 
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
-	log.Info().Str("filename", params.TextDocument.URI.SpanURI().Filename()).Msg("DidSave")
+	log.Info().Str("filename", params.TextDocument.URI.SpanURI().Filename()).Str("uri", string(params.TextDocument.URI)).Msg("=== DidSave START ===")
+
+	// Debug: Check if text is provided
+	if params.Text == nil {
+		log.Warn().Str("uri", string(params.TextDocument.URI)).Msg("DidSave: No text provided in save params - cannot re-parse")
+		defer s.queueDiagnostics(params.TextDocument.URI)
+		return nil
+	}
+
+	log.Info().Int("text_length", len(*params.Text)).Str("uri", string(params.TextDocument.URI)).Msg("DidSave: Text provided - will re-parse")
+
+	// If text is provided, re-parse the document
+	doc, err := s.cache.get(params.TextDocument.URI)
+	if err != nil {
+		log.Error().Err(err).Str("uri", string(params.TextDocument.URI)).Msg("failed to get document for save")
+		return err
+	}
+
+	log.Info().Str("old_text_length", fmt.Sprintf("%d", len(doc.item.Text))).Str("new_text_length", fmt.Sprintf("%d", len(*params.Text))).Msg("DidSave: Updating document text")
+
+	// Update document text and re-parse
+	doc.item.Text = *params.Text
+	doc.ast, doc.err = parser.Parse(ctx, *params.Text)
+	if doc.err != nil {
+		log.Error().Err(doc.err).Str("uri", string(params.TextDocument.URI)).Msg("parse program failed after save - will publish error diagnostic")
+	} else {
+		log.Info().Str("uri", string(params.TextDocument.URI)).Msg("parse program ok after save - will clear diagnostics")
+		// Force clear diagnostics when parsing succeeds
+		s.forceClearDiagnostics(params.TextDocument.URI)
+	}
+
+	log.Info().Str("uri", string(params.TextDocument.URI)).Msg("=== DidSave: queuing diagnostics ===")
 	defer s.queueDiagnostics(params.TextDocument.URI)
 	return nil
 }
 
 func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
-	log.Info().Str("filename", params.TextDocument.URI.SpanURI().Filename()).Msg("DidClose")
+	log.Info().Str("filename", params.TextDocument.URI.SpanURI().Filename()).Str("uri", string(params.TextDocument.URI)).Msg("=== DidClose START - force clearing diagnostics ===")
+
 	// Clear diagnostics for closed document
 	if s.client != nil {
-		err := s.client.PublishDiagnostics(context.Background(), &protocol.PublishDiagnosticsParams{
+		diagnosticsParams := &protocol.PublishDiagnosticsParams{
 			URI:         params.TextDocument.URI,
 			Diagnostics: []protocol.Diagnostic{},
-		})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to clear diagnostics")
 		}
+
+		log.Info().Str("uri", string(diagnosticsParams.URI)).Msg("=== DidClose: FORCE CLEARING DIAGNOSTICS ===")
+
+		err := s.client.PublishDiagnostics(context.Background(), diagnosticsParams)
+		if err != nil {
+			log.Error().Err(err).Str("uri", string(diagnosticsParams.URI)).Msg("!!! DidClose: FAILED TO CLEAR DIAGNOSTICS !!!")
+		} else {
+			log.Info().Str("uri", string(diagnosticsParams.URI)).Msg("=== DidClose: SUCCESSFULLY CLEARED DIAGNOSTICS ===")
+		}
+	} else {
+		log.Error().Msg("!!! DidClose: CLIENT IS NIL !!!")
 	}
+
+	log.Info().Str("uri", string(params.TextDocument.URI)).Msg("=== DidClose END ===")
 	return nil
 }

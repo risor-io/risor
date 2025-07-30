@@ -6,17 +6,19 @@ import (
 
 	"github.com/jdbaldry/go-language-server-protocol/lsp/protocol"
 	"github.com/risor-io/risor/ast"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
 	doc, err := s.cache.get(params.TextDocument.URI)
 	if err != nil {
-		log.Error().Err(err).Str("call", "Hover").Msg("failed to get document")
 		return nil, nil
 	}
 
-	if doc.ast == nil || doc.err != nil {
+	if doc.ast == nil {
+		return nil, nil
+	}
+
+	if doc.err != nil {
 		return nil, nil
 	}
 
@@ -26,12 +28,14 @@ func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*prot
 
 	// Find the symbol at the cursor position
 	symbol := findSymbolAtPosition(doc.ast, line, column)
+
 	if symbol == "" {
 		return nil, nil
 	}
 
 	// Generate hover information for the symbol
 	info := getSymbolInfo(symbol, doc.ast)
+
 	if info == "" {
 		// Check if it's a built-in function
 		if contains(risorBuiltins, symbol) {
@@ -79,6 +83,7 @@ func findIdentInNode(node ast.Node, line, column int) string {
 		name := n.Name()
 		pos := n.Token().StartPosition
 		endPos := n.Token().EndPosition
+
 		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
 			return name
 		}
@@ -93,6 +98,7 @@ func findIdentInNode(node ast.Node, line, column int) string {
 			name := n.Name().String()
 			pos := n.Token().StartPosition
 			endPos := n.Token().EndPosition
+
 			if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
 				return name
 			}
@@ -101,10 +107,40 @@ func findIdentInNode(node ast.Node, line, column int) string {
 		// Check if this identifier is at the requested position
 		pos := n.Token().StartPosition
 		endPos := n.Token().EndPosition
+		identValue := n.String()
+
 		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
-			return n.String()
+			return identValue
 		}
+	case *ast.Call:
+		// Check the function being called
+		if function := n.Function(); function != nil {
+			if symbol := findIdentInNode(function, line, column); symbol != "" {
+				return symbol
+			}
+		}
+		// Check arguments
+		for _, arg := range n.Arguments() {
+			if symbol := findIdentInNode(arg, line, column); symbol != "" {
+				return symbol
+			}
+		}
+	case *ast.Index:
+		// Check the left side (what's being indexed)
+		if left := n.Left(); left != nil {
+			if symbol := findIdentInNode(left, line, column); symbol != "" {
+				return symbol
+			}
+		}
+		// Check the index expression
+		if index := n.Index(); index != nil {
+			if symbol := findIdentInNode(index, line, column); symbol != "" {
+				return symbol
+			}
+		}
+	default:
 	}
+
 	return ""
 }
 
@@ -114,8 +150,9 @@ func findIdentInNodeRecursive(node ast.Node, line, column int) string {
 	if ident, ok := node.(*ast.Ident); ok {
 		pos := ident.Token().StartPosition
 		endPos := ident.Token().EndPosition
+		identValue := ident.String()
 		if pos.LineNumber() == line && pos.ColumnNumber() <= column && column <= endPos.ColumnNumber() {
-			return ident.String()
+			return identValue
 		}
 	}
 
@@ -127,6 +164,7 @@ func findIdentInNodeRecursive(node ast.Node, line, column int) string {
 	case *ast.Var:
 		name, _ := n.Value()
 		varPos := n.Token().StartPosition
+
 		if varPos.LineNumber() == line {
 			var identStartCol, identEndCol int
 			if n.IsWalrus() {
@@ -142,8 +180,8 @@ func findIdentInNodeRecursive(node ast.Node, line, column int) string {
 				return name
 			}
 		}
+	default:
 	}
-
 	return ""
 }
 
@@ -153,7 +191,9 @@ func getSymbolInfo(symbol string, program *ast.Program) string {
 	for _, stmt := range program.Statements() {
 		switch s := stmt.(type) {
 		case *ast.Assign:
-			if s.Name() == symbol {
+			assignName := s.Name()
+
+			if assignName == symbol {
 				return fmt.Sprintf("**%s** - Variable\n\nAssigned in this file", symbol)
 			}
 		case *ast.Var:
@@ -167,7 +207,6 @@ func getSymbolInfo(symbol string, program *ast.Program) string {
 			// This could be enhanced later to find functions assigned to variables
 		}
 	}
-
 	return ""
 }
 

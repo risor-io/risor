@@ -25,11 +25,22 @@ install-tools:
 
 .PHONY: extension-login
 extension-login:
-	cd vscode && vsce login $(VSCE_LOGIN)
+	npx vsce login $(VSCE_LOGIN)
 
-.PHONY: extension
-extension:
-	cd vscode && vsce package && vsce publish
+.PHONY: extension-package
+extension-package:
+	cd vscode && npx vsce package
+
+.PHONY: extension-install
+extension-install:
+	go install ./cmd/risor-lsp
+	$(MAKE) extension-package
+	cd vscode && code --install-extension risor-*.vsix
+
+.PHONY: extension-publish
+extension-publish:
+	$(MAKE) extension-package
+	cd vscode && npx vsce publish
 
 .PHONY: postgres
 postgres:
