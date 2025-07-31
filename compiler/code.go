@@ -32,6 +32,7 @@ type Code struct {
 	source       string
 	functionID   string
 	filename     string // The source file this code came from
+	lineNumbers  []int  // Line number for each instruction
 
 	// Used during compilation only
 	loops      []*loop
@@ -163,4 +164,19 @@ func (c *Code) Flatten() []*Code {
 
 func (c *Code) Filename() string {
 	return c.filename
+}
+
+func (c *Code) LineNumberForInstruction(index int) int {
+	if index >= 0 && index < len(c.lineNumbers) {
+		return c.lineNumbers[index]
+	}
+	return 0
+}
+
+func (c *Code) SetLineNumber(instructionIndex int, lineNumber int) {
+	// Ensure the lineNumbers slice is large enough
+	for len(c.lineNumbers) <= instructionIndex {
+		c.lineNumbers = append(c.lineNumbers, 0)
+	}
+	c.lineNumbers[instructionIndex] = lineNumber
 }

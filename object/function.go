@@ -124,6 +124,20 @@ func (f *Function) Function() *compiler.Function {
 	return f.fn
 }
 
+func (f *Function) LineNumber() int {
+	if f.fn != nil {
+		return f.fn.LineNumber()
+	}
+	return 0
+}
+
+func (f *Function) ColumnNumber() int {
+	if f.fn != nil {
+		return f.fn.ColumnNumber()
+	}
+	return 0
+}
+
 func (f *Function) Parameters() []string {
 	return f.parameters
 }
@@ -184,8 +198,10 @@ func NewFunction(fn *compiler.Function) *Function {
 	}
 
 	return &Function{
+		base:          &base{},
 		name:          fn.Name(),
 		code:          fn.Code(),
+		fn:            fn,
 		parameters:    parameters,
 		defaults:      defaults,
 		defaultsCount: defaultsCount,

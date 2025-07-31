@@ -44,6 +44,9 @@ type Compiler struct {
 
 	// Source filename
 	filename string
+
+	// Current line number during compilation for tracking instruction positions
+	currentLineNumber int
 }
 
 // Option is a configuration function for a Compiler.
@@ -180,6 +183,11 @@ func (c *Compiler) collectFunctionDeclarations(node ast.Node) error {
 
 // compile the given AST node and all its children.
 func (c *Compiler) compile(node ast.Node) error {
+	// Update current line number from the AST node's token
+	if token := node.Token(); token.StartPosition.Line >= 0 {
+		c.currentLineNumber = token.StartPosition.LineNumber()
+	}
+	
 	switch node := node.(type) {
 	case *ast.Nil:
 		if err := c.compileNil(); err != nil {
@@ -1174,11 +1182,13 @@ func (c *Compiler) compileFunc(node *ast.Func) error {
 
 	// Create the function that contains the compiled code
 	fn := NewFunction(FunctionOpts{
-		ID:         functionID,
-		Name:       functionName,
-		Parameters: params,
-		Defaults:   defaults,
-		Code:       code,
+		ID:           functionID,
+		Name:         functionName,
+		Parameters:   params,
+		Defaults:     defaults,
+		Code:         code,
+		LineNumber:   node.Token().StartPosition.LineNumber(),
+		ColumnNumber: node.Token().StartPosition.ColumnNumber(),
 	})
 
 	// Emit the code to load the function object onto the stack. If there are
@@ -1938,6 +1948,12 @@ func (c *Compiler) emit(opcode op.Code, operands ...uint16) int {
 	code := c.current
 	pos := len(code.instructions)
 	code.instructions = append(code.instructions, inst...)
+	
+	// Track line number for each instruction
+	for i := 0; i < len(inst); i++ {
+		code.SetLineNumber(pos+i, c.currentLineNumber)
+	}
+	
 	return pos
 }
 
