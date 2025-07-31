@@ -12,6 +12,8 @@ type Function struct {
 	parameters []string
 	defaults   []any
 	code       *Code
+	lineNumber int // Line number where function is defined
+	columnNumber int // Column number where function is defined
 }
 
 func (f *Function) ID() string {
@@ -44,6 +46,14 @@ func (f *Function) Default(index int) any {
 
 func (f *Function) RequiredArgsCount() int {
 	return len(f.parameters) - len(f.defaults)
+}
+
+func (f *Function) LineNumber() int {
+	return f.lineNumber
+}
+
+func (f *Function) ColumnNumber() int {
+	return f.columnNumber
 }
 
 func (f *Function) LocalsCount() int {
@@ -81,19 +91,23 @@ func (f *Function) String() string {
 }
 
 type FunctionOpts struct {
-	ID         string
-	Name       string
-	Parameters []string
-	Defaults   []any
-	Code       *Code
+	ID           string
+	Name         string
+	Parameters   []string
+	Defaults     []any
+	Code         *Code
+	LineNumber   int
+	ColumnNumber int
 }
 
 func NewFunction(opts FunctionOpts) *Function {
 	return &Function{
-		id:         opts.ID,
-		name:       opts.Name,
-		parameters: opts.Parameters,
-		defaults:   opts.Defaults,
-		code:       opts.Code,
+		id:           opts.ID,
+		name:         opts.Name,
+		parameters:   opts.Parameters,
+		defaults:     opts.Defaults,
+		code:         opts.Code,
+		lineNumber:   opts.LineNumber,
+		columnNumber: opts.ColumnNumber,
 	}
 }

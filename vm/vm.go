@@ -1140,9 +1140,19 @@ func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 			}
 			
 			fileName := ""
+			lineNumber := frame.fn.LineNumber() // Function definition line
+			
 			// Try to get filename from the function's code first
 			if frame.fn.Code() != nil {
 				fileName = frame.fn.Code().Filename()
+				
+				// If we're in the current frame, get the actual execution line
+				if i == vm.fp && vm.ip > 0 {
+					// Get line number for the current instruction
+					if execLineNumber := frame.fn.Code().LineNumberForInstruction(vm.ip - 1); execLineNumber > 0 {
+						lineNumber = execLineNumber
+					}
+				}
 			} else if frame.code != nil && frame.code.Code != nil {
 				// Fall back to frame's code
 				fileName = frame.code.Code.Filename()
@@ -1151,19 +1161,29 @@ func (vm *VirtualMachine) captureStackTrace() []object.StackFrame {
 			frames = append(frames, object.StackFrame{
 				FunctionName: functionName,
 				FileName:     fileName,
-				LineNumber:   0,  // TODO: Add line number support when available
+				LineNumber:   lineNumber,
 			})
 		} else if frame.code != nil {
 			// This is a code frame (main execution)
 			fileName := ""
+			lineNumber := 0
+			
 			if frame.code.Code != nil {
 				fileName = frame.code.Code.Filename()
+				
+				// If we're in the current frame, get the actual execution line
+				if i == vm.fp && vm.ip > 0 {
+					// Get line number for the current instruction
+					if execLineNumber := frame.code.Code.LineNumberForInstruction(vm.ip - 1); execLineNumber > 0 {
+						lineNumber = execLineNumber
+					}
+				}
 			}
 			
 			frames = append(frames, object.StackFrame{
 				FunctionName: "<module>",
 				FileName:     fileName,
-				LineNumber:   0,  // TODO: Add line number support when available
+				LineNumber:   lineNumber,
 			})
 		}
 		
