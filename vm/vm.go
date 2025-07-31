@@ -104,6 +104,17 @@ func createVM(options []Option) (*VirtualMachine, error) {
 	if err := vm.applyOptions(options); err != nil {
 		return nil, err
 	}
+	
+	// Initialize slices to point to legacy arrays when in legacy mode
+	if !vm.useDynamic {
+		vm.stack = vm.legacyStack[:]
+		vm.frames = vm.legacyFrames[:]
+		vm.tmp = vm.legacyTmp[:]
+		vm.stackCap = MaxStackDepth
+		vm.framesCap = MaxFrameDepth
+		vm.tmpCap = MaxArgs
+	}
+	
 	return vm, nil
 }
 
@@ -356,10 +367,13 @@ func (vm *VirtualMachine) resetForNewCode() {
 	vm.loadedCode = map[*compiler.Code]*code{}
 	vm.modules = map[string]*object.Module{}
 
+	// Clear arrays (slices point to legacy arrays when not dynamic)
 	if vm.useDynamic {
-		// Clear dynamic arrays
-		for i := 0; i <= vm.sp && i < vm.stackCap; i++ {
-			vm.stack[i] = nil
+		// Clear dynamic arrays up to current usage
+		if vm.sp >= 0 && vm.sp < vm.stackCap {
+			for i := 0; i <= vm.sp; i++ {
+				vm.stack[i] = nil
+			}
 		}
 		for i := 0; i < vm.framesCap; i++ {
 			vm.frames[i] = frame{}
@@ -372,13 +386,13 @@ func (vm *VirtualMachine) resetForNewCode() {
 	} else {
 		// Clear legacy fixed arrays
 		for i := 0; i < MaxStackDepth; i++ {
-			vm.legacyStack[i] = nil
+			vm.stack[i] = nil // This now points to legacyStack
 		}
 		for i := 0; i < MaxFrameDepth; i++ {
-			vm.legacyFrames[i] = frame{}
+			vm.frames[i] = frame{} // This now points to legacyFrames
 		}
 		for i := 0; i < MaxArgs; i++ {
-			vm.legacyTmp[i] = nil
+			vm.tmp[i] = nil // This now points to legacyTmp
 		}
 	}
 }
@@ -726,7 +740,11 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			vm.push(container.Len())
 		case op.Copy:
 			offset := vm.fetch()
-			vm.push(vm.stack[vm.sp-int(offset)])
+			if vm.useDynamic {
+				vm.push(vm.stack[vm.sp-int(offset)])
+			} else {
+				vm.push(vm.legacyStack[vm.sp-int(offset)])
+			}
 		case op.Import:
 			name, ok := vm.pop().(*object.String)
 			if !ok {
@@ -1183,7 +1201,11 @@ func (vm *VirtualMachine) activateFunction(fp, ip int, fn *object.Function, loca
 	returnSp := vm.sp
 	vm.fp = fp
 	vm.ip = ip
-	vm.activeFrame = &vm.frames[fp]
+	if vm.useDynamic {
+		vm.activeFrame = &vm.frames[fp]
+	} else {
+		vm.activeFrame = &vm.legacyFrames[fp]
+	}
 	vm.activeFrame.ActivateFunction(fn, code, returnAddr, returnSp, locals)
 	vm.activeCode = code
 	return vm.activeFrame
