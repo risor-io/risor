@@ -19,11 +19,17 @@ import (
 )
 
 const (
+	// Legacy constants for backward compatibility
 	MaxArgs       = 256
 	MaxFrameDepth = 1024
 	MaxStackDepth = 1024
-	StopSignal    = -1
-	MB            = 1024 * 1024
+	
+	// Dynamic allocation constants
+	StopSignal         = -1
+	MB                 = 1024 * 1024
+	StackGrowthFactor  = 2
+	FrameGrowthFactor  = 1.5
+	StackShrinkThreshold = 0.25  // Shrink when usage < 25% of capacity
 )
 
 var ErrGlobalNotFound = errors.New("global not found")
@@ -47,9 +53,21 @@ type VirtualMachine struct {
 	concAllowed  bool
 	runMutex     sync.Mutex
 	cloneMutex   sync.Mutex
-	tmp          [MaxArgs]object.Object
-	stack        [MaxStackDepth]object.Object
-	frames       [MaxFrameDepth]frame
+	
+	// Dynamic memory allocation fields
+	memoryLimits VMMemoryLimits
+	tmp          []object.Object
+	tmpCap       int
+	stack        []object.Object
+	stackCap     int
+	frames       []frame
+	framesCap    int
+	
+	// Legacy fixed arrays for backward compatibility when dynamic allocation is disabled
+	legacyTmp    [MaxArgs]object.Object
+	legacyStack  [MaxStackDepth]object.Object
+	legacyFrames [MaxFrameDepth]frame
+	useDynamic   bool
 }
 
 // New creates a new Virtual Machine.
@@ -81,11 +99,120 @@ func createVM(options []Option) (*VirtualMachine, error) {
 		inputGlobals: map[string]any{},
 		globals:      map[string]object.Object{},
 		loadedCode:   map[*compiler.Code]*code{},
+		useDynamic:   false, // Default to legacy mode for backward compatibility
 	}
 	if err := vm.applyOptions(options); err != nil {
 		return nil, err
 	}
 	return vm, nil
+}
+
+// initializeDynamicMemory sets up dynamic memory allocation for the VM
+func (vm *VirtualMachine) initializeDynamicMemory() {
+	vm.useDynamic = true
+	
+	// Initialize stack with initial capacity
+	vm.stackCap = vm.memoryLimits.InitialStackSize
+	vm.stack = make([]object.Object, vm.stackCap)
+	
+	// Initialize frames with initial capacity  
+	vm.framesCap = vm.memoryLimits.InitialFrameCount
+	vm.frames = make([]frame, vm.framesCap)
+	
+	// Initialize tmp with default capacity
+	vm.tmpCap = 64 // Start with reasonable size
+	vm.tmp = make([]object.Object, vm.tmpCap)
+}
+
+// ensureStackCapacity grows the stack if needed, returns error on limit exceeded
+func (vm *VirtualMachine) ensureStackCapacity(needed int) error {
+	if needed > vm.memoryLimits.MaxStackSize {
+		return fmt.Errorf("stack overflow: needed %d, max %d", needed, vm.memoryLimits.MaxStackSize)
+	}
+	
+	if needed > vm.stackCap {
+		newCap := vm.stackCap * StackGrowthFactor
+		if newCap > vm.memoryLimits.MaxStackSize {
+			newCap = vm.memoryLimits.MaxStackSize
+		}
+		if newCap < needed {
+			newCap = needed
+		}
+		
+		newStack := make([]object.Object, newCap)
+		copy(newStack, vm.stack[:vm.sp+1])
+		vm.stack = newStack
+		vm.stackCap = newCap
+	}
+	return nil
+}
+
+// maybeShrinkStack shrinks the stack if usage is low enough
+func (vm *VirtualMachine) maybeShrinkStack() {
+	usage := vm.sp + 1
+	threshold := int(float64(vm.stackCap) * StackShrinkThreshold)
+	
+	if usage < threshold && vm.stackCap > vm.memoryLimits.InitialStackSize*2 {
+		newCap := vm.stackCap / 2
+		if newCap < vm.memoryLimits.InitialStackSize {
+			newCap = vm.memoryLimits.InitialStackSize
+		}
+		
+		newStack := make([]object.Object, newCap)
+		copy(newStack, vm.stack[:usage])
+		// Clear references in old stack
+		for i := usage; i < vm.stackCap; i++ {
+			vm.stack[i] = nil
+		}
+		vm.stack = newStack
+		vm.stackCap = newCap
+	}
+}
+
+// ensureFrameCapacity grows the frames slice if needed
+func (vm *VirtualMachine) ensureFrameCapacity(needed int) error {
+	if needed > vm.memoryLimits.MaxFrameCount {
+		return fmt.Errorf("frame depth exceeded: needed %d, max %d", needed, vm.memoryLimits.MaxFrameCount)
+	}
+	
+	if needed > vm.framesCap {
+		newCap := int(float64(vm.framesCap) * FrameGrowthFactor)
+		if newCap > vm.memoryLimits.MaxFrameCount {
+			newCap = vm.memoryLimits.MaxFrameCount
+		}
+		if newCap < needed {
+			newCap = needed
+		}
+		
+		newFrames := make([]frame, newCap)
+		copy(newFrames, vm.frames[:vm.framesCap])
+		vm.frames = newFrames
+		vm.framesCap = newCap
+	}
+	return nil
+}
+
+// ensureTmpCapacity grows the tmp slice if needed for function arguments
+func (vm *VirtualMachine) ensureTmpCapacity(needed int) error {
+	if needed > vm.memoryLimits.MaxArgsLimit {
+		return fmt.Errorf("argument count exceeded: needed %d, max %d", needed, vm.memoryLimits.MaxArgsLimit)
+	}
+	
+	if needed > vm.tmpCap {
+		newCap := needed
+		if newCap < vm.tmpCap*2 {
+			newCap = vm.tmpCap * 2
+		}
+		if newCap > vm.memoryLimits.MaxArgsLimit {
+			newCap = vm.memoryLimits.MaxArgsLimit
+		}
+		
+		newTmp := make([]object.Object, newCap)
+		copy(newTmp, vm.tmp[:vm.tmpCap])
+		vm.tmp = newTmp
+		vm.tmpCap = newCap
+	}
+	return nil
 }
 
 func (vm *VirtualMachine) applyOptions(options []Option) error {
@@ -229,15 +356,30 @@ func (vm *VirtualMachine) resetForNewCode() {
 	vm.loadedCode = map[*compiler.Code]*code{}
 	vm.modules = map[string]*object.Module{}
 
-	// Clear arrays
-	for i := 0; i < MaxStackDepth; i++ {
-		vm.stack[i] = nil
-	}
-	for i := 0; i < MaxFrameDepth; i++ {
-		vm.frames[i] = frame{}
-	}
-	for i := 0; i < MaxArgs; i++ {
-		vm.tmp[i] = nil
+	if vm.useDynamic {
+		// Clear dynamic arrays
+		for i := 0; i <= vm.sp && i < vm.stackCap; i++ {
+			vm.stack[i] = nil
+		}
+		for i := 0; i < vm.framesCap; i++ {
+			vm.frames[i] = frame{}
+		}
+		for i := 0; i < vm.tmpCap; i++ {
+			vm.tmp[i] = nil
+		}
+		// Opportunistically shrink if we're using too much memory
+		vm.maybeShrinkStack()
+	} else {
+		// Clear legacy fixed arrays
+		for i := 0; i < MaxStackDepth; i++ {
+			vm.legacyStack[i] = nil
+		}
+		for i := 0; i < MaxFrameDepth; i++ {
+			vm.legacyFrames[i] = frame{}
+		}
+		for i := 0; i < MaxArgs; i++ {
+			vm.legacyTmp[i] = nil
+		}
 	}
 }
 
@@ -315,18 +457,16 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 				}
 				vm.push(attr)
 			default:
-				vm.push(value)
 			}
 		case op.LoadConst:
-			vm.push(vm.activeCode.Constants[vm.fetch()])
 		case op.LoadFast:
-			vm.push(vm.activeFrame.Locals()[vm.fetch()])
 		case op.LoadGlobal:
-			vm.push(vm.activeCode.Globals[vm.fetch()])
 		case op.LoadFree:
 			idx := vm.fetch()
 			freeVars := vm.activeFrame.fn.FreeVars()
 			obj := freeVars[idx].Value()
+			vm.push(obj)
+			vm.push(obj)
 			vm.push(obj)
 		case op.StoreFast:
 			idx := vm.fetch()
@@ -369,7 +509,12 @@ func (vm *VirtualMachine) eval(ctx context.Context) error {
 			if frameIndex < 0 {
 				return errz.EvalErrorf("eval error: no frame at depth %d", framesBack)
 			}
-			frame := &vm.frames[frameIndex]
+			var frame *frame
+			if vm.useDynamic {
+				frame = &vm.frames[frameIndex]
+			} else {
+				frame = &vm.legacyFrames[frameIndex]
+			}
 			locals := frame.CaptureLocals()
 			vm.push(object.NewCell(&locals[symbolIndex]))
 		case op.Nil:
@@ -757,29 +902,61 @@ func (vm *VirtualMachine) TOS() (object.Object, bool) {
 	vm.runMutex.Lock()
 	defer vm.runMutex.Unlock()
 	if !vm.running && vm.sp >= 0 {
-		return vm.stack[vm.sp], true
+		if vm.useDynamic {
+			return vm.stack[vm.sp], true
+		} else {
+			return vm.legacyStack[vm.sp], true
+		}
 	}
 	return nil, false
 }
 
 func (vm *VirtualMachine) pop() object.Object {
-	obj := vm.stack[vm.sp]
-	vm.stack[vm.sp] = nil
-	vm.sp--
-	return obj
+	if vm.useDynamic {
+		obj := vm.stack[vm.sp]
+		vm.stack[vm.sp] = nil
+		vm.sp--
+		return obj
+	} else {
+		obj := vm.legacyStack[vm.sp]
+		vm.legacyStack[vm.sp] = nil
+		vm.sp--
+		return obj
+	}
 }
 
 func (vm *VirtualMachine) push(obj object.Object) {
 	vm.sp++
-	vm.stack[vm.sp] = obj
+	if vm.useDynamic {
+		if err := vm.ensureStackCapacity(vm.sp + 1); err != nil {
+			vm.sp-- // Rollback on error
+			panic(fmt.Sprintf("stack overflow: %s", err.Error()))
+		}
+		vm.stack[vm.sp] = obj
+	} else {
+		if vm.sp >= MaxStackDepth {
+			vm.sp-- // Rollback on error
+			panic(fmt.Sprintf("stack overflow: max depth %d exceeded", MaxStackDepth))
+		}
+		vm.legacyStack[vm.sp] = obj
+	}
 }
+
+
 
 func (vm *VirtualMachine) swap(pos int) {
 	otherIndex := vm.sp - pos
-	tos := vm.stack[vm.sp]
-	other := vm.stack[otherIndex]
-	vm.stack[otherIndex] = tos
-	vm.stack[vm.sp] = other
+	if vm.useDynamic {
+		tos := vm.stack[vm.sp]
+		other := vm.stack[otherIndex]
+		vm.stack[otherIndex] = tos
+		vm.stack[vm.sp] = other
+	} else {
+		tos := vm.legacyStack[vm.sp]
+		other := vm.legacyStack[otherIndex]
+		vm.legacyStack[otherIndex] = tos
+		vm.legacyStack[vm.sp] = other
+	}
 }
 
 func (vm *VirtualMachine) fetch() uint16 {
@@ -838,22 +1015,60 @@ func (vm *VirtualMachine) callFunction(
 	// Assemble frame local variables in vm.tmp. The local variable order is:
 	// 1. Function parameters
 	// 2. Function name (if the function is named)
-	copy(vm.tmp[:argc], args)
-	if argc < paramsCount {
-		defaults := fn.Defaults()
-		for i := argc; i < len(defaults); i++ {
-			vm.tmp[i] = defaults[i]
+	if vm.useDynamic {
+		if err := vm.ensureTmpCapacity(argc); err != nil {
+			panic(fmt.Sprintf("argument capacity exceeded: %s", err.Error()))
 		}
-		argc = paramsCount
-	}
-	code := fn.Code()
-	if code.IsNamed() {
-		vm.tmp[paramsCount] = fn
-		argc++
+		copy(vm.tmp[:argc], args)
+		if argc < paramsCount {
+			defaults := fn.Defaults()
+			if err := vm.ensureTmpCapacity(paramsCount); err != nil {
+				panic(fmt.Sprintf("argument capacity exceeded: %s", err.Error()))
+			}
+			for i := argc; i < len(defaults); i++ {
+				vm.tmp[i] = defaults[i]
+			}
+			argc = paramsCount
+		}
+		code := fn.Code()
+		if code.IsNamed() {
+			if err := vm.ensureTmpCapacity(argc + 1); err != nil {
+				panic(fmt.Sprintf("argument capacity exceeded: %s", err.Error()))
+			}
+			vm.tmp[paramsCount] = fn
+			argc++
+		}
+	} else {
+		if argc > MaxArgs {
+			panic(fmt.Sprintf("argument count exceeded: max args %d exceeded", MaxArgs))
+		}
+		copy(vm.legacyTmp[:argc], args)
+		if argc < paramsCount {
+			defaults := fn.Defaults()
+			if paramsCount > MaxArgs {
+				panic(fmt.Sprintf("argument count exceeded: max args %d exceeded", MaxArgs))
+			}
+			for i := argc; i < len(defaults); i++ {
+				vm.legacyTmp[i] = defaults[i]
+			}
+			argc = paramsCount
+		}
+		code := fn.Code()
+		if code.IsNamed() {
+			if argc+1 > MaxArgs {
+				panic(fmt.Sprintf("argument count exceeded: max args %d exceeded", MaxArgs))
+			}
+			vm.legacyTmp[paramsCount] = fn
+			argc++
+		}
 	}
 
 	// Activate a frame for the function call
-	vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
+	if vm.useDynamic {
+		vm.activateFunction(vm.fp+1, 0, fn, vm.tmp[:argc])
+	} else {
+		vm.activateFunction(vm.fp+1, 0, fn, vm.legacyTmp[:argc])
+	}
 
 	// Setting StopSignal as the return address will cause the eval function to
 	// stop execution when it reaches the end of the active code.
@@ -941,7 +1156,11 @@ func (vm *VirtualMachine) resumeFrame(fp, ip, sp int) *frame {
 	// Activate the resumed frame
 	vm.fp = fp
 	vm.ip = ip
-	vm.activeFrame = &vm.frames[fp]
+	if vm.useDynamic {
+		vm.activeFrame = &vm.frames[fp]
+	} else {
+		vm.activeFrame = &vm.legacyFrames[fp]
+	}
 	vm.activeCode = vm.activeFrame.code
 	return vm.activeFrame
 }
